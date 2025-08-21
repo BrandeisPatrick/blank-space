@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ui-grid-ai/*": ["packages/*/src"]
+    }
+  },
+  "include": [],
+  "references": [
+    { "path": "./apps/studio" },
+    { "path": "./apps/server" },
+    { "path": "./packages/grid-engine" },
+    { "path": "./packages/compiler" },
+    { "path": "./packages/preview-sandbox" },
+    { "path": "./packages/codegen-prompts" }
+  ]
+}
