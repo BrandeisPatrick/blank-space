@@ -46,7 +46,7 @@ export const ChatInput = ({ onSend }: ChatInputProps) => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe the website you want to create..."
+            placeholder="Say hello or describe what you want to build..."
             disabled={isGenerating}
             style={{
               width: '100%',

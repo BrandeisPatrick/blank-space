@@ -49,6 +49,51 @@ export class GenerationService {
     }
   }
 
+  async generateChatResponse(message: string, context?: {
+    hasActiveCode?: boolean
+    recentMessages?: string[]
+    currentArtifacts?: number
+  }): Promise<string> {
+    try {
+      console.log('Making chat request to:', `${API_BASE_URL}/chat`)
+      console.log('Request payload:', { message, context })
+      
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          context
+        })
+      })
+
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Response error:', error)
+        throw new Error(error.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Response data:', data)
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Chat response failed')
+      }
+
+      return data.response
+    } catch (error) {
+      console.error('Chat error details:', error)
+      console.error('Error type:', typeof error)
+      console.error('Error message:', error.message)
+      throw error
+    }
+  }
+
   async checkHealth(): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE_URL}/health`)

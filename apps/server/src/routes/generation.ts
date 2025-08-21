@@ -8,7 +8,17 @@ const generateRequestSchema = z.object({
   framework: z.string().optional()
 })
 
+const chatRequestSchema = z.object({
+  message: z.string().min(1),
+  context: z.object({
+    hasActiveCode: z.boolean().optional(),
+    recentMessages: z.array(z.string()).optional(),
+    currentArtifacts: z.number().optional()
+  }).optional()
+})
+
 type GenerateRequest = z.infer<typeof generateRequestSchema>
+type ChatRequest = z.infer<typeof chatRequestSchema>
 
 export const generationRoutes: FastifyPluginAsync = async (fastify) => {
   const groq = new Groq({
@@ -102,6 +112,66 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate website'
+      })
+    }
+  })
+
+  fastify.post<{ Body: ChatRequest }>('/chat', async (request, reply) => {
+    try {
+      const { message, context = {} } = chatRequestSchema.parse(request.body)
+
+      const systemPrompt = `You are a friendly and enthusiastic AI assistant that specializes in helping people build websites and web applications. You have a warm, conversational personality.
+
+Key traits:
+- Warm, friendly, and approachable
+- Enthusiastic about web development and creative projects
+- Use emojis naturally in conversation
+- Ask follow-up questions to show interest
+- Be helpful and encouraging
+- Give human-like responses to personal questions like "how is your day"
+
+Context about your capabilities:
+- You can generate HTML, CSS, and JavaScript code
+- You help create websites, web pages, and applications
+- You work with responsive designs and modern web technologies
+
+Current context:
+- User has active projects: ${context.hasActiveCode ? 'Yes' : 'No'}
+- Number of user's projects: ${context.currentArtifacts || 0}
+
+Respond naturally and conversationally. If they're just chatting (greetings, personal questions), be friendly and engaging. If they want to build something, offer to help and ask what they'd like to create.`
+
+      const completion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.8,
+        max_tokens: 1000
+      })
+
+      const responseContent = completion.choices[0]?.message?.content
+      if (!responseContent) {
+        throw new Error('No response from AI')
+      }
+
+      return reply.send({
+        success: true,
+        response: responseContent,
+        message: 'Chat response generated successfully'
+      })
+    } catch (error) {
+      fastify.log.error(error)
+      return reply.status(500).send({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate chat response'
       })
     }
   })
