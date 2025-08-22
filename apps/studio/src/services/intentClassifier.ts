@@ -1,7 +1,11 @@
+import { ResponseMode, RESPONSE_MODES } from '../types'
+
 export interface IntentResult {
   intent: 'conversation' | 'generation' | 'modification' | 'explanation'
   confidence: number
   suggestedAction?: string
+  shouldExecuteDirectly?: boolean
+  shouldShowOptions?: boolean
 }
 
 export class IntentClassifier {
@@ -39,13 +43,23 @@ export class IntentClassifier {
     /(create|build|make|generate) (a |an )?(page|site|app|application)/i,
     /(build|create) (me )?a .*(portfolio|blog|dashboard|landing page)/i,
     
+    // Direct build requests for components/apps
+    /(build|create|make|generate) (a |an )?.*(todo|task|shopping|contact|calculator|timer|clock|counter|form|game|wheel|spinner|carousel)/i,
+    /(web|simple|basic) .*(todo|task|shopping|contact|calculator|timer|clock|counter|form|game|wheel|spinner)/i,
+    /(todo|task) (list|app|manager)/i,
+    /(spin|spinning) wheel/i,
+    /just (build|create|make) it/i,
+    
     // Website types
     /(portfolio|blog|e-?commerce|dashboard|landing page) (website|page|site)/i,
     /website (for|about|with)/i,
     
     // Component requests
-    /(navigation|header|footer|sidebar|form|button) component/i,
+    /(navigation|header|footer|sidebar|form|button|wheel|spinner) component/i,
     /(login|signup|contact) (form|page)/i,
+    
+    // Implicit requests when mentioning specific things to build
+    /(wheel|spinner|carousel|slider|modal|popup)/i,
   ]
 
   private modificationPatterns = [
@@ -57,6 +71,12 @@ export class IntentClassifier {
     // Style changes
     /change the (color|background|font|size)/i,
     /(center|align|move) (this|the)/i,
+    
+    // Feedback indicating missing/broken functionality
+    /(i\s+(do\s+not|don\'t|can\'t)\s+see|not\s+working|doesn\'t\s+work|missing|where\s+is)/i,
+    /(not\s+showing|not\s+visible|not\s+there|doesn\'t\s+appear)/i,
+    /(broken|error|problem|issue|bug)/i,
+    /(it\s+(should|needs|has\s+to)|supposed\s+to)/i,
   ]
 
   private explanationPatterns = [
@@ -70,8 +90,9 @@ export class IntentClassifier {
     /(what'?s the difference between|compare)/i,
   ]
 
-  classify(message: string, hasActiveCode: boolean = false): IntentResult {
+  classify(message: string, hasActiveCode: boolean = false, responseMode: ResponseMode = 'show-options'): IntentResult {
     const trimmed = message.trim()
+    const modeConfig = RESPONSE_MODES[responseMode]
     
     // Check conversation patterns first (highest priority for short messages)
     if (trimmed.length < 50) {
@@ -80,32 +101,38 @@ export class IntentClassifier {
           return {
             intent: 'conversation',
             confidence: 0.9,
-            suggestedAction: 'Provide friendly conversational response'
+            suggestedAction: 'Provide friendly conversational response',
+            shouldExecuteDirectly: true, // Conversation is always direct
+            shouldShowOptions: false
           }
+        }
+      }
+    }
+
+    // Always check modification patterns first when user seems to be giving feedback
+    for (const pattern of this.modificationPatterns) {
+      if (pattern.test(message)) {
+        return {
+          intent: hasActiveCode ? 'modification' : 'generation',
+          confidence: 0.9,
+          suggestedAction: hasActiveCode ? 'Modify existing code to fix the issue' : 'Generate working code that addresses the concern',
+          shouldExecuteDirectly: modeConfig.behavior.skipExplanations,
+          shouldShowOptions: modeConfig.behavior.showAlternatives
         }
       }
     }
 
     // If user has code selected/active, context changes
     if (hasActiveCode) {
-      // Check modification patterns
-      for (const pattern of this.modificationPatterns) {
-        if (pattern.test(message)) {
-          return {
-            intent: 'modification',
-            confidence: 0.85,
-            suggestedAction: 'Modify existing code'
-          }
-        }
-      }
-
       // Check explanation patterns
       for (const pattern of this.explanationPatterns) {
         if (pattern.test(message)) {
           return {
             intent: 'explanation',
             confidence: 0.8,
-            suggestedAction: 'Explain the selected code'
+            suggestedAction: 'Explain the selected code',
+            shouldExecuteDirectly: true, // Explanations are always direct
+            shouldShowOptions: false
           }
         }
       }
@@ -117,7 +144,9 @@ export class IntentClassifier {
         return {
           intent: 'generation',
           confidence: 0.9,
-          suggestedAction: 'Generate new website/component'
+          suggestedAction: 'Generate new website/component',
+          shouldExecuteDirectly: modeConfig.behavior.skipExplanations,
+          shouldShowOptions: modeConfig.behavior.showAlternatives
         }
       }
     }
@@ -131,7 +160,9 @@ export class IntentClassifier {
       return {
         intent: 'conversation',
         confidence: 0.6,
-        suggestedAction: 'Treat as conversation'
+        suggestedAction: 'Treat as conversation',
+        shouldExecuteDirectly: true,
+        shouldShowOptions: false
       }
     }
 
@@ -149,7 +180,9 @@ export class IntentClassifier {
       return {
         intent: 'generation',
         confidence: 0.7,
-        suggestedAction: 'Generate code based on description'
+        suggestedAction: 'Generate code based on description',
+        shouldExecuteDirectly: modeConfig.behavior.skipExplanations,
+        shouldShowOptions: modeConfig.behavior.showAlternatives
       }
     }
 
@@ -158,15 +191,30 @@ export class IntentClassifier {
       return {
         intent: 'generation',
         confidence: 0.5,
-        suggestedAction: 'Assume user wants to generate something'
+        suggestedAction: 'Assume user wants to generate something',
+        shouldExecuteDirectly: modeConfig.behavior.skipExplanations,
+        shouldShowOptions: modeConfig.behavior.showAlternatives
       }
     }
 
-    // Default to conversation for ambiguous cases
+    // For medium-length messages or when user has active code, prefer generation/modification over conversation
+    if (hasActiveCode || wordCount > 3) {
+      return {
+        intent: hasActiveCode ? 'modification' : 'generation',
+        confidence: 0.6,
+        suggestedAction: hasActiveCode ? 'Assume user wants to modify existing code' : 'Assume user wants to generate code',
+        shouldExecuteDirectly: modeConfig.behavior.skipExplanations,
+        shouldShowOptions: modeConfig.behavior.showAlternatives
+      }
+    }
+
+    // Default to conversation for very short, ambiguous cases
     return {
       intent: 'conversation',
       confidence: 0.4,
-      suggestedAction: 'Provide conversational response and ask for clarification'
+      suggestedAction: 'Provide conversational response and ask for clarification',
+      shouldExecuteDirectly: true,
+      shouldShowOptions: false
     }
   }
 

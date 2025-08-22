@@ -8,8 +8,7 @@ import { useAppStore } from './state/appStore'
 import { useResponsive } from './hooks/useResponsive'
 import { useTheme } from './contexts/ThemeContext'
 import { generationService } from './services/generationService'
-import { intentClassifier } from './services/intentClassifier'
-import { conversationEngine } from './services/conversationEngine'
+// import { conversationEngine } from './services/conversationEngine'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 
@@ -23,23 +22,25 @@ function App() {
     showPreview,
     currentArtifactId,
     artifacts,
-    chatMessages
+    chatMessages,
+    responseMode
   } = useAppStore()
   
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
-  // Professional intent classification and conversation handling
-  const analyzeUserIntent = (message: string) => {
+  // AI-powered intent classification and conversation handling
+  const analyzeUserIntent = async (message: string) => {
     const hasActiveCode = Boolean(currentArtifactId)
     const context = {
       hasActiveCode,
       recentMessages: chatMessages.slice(-3).map(msg => msg.content),
-      currentArtifacts: artifacts.length
+      currentArtifacts: artifacts.length,
+      responseMode
     }
     
-    const intentResult = intentClassifier.classify(message, hasActiveCode)
+    const intentResult = await generationService.classifyIntent(message, hasActiveCode, responseMode)
     return { intentResult, context }
   }
 
@@ -53,10 +54,10 @@ function App() {
     }
     addChatMessage(userMessage)
 
-    // Analyze user intent with professional classification
-    const { intentResult, context } = analyzeUserIntent(message)
+    // Analyze user intent with AI classification
+    const { intentResult, context } = await analyzeUserIntent(message)
     
-    console.log(`Intent: ${intentResult.intent} (${(intentResult.confidence * 100).toFixed(1)}% confidence)`)
+    console.log(`Intent: ${intentResult.intent} (${(intentResult.confidence * 100).toFixed(1)}% confidence) - ${intentResult.reasoning}`)
     
     switch (intentResult.intent) {
       case 'generation':
@@ -95,16 +96,75 @@ function App() {
         break
 
       case 'modification':
-        // Handle code modifications (future feature)
-        const modificationResponse = "I can see you want to modify something! 🔧\n\nCurrently, I can generate new websites from scratch. Code modification features are coming soon!\n\nFor now, you can:\n• **Copy code** from the editor and describe changes you want\n• **Ask me to generate** a new version with your requirements\n• **Tell me specifically** what you'd like to build instead"
+        // Handle code modifications using conversation engine
+        const { conversationEngine } = await import('./services/conversationEngine')
         
-        const modMessage: ChatMessage = {
-          id: `msg_${Date.now()}_ai`,
-          type: 'assistant',
-          content: modificationResponse,
-          timestamp: Date.now()
+        // Check if this is an incremental building request
+        if (conversationEngine.isIncrementalRequest && conversationEngine.isIncrementalRequest(message) && currentArtifactId) {
+          // Handle incremental building - enhance existing code
+          try {
+            setGenerating(true)
+            
+            // Get current artifact
+            const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
+            if (!currentArtifact) {
+              throw new Error('No current artifact found')
+            }
+            
+            // Create enhancement prompt with existing code context
+            const enhancementPrompt = `Enhance the existing website by: ${message}
+
+EXISTING CODE CONTEXT:
+Current HTML: ${currentArtifact.files['index.html'] || ''}
+Current CSS: ${currentArtifact.files['styles.css'] || ''}
+Current JS: ${currentArtifact.files['script.js'] || ''}
+
+ENHANCEMENT REQUIREMENTS:
+- Preserve all existing working functionality and styling
+- Add the requested enhancement: ${message}
+- Maintain the current design aesthetic while improving it
+- Ensure all code works together seamlessly
+- Keep the same overall structure and layout principles`
+            
+            // Generate enhanced version
+            const enhancedArtifact = await generationService.generateWebsite(enhancementPrompt)
+            addArtifact(enhancedArtifact)
+            
+            // Add success message
+            const successMessage: ChatMessage = {
+              id: `msg_${Date.now()}_ai`,
+              type: 'assistant',
+              content: `Perfect! I've enhanced your website with the requested changes. 🚀\n\n**Enhanced:**\n• Preserved all existing functionality\n• Added your requested feature\n• Maintained the design aesthetic\n• Ensured everything works together\n\nYou can see the enhanced version in the editor and preview!`,
+              timestamp: Date.now(),
+              artifactId: enhancedArtifact.id
+            }
+            addChatMessage(successMessage)
+            
+          } catch (error) {
+            console.error('Enhancement failed:', error)
+            
+            const errorMessage: ChatMessage = {
+              id: `msg_${Date.now()}_error`,
+              type: 'assistant',
+              content: 'Sorry, there was an error enhancing your website. Let me try a different approach or you can describe the changes differently.',
+              timestamp: Date.now()
+            }
+            addChatMessage(errorMessage)
+          } finally {
+            setGenerating(false)
+          }
+        } else {
+          // Regular modification response
+          const modificationResponse = conversationEngine.generateResponse(message, context)
+          
+          const modMessage: ChatMessage = {
+            id: `msg_${Date.now()}_ai`,
+            type: 'assistant',
+            content: modificationResponse,
+            timestamp: Date.now()
+          }
+          addChatMessage(modMessage)
         }
-        addChatMessage(modMessage)
         break
 
       case 'explanation':
@@ -202,15 +262,17 @@ function App() {
         {showChat && (!isMobile || activeMobilePanel === 'chat') && (
           <div style={{
             width: isMobile ? '100%' : panelWidth,
-            height: isMobile ? '100%' : 'auto',
+            height: isMobile ? '100%' : '100%', // Force explicit height
+            maxHeight: '100%', // Prevent overflow
             background: theme.colors.bg.primary,
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            minHeight: isMobile ? '0' : 'auto',
-            flex: isMobile ? '1' : 'none',
+            minHeight: 0, // Allow shrinking
+            flex: isMobile ? '1' : '1', // Use flex: 1 for desktop too
             borderRadius: isMobile ? '0' : theme.radius.lg,
             boxShadow: isMobile ? 'none' : theme.shadows.md,
+            overflow: 'hidden', // Prevent overflow from breaking layout
           }}>
             <ChatPanel />
             <ChatInput onSend={handleSendMessage} />
@@ -221,15 +283,17 @@ function App() {
         {showCode && (!isMobile || activeMobilePanel === 'code') && (
           <div style={{
             width: isMobile ? '100%' : panelWidth,
-            height: isMobile ? '100%' : 'auto',
+            height: isMobile ? '100%' : '100%',
+            maxHeight: '100%',
             background: theme.colors.bg.primary,
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            minHeight: isMobile ? '0' : 'auto',
-            flex: isMobile ? '1' : 'none',
+            minHeight: 0,
+            flex: isMobile ? '1' : '1',
             borderRadius: isMobile ? '0' : theme.radius.lg,
             boxShadow: isMobile ? 'none' : theme.shadows.md,
+            overflow: 'hidden',
           }}>
             <EditorPanel />
           </div>
@@ -239,15 +303,17 @@ function App() {
         {showPreview && (!isMobile || activeMobilePanel === 'preview') && (
           <div style={{
             width: isMobile ? '100%' : panelWidth,
-            height: isMobile ? '100%' : 'auto',
+            height: isMobile ? '100%' : '100%',
+            maxHeight: '100%',
             background: theme.colors.bg.primary,
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            minHeight: isMobile ? '0' : 'auto',
-            flex: isMobile ? '1' : 'none',
+            minHeight: 0,
+            flex: isMobile ? '1' : '1',
             borderRadius: isMobile ? '0' : theme.radius.lg,
             boxShadow: isMobile ? 'none' : theme.shadows.md,
+            overflow: 'hidden',
           }}>
             <PreviewFrame />
           </div>

@@ -9,6 +9,60 @@ export interface ChatMessage {
 import type { DevicePreset, GridPosition, GridRegion, GridBounds, GridMetrics, RegionMetrics } from '@ui-grid-ai/grid-engine'
 import type { Artifact } from '@ui-grid-ai/codegen-prompts/src/types'
 
+export type ResponseMode = 'just-build' | 'show-options' | 'explain-first'
+
+export interface ResponseModeConfig {
+  id: ResponseMode
+  label: string
+  icon: string
+  description: string
+  behavior: {
+    skipExplanations: boolean
+    showAlternatives: boolean
+    askForConfirmation: boolean
+    verboseResponses: boolean
+  }
+}
+
+export const RESPONSE_MODES: Record<ResponseMode, ResponseModeConfig> = {
+  'just-build': {
+    id: 'just-build',
+    label: 'Just Build It',
+    icon: '🔧',
+    description: 'Generate code directly with minimal explanation',
+    behavior: {
+      skipExplanations: true,
+      showAlternatives: false,
+      askForConfirmation: false,
+      verboseResponses: false
+    }
+  },
+  'show-options': {
+    id: 'show-options',
+    label: 'Show Options',
+    icon: '💡',
+    description: 'Provide suggestions and alternatives before implementing',
+    behavior: {
+      skipExplanations: false,
+      showAlternatives: true,
+      askForConfirmation: true,
+      verboseResponses: false
+    }
+  },
+  'explain-first': {
+    id: 'explain-first',
+    label: 'Explain First',
+    icon: '❓',
+    description: 'Give detailed explanations before taking action',
+    behavior: {
+      skipExplanations: false,
+      showAlternatives: true,
+      askForConfirmation: true,
+      verboseResponses: true
+    }
+  }
+}
+
 export interface AppState {
   deviceId: string
   gridVisible: boolean
@@ -17,6 +71,7 @@ export interface AppState {
   artifacts: Artifact[]
   currentArtifactId: string | null
   chatMessages: ChatMessage[]
+  responseMode: ResponseMode
 }
 
 export interface StoreActions {
@@ -25,9 +80,11 @@ export interface StoreActions {
   setSelectedRegion: (region: GridRegion | null) => void
   setGenerating: (generating: boolean) => void
   addArtifact: (artifact: Artifact) => void
+  updateArtifact: (id: string, files: Record<string, string>) => void
   setCurrentArtifact: (id: string | null) => void
   addChatMessage: (message: ChatMessage) => void
   clearChat: () => void
+  setResponseMode: (mode: ResponseMode) => void
 }
 
 export type { DevicePreset, GridPosition, GridRegion, GridBounds, GridMetrics, RegionMetrics, Artifact }

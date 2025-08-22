@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { AppState, StoreActions, GridRegion, Artifact, ChatMessage } from '../types'
+import { AppState, StoreActions, GridRegion, Artifact, ChatMessage, ResponseMode } from '../types'
 
 interface AppStore extends AppState, StoreActions {
   prompt: string
@@ -12,6 +12,19 @@ interface AppStore extends AppState, StoreActions {
   togglePanel: (panel: 'chat' | 'code' | 'preview') => void
 }
 
+// Load response mode from localStorage with fallback
+const getStoredResponseMode = (): ResponseMode => {
+  try {
+    const stored = localStorage.getItem('responseMode')
+    if (stored && ['just-build', 'show-options', 'explain-first'].includes(stored)) {
+      return stored as ResponseMode
+    }
+  } catch (error) {
+    console.warn('Failed to load response mode from localStorage:', error)
+  }
+  return 'show-options' // Default for new users
+}
+
 export const useAppStore = create<AppStore>((set) => ({
   deviceId: 'desktop_1080p',
   gridVisible: false,
@@ -20,6 +33,7 @@ export const useAppStore = create<AppStore>((set) => ({
   artifacts: [],
   currentArtifactId: null,
   chatMessages: [],
+  responseMode: getStoredResponseMode(),
   prompt: '',
   gridModeEnabled: false,
   showChat: true,
@@ -44,6 +58,13 @@ export const useAppStore = create<AppStore>((set) => ({
       currentArtifactId: artifact.id 
     })),
 
+  updateArtifact: (id: string, files: Record<string, string>) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === id ? { ...artifact, files } : artifact
+      )
+    })),
+
   setCurrentArtifact: (id: string | null) => 
     set({ currentArtifactId: id }),
 
@@ -54,6 +75,16 @@ export const useAppStore = create<AppStore>((set) => ({
 
   clearChat: () => 
     set({ chatMessages: [] }),
+
+  setResponseMode: (mode: ResponseMode) => {
+    // Persist to localStorage
+    try {
+      localStorage.setItem('responseMode', mode)
+    } catch (error) {
+      console.warn('Failed to save response mode to localStorage:', error)
+    }
+    set({ responseMode: mode })
+  },
 
   setPrompt: (prompt: string) => 
     set({ prompt }),

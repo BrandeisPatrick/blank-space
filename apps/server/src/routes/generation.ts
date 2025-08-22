@@ -17,8 +17,15 @@ const chatRequestSchema = z.object({
   }).optional()
 })
 
+const intentRequestSchema = z.object({
+  message: z.string().min(1),
+  hasActiveCode: z.boolean().optional(),
+  responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional()
+})
+
 type GenerateRequest = z.infer<typeof generateRequestSchema>
 type ChatRequest = z.infer<typeof chatRequestSchema>
+type IntentRequest = z.infer<typeof intentRequestSchema>
 
 export const generationRoutes: FastifyPluginAsync = async (fastify) => {
   const groq = new Groq({
@@ -31,21 +38,30 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
 
       const systemPrompt = `You are an expert web developer. Generate clean, modern, and responsive HTML, CSS, and JavaScript code based on the user's request. 
       
-      Return your response in the following JSON format:
+      IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
+      
+      Return your response in this exact JSON format:
       {
-        "html": "<!-- HTML content here -->",
-        "css": "/* CSS styles here */",
-        "js": "// JavaScript code here"
+        "html": "HTML content here",
+        "css": "CSS styles here", 
+        "js": "JavaScript code here"
       }
       
-      Guidelines:
+      JSON RULES:
+      - Use double quotes only, escape internal quotes as \"
+      - No template literals or backticks
+      - Use single quotes for HTML/CSS/JS attribute values when possible
+      - Escape newlines as \\n or write compact code
+      - No unescaped backslashes
+      
+      Code Guidelines:
       - Create semantic, accessible HTML
       - Use modern CSS with flexbox/grid for layouts
       - Make the design responsive and mobile-friendly
       - Add interactive JavaScript features where appropriate
       - Use clean, modern design patterns
       - Include proper colors, spacing, and typography
-      - Make it production-ready and professional`
+      - Write compact, production-ready code`
 
       const completion = await groq.chat.completions.create({
         messages: [
@@ -172,6 +188,89 @@ Respond naturally and conversationally. If they're just chatting (greetings, per
       return reply.status(500).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate chat response'
+      })
+    }
+  })
+
+  fastify.post<{ Body: IntentRequest }>('/classify-intent', async (request, reply) => {
+    try {
+      const { message, hasActiveCode = false, responseMode = 'show-options' } = intentRequestSchema.parse(request.body)
+
+      const systemPrompt = `You are an expert intent classifier for a web development assistant. Classify the user's message into one of these categories:
+
+INTENT TYPES:
+- "generation": User wants to create/build/generate something new (websites, apps, components, etc.)
+- "modification": User wants to modify/change/edit existing code or content
+- "explanation": User wants an explanation of code or how something works
+- "conversation": General conversation, greetings, questions about the assistant
+
+CONTEXT:
+- User has active code/project: ${hasActiveCode ? 'Yes' : 'No'}
+- Response Mode: ${responseMode}
+  - "just-build": User prefers direct action, minimal explanation
+  - "show-options": User wants to see alternatives before deciding
+  - "explain-first": User wants detailed explanations before action
+
+RULES:
+- Be decisive - choose the most likely intent
+- If user says "build", "create", "make", "generate" + anything = "generation"
+- If user mentions specific things to build (todo list, calculator, website, etc.) = "generation"
+- If user says "just build it" or similar = "generation" 
+- If user wants to change/modify existing code = "modification"
+- If user asks "how does this work" or "explain" = "explanation"
+- If user is chatting/greeting = "conversation"
+- If user says "I don't see X" or "X is not working" = "modification" (if has code) or "generation" (if no code)
+
+BEHAVIORAL FLAGS:
+- shouldExecuteDirectly: true if responseMode is "just-build" AND intent is generation/modification
+- shouldShowOptions: true if responseMode is "show-options" AND intent is generation/modification
+
+Respond with ONLY a JSON object:
+{
+  "intent": "generation|modification|explanation|conversation",
+  "confidence": 0.95,
+  "reasoning": "Brief explanation why",
+  "shouldExecuteDirectly": true/false,
+  "shouldShowOptions": true/false
+}`
+
+      const completion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: `Classify this message: "${message}"`
+          }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.1,
+        max_tokens: 200,
+        response_format: { type: 'json_object' }
+      })
+
+      const responseContent = completion.choices[0]?.message?.content
+      if (!responseContent) {
+        throw new Error('No response from AI')
+      }
+
+      const result = JSON.parse(responseContent)
+
+      return reply.send({
+        success: true,
+        intent: result.intent,
+        confidence: result.confidence,
+        reasoning: result.reasoning,
+        shouldExecuteDirectly: result.shouldExecuteDirectly,
+        shouldShowOptions: result.shouldShowOptions
+      })
+    } catch (error) {
+      fastify.log.error(error)
+      return reply.status(500).send({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to classify intent'
       })
     }
   })

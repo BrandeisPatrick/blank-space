@@ -62,12 +62,15 @@ export const ChatPanel = () => {
       <div style={{
         flex: 1,
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: theme.spacing['2xl'],
         display: 'flex',
         flexDirection: 'column',
         gap: theme.spacing['2xl'],
         scrollbarWidth: 'thin',
         scrollbarColor: `${theme.colors.bg.border} transparent`,
+        minHeight: 0, // Critical: allows flex item to shrink below content size
+        maxHeight: '100%', // Ensure it doesn't exceed container height
       }}>
         {chatMessages.length === 0 ? (
           <div style={{

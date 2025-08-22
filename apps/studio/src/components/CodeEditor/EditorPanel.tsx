@@ -7,7 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 export const EditorPanel = () => {
-  const { currentArtifactId, artifacts } = useAppStore()
+  const { currentArtifactId, artifacts, updateArtifact } = useAppStore()
   const [activeFile, setActiveFile] = useState('index.html')
   const [files, setFiles] = useState<Record<string, string>>({})
   const [showExplorer, setShowExplorer] = useState(true)
@@ -81,13 +81,39 @@ console.log('Website loaded successfully');
 
   const handleFileChange = (filename: string, value: string | undefined) => {
     if (value !== undefined) {
-      setFiles(prev => ({
-        ...prev,
+      const newFiles = {
+        ...files,
         [filename]: value
-      }))
+      }
+      setFiles(newFiles)
       
-      // TODO: Update the artifact in the store
-      // This would trigger a re-render of the preview
+      // Update the artifact in the store to trigger preview update
+      if (currentArtifactId) {
+        updateArtifact(currentArtifactId, newFiles)
+      }
+    }
+  }
+
+  const handleFileClose = (filename: string) => {
+    // Don't close if it's the only file
+    const fileList = Object.keys(files)
+    if (fileList.length <= 1) return
+    
+    // If closing the active file, switch to another file
+    if (filename === activeFile) {
+      const currentIndex = fileList.indexOf(filename)
+      const newIndex = currentIndex > 0 ? currentIndex - 1 : 1
+      setActiveFile(fileList[newIndex])
+    }
+    
+    // Remove the file from the files object
+    const newFiles = { ...files }
+    delete newFiles[filename]
+    setFiles(newFiles)
+    
+    // Update the artifact in the store
+    if (currentArtifactId) {
+      updateArtifact(currentArtifactId, newFiles)
     }
   }
 
@@ -158,7 +184,19 @@ console.log('Website loaded successfully');
           fontSize: theme.typography.fontSize.sm,
           fontWeight: theme.typography.fontWeight.medium,
         }}>
-          <span>⚡</span>
+          {/* Code Editor Icon - brackets <> */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '14px',
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.accent.primary,
+            fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
+          }}>
+            <span style={{ opacity: 0.7 }}>&lt;</span>
+            <span style={{ margin: '0 2px', opacity: 0.5 }}>/</span>
+            <span style={{ opacity: 0.7 }}>&gt;</span>
+          </div>
           <span>Code Editor</span>
         </div>
 
@@ -201,6 +239,7 @@ console.log('Website loaded successfully');
             files={files}
             activeFile={activeFile}
             onFileSelect={setActiveFile}
+            onFileClose={handleFileClose}
             showExplorer={showExplorer}
             onToggleExplorer={() => setShowExplorer(!showExplorer)}
           />

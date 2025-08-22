@@ -1,0 +1,96 @@
+.response-mode-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mode-selector {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.mode-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mode-button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mode-button.active {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mode-icon {
+  font-size: 14px;
+}
+
+.mode-label {
+  white-space: nowrap;
+}
+
+.mode-description {
+  padding: 0 4px;
+}
+
+.description-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .mode-button {
+    padding: 6px 8px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  
+  .mode-label {
+    display: none;
+  }
+  
+  .mode-icon {
+    font-size: 16px;
+  }
+}
+
+/* Dark mode support */
+.dark .mode-selector {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border-color);
+}
+
+.dark .mode-button {
+  color: var(--dark-text-secondary);
+}
+
+.dark .mode-button:hover {
+  background: var(--dark-bg-hover);
+  color: var(--dark-text-primary);
+}
+
+.dark .description-text {
+  color: var(--dark-text-secondary);
+}

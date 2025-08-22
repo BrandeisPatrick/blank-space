@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useAppStore } from '../../state/appStore'
+import { ResponseModeToggle } from '../ResponseModeToggle/ResponseModeToggle'
+import '../ResponseModeToggle/ResponseModeToggle.css'
 
 interface PromptInputProps {
   onGenerate: () => void
 }
 
 export const PromptInput = ({ onGenerate }: PromptInputProps) => {
-  const { prompt, setPrompt, isGenerating } = useAppStore()
+  const { prompt, setPrompt, isGenerating, responseMode, setResponseMode } = useAppStore()
   const [rows, setRows] = useState(3)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -58,6 +60,13 @@ export const PromptInput = ({ onGenerate }: PromptInputProps) => {
         }}>
           Describe the website you want to create. Be specific about design, functionality, and content.
         </p>
+      </div>
+      
+      <div style={{ marginBottom: '16px' }}>
+        <ResponseModeToggle
+          currentMode={responseMode}
+          onModeChange={setResponseMode}
+        />
       </div>
       
       <div style={{

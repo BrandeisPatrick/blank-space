@@ -1,12 +1,26 @@
+import { ResponseMode, RESPONSE_MODES } from '../types'
+
 export interface ConversationContext {
   hasActiveCode: boolean
   recentMessages: string[]
   currentArtifacts: number
+  responseMode: ResponseMode
 }
 
 export class ConversationEngine {
   generateResponse(message: string, context: ConversationContext): string {
     const lowerMessage = message.toLowerCase()
+    const modeConfig = RESPONSE_MODES[context.responseMode]
+    
+    // Check for code modification requests first
+    if (this.isModificationRequest(lowerMessage) && context.hasActiveCode) {
+      return this.getModificationResponse(message, context)
+    }
+    
+    // Check for feedback about missing/broken functionality
+    if (this.isFunctionalityFeedback(lowerMessage)) {
+      return this.getFunctionalityFeedbackResponse(message, context)
+    }
     
     // Personal/social questions
     if (this.isPersonalQuestion(lowerMessage)) {
@@ -95,6 +109,36 @@ export class ConversationEngine {
       'coffee', 'morning', 'afternoon', 'evening', 'late', 'early'
     ]
     return patterns.some(pattern => message.includes(pattern))
+  }
+
+  private isModificationRequest(message: string): boolean {
+    const modificationPatterns = [
+      /(change|modify|update|edit|alter|adjust)/i,
+      /(make\s+(it|this|the))/i,
+      /(add|remove|delete)\s+.*(to|from)/i,
+      /(replace|swap)\s+.*(with)/i,
+      /(move|position)\s+.*(to|from)/i,
+      /(resize|scale|enlarge|shrink)/i,
+      /(color|colour)\s+.*(to|into)/i,
+      /(font|text)\s+.*(to|into|should)/i,
+      /(style|styling)\s+.*(to|into|should)/i,
+      /(layout|position|alignment)/i,
+      /(can\s+you\s+(change|modify|update|edit|fix))/i,
+      /(i\s+want\s+to\s+(change|modify|update|edit))/i,
+      /(please\s+(change|modify|update|edit))/i
+    ]
+    return modificationPatterns.some(pattern => pattern.test(message))
+  }
+
+  private isFunctionalityFeedback(message: string): boolean {
+    const feedbackPatterns = [
+      /(i\s+(do\s+not|don\'t|can\'t)\s+see)/i,
+      /(not\s+working|doesn\'t\s+work|not\s+showing|not\s+visible)/i,
+      /(missing|where\s+is|not\s+there|doesn\'t\s+appear)/i,
+      /(broken|error|problem|issue|bug)/i,
+      /(it\s+(should|needs|has\s+to)|supposed\s+to)/i
+    ]
+    return feedbackPatterns.some(pattern => pattern.test(message))
   }
 
   private getPersonalResponse(message: string, context: ConversationContext): string {
@@ -210,6 +254,94 @@ export class ConversationEngine {
     ]
     
     return responses[Math.floor(Math.random() * responses.length)]
+  }
+
+  private getFunctionalityFeedbackResponse(message: string, context: ConversationContext): string {
+    const lowerMessage = message.toLowerCase()
+    const modeConfig = RESPONSE_MODES[context.responseMode]
+    
+    // Determine response style based on mode
+    if (modeConfig.behavior.skipExplanations) {
+      // Just Build It mode - direct and action-oriented
+      if (lowerMessage.includes('spin wheel') || lowerMessage.includes('wheel')) {
+        return "Creating a proper spinning wheel with animation and click functionality now."
+      }
+      
+      if (lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
+        return "Fixing the functionality now."
+      }
+      
+      if (lowerMessage.includes('not see') || lowerMessage.includes('not visible')) {
+        return "Making it visible with proper styling now."
+      }
+      
+      return context.hasActiveCode ? "Fixing the code now." : "Creating the proper implementation now."
+    }
+    
+    if (modeConfig.behavior.showAlternatives) {
+      // Show Options mode - provide alternatives
+      if (lowerMessage.includes('spin wheel') || lowerMessage.includes('wheel')) {
+        return "I can create a spin wheel for you! Would you prefer:\n\n• A simple prize wheel with custom segments\n• An animated wheel with sound effects\n• A carnival-style wheel with decorative elements\n\nOr would you like me to just build a basic spinning wheel?"
+      }
+      
+      if (lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
+        return "I can help fix that! Would you like me to:\n\n• Debug and fix the existing code\n• Rebuild it with a more robust approach\n• Add error handling and validation\n\nOr should I just fix it with the most likely solution?"
+      }
+      
+      return "I can help with that! Would you like me to:\n\n• Fix the current implementation\n• Create a new version from scratch\n• Show you what might be causing the issue\n\nOr should I just implement the fix?"
+    }
+    
+    // Explain First mode - detailed explanations
+    if (lowerMessage.includes('spin wheel') || lowerMessage.includes('wheel')) {
+      return "I understand you're looking for a spin wheel! A spinning wheel typically consists of several components:\n\n• **Visual Design**: A circular wheel with segments/sections\n• **Animation**: CSS or JavaScript animations for spinning\n• **Interaction**: Click handlers to trigger the spin\n• **Results**: Logic to determine where it lands\n\nI can create a complete spinning wheel with smooth animations, customizable segments, and proper functionality. Would you like me to proceed with building this?"
+    }
+    
+    return "I see there's an issue that needs addressing. Let me explain what might be happening and how I can fix it. Then I'll implement the solution with your approval."
+  }
+
+  private getModificationResponse(message: string, context: ConversationContext): string {
+    const modeConfig = RESPONSE_MODES[context.responseMode]
+    
+    // Check if this looks like an incremental building request
+    if (this.isIncrementalRequest(message)) {
+      return this.getIncrementalBuildingResponse(message, context)
+    }
+    
+    if (modeConfig.behavior.skipExplanations) {
+      // Just Build It mode - direct acknowledgment
+      return "I can see you want to modify something! 🔧\n\nLet me enhance your existing code with the changes you requested. I'll analyze the current code and build upon it while preserving what's working.\n\nBuilding enhanced version now..."
+    }
+    
+    if (modeConfig.behavior.showAlternatives) {
+      // Show Options mode - provide alternatives
+      return "I can see you want to modify the existing code! 🔧\n\nHere are your options:\n\n**Option 1: Describe & Regenerate**\n• Copy the current code from the editor\n• Describe the changes you want\n• I'll generate a new version with your modifications\n\n**Option 2: Specific Request**\n• Tell me exactly what you want to build\n• I'll create it from scratch with your specifications\n\n**Option 3: Incremental Building** ⭐\n• Just tell me what to add/change (e.g., \"add a contact form\", \"make it dark theme\")\n• I'll enhance the existing code while keeping everything that works\n• Try it now: describe what you want to add!\n\nWhich approach would you prefer, or what specific enhancement would you like?"
+    }
+    
+    // Explain First mode - detailed explanation
+    return "I can see you want to modify the existing code! 🔧\n\n**Available Now: Incremental Building**\nI can enhance your existing code by adding new features while preserving what's already working. Just describe what you want to add or change.\n\n**Examples:**\n• \"Add a contact form to the bottom\"\n• \"Change to a dark theme\"\n• \"Add navigation menu\"\n• \"Include a photo gallery\"\n• \"Make it more colorful\"\n\n**How it works:**\n1. I analyze your current code structure\n2. I understand what you want to add/change\n3. I generate an enhanced version that builds upon the existing design\n4. Your current layout and working features are preserved\n\n**What would you like me to add or change?**"
+  }
+
+  isIncrementalRequest(message: string): boolean {
+    const incrementalPatterns = [
+      /(add|include|insert).*(to|into|in|on)/i,
+      /(make.*more|make.*less|make.*bigger|make.*smaller)/i,
+      /(change.*to|switch.*to|convert.*to)/i,
+      /(dark|light).*theme/i,
+      /(more|less).*(color|animation|interactive)/i,
+      /enhance.*with/i,
+      /improve.*by/i
+    ]
+    return incrementalPatterns.some(pattern => pattern.test(message))
+  }
+
+  private getIncrementalBuildingResponse(message: string, context: ConversationContext): string {
+    const modeConfig = RESPONSE_MODES[context.responseMode]
+    
+    if (modeConfig.behavior.skipExplanations) {
+      return "Perfect! I'll enhance your existing code with that addition. Analyzing current structure and building the enhanced version now..."
+    }
+    
+    return "Great choice! I'll build upon your existing code and add that enhancement. 🚀\n\nI'll:\n• Analyze your current code structure\n• Preserve all working elements and styling\n• Add the enhancement you requested\n• Ensure everything works together seamlessly\n\nGenerating enhanced version now..."
   }
 
   private getClarificationResponse(message: string, context: ConversationContext): string {
