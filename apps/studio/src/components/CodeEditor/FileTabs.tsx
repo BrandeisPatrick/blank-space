@@ -5,9 +5,11 @@ interface FileTabsProps {
   files: Record<string, string>
   activeFile: string
   onFileSelect: (file: string) => void
+  showExplorer: boolean
+  onToggleExplorer: () => void
 }
 
-export const FileTabs = ({ files, activeFile, onFileSelect }: FileTabsProps) => {
+export const FileTabs = ({ files, activeFile, onFileSelect, showExplorer, onToggleExplorer }: FileTabsProps) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const getFileIcon = (filename: string) => {
@@ -29,6 +31,45 @@ export const FileTabs = ({ files, activeFile, onFileSelect }: FileTabsProps) => 
       padding: theme.spacing.xs,
       gap: theme.spacing.xs,
     }}>
+      {/* File Explorer Tab */}
+      <button
+        onClick={onToggleExplorer}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+          background: showExplorer ? theme.colors.gradient.primary : theme.colors.bg.primary,
+          color: showExplorer ? theme.colors.accent.primary : theme.colors.text.secondary,
+          border: 'none',
+          borderRadius: theme.radius.md,
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: showExplorer ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+          cursor: 'pointer',
+          minWidth: '120px',
+          position: 'relative',
+          transition: `all ${theme.animation.normal}`,
+          boxShadow: showExplorer ? theme.shadows.sm : theme.shadows.outset,
+        }}
+        onMouseEnter={(e) => {
+          if (!showExplorer) {
+            e.currentTarget.style.background = theme.colors.bg.hover
+            e.currentTarget.style.color = theme.colors.accent.primary
+            e.currentTarget.style.boxShadow = theme.shadows.glow
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!showExplorer) {
+            e.currentTarget.style.background = theme.colors.bg.primary
+            e.currentTarget.style.color = theme.colors.text.secondary
+            e.currentTarget.style.boxShadow = theme.shadows.outset
+          }
+        }}
+      >
+        <span style={{ fontSize: theme.typography.fontSize.sm }}>📁</span>
+        <span>Explorer</span>
+      </button>
+
       {Object.keys(files).map((filename) => (
         <button
           key={filename}

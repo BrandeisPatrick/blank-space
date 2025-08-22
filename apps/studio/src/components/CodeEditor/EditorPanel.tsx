@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CodeEditor } from './CodeEditor'
 import { FileTabs } from './FileTabs'
+import { FileExplorer } from './FileExplorer'
 import { useAppStore } from '../../state/appStore'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
@@ -9,6 +10,7 @@ export const EditorPanel = () => {
   const { currentArtifactId, artifacts } = useAppStore()
   const [activeFile, setActiveFile] = useState('index.html')
   const [files, setFiles] = useState<Record<string, string>>({})
+  const [showExplorer, setShowExplorer] = useState(true)
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
@@ -139,22 +141,81 @@ console.log('Website loaded successfully');
       borderRadius: theme.radius.lg,
       overflow: 'hidden',
     }}>
-      <FileTabs
-        files={files}
-        activeFile={activeFile}
-        onFileSelect={setActiveFile}
-      />
-      
-      <div style={{ 
-        flex: 1,
-        borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
-        overflow: 'hidden',
+      {/* Header with Explorer Toggle */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+        background: theme.colors.bg.secondary,
+        borderBottom: `1px solid ${theme.colors.border}`,
       }}>
-        <CodeEditor
-          content={files[activeFile] || ''}
-          language={getLanguage(activeFile)}
-          onChange={(value) => handleFileChange(activeFile, value)}
-        />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          color: theme.colors.text.primary,
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: theme.typography.fontWeight.medium,
+        }}>
+          <span>⚡</span>
+          <span>Code Editor</span>
+        </div>
+
+      </div>
+
+      {/* Main Content Area */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        {/* File Explorer */}
+        <div style={{
+          width: showExplorer ? '280px' : '0px',
+          transition: `width ${theme.animation.normal}`,
+          overflow: 'hidden',
+          position: 'relative',
+        }}>
+          {showExplorer && (
+            <FileExplorer
+              files={files}
+              activeFile={activeFile}
+              onFileSelect={setActiveFile}
+            />
+          )}
+        </div>
+
+
+        {/* Editor Area */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          marginLeft: showExplorer ? '0' : '24px',
+          transition: `margin-left ${theme.animation.normal}`,
+        }}>
+          <FileTabs
+            files={files}
+            activeFile={activeFile}
+            onFileSelect={setActiveFile}
+            showExplorer={showExplorer}
+            onToggleExplorer={() => setShowExplorer(!showExplorer)}
+          />
+          
+          <div style={{ 
+            flex: 1,
+            overflow: 'hidden',
+          }}>
+            <CodeEditor
+              content={files[activeFile] || ''}
+              language={getLanguage(activeFile)}
+              onChange={(value) => handleFileChange(activeFile, value)}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
