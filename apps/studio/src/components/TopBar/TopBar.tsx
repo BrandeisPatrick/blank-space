@@ -28,7 +28,7 @@ export const TopBar = () => {
 
   return (
     <div style={{
-      height: '48px',
+      height: '64px',
       background: theme.colors.gradient.subtle,
       borderBottom: `1px solid ${theme.colors.border}`,
       display: 'flex',
@@ -71,7 +71,7 @@ export const TopBar = () => {
               }
             }}
           >
-            💬 Chat
+            Chat
           </button>
           
           <button
@@ -92,7 +92,7 @@ export const TopBar = () => {
               }
             }}
           >
-            ⚡ Code
+            Code
           </button>
           
           <button
@@ -113,7 +113,7 @@ export const TopBar = () => {
               }
             }}
           >
-            👁️ Preview
+            Preview
           </button>
         </div>
       )}
@@ -132,22 +132,24 @@ export const TopBar = () => {
         minWidth: 0,
         overflow: 'hidden',
       }}>
-        <div style={{
-          width: '24px',
-          height: '24px',
-          background: theme.colors.gradient.primary,
-          borderRadius: theme.radius.md,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          boxShadow: theme.shadows.sm,
-          color: theme.colors.accent.primary,
-        }}>
-          ⚡
-        </div>
         <span style={{ whiteSpace: 'nowrap' }}>
-          {isMobile ? 'Studio' : 'AI Code Studio'}
+          {isMobile ? 'Studio' : (
+            <>
+              <span style={{ 
+                textShadow: '2px 2px 0px rgba(0, 0, 0, 0.5), 4px 4px 10px rgba(0, 0, 0, 0.8)',
+                color: theme.colors.accent.primary,
+                fontWeight: theme.typography.fontWeight.bold,
+                display: 'inline-block',
+                transform: 'translateZ(0)'
+              }}>&lt;</span> blank space <span style={{ 
+                textShadow: '2px 2px 0px rgba(0, 0, 0, 0.5), 4px 4px 10px rgba(0, 0, 0, 0.8)',
+                color: theme.colors.accent.primary,
+                fontWeight: theme.typography.fontWeight.bold,
+                display: 'inline-block',
+                transform: 'translateZ(0)'
+              }}>&gt;</span>
+            </>
+          )}
         </span>
       </div>
 
