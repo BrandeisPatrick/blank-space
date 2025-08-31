@@ -4,7 +4,11 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { ThemeToggle } from '../ThemeToggle/ThemeToggle'
 import { getTheme } from '../../styles/theme'
 
-export const TopBar = () => {
+interface TopBarProps {
+  onNavigateToSignIn?: () => void
+}
+
+export const TopBar = ({ onNavigateToSignIn }: TopBarProps) => {
   const { showChat, showCode, showPreview, togglePanel } = useAppStore()
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
@@ -161,6 +165,36 @@ export const TopBar = () => {
           gap: theme.spacing.sm,
         }}>
           <ThemeToggle />
+          {onNavigateToSignIn && (
+            <button
+              onClick={onNavigateToSignIn}
+              style={{
+                background: theme.colors.bg.secondary,
+                border: 'none',
+                color: theme.colors.text.secondary,
+                cursor: 'pointer',
+                padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+                borderRadius: theme.radius.md,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.normal}`,
+                boxShadow: theme.shadows.outset,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.hover
+                e.currentTarget.style.color = theme.colors.accent.primary
+                e.currentTarget.style.boxShadow = theme.shadows.glow
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.secondary
+                e.currentTarget.style.color = theme.colors.text.secondary
+                e.currentTarget.style.boxShadow = theme.shadows.outset
+              }}
+            >
+              Sign In
+            </button>
+          )}
           <a
             href="https://github.com"
             target="_blank"

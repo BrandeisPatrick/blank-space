@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { ChatPanel } from './components/Chat/ChatPanel'
 import { ChatInput } from './components/Chat/ChatInput'
 import { EditorPanel } from './components/CodeEditor/EditorPanel'
 import { PreviewFrame } from './components/Preview/PreviewFrame'
 import { TopBar } from './components/TopBar/TopBar'
 import { MobileToggleBar } from './components/Layout/MobileToggleBar'
+import { SignInPage } from './components/Auth/SignInPage'
 import { useAppStore } from './state/appStore'
 import { useResponsive } from './hooks/useResponsive'
 import { useTheme } from './contexts/ThemeContext'
@@ -12,7 +14,11 @@ import { generationService } from './services/generationService'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 
+type AppRoute = 'main' | 'signin'
+
 function App() {
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>('main')
+  
   const { 
     setGenerating,
     addArtifact,
@@ -29,6 +35,11 @@ function App() {
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
   const theme = getTheme(mode)
+
+  // Simple routing - if on signin route, show signin page
+  if (currentRoute === 'signin') {
+    return <SignInPage onNavigateToMain={() => setCurrentRoute('main')} />
+  }
 
   // AI-powered intent classification and conversation handling
   const analyzeUserIntent = async (message: string) => {
@@ -243,7 +254,7 @@ ENHANCEMENT REQUIREMENTS:
       overflow: 'hidden',
     }}>
       {/* Top Bar */}
-      <TopBar />
+      <TopBar onNavigateToSignIn={() => setCurrentRoute('signin')} />
       
       {/* Mobile Toggle Bar */}
       {isMobile && <MobileToggleBar />}
