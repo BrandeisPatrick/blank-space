@@ -6,9 +6,11 @@ import { getTheme } from '../../styles/theme'
 
 interface TopBarProps {
   onNavigateToSignIn?: () => void
+  user?: { name: string; email: string } | null
+  isAuthenticated?: boolean
 }
 
-export const TopBar = ({ onNavigateToSignIn }: TopBarProps) => {
+export const TopBar = ({ onNavigateToSignIn, user, isAuthenticated }: TopBarProps) => {
   const { showChat, showCode, showPreview, togglePanel } = useAppStore()
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
@@ -192,7 +194,7 @@ export const TopBar = ({ onNavigateToSignIn }: TopBarProps) => {
                 e.currentTarget.style.boxShadow = theme.shadows.outset
               }}
             >
-              Sign In
+              {isAuthenticated ? `Dashboard` : 'Sign In'}
             </button>
           )}
           <a

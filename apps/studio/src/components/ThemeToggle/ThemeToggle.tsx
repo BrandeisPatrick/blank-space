@@ -11,17 +11,18 @@ export const ThemeToggle = () => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: currentTheme.spacing.sm,
-        padding: `${currentTheme.spacing.sm} ${currentTheme.spacing.md}`,
-        background: currentTheme.colors.bg.secondary,
+        gap: currentTheme.spacing.md,
+        padding: `${currentTheme.spacing.md} ${currentTheme.spacing.lg}`,
+        background: mode === 'dark' ? currentTheme.colors.gradient.button : currentTheme.colors.bg.secondary,
         border: 'none',
-        borderRadius: currentTheme.radius.md,
-        color: currentTheme.colors.text.secondary,
-        fontSize: currentTheme.typography.fontSize.sm,
-        fontWeight: currentTheme.typography.fontWeight.medium,
+        borderRadius: currentTheme.radius.lg,
+        color: mode === 'dark' ? '#ffffff' : currentTheme.colors.text.secondary,
+        fontSize: currentTheme.typography.fontSize.base,
+        fontWeight: currentTheme.typography.fontWeight.bold,
         cursor: 'pointer',
         transition: `all ${currentTheme.animation.normal}`,
         boxShadow: currentTheme.shadows.outset,
+        height: '48px',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.color = currentTheme.colors.accent.primary

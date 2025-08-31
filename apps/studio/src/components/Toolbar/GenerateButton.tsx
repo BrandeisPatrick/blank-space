@@ -1,4 +1,6 @@
 import { useAppStore } from '../../state/appStore'
+import { useTheme } from '../../contexts/ThemeContext'
+import { getTheme } from '../../styles/theme'
 
 interface GenerateButtonProps {
   onGenerate: () => void
@@ -6,6 +8,8 @@ interface GenerateButtonProps {
 
 export const GenerateButton = ({ onGenerate }: GenerateButtonProps) => {
   const { selectedRegion, isGenerating } = useAppStore()
+  const { mode } = useTheme()
+  const theme = getTheme(mode)
 
   const isDisabled = !selectedRegion || isGenerating
 
@@ -14,13 +18,32 @@ export const GenerateButton = ({ onGenerate }: GenerateButtonProps) => {
       onClick={onGenerate}
       disabled={isDisabled}
       style={{
-        padding: '8px 16px',
-        borderRadius: '4px',
+        padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+        borderRadius: theme.radius.lg,
         border: 'none',
-        backgroundColor: isDisabled ? '#d1d5db' : '#10b981',
-        color: '#ffffff',
+        background: isDisabled 
+          ? theme.colors.bg.tertiary 
+          : mode === 'dark' ? theme.colors.gradient.button : theme.colors.accent.success,
+        color: mode === 'dark' || !isDisabled ? '#ffffff' : theme.colors.text.disabled,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
-        fontWeight: '500'
+        fontWeight: theme.typography.fontWeight.bold,
+        fontSize: theme.typography.fontSize.base,
+        height: '48px',
+        minWidth: '120px',
+        boxShadow: isDisabled ? theme.shadows.md : theme.shadows.outset,
+        transition: `all ${theme.animation.normal}`,
+      }}
+      onMouseEnter={(e) => {
+        if (!isDisabled) {
+          e.currentTarget.style.boxShadow = theme.shadows.glow
+          e.currentTarget.style.transform = 'translateY(-2px)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isDisabled) {
+          e.currentTarget.style.boxShadow = theme.shadows.outset
+          e.currentTarget.style.transform = 'translateY(0)'
+        }
       }}
     >
       {isGenerating ? 'Generating...' : 'Generate'}

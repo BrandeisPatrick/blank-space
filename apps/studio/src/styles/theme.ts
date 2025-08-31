@@ -43,42 +43,44 @@ const lightTheme = {
 
 const darkTheme = {
   colors: {
-    // Dark mode palette
+    // Dark neumorphic palette
     bg: {
-      primary: '#0f0f0f',      // Deep black
-      secondary: '#1a1a1a',    // Darker grey
-      tertiary: '#252525',     // Medium grey for active states
-      hover: '#303030',        // Lighter grey for hover
-      border: '#3a3a3a',       // Border grey
+      primary: '#1a1a1a',      // Dark grey base
+      secondary: '#212121',    // Slightly lighter grey
+      tertiary: '#2a2a2a',     // Medium grey for active states
+      hover: '#333333',        // Lighter grey for hover
+      border: '#404040',       // Border grey
     },
     text: {
       primary: '#ffffff',      // Pure white
-      secondary: '#cccccc',    // Light grey
-      tertiary: '#999999',     // Medium grey
-      disabled: '#666666',     // Dark grey
+      secondary: '#e0e0e0',    // Light grey
+      tertiary: '#b0b0b0',     // Medium grey
+      disabled: '#707070',     // Dark grey
     },
     accent: {
-      primary: '#e6ddd4',      // Warm cream accent
-      secondary: '#d4c4b0',    // Darker cream
-      success: '#88c999',      // Soft green
-      warning: '#e6b366',      // Warm orange
-      error: '#e67e7e',        // Soft red
+      primary: '#ffffff',      // White for buttons
+      secondary: '#f0f0f0',    // Off-white
+      success: '#4ade80',      // Bright green
+      warning: '#fbbf24',      // Bright yellow
+      error: '#f87171',        // Bright red
     },
     gradient: {
-      primary: 'linear-gradient(145deg, #252525, #1a1a1a)',
-      subtle: 'linear-gradient(145deg, #1a1a1a, #0f0f0f)',
+      primary: 'linear-gradient(145deg, #1e1e1e, #161616)',
+      subtle: 'linear-gradient(145deg, #212121, #191919)',
+      button: 'linear-gradient(145deg, #2a2a2a, #1a1a1a)',
     }
   },
   shadows: {
-    // Dark neumorphism shadows
-    sm: 'inset 2px 2px 4px rgba(0, 0, 0, 0.5), inset -2px -2px 4px rgba(255, 255, 255, 0.02)',
-    md: 'inset 3px 3px 6px rgba(0, 0, 0, 0.6), inset -3px -3px 6px rgba(255, 255, 255, 0.03)',
-    lg: 'inset 4px 4px 8px rgba(0, 0, 0, 0.7), inset -4px -4px 8px rgba(255, 255, 255, 0.04)',
-    xl: 'inset 6px 6px 12px rgba(0, 0, 0, 0.8), inset -6px -6px 12px rgba(255, 255, 255, 0.05)',
-    // Outset shadows for buttons and elevated elements
-    outset: '2px 2px 4px rgba(0, 0, 0, 0.5), -2px -2px 4px rgba(255, 255, 255, 0.02)',
-    outsetMd: '3px 3px 6px rgba(0, 0, 0, 0.6), -3px -3px 6px rgba(255, 255, 255, 0.03)',
-    glow: '0 0 8px rgba(230, 221, 212, 0.15)',
+    // Strong neumorphic shadows for dark theme
+    sm: 'inset 2px 2px 5px rgba(0, 0, 0, 0.8), inset -2px -2px 5px rgba(255, 255, 255, 0.05)',
+    md: 'inset 4px 4px 8px rgba(0, 0, 0, 0.9), inset -4px -4px 8px rgba(255, 255, 255, 0.06)',
+    lg: 'inset 6px 6px 12px rgba(0, 0, 0, 1), inset -6px -6px 12px rgba(255, 255, 255, 0.07)',
+    xl: 'inset 8px 8px 16px rgba(0, 0, 0, 1), inset -8px -8px 16px rgba(255, 255, 255, 0.08)',
+    // Outset shadows for buttons and elevated elements (stronger neumorphism)
+    outset: '5px 5px 10px rgba(0, 0, 0, 0.8), -5px -5px 10px rgba(255, 255, 255, 0.05)',
+    outsetMd: '8px 8px 16px rgba(0, 0, 0, 0.9), -8px -8px 16px rgba(255, 255, 255, 0.06)',
+    outsetPressed: 'inset 3px 3px 6px rgba(0, 0, 0, 0.9), inset -3px -3px 6px rgba(255, 255, 255, 0.04)',
+    glow: '0 0 20px rgba(255, 255, 255, 0.1)',
   },
 }
 

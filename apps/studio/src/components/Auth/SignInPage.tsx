@@ -4,9 +4,10 @@ import { getTheme } from '../../styles/theme'
 
 interface SignInPageProps {
   onNavigateToMain?: () => void
+  onSignIn?: (email: string, password: string) => Promise<void>
 }
 
-export const SignInPage = ({ onNavigateToMain }: SignInPageProps) => {
+export const SignInPage = ({ onNavigateToMain, onSignIn }: SignInPageProps) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
   
@@ -30,11 +31,19 @@ export const SignInPage = ({ onNavigateToMain }: SignInPageProps) => {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    console.log('Sign in attempted with:', formData)
-    setIsLoading(false)
+    try {
+      if (onSignIn) {
+        await onSignIn(formData.email, formData.password)
+      } else {
+        // Fallback - simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        console.log('Sign in attempted with:', formData)
+      }
+    } catch (error) {
+      console.error('Sign in error:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

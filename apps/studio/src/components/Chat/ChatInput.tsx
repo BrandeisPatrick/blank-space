@@ -78,21 +78,25 @@ export const ChatInput = ({ onSend }: ChatInputProps) => {
           onClick={handleSubmit}
           disabled={!message.trim() || isGenerating}
           style={{
-            padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-            background: (!message.trim() || isGenerating) ? theme.colors.bg.hover : theme.colors.gradient.primary,
-            color: (!message.trim() || isGenerating) ? theme.colors.text.disabled : theme.colors.accent.primary,
+            padding: `${theme.spacing.lg} ${theme.spacing['2xl']}`,
+            background: (!message.trim() || isGenerating) 
+              ? theme.colors.bg.tertiary 
+              : mode === 'dark' ? theme.colors.gradient.button : theme.colors.gradient.primary,
+            color: mode === 'dark' ? '#ffffff' : ((!message.trim() || isGenerating) ? theme.colors.text.disabled : theme.colors.accent.primary),
             border: 'none',
             borderRadius: theme.radius.lg,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.semibold,
+            fontSize: theme.typography.fontSize.base,
+            fontWeight: theme.typography.fontWeight.bold,
             cursor: (!message.trim() || isGenerating) ? 'not-allowed' : 'pointer',
             transition: `all ${theme.animation.normal}`,
-            minWidth: '64px',
-            height: '52px',
+            minWidth: '80px',
+            height: '64px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: (!message.trim() || isGenerating) ? theme.shadows.sm : theme.shadows.outset,
+            boxShadow: (!message.trim() || isGenerating) 
+              ? mode === 'dark' ? theme.shadows.md : theme.shadows.sm 
+              : theme.shadows.outset,
           }}
           onMouseEnter={(e) => {
             if (message.trim() && !isGenerating) {

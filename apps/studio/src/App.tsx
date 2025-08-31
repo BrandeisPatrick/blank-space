@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChatPanel } from './components/Chat/ChatPanel'
 import { ChatInput } from './components/Chat/ChatInput'
 import { EditorPanel } from './components/CodeEditor/EditorPanel'
@@ -6,7 +6,10 @@ import { PreviewFrame } from './components/Preview/PreviewFrame'
 import { TopBar } from './components/TopBar/TopBar'
 import { MobileToggleBar } from './components/Layout/MobileToggleBar'
 import { SignInPage } from './components/Auth/SignInPage'
+import { LandingPage } from './components/Landing/LandingPage'
+import { Dashboard } from './components/Dashboard/Dashboard'
 import { useAppStore } from './state/appStore'
+import { useUserStore, initializeUserFromStorage } from './state/userStore'
 import { useResponsive } from './hooks/useResponsive'
 import { useTheme } from './contexts/ThemeContext'
 import { generationService } from './services/generationService'
@@ -14,10 +17,10 @@ import { generationService } from './services/generationService'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 
-type AppRoute = 'main' | 'signin'
+type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard'
 
 function App() {
-  const [currentRoute, setCurrentRoute] = useState<AppRoute>('main')
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>('landing')
   
   const { 
     setGenerating,
@@ -29,16 +32,87 @@ function App() {
     currentArtifactId,
     artifacts,
     chatMessages,
-    responseMode
+    responseMode,
+    setCurrentArtifact
   } = useAppStore()
   
+  const { user, isAuthenticated, signIn, signOut } = useUserStore()
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
-  // Simple routing - if on signin route, show signin page
+  // Initialize user from storage on app start
+  useEffect(() => {
+    initializeUserFromStorage()
+  }, [])
+
+  // Determine initial route based on authentication status
+  useEffect(() => {
+    if (isAuthenticated && currentRoute === 'landing') {
+      setCurrentRoute('dashboard')
+    }
+  }, [isAuthenticated, currentRoute])
+
+  // Handle sign in
+  const handleSignIn = async (email: string, password: string) => {
+    // For demo purposes, create a user from the email
+    const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ')
+    const formattedName = userName.charAt(0).toUpperCase() + userName.slice(1)
+    
+    signIn({
+      email,
+      name: formattedName,
+    })
+    
+    // Navigate to dashboard after successful sign in
+    setCurrentRoute('dashboard')
+  }
+
+  // Handle sign out
+  const handleSignOut = () => {
+    signOut()
+    setCurrentRoute('landing')
+  }
+
+  // Navigation handlers
+  const handleTryNow = () => setCurrentRoute('studio')
+  const handleNavigateToSignIn = () => setCurrentRoute('signin')
+  const handleNavigateToLanding = () => setCurrentRoute('landing')
+  const handleNavigateToDashboard = () => setCurrentRoute('dashboard')
+  const handleCreateNew = () => setCurrentRoute('studio')
+  
+  const handleOpenArtifact = (artifactId: string) => {
+    setCurrentArtifact(artifactId)
+    setCurrentRoute('studio')
+  }
+
+  // Route rendering
+  if (currentRoute === 'landing') {
+    return (
+      <LandingPage 
+        onTryNow={handleTryNow} 
+        onSignIn={handleNavigateToSignIn} 
+      />
+    )
+  }
+
   if (currentRoute === 'signin') {
-    return <SignInPage onNavigateToMain={() => setCurrentRoute('main')} />
+    return (
+      <SignInPage 
+        onNavigateToMain={handleNavigateToLanding}
+        onSignIn={handleSignIn}
+      />
+    )
+  }
+
+  if (currentRoute === 'dashboard' && isAuthenticated) {
+    return (
+      <Dashboard
+        onCreateNew={handleCreateNew}
+        onOpenArtifact={handleOpenArtifact}
+        onSignOut={handleSignOut}
+      />
+    )
   }
 
   // AI-powered intent classification and conversation handling
@@ -254,7 +328,11 @@ ENHANCEMENT REQUIREMENTS:
       overflow: 'hidden',
     }}>
       {/* Top Bar */}
-      <TopBar onNavigateToSignIn={() => setCurrentRoute('signin')} />
+      <TopBar 
+        onNavigateToSignIn={isAuthenticated ? handleNavigateToDashboard : handleNavigateToSignIn}
+        user={user}
+        isAuthenticated={isAuthenticated}
+      />
       
       {/* Mobile Toggle Bar */}
       {isMobile && <MobileToggleBar />}

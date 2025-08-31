@@ -34,3 +34,8 @@ coverage/
 tmp/
 temp/
 *.tmp
+.tmp/
+
+# Vite
+.vite/
+*.local
