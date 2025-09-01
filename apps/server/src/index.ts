@@ -1,6 +1,6 @@
 import fastify from 'fastify'
 import cors from '@fastify/cors'
-import dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
 import { generationRoutes } from './routes/generation'
 
 dotenv.config({ path: '../../.env' })
@@ -23,7 +23,7 @@ async function start() {
     await server.listen({ port, host: '0.0.0.0' })
     console.log(`Server running on http://localhost:${port}`)
   } catch (err) {
-    server.log.error(err)
+    console.error(err)
     process.exit(1)
   }
 }

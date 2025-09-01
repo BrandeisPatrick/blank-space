@@ -1,11 +1,14 @@
 import { FastifyPluginAsync } from 'fastify'
-import Groq from 'groq-sdk'
 import { z } from 'zod'
+import { ProviderFactory } from '../providers/factory'
+import { ProviderName } from '../providers/types'
 
 const generateRequestSchema = z.object({
   prompt: z.string().min(1),
   device: z.string().optional(),
-  framework: z.string().optional()
+  framework: z.string().optional(),
+  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  model: z.string().optional()
 })
 
 const chatRequestSchema = z.object({
@@ -13,14 +16,19 @@ const chatRequestSchema = z.object({
   context: z.object({
     hasActiveCode: z.boolean().optional(),
     recentMessages: z.array(z.string()).optional(),
-    currentArtifacts: z.number().optional()
-  }).optional()
+    currentArtifacts: z.number().optional(),
+    responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional()
+  }).optional(),
+  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  model: z.string().optional()
 })
 
 const intentRequestSchema = z.object({
   message: z.string().min(1),
   hasActiveCode: z.boolean().optional(),
-  responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional()
+  responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional(),
+  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  model: z.string().optional()
 })
 
 type GenerateRequest = z.infer<typeof generateRequestSchema>
@@ -28,70 +36,23 @@ type ChatRequest = z.infer<typeof chatRequestSchema>
 type IntentRequest = z.infer<typeof intentRequestSchema>
 
 export const generationRoutes: FastifyPluginAsync = async (fastify) => {
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
-  })
 
   fastify.post<{ Body: GenerateRequest }>('/generate', async (request, reply) => {
     try {
-      const { prompt, device = 'desktop', framework = 'vanilla' } = generateRequestSchema.parse(request.body)
+      const { prompt, device = 'desktop', framework = 'vanilla', provider: providerName, model } = generateRequestSchema.parse(request.body)
+      
+      const provider = providerName 
+        ? ProviderFactory.createProvider(providerName as ProviderName, { model })
+        : ProviderFactory.getDefaultProvider()
 
-      const systemPrompt = `You are an expert web developer. Generate clean, modern, and responsive HTML, CSS, and JavaScript code based on the user's request. 
-      
-      IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
-      
-      Return your response in this exact JSON format:
-      {
-        "html": "HTML content here",
-        "css": "CSS styles here", 
-        "js": "JavaScript code here"
-      }
-      
-      JSON RULES:
-      - Use double quotes only, escape internal quotes as \"
-      - No template literals or backticks
-      - Use single quotes for HTML/CSS/JS attribute values when possible
-      - Escape newlines as \\n or write compact code
-      - No unescaped backslashes
-      
-      Code Guidelines:
-      - Create semantic, accessible HTML
-      - Use modern CSS with flexbox/grid for layouts
-      - Make the design responsive and mobile-friendly
-      - Add interactive JavaScript features where appropriate
-      - Use clean, modern design patterns
-      - Include proper colors, spacing, and typography
-      - Write compact, production-ready code`
-
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: `Create a website based on this request: ${prompt}`
-          }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
-        max_tokens: 8000,
-        response_format: { type: 'json_object' }
-      })
-
-      const responseContent = completion.choices[0]?.message?.content
-      if (!responseContent) {
-        throw new Error('No response from AI')
+      if (!provider.isConfigured()) {
+        return reply.status(400).send({
+          success: false,
+          error: `Provider ${provider.name} is not configured. Please add the API key in your .env file.`
+        })
       }
 
-      let generatedCode
-      try {
-        generatedCode = JSON.parse(responseContent)
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', responseContent)
-        throw new Error('Invalid response format from AI')
-      }
+      const generatedCode = await provider.generateWebsite({ prompt, device, framework })
 
       const artifactId = `artifact_${Date.now()}`
       
@@ -115,7 +76,7 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
           dependencies: []
         },
         createdAt: new Date().toISOString(),
-        author: 'groq-ai-generator'
+        author: `${provider.name}-ai-generator`
       }
 
       return reply.send({
@@ -124,7 +85,7 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
         message: `Generated website based on: ${prompt.slice(0, 100)}...`
       })
     } catch (error) {
-      fastify.log.error(error)
+      console.error(error)
       return reply.status(500).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate website'
@@ -134,49 +95,20 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: ChatRequest }>('/chat', async (request, reply) => {
     try {
-      const { message, context = {} } = chatRequestSchema.parse(request.body)
+      const { message, context = {}, provider: providerName, model } = chatRequestSchema.parse(request.body)
+      
+      const provider = providerName 
+        ? ProviderFactory.createProvider(providerName as ProviderName, { model })
+        : ProviderFactory.getDefaultProvider()
 
-      const systemPrompt = `You are a friendly and enthusiastic AI assistant that specializes in helping people build websites and web applications. You have a warm, conversational personality.
-
-Key traits:
-- Warm, friendly, and approachable
-- Enthusiastic about web development and creative projects
-- Use emojis naturally in conversation
-- Ask follow-up questions to show interest
-- Be helpful and encouraging
-- Give human-like responses to personal questions like "how is your day"
-
-Context about your capabilities:
-- You can generate HTML, CSS, and JavaScript code
-- You help create websites, web pages, and applications
-- You work with responsive designs and modern web technologies
-
-Current context:
-- User has active projects: ${context.hasActiveCode ? 'Yes' : 'No'}
-- Number of user's projects: ${context.currentArtifacts || 0}
-
-Respond naturally and conversationally. If they're just chatting (greetings, personal questions), be friendly and engaging. If they want to build something, offer to help and ask what they'd like to create.`
-
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.8,
-        max_tokens: 1000
-      })
-
-      const responseContent = completion.choices[0]?.message?.content
-      if (!responseContent) {
-        throw new Error('No response from AI')
+      if (!provider.isConfigured()) {
+        return reply.status(400).send({
+          success: false,
+          error: `Provider ${provider.name} is not configured. Please add the API key in your .env file.`
+        })
       }
+
+      const responseContent = await provider.generateChat({ message, context })
 
       return reply.send({
         success: true,
@@ -184,7 +116,7 @@ Respond naturally and conversationally. If they're just chatting (greetings, per
         message: 'Chat response generated successfully'
       })
     } catch (error) {
-      fastify.log.error(error)
+      console.error(error)
       return reply.status(500).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate chat response'
@@ -194,69 +126,20 @@ Respond naturally and conversationally. If they're just chatting (greetings, per
 
   fastify.post<{ Body: IntentRequest }>('/classify-intent', async (request, reply) => {
     try {
-      const { message, hasActiveCode = false, responseMode = 'show-options' } = intentRequestSchema.parse(request.body)
+      const { message, hasActiveCode = false, responseMode = 'show-options', provider: providerName, model } = intentRequestSchema.parse(request.body)
+      
+      const provider = providerName 
+        ? ProviderFactory.createProvider(providerName as ProviderName, { model })
+        : ProviderFactory.getDefaultProvider()
 
-      const systemPrompt = `You are an expert intent classifier for a web development assistant. Classify the user's message into one of these categories:
-
-INTENT TYPES:
-- "generation": User wants to create/build/generate something new (websites, apps, components, etc.)
-- "modification": User wants to modify/change/edit existing code or content
-- "explanation": User wants an explanation of code or how something works
-- "conversation": General conversation, greetings, questions about the assistant
-
-CONTEXT:
-- User has active code/project: ${hasActiveCode ? 'Yes' : 'No'}
-- Response Mode: ${responseMode}
-  - "just-build": User prefers direct action, minimal explanation
-  - "show-options": User wants to see alternatives before deciding
-  - "explain-first": User wants detailed explanations before action
-
-RULES:
-- Be decisive - choose the most likely intent
-- If user says "build", "create", "make", "generate" + anything = "generation"
-- If user mentions specific things to build (todo list, calculator, website, etc.) = "generation"
-- If user says "just build it" or similar = "generation" 
-- If user wants to change/modify existing code = "modification"
-- If user asks "how does this work" or "explain" = "explanation"
-- If user is chatting/greeting = "conversation"
-- If user says "I don't see X" or "X is not working" = "modification" (if has code) or "generation" (if no code)
-
-BEHAVIORAL FLAGS:
-- shouldExecuteDirectly: true if responseMode is "just-build" AND intent is generation/modification
-- shouldShowOptions: true if responseMode is "show-options" AND intent is generation/modification
-
-Respond with ONLY a JSON object:
-{
-  "intent": "generation|modification|explanation|conversation",
-  "confidence": 0.95,
-  "reasoning": "Brief explanation why",
-  "shouldExecuteDirectly": true/false,
-  "shouldShowOptions": true/false
-}`
-
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: `Classify this message: "${message}"`
-          }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.1,
-        max_tokens: 200,
-        response_format: { type: 'json_object' }
-      })
-
-      const responseContent = completion.choices[0]?.message?.content
-      if (!responseContent) {
-        throw new Error('No response from AI')
+      if (!provider.isConfigured()) {
+        return reply.status(400).send({
+          success: false,
+          error: `Provider ${provider.name} is not configured. Please add the API key in your .env file.`
+        })
       }
 
-      const result = JSON.parse(responseContent)
+      const result = await provider.classifyIntent({ message, hasActiveCode, responseMode })
 
       return reply.send({
         success: true,
@@ -267,7 +150,7 @@ Respond with ONLY a JSON object:
         shouldShowOptions: result.shouldShowOptions
       })
     } catch (error) {
-      fastify.log.error(error)
+      console.error(error)
       return reply.status(500).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to classify intent'
@@ -275,7 +158,73 @@ Respond with ONLY a JSON object:
     }
   })
 
-  fastify.get('/health', async (request, reply) => {
+  fastify.get('/health', async (_, reply) => {
     return reply.send({ status: 'ok', timestamp: new Date().toISOString() })
+  })
+
+  fastify.get('/providers', async (_, reply) => {
+    const providers = ProviderFactory.getAvailableProviders()
+    const defaultProvider = process.env.AI_PROVIDER || 'groq'
+    
+    return reply.send({
+      success: true,
+      defaultProvider,
+      providers: providers.map(p => ({
+        name: p.name,
+        configured: p.configured,
+        models: p.models,
+        isDefault: p.name === defaultProvider
+      }))
+    })
+  })
+
+  fastify.post<{ Body: { provider?: string; model?: string; testPrompt?: string } }>('/test-provider', async (request, reply) => {
+    try {
+      const { provider: providerName, model, testPrompt = 'Hello! Can you introduce yourself?' } = request.body
+      
+      const provider = providerName 
+        ? ProviderFactory.createProvider(providerName as ProviderName, { model })
+        : ProviderFactory.getDefaultProvider()
+
+      if (!provider.isConfigured()) {
+        return reply.status(400).send({
+          success: false,
+          error: `Provider ${provider.name} is not configured. Please add the API key in your .env file.`
+        })
+      }
+
+      const startTime = Date.now()
+      
+      try {
+        const response = await provider.generateChat({ 
+          message: testPrompt,
+          context: {},
+          maxTokens: 200
+        })
+        
+        const endTime = Date.now()
+        
+        return reply.send({
+          success: true,
+          provider: provider.name,
+          model: model || 'default',
+          response,
+          responseTime: endTime - startTime,
+          message: 'Provider test successful'
+        })
+      } catch (error) {
+        return reply.status(500).send({
+          success: false,
+          provider: provider.name,
+          error: error instanceof Error ? error.message : 'Provider test failed'
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      return reply.status(500).send({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to test provider'
+      })
+    }
   })
 }
