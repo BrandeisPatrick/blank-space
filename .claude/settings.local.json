@@ -8,7 +8,9 @@
       "Bash(taskkill:*)",
       "Bash(curl:*)",
       "Bash(git add:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
