@@ -1,6 +1,6 @@
 import { Artifact, ResponseMode } from '../types'
 
-const API_BASE_URL = (import.meta.env as any).VITE_API_URL || 'http://localhost:3002/api'
+const API_BASE_URL = (import.meta.env as any).VITE_API_URL || 'http://localhost:3001/api'
 
 export interface GenerationOptions {
   device?: string

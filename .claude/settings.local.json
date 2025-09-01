@@ -10,7 +10,16 @@
       "Bash(git add:*)",
       "Bash(tree:*)",
       "Bash(git checkout:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run test:local:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run demo:server:*)",
+      "Bash(npm run demo:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

@@ -9,6 +9,11 @@
     "dev": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:local": "tsx examples/local-test.ts",
+    "test:simple": "tsx examples/simple-test.ts",
+    "demo": "tsx examples/live-demo.ts",
+    "demo:simple": "npm run test:simple",
+    "demo:server": "tsx examples/server-integration-example.ts",
     "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -33,7 +38,8 @@
     "jest": "^29.7.0",
     "@types/jest": "^29.5.8",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "tsx": "^4.6.0"
   },
   "files": [
     "dist/**/*",

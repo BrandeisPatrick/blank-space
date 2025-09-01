@@ -25,9 +25,10 @@ export {
   ExampleWorkflowManager
 } from './workflows/exampleWorkflows';
 
-// Utilities for creating agent systems
+// Utilities for creating agent systems  
 export const createAgentSystem = (provider: any) => {
-  const registry = createDefaultAgentRegistry();
+  const registry = new DefaultAgentRegistry();
+  registerDefaultAgents(registry);
   const manager = new AgentManager(provider, registry);
   const contextManager = new ContextManager();
   const workflowManager = new ExampleWorkflowManager(manager, contextManager);
