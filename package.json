@@ -30,5 +30,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "groq-sdk": "^0.30.0"
-  }
+  },
+  "eslintConfig": {
+    "extends": ["./config/.eslintrc.json"]
+  },
+  "prettier": "./config/.prettierrc"
 }
