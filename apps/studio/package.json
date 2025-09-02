@@ -10,12 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ui-grid-ai/compiler": "file:../../packages/compiler",
+    "@ui-grid-ai/grid-engine": "file:../../packages/grid-engine",
+    "clsx": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zustand": "^4.4.7",
-    "clsx": "^2.0.0",
-    "@ui-grid-ai/grid-engine": "file:../../packages/grid-engine",
-    "@ui-grid-ai/compiler": "file:../../packages/compiler"
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -27,6 +27,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^7.1.4"
   }
 }

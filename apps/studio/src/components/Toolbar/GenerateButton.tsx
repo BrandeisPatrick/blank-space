@@ -23,8 +23,8 @@ export const GenerateButton = ({ onGenerate }: GenerateButtonProps) => {
         border: 'none',
         background: isDisabled 
           ? theme.colors.bg.tertiary 
-          : mode === 'dark' ? theme.colors.gradient.button : theme.colors.accent.success,
-        color: mode === 'dark' || !isDisabled ? '#ffffff' : theme.colors.text.disabled,
+          : '#333333',
+        color: '#ffffff',
         cursor: isDisabled ? 'not-allowed' : 'pointer',
         fontWeight: theme.typography.fontWeight.bold,
         fontSize: theme.typography.fontSize.base,
