@@ -87,12 +87,13 @@ export class ProviderFactory {
   }
 
   static getDefaultProvider(): AIProvider {
-    const defaultProviderName = (process.env.AI_PROVIDER as ProviderName) || 'groq'
-    return this.createProvider(defaultProviderName)
+    // Force Groq as the only provider
+    return this.createProvider('groq')
   }
 
   static getAvailableProviders(): { name: ProviderName; configured: boolean; models: string[] }[] {
-    const providers: ProviderName[] = ['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']
+    // Only return Groq as available provider
+    const providers: ProviderName[] = ['groq']
     
     return providers.map(name => {
       const provider = this.createProvider(name)
