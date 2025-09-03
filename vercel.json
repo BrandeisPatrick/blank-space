@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd apps/studio && npm run build",
+  "buildCommand": "cd apps/studio && npx vite build --mode production",
   "outputDirectory": "apps/studio/dist",
   "installCommand": "npm install",
   "env": {
