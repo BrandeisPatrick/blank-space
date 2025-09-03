@@ -17,7 +17,7 @@ const lightTheme = {
       disabled: '#c2bdb6',     // Very light brown
     },
     accent: {
-      primary: '#8b7355',      // Warm coffee brown
+      primary: '#333333',      // Dark grey for buttons
       secondary: '#a68b5b',    // Golden brown
       success: '#7d8471',      // Sage green
       warning: '#c4965a',      // Warm amber
@@ -58,7 +58,7 @@ const darkTheme = {
       disabled: '#707070',     // Dark grey
     },
     accent: {
-      primary: '#ffffff',      // White for buttons
+      primary: '#333333',      // Dark grey for buttons
       secondary: '#f0f0f0',    // Off-white
       success: '#4ade80',      // Bright green
       warning: '#fbbf24',      // Bright yellow

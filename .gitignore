@@ -36,6 +36,13 @@ temp/
 *.tmp
 .tmp/
 
+# Backup files
+**/index\ 2.*
+**/*\ 2.*
+*.bak
+*~
+Thumbs.db
+
 # Vite
 .vite/
 *.local

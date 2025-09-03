@@ -55,9 +55,9 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
         <button
           onClick={onSignIn}
           style={{
-            background: theme.colors.bg.tertiary,
+            background: '#333333',
             border: 'none',
-            color: theme.colors.text.secondary,
+            color: '#ffffff',
             cursor: 'pointer',
             padding: `${theme.spacing.md} ${theme.spacing.xl}`,
             borderRadius: theme.radius.lg,
@@ -68,13 +68,13 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
             boxShadow: theme.shadows.outset,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = theme.colors.bg.hover
-            e.currentTarget.style.color = theme.colors.accent.primary
+            e.currentTarget.style.background = '#444444'
+            e.currentTarget.style.color = '#ffffff'
             e.currentTarget.style.boxShadow = theme.shadows.glow
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = theme.colors.bg.tertiary
-            e.currentTarget.style.color = theme.colors.text.secondary
+            e.currentTarget.style.background = '#333333'
+            e.currentTarget.style.color = '#ffffff'
             e.currentTarget.style.boxShadow = theme.shadows.outset
           }}
         >

@@ -7,7 +7,7 @@ const generateRequestSchema = z.object({
   prompt: z.string().min(1),
   device: z.string().optional(),
   framework: z.string().optional(),
-  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  provider: z.enum(['groq']).optional(),
   model: z.string().optional()
 })
 
@@ -19,7 +19,7 @@ const chatRequestSchema = z.object({
     currentArtifacts: z.number().optional(),
     responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional()
   }).optional(),
-  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  provider: z.enum(['groq']).optional(),
   model: z.string().optional()
 })
 
@@ -27,7 +27,7 @@ const intentRequestSchema = z.object({
   message: z.string().min(1),
   hasActiveCode: z.boolean().optional(),
   responseMode: z.enum(['just-build', 'show-options', 'explain-first']).optional(),
-  provider: z.enum(['groq', 'openai', 'anthropic', 'gemini', 'cohere', 'together']).optional(),
+  provider: z.enum(['groq']).optional(),
   model: z.string().optional()
 })
 
