@@ -175,13 +175,16 @@ export const TopBar = ({ onNavigateToSignIn, user, isAuthenticated }: TopBarProp
                 border: 'none',
                 color: theme.colors.text.secondary,
                 cursor: 'pointer',
-                padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                borderRadius: theme.radius.md,
+                padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+                borderRadius: theme.radius.lg,
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.medium,
                 fontFamily: theme.typography.fontFamily.sans,
                 transition: `all ${theme.animation.normal}`,
                 boxShadow: theme.shadows.outset,
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = theme.colors.bg.hover
@@ -207,13 +210,14 @@ export const TopBar = ({ onNavigateToSignIn, user, isAuthenticated }: TopBarProp
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing.sm,
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              borderRadius: theme.radius.md,
+              padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+              borderRadius: theme.radius.lg,
               transition: `all ${theme.animation.normal}`,
               background: theme.colors.bg.secondary,
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               boxShadow: theme.shadows.outset,
+              height: '48px',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = theme.colors.accent.primary

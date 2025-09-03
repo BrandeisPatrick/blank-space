@@ -17,8 +17,8 @@ export const ThemeToggle = () => {
         border: 'none',
         borderRadius: currentTheme.radius.lg,
         color: mode === 'dark' ? '#ffffff' : currentTheme.colors.text.secondary,
-        fontSize: currentTheme.typography.fontSize.base,
-        fontWeight: currentTheme.typography.fontWeight.bold,
+        fontSize: currentTheme.typography.fontSize.sm,
+        fontWeight: currentTheme.typography.fontWeight.medium,
         cursor: 'pointer',
         transition: `all ${currentTheme.animation.normal}`,
         boxShadow: currentTheme.shadows.outset,
@@ -35,7 +35,7 @@ export const ThemeToggle = () => {
         e.currentTarget.style.boxShadow = currentTheme.shadows.outset
       }}
     >
-      <span style={{ fontSize: currentTheme.typography.fontSize.base }}>
+      <span style={{ fontSize: currentTheme.typography.fontSize.sm }}>
         {mode === 'light' ? '🌙' : '☀️'}
       </span>
       <span>
