@@ -102,14 +102,13 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
             margin: `0 0 ${theme.spacing.xl} 0`,
             lineHeight: theme.typography.lineHeight.tight,
           }}>
-            Build Websites with
-            <span style={{
-              display: 'block',
+            <span style={{ 
               color: theme.colors.accent.primary,
-              marginTop: theme.spacing.md,
-            }}>
-              AI-Powered Creativity
-            </span>
+              fontWeight: theme.typography.fontWeight.bold,
+            }}>&lt;</span> blank space <span style={{ 
+              color: theme.colors.accent.primary,
+              fontWeight: theme.typography.fontWeight.bold,
+            }}>&gt;</span>
           </h2>
 
           {/* Hero Subtitle */}
@@ -122,103 +121,9 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
             marginLeft: 'auto',
             marginRight: 'auto',
           }}>
-            Describe your vision, watch it come to life. Create stunning websites, components, and applications with the power of AI — no coding required.
+            Turn ideas into websites with AI
           </p>
 
-          {/* Feature Highlights */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: theme.spacing.xl,
-            marginBottom: theme.spacing['3xl'],
-          }}>
-            <div style={{
-              background: theme.colors.bg.secondary,
-              padding: theme.spacing.xl,
-              borderRadius: theme.radius.xl,
-              boxShadow: theme.shadows.outsetMd,
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontSize: '2rem',
-                marginBottom: theme.spacing.md,
-              }}>⚡</div>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: `0 0 ${theme.spacing.sm} 0`,
-              }}>
-                Instant Creation
-              </h3>
-              <p style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.tertiary,
-                margin: 0,
-                lineHeight: theme.typography.lineHeight.normal,
-              }}>
-                From idea to website in seconds
-              </p>
-            </div>
-
-            <div style={{
-              background: theme.colors.bg.secondary,
-              padding: theme.spacing.xl,
-              borderRadius: theme.radius.xl,
-              boxShadow: theme.shadows.outsetMd,
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontSize: '2rem',
-                marginBottom: theme.spacing.md,
-              }}>🎨</div>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: `0 0 ${theme.spacing.sm} 0`,
-              }}>
-                Beautiful Design
-              </h3>
-              <p style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.tertiary,
-                margin: 0,
-                lineHeight: theme.typography.lineHeight.normal,
-              }}>
-                Modern, responsive, and stunning
-              </p>
-            </div>
-
-            <div style={{
-              background: theme.colors.bg.secondary,
-              padding: theme.spacing.xl,
-              borderRadius: theme.radius.xl,
-              boxShadow: theme.shadows.outsetMd,
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontSize: '2rem',
-                marginBottom: theme.spacing.md,
-              }}>🔧</div>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: `0 0 ${theme.spacing.sm} 0`,
-              }}>
-                Full Control
-              </h3>
-              <p style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.tertiary,
-                margin: 0,
-                lineHeight: theme.typography.lineHeight.normal,
-              }}>
-                Edit code and customize everything
-              </p>
-            </div>
-          </div>
 
           {/* CTA Buttons */}
           <div style={{
@@ -310,33 +215,6 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
             </button>
           </div>
 
-          {/* Trust Indicators */}
-          <div style={{
-            marginTop: theme.spacing['3xl'],
-            padding: theme.spacing.xl,
-            borderTop: `1px solid ${theme.colors.bg.border}`,
-          }}>
-            <p style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.text.tertiary,
-              margin: `0 0 ${theme.spacing.md} 0`,
-            }}>
-              Join thousands of creators building with AI
-            </p>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: theme.spacing.lg,
-              opacity: 0.7,
-            }}>
-              <span style={{ fontSize: theme.typography.fontSize.sm }}>⭐ 4.9/5 rating</span>
-              <span style={{ fontSize: theme.typography.fontSize.sm }}>•</span>
-              <span style={{ fontSize: theme.typography.fontSize.sm }}>🚀 10k+ websites created</span>
-              <span style={{ fontSize: theme.typography.fontSize.sm }}>•</span>
-              <span style={{ fontSize: theme.typography.fontSize.sm }}>🔒 No credit card required</span>
-            </div>
-          </div>
         </div>
       </main>
     </div>
