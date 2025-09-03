@@ -2,6 +2,7 @@ import fastify from 'fastify'
 import cors from '@fastify/cors'
 import * as dotenv from 'dotenv'
 import { generationRoutes } from './routes/generation'
+import { developerRoutes } from './routes/developer'
 // import frameworkAdvisorRoutes from './routes/framework-advisor'
 
 dotenv.config({ path: '../../.env' })
@@ -19,6 +20,7 @@ async function start() {
     })
 
     await server.register(generationRoutes, { prefix: '/api' })
+    await server.register(developerRoutes, { prefix: '/api/dev' })
     // await server.register(frameworkAdvisorRoutes, { prefix: '/api/framework-advisor' })
 
     const port = parseInt(process.env.SERVER_PORT || '3001', 10)

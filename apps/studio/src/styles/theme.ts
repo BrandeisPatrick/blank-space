@@ -8,8 +8,8 @@ const lightTheme = {
       secondary: '#f9f6f1',    // Soft cream for cards
       tertiary: '#f4f0ea',     // Slightly darker cream for active states
       hover: '#ede8e1',        // Hover states
-      border: '#e6e1d8',       // Subtle cream borders
     },
+    border: '#e6e1d8',         // Subtle cream borders
     text: {
       primary: '#3c3530',      // Warm dark brown
       secondary: '#6b635a',    // Medium brown
@@ -23,9 +23,16 @@ const lightTheme = {
       warning: '#c4965a',      // Warm amber
       error: '#b8695d',        // Soft terracotta
     },
+    status: {
+      success: '#7d8471',      // Sage green
+      warning: '#c4965a',      // Warm amber
+      error: '#b8695d',        // Soft terracotta
+      info: '#a68b5b',         // Golden brown for info
+    },
     gradient: {
       primary: 'linear-gradient(145deg, #f9f6f1, #ede8e1)',
       subtle: 'linear-gradient(145deg, #fefcf8, #f4f0ea)',
+      button: 'linear-gradient(145deg, #f4f0ea, #ede8e1)',
     }
   },
   shadows: {
@@ -49,8 +56,8 @@ const darkTheme = {
       secondary: '#212121',    // Slightly lighter grey
       tertiary: '#2a2a2a',     // Medium grey for active states
       hover: '#333333',        // Lighter grey for hover
-      border: '#404040',       // Border grey
     },
+    border: '#404040',         // Border grey
     text: {
       primary: '#ffffff',      // Pure white
       secondary: '#e0e0e0',    // Light grey
@@ -63,6 +70,12 @@ const darkTheme = {
       success: '#4ade80',      // Bright green
       warning: '#fbbf24',      // Bright yellow
       error: '#f87171',        // Bright red
+    },
+    status: {
+      success: '#4ade80',      // Bright green
+      warning: '#fbbf24',      // Bright yellow
+      error: '#f87171',        // Bright red
+      info: '#60a5fa',         // Bright blue for info
     },
     gradient: {
       primary: 'linear-gradient(145deg, #1e1e1e, #161616)',

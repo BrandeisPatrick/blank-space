@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "monorepo": true,
+  "buildCommand": "npm run build",
+  "outputDirectory": "apps/studio/dist",
+  "functions": {
+    "apps/server/src/index.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/apps/server/src/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/apps/studio/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

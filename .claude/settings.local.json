@@ -19,7 +19,11 @@
       "Bash(npm run demo:server:*)",
       "Bash(npm run demo:*)",
       "Bash(npx tsx:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "Bash(npx vite build:*)",
+      "Bash(npm run preview:*)",
+      "Bash(NODE_ENV=production npx tsx apps/server/src/index.ts)"
     ],
     "deny": [],
     "ask": []

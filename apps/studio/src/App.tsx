@@ -8,6 +8,7 @@ import { MobileToggleBar } from './components/Layout/MobileToggleBar'
 import { SignInPage } from './components/Auth/SignInPage'
 import { LandingPage } from './components/Landing/LandingPage'
 import { Dashboard } from './components/Dashboard/Dashboard'
+import { DeveloperDashboard } from './components/Developer/DeveloperDashboard'
 import { useAppStore } from './state/appStore'
 import { useUserStore, initializeUserFromStorage } from './state/userStore'
 import { useResponsive } from './hooks/useResponsive'
@@ -17,7 +18,7 @@ import { generationService } from './services/generationService'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 
-type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard'
+type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard' | 'developer'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('landing')
@@ -54,7 +55,7 @@ function App() {
   }, [isAuthenticated, currentRoute])
 
   // Handle sign in
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, _password: string) => {
     // For demo purposes, create a user from the email
     const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ')
     const formattedName = userName.charAt(0).toUpperCase() + userName.slice(1)
@@ -80,6 +81,7 @@ function App() {
   const handleNavigateToLanding = () => setCurrentRoute('landing')
   const handleNavigateToDashboard = () => setCurrentRoute('dashboard')
   const handleCreateNew = () => setCurrentRoute('studio')
+  const handleNavigateToDeveloper = () => setCurrentRoute('developer')
   
   const handleOpenArtifact = (artifactId: string) => {
     setCurrentArtifact(artifactId)
@@ -111,6 +113,14 @@ function App() {
         onCreateNew={handleCreateNew}
         onOpenArtifact={handleOpenArtifact}
         onSignOut={handleSignOut}
+      />
+    )
+  }
+
+  if (currentRoute === 'developer') {
+    return (
+      <DeveloperDashboard
+        onNavigateBack={() => setCurrentRoute(isAuthenticated ? 'dashboard' : 'landing')}
       />
     )
   }
@@ -330,6 +340,7 @@ ENHANCEMENT REQUIREMENTS:
       {/* Top Bar */}
       <TopBar 
         onNavigateToSignIn={isAuthenticated ? handleNavigateToDashboard : handleNavigateToSignIn}
+        onNavigateToDeveloper={handleNavigateToDeveloper}
         user={user}
         isAuthenticated={isAuthenticated}
       />

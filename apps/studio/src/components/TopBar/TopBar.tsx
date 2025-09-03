@@ -6,15 +6,19 @@ import { getTheme } from '../../styles/theme'
 
 interface TopBarProps {
   onNavigateToSignIn?: () => void
+  onNavigateToDeveloper?: () => void
   user?: { name: string; email: string } | null
   isAuthenticated?: boolean
 }
 
-export const TopBar = ({ onNavigateToSignIn, user, isAuthenticated }: TopBarProps) => {
+export const TopBar = ({ onNavigateToSignIn, onNavigateToDeveloper, user, isAuthenticated }: TopBarProps) => {
   const { showChat, showCode, showPreview, togglePanel } = useAppStore()
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
   const theme = getTheme(mode)
+
+  // Check if developer mode is enabled
+  const isDeveloperMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEVELOPER_MODE === 'true'
 
   const buttonStyle = (isActive: boolean) => ({
     background: isActive ? theme.colors.gradient.primary : theme.colors.bg.secondary,
@@ -167,6 +171,39 @@ export const TopBar = ({ onNavigateToSignIn, user, isAuthenticated }: TopBarProp
           gap: theme.spacing.sm,
         }}>
           <ThemeToggle />
+          
+          {/* Developer Button - Only show in development mode */}
+          {isDeveloperMode && onNavigateToDeveloper && (
+            <button
+              onClick={onNavigateToDeveloper}
+              style={{
+                background: theme.colors.accent.warning + '20',
+                color: theme.colors.accent.warning,
+                border: `1px solid ${theme.colors.accent.warning}`,
+                borderRadius: theme.radius.lg,
+                padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+                cursor: 'pointer',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.normal}`,
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.accent.warning + '30'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = theme.colors.accent.warning + '20'
+                e.currentTarget.style.transform = 'translateY(0)'
+              }}
+            >
+              🔧 Dev
+            </button>
+          )}
+          
           {onNavigateToSignIn && (
             <button
               onClick={onNavigateToSignIn}
