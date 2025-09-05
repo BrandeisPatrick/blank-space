@@ -19,11 +19,11 @@ export const AIProviderPanel = () => {
   
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
-  const [serverUrl] = useState('http://localhost:3001')
+  const [serverUrl] = useState('/api')
   
   const fetchProviders = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/providers`)
+      const response = await fetch(`${serverUrl}/providers`)
       const data = await response.json()
       
       if (data.success) {

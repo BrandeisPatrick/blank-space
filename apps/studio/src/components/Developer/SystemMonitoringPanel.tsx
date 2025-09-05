@@ -40,14 +40,14 @@ export const SystemMonitoringPanel = () => {
     }
   })
   const [loading, setLoading] = useState(true)
-  const [serverUrl] = useState('http://localhost:3001')
+  const [serverUrl] = useState('/api')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   const checkHealth = async () => {
     try {
       const startTime = Date.now()
-      const response = await fetch(`${serverUrl}/api/health`)
+      const response = await fetch(`${serverUrl}/health`)
       const endTime = Date.now()
       const responseTime = endTime - startTime
       

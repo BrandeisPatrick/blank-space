@@ -1,8 +1,7 @@
 import { Artifact, ResponseMode } from '../types'
 
-// Use local API routes for Vercel deployment, fallback to server for development
-const API_BASE_URL = (import.meta.env as any).VITE_API_URL || 'http://localhost:3001/api'
-const USE_LOCAL_API = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('localhost')
+// Always use relative API routes for Vercel deployment
+const API_BASE_URL = '/api'
 
 export interface GenerationOptions {
   device?: string
@@ -39,7 +38,7 @@ export class GenerationService {
 
   private async generateWithSecureAPI(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
     // Secure API generation using server-side AI calls
-    const apiUrl = USE_LOCAL_API ? '/api/generate' : `${API_BASE_URL}/generate`
+    const apiUrl = `${API_BASE_URL}/generate`
     
     try {
       const response = await fetch(apiUrl, {
@@ -105,7 +104,7 @@ export class GenerationService {
     } = {}
   ): Promise<ReActResult> {
     // Use secure ReAct reasoning API
-    const apiUrl = USE_LOCAL_API ? '/api/reasoning' : `${API_BASE_URL}/reasoning`
+    const apiUrl = `${API_BASE_URL}/reasoning`
     
     try {
       const response = await fetch(apiUrl, {
@@ -187,41 +186,8 @@ export class GenerationService {
   }
 
   async generateWebsite(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
-    // Use secure API routes - try local API first, then backend server
-    if (USE_LOCAL_API) {
-      // Use local secure API routes for Vercel deployment
-      return await this.generateWithSecureAPI(prompt, options)
-    } else {
-      // Use backend server for local development
-      try {
-        const response = await fetch(`${API_BASE_URL}/generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt,
-            device: options.device || 'desktop',
-            framework: options.framework || 'react' // Default to React
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Generation failed')
-        }
-
-        return data.artifact
-      } catch (backendError) {
-        console.error('Backend generation failed:', backendError)
-        throw new Error('AI generation unavailable. Please ensure the backend server is running or deploy to Vercel for secure API access.')
-      }
-    }
+    // Use secure API routes for Vercel deployment
+    return await this.generateWithSecureAPI(prompt, options)
   }
 
   async generateChatResponse(message: string, context?: {

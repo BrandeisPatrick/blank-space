@@ -16,7 +16,7 @@ export const APISettingsPanel = () => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
   
-  const [serverUrl, setServerUrl] = useState('http://localhost:3001')
+  const [serverUrl, setServerUrl] = useState('')
   const [endpoints] = useState<APIEndpoint[]>([
     {
       name: 'Health Check',
