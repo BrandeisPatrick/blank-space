@@ -156,32 +156,39 @@ function App() {
     
     switch (intentResult.intent) {
       case 'generation':
-        // Generate new website/component
+        // Generate new React component with ReAct reasoning
         try {
           setGenerating(true)
           
-          // Generate website using Groq API
-          const artifact = await generationService.generateWebsite(message)
-          addArtifact(artifact)
-          
-          // Add AI response to chat
-          const aiMessage: ChatMessage = {
-            id: `msg_${Date.now()}_ai`,
-            type: 'assistant',
-            content: `I've created a website based on your request! 🎉\n\n**Generated:**\n• HTML structure with semantic elements\n• CSS styling with modern design\n• JavaScript for interactivity\n\nYou can see the generated code in the editor and the live preview on the right. Feel free to ask for any modifications!`,
-            timestamp: Date.now(),
-            artifactId: artifact.id
+          // Use ReAct reasoning for step-by-step generation
+          const result = await generationService.generateWithReActReasoning(message, {
+            stream: true,
+            onStep: (step) => {
+              // Add each reasoning step as a chat message
+              const stepMessage: ChatMessage = {
+                id: `msg_${Date.now()}_${step.id}`,
+                type: 'assistant',
+                content: `**${step.type.charAt(0).toUpperCase() + step.type.slice(1)}:** ${step.content}`,
+                timestamp: Date.now(),
+                metadata: { step }
+              }
+              addChatMessage(stepMessage)
+            }
+          })
+
+          // Add the artifact if generation was successful
+          if (result.artifact) {
+            addArtifact(result.artifact)
           }
-          addChatMessage(aiMessage)
           
         } catch (error) {
-          console.error('Generation failed:', error)
+          console.error('ReAct generation failed:', error)
           
           // Add error message to chat
           const errorMessage: ChatMessage = {
             id: `msg_${Date.now()}_error`,
             type: 'assistant',
-            content: 'Sorry, there was an error generating your website. Please try again with a different description.',
+            content: 'Sorry, there was an error with the AI reasoning system. Please check that your API keys are configured properly and try again.',
             timestamp: Date.now()
           }
           addChatMessage(errorMessage)

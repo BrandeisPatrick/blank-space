@@ -56,11 +56,37 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
 
       const artifactId = `artifact_${Date.now()}`
       
+      // Handle React vs vanilla HTML differently
+      const isReact = framework.toLowerCase().includes('react')
+      
       const artifact = {
         id: artifactId,
         projectId: 'default',
         regionId: 'full-page',
-        files: {
+        files: isReact ? {
+          'App.jsx': generatedCode.html || '', // JSX component
+          'App.module.css': generatedCode.css || '', // CSS modules
+          'hooks.js': generatedCode.js || '', // Additional hooks/logic
+          'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Component Preview</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        ${generatedCode.html || ''}
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+    <style>${generatedCode.css || ''}</style>
+</body>
+</html>`
+        } : {
           'index.html': generatedCode.html || '',
           'styles.css': generatedCode.css || '',
           'script.js': generatedCode.js || ''
@@ -73,7 +99,8 @@ export const generationRoutes: FastifyPluginAsync = async (fastify) => {
             end: { x: 23, y: 19 }
           },
           framework: framework,
-          dependencies: []
+          isReact: isReact,
+          dependencies: isReact ? ['react', 'react-dom'] : []
         },
         createdAt: new Date().toISOString(),
         author: `${provider.name}-ai-generator`

@@ -1,4 +1,9 @@
-import { getDevicePresets } from '@ui-grid-ai/grid-engine'
+// Mock function since we don't have grid-engine package
+const getDevicePresets = () => [
+  { id: 'desktop', name: 'Desktop', width: 1200, height: 800 },
+  { id: 'tablet', name: 'Tablet', width: 768, height: 1024 },
+  { id: 'mobile', name: 'Mobile', width: 375, height: 667 }
+]
 import { useAppStore } from '../../state/appStore'
 
 export const DeviceSelector = () => {

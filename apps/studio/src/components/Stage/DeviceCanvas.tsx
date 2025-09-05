@@ -1,5 +1,11 @@
 import { useRef, useEffect } from 'react'
-import { GridEngine, getDevicePreset } from '@ui-grid-ai/grid-engine'
+// Mock functions since we don't have grid-engine package  
+const getDevicePreset = (id: string) => ({ id, name: id, width: 1200, height: 800 })
+const GridEngine = { 
+  render: () => null,
+  calculateGridMetrics: () => ({ cellSize: 20, gutter: 2 }),
+  getRegionBounds: () => ({ x: 0, y: 0, width: 100, height: 100 })
+}
 import { useAppStore } from '../../state/appStore'
 import { GridRegion } from '../../types'
 

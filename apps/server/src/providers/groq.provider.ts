@@ -37,7 +37,40 @@ export class GroqProvider implements AIProvider {
   async generateWebsite(options: GenerationOptions): Promise<GenerationResult> {
     if (!this.client) throw new Error('Groq API key not configured')
 
-    const systemPrompt = `You are an expert web developer. Generate clean, modern, and responsive HTML, CSS, and JavaScript code based on the user's request. 
+    // Determine if this is a React request
+    const framework = options.framework || 'vanilla'
+    const isReact = framework.toLowerCase().includes('react')
+    
+    const systemPrompt = isReact
+      ? `You are an expert React developer. Generate clean, modern React components with JSX, CSS, and any necessary JavaScript logic.
+    
+    IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
+    
+    Return your response in this exact JSON format:
+    {
+      "html": "React JSX component code here",
+      "css": "CSS styles here (use CSS modules or styled-components approach)", 
+      "js": "Additional JavaScript logic if needed (hooks, utils, etc.)"
+    }
+    
+    JSON RULES:
+    - Use double quotes only, escape internal quotes as \\"
+    - No template literals or backticks in JSON
+    - Use single quotes for JSX/CSS attribute values when possible
+    - Escape newlines as \\n or write compact code
+    - No unescaped backslashes
+    
+    React Code Guidelines:
+    - Create functional components using React hooks
+    - Use modern JSX syntax and patterns
+    - Implement responsive design with CSS modules or inline styles
+    - Use useState, useEffect, and other hooks appropriately
+    - Create reusable, accessible components
+    - Follow React best practices and conventions
+    - Include proper event handlers and state management
+    - Use modern CSS (flexbox/grid) for layouts
+    - Make components production-ready and well-structured`
+      : `You are an expert web developer. Generate clean, modern, and responsive HTML, CSS, and JavaScript code based on the user's request. 
     
     IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
     
@@ -72,7 +105,9 @@ export class GroqProvider implements AIProvider {
         },
         {
           role: 'user',
-          content: `Create a website based on this request: ${options.prompt}`
+          content: isReact 
+            ? `Create a React component based on this request: ${options.prompt}\n\nRequirements:\n- Use functional components with hooks\n- Make it responsive and accessible\n- Include proper styling\n- Add interactivity where appropriate`
+            : `Create a website based on this request: ${options.prompt}`
         }
       ],
       model: this.model,

@@ -1,0 +1,62 @@
+{
+  "name": "@ui-grid-ai/cli-interface",
+  "version": "0.1.0",
+  "description": "Terminal CLI interface for the AI coding agent system",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ai-code": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "cli",
+    "terminal",
+    "ai",
+    "coding",
+    "assistant"
+  ],
+  "dependencies": {
+    "@ui-grid-ai/agent-engine": "file:../agent-engine",
+    "@ui-grid-ai/react-reasoning": "file:../react-reasoning",
+    "commander": "^14.0.0",
+    "chalk": "^5.6.0",
+    "inquirer": "^12.9.4",
+    "ora": "^8.1.1",
+    "boxen": "^8.0.1",
+    "terminal-kit": "^3.1.1",
+    "figlet": "^1.7.0",
+    "@types/figlet": "^1.5.8",
+    "zod": "^3.22.4",
+    "nanoid": "^5.1.5",
+    "fs-extra": "^11.1.1",
+    "@types/fs-extra": "^11.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/inquirer": "^9.0.9",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "eslint": "^8.55.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.0",
+    "tsx": "^4.6.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/studio",
     "dev:server": "npm run dev --workspace=apps/server",
+    "dev:ai-cli": "npm run dev --workspace=packages/cli-interface",
+    "ai-code": "npm run dev --workspace=packages/ai-coding-system",
     "build": "npm run build --workspaces",
+    "build:ai-system": "npm run build --workspace=packages/agent-engine && npm run build --workspace=packages/react-reasoning && npm run build --workspace=packages/cli-interface && npm run build --workspace=packages/ai-coding-system",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
@@ -26,13 +29,23 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.11",
+    "@ai-sdk/openai": "^2.0.23",
     "@monaco-editor/react": "^4.7.0",
+    "@types/inquirer": "^9.0.9",
+    "ai": "^5.0.30",
+    "chalk": "^5.6.0",
+    "commander": "^14.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "groq-sdk": "^0.30.0"
+    "groq-sdk": "^0.30.0",
+    "inquirer": "^12.9.4",
+    "nanoid": "^5.1.5"
   },
   "eslintConfig": {
-    "extends": ["./config/.eslintrc.json"]
+    "extends": [
+      "./config/.eslintrc.json"
+    ]
   },
   "prettier": "./config/.prettierrc"
 }

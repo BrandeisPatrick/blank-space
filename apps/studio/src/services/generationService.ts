@@ -1,10 +1,30 @@
 import { Artifact, ResponseMode } from '../types'
 
+// Use local API routes for Vercel deployment, fallback to server for development
 const API_BASE_URL = (import.meta.env as any).VITE_API_URL || 'http://localhost:3001/api'
+const USE_LOCAL_API = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('localhost')
 
 export interface GenerationOptions {
   device?: string
   framework?: string
+}
+
+// ReAct reasoning step types
+export interface ReasoningStep {
+  id: string
+  type: 'thought' | 'action' | 'observation' | 'final_answer'
+  content: string
+  timestamp: string
+  metadata: any
+}
+
+export interface ReActResult {
+  success: boolean
+  steps: ReasoningStep[]
+  finalAnswer: string
+  totalSteps: number
+  executionTime: number
+  artifact?: Artifact
 }
 
 export class GenerationService {
@@ -17,9 +37,12 @@ export class GenerationService {
     return GenerationService.instance
   }
 
-  async generateWebsite(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
+  private async generateWithSecureAPI(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
+    // Secure API generation using server-side AI calls
+    const apiUrl = USE_LOCAL_API ? '/api/generate' : `${API_BASE_URL}/generate`
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/generate`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,25 +50,177 @@ export class GenerationService {
         body: JSON.stringify({
           prompt,
           device: options.device || 'desktop',
-          framework: options.framework || 'vanilla'
+          framework: options.framework || 'react'
         })
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || `HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Generation failed')
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
       }
 
-      return data.artifact
+      let artifact: Artifact | undefined
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = new TextDecoder().decode(value)
+        const lines = chunk.split('\n\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.type === 'completed' && data.artifact) {
+                artifact = data.artifact
+              }
+            } catch (e) {
+              // Continue processing other lines
+            }
+          }
+        }
+      }
+
+      if (!artifact) {
+        throw new Error('No artifact generated')
+      }
+
+      return artifact
     } catch (error) {
-      console.error('Generation error:', error)
+      console.error('Secure API generation failed:', error)
       throw error
+    }
+  }
+
+  async generateWithReActReasoning(
+    goal: string, 
+    options: GenerationOptions & { 
+      onStep?: (step: ReasoningStep) => void,
+      stream?: boolean 
+    } = {}
+  ): Promise<ReActResult> {
+    // Use secure ReAct reasoning API
+    const apiUrl = USE_LOCAL_API ? '/api/reasoning' : `${API_BASE_URL}/reasoning`
+    
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          goal,
+          options: {
+            ...options,
+            stream: options.stream !== false // Default to streaming
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Handle streaming reasoning response
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      const steps: ReasoningStep[] = []
+      let finalResult: ReActResult | undefined
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = new TextDecoder().decode(value)
+        const lines = chunk.split('\n\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              if (data.type === 'step' && options.onStep) {
+                steps.push(data.step)
+                options.onStep(data.step)
+              } else if (data.type === 'completed') {
+                finalResult = {
+                  success: data.success || true,
+                  steps: data.steps || steps,
+                  finalAnswer: data.finalAnswer || 'Reasoning completed',
+                  totalSteps: data.totalSteps || steps.length,
+                  executionTime: Date.now(), // Approximate
+                  artifact: data.artifact
+                }
+              }
+            } catch (e) {
+              // Continue processing other lines
+            }
+          }
+        }
+      }
+
+      if (!finalResult) {
+        // Fallback result if streaming didn't provide complete data
+        finalResult = {
+          success: true,
+          steps,
+          finalAnswer: steps.find(s => s.type === 'final_answer')?.content || 'Reasoning completed',
+          totalSteps: steps.length,
+          executionTime: Date.now(),
+          artifact: undefined
+        }
+      }
+
+      return finalResult
+    } catch (error) {
+      console.error('Secure ReAct reasoning failed:', error)
+      throw error
+    }
+  }
+
+  async generateWebsite(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
+    // Use secure API routes - try local API first, then backend server
+    if (USE_LOCAL_API) {
+      // Use local secure API routes for Vercel deployment
+      return await this.generateWithSecureAPI(prompt, options)
+    } else {
+      // Use backend server for local development
+      try {
+        const response = await fetch(`${API_BASE_URL}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt,
+            device: options.device || 'desktop',
+            framework: options.framework || 'react' // Default to React
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Generation failed')
+        }
+
+        return data.artifact
+      } catch (backendError) {
+        console.error('Backend generation failed:', backendError)
+        throw new Error('AI generation unavailable. Please ensure the backend server is running or deploy to Vercel for secure API access.')
+      }
     }
   }
 

@@ -25,7 +25,10 @@ export {
   ExampleWorkflowManager
 } from './workflows/exampleWorkflows';
 
-// Utilities for creating agent systems  
+// Adapters for new agent engine system
+export * from './adapters';
+
+// Utilities for creating agent systems with new engine
 export const createAgentSystem = (provider: any) => {
   const registry = new DefaultAgentRegistry();
   registerDefaultAgents(registry);
@@ -39,4 +42,12 @@ export const createAgentSystem = (provider: any) => {
     contextManager,
     workflowManager
   };
+};
+
+// New factory function using agent engine
+export const createModernAgentSystem = () => {
+  const { createAgentEngineAdapter } = require('./adapters');
+  const provider = createAgentEngineAdapter();
+  
+  return createAgentSystem(provider);
 };

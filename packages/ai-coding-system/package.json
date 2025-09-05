@@ -1,0 +1,47 @@
+{
+  "name": "@ui-grid-ai/ai-coding-system",
+  "version": "0.1.0",
+  "description": "Complete AI coding system integrating all layers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ai-code": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai",
+    "coding",
+    "assistant",
+    "cli",
+    "react",
+    "reasoning",
+    "gemini-style"
+  ],
+  "dependencies": {
+    "@ui-grid-ai/agent-engine": "file:../agent-engine",
+    "@ui-grid-ai/react-reasoning": "file:../react-reasoning",
+    "@ui-grid-ai/cli-interface": "file:../cli-interface",
+    "@ui-grid-ai/ai-agents": "file:../ai-agents"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "tsx": "^4.6.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

@@ -23,7 +23,19 @@
       "Bash(find:*)",
       "Bash(npx vite build:*)",
       "Bash(npm run preview:*)",
-      "Bash(NODE_ENV=production npx tsx apps/server/src/index.ts)"
+      "Bash(NODE_ENV=production npx tsx apps/server/src/index.ts)",
+      "Bash(vercel:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:web-interface-38pyyd9t6-patricks-projects-1e98187f.vercel.app)",
+      "WebFetch(domain:web-interface-henna.vercel.app)",
+      "Read(//var/folders/z1/d00x39c93vgf5hj04v6w89mc0000gn/T/TemporaryItems/NSIRD_screencaptureui_vLckyl/**)",
+      "WebFetch(domain:web-interface-j02yof6da-patricks-projects-1e98187f.vercel.app)",
+      "Bash(expect:*)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:blank-space-jzbz819ys-patricks-projects-1e98187f.vercel.app)",
+      "WebFetch(domain:blank-space-dsmfmcquc-patricks-projects-1e98187f.vercel.app)",
+      "WebFetch(domain:blank-space-mtbnk2eoy-patricks-projects-1e98187f.vercel.app)",
+      "WebFetch(domain:blank-space-omega.vercel.app)"
     ],
     "deny": [],
     "ask": []

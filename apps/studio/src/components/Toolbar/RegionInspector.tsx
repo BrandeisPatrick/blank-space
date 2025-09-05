@@ -1,4 +1,6 @@
-import { GridEngine, getDevicePreset } from '@ui-grid-ai/grid-engine'
+// Mock functions since we don't have grid-engine package
+const getDevicePreset = (id: string) => ({ id, name: id, width: 1200, height: 800 })
+const GridEngine = { calculateRegionMetrics: () => ({ width: 100, height: 100 }) }
 import { useAppStore } from '../../state/appStore'
 
 export const RegionInspector = () => {

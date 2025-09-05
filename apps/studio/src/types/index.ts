@@ -6,8 +6,54 @@ export interface ChatMessage {
   artifactId?: string
 }
 
-import type { DevicePreset, GridPosition, GridRegion, GridBounds, GridMetrics, RegionMetrics } from '@ui-grid-ai/grid-engine'
-import type { Artifact } from '@ui-grid-ai/codegen-prompts/src/types'
+// Mock types since we don't have the grid-engine package for deployment
+export interface DevicePreset {
+  id: string
+  name: string
+  width: number
+  height: number
+}
+
+export interface GridPosition {
+  x: number
+  y: number
+}
+
+export interface GridRegion {
+  start: GridPosition
+  end: GridPosition
+}
+
+export interface GridBounds {
+  width: number
+  height: number
+}
+
+export interface GridMetrics {
+  cellSize: number
+  gutter: number
+}
+
+export interface RegionMetrics {
+  width: number
+  height: number
+}
+
+export interface Artifact {
+  id: string
+  projectId: string
+  regionId: string
+  files: Record<string, string>
+  entry: string
+  metadata: {
+    device: string
+    region: GridRegion
+    framework?: string
+    dependencies?: string[]
+  }
+  createdAt: string
+  author?: string
+}
 
 export type ResponseMode = 'just-build' | 'show-options' | 'explain-first'
 
@@ -87,4 +133,3 @@ export interface StoreActions {
   setResponseMode: (mode: ResponseMode) => void
 }
 
-export type { DevicePreset, GridPosition, GridRegion, GridBounds, GridMetrics, RegionMetrics, Artifact }

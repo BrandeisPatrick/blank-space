@@ -27,6 +27,7 @@
     "automation"
   ],
   "dependencies": {
+    "@ui-grid-ai/agent-engine": "file:../agent-engine",
     "zod": "^3.22.4",
     "nanoid": "^5.0.4"
   },
