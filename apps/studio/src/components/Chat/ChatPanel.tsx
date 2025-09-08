@@ -3,10 +3,11 @@ import { useAppStore } from '../../state/appStore'
 import { useTheme } from '../../contexts/ThemeContext'
 import { ChatMessage } from '../../types'
 import { getTheme } from '../../styles/theme'
+import { ReasoningTab } from './ReasoningTab'
 
 export const ChatPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { chatMessages } = useAppStore()
+  const { chatMessages, addTestMessageWithThinking } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
@@ -28,26 +29,47 @@ export const ChatPanel = () => {
       {/* Chat header */}
       <div style={{
         padding: theme.spacing['2xl'],
-        borderBottom: `1px solid ${theme.colors.bg.border}`,
+        borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bg.secondary,
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing.md,
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
+          justifyContent: 'space-between',
           marginBottom: theme.spacing.sm,
         }}>
           <div style={{
-            width: '12px',
-            height: '12px',
-            borderRadius: theme.radius.full,
-            background: theme.colors.gradient.primary,
-            boxShadow: `0 0 12px ${theme.colors.accent.primary}40`,
-          }}></div>
-          AI Assistant
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            color: theme.colors.text.primary,
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.semibold,
+          }}>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: theme.radius.full,
+              background: theme.colors.gradient.primary,
+              boxShadow: `0 0 12px ${theme.colors.accent.primary}40`,
+            }}></div>
+            AI Assistant
+          </div>
+          <button
+            onClick={addTestMessageWithThinking}
+            style={{
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              background: theme.colors.accent.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: theme.radius.sm,
+              fontSize: theme.typography.fontSize.xs,
+              cursor: 'pointer',
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
+            Test Thinking
+          </button>
         </div>
         <div style={{
           fontSize: theme.typography.fontSize.sm,
@@ -68,7 +90,7 @@ export const ChatPanel = () => {
         flexDirection: 'column',
         gap: theme.spacing['2xl'],
         scrollbarWidth: 'thin',
-        scrollbarColor: `${theme.colors.bg.border} transparent`,
+        scrollbarColor: `${theme.colors.border} transparent`,
         minHeight: 0, // Critical: allows flex item to shrink below content size
         maxHeight: '100%', // Ensure it doesn't exceed container height
       }}>
@@ -171,6 +193,17 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
         </span>
         <span style={{ opacity: 0.7 }}>{formatTime(message.timestamp)}</span>
       </div>
+
+      {/* Show reasoning section for AI messages */}
+      {!isUser && (message.reasoningSteps || message.thinking) && (
+        <div style={{ maxWidth: '85%' }}>
+          <ReasoningTab 
+            steps={message.reasoningSteps || []} 
+            isVisible={true}
+            autoCollapse={true}
+          />
+        </div>
+      )}
       
       <div style={{
         background: isUser ? theme.colors.gradient.primary : theme.colors.bg.secondary,
@@ -182,7 +215,7 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
         whiteSpace: 'pre-wrap',
         maxWidth: '85%',
         boxShadow: isUser ? theme.shadows.glow : theme.shadows.md,
-        border: `1px solid ${isUser ? 'transparent' : theme.colors.bg.border}`,
+        border: `1px solid ${isUser ? 'transparent' : theme.colors.border}`,
         position: 'relative',
         backdropFilter: 'blur(10px)',
       }}>
@@ -197,7 +230,7 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
           height: '12px',
           background: isUser ? theme.colors.accent.primary : theme.colors.bg.secondary,
           transform: 'rotate(45deg)',
-          border: `1px solid ${isUser ? 'transparent' : theme.colors.bg.border}`,
+          border: `1px solid ${isUser ? 'transparent' : theme.colors.border}`,
           borderTop: 'none',
           borderLeft: 'none',
         }} />
@@ -210,7 +243,7 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
           borderRadius: theme.radius.md,
           fontSize: theme.typography.fontSize.xs,
           color: theme.colors.text.secondary,
-          border: `1px solid ${theme.colors.bg.border}`,
+          border: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
           gap: theme.spacing.sm,

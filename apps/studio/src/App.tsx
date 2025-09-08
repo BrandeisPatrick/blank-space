@@ -296,7 +296,9 @@ ENHANCEMENT REQUIREMENTS:
           const aiMessage: ChatMessage = {
             id: `msg_${Date.now()}_ai`,
             type: 'assistant',
-            content: llmResponse,
+            content: llmResponse.content,
+            thinking: llmResponse.thinking,
+            reasoningSteps: llmResponse.reasoningSteps,
             timestamp: Date.now()
           }
           addChatMessage(aiMessage)

@@ -76,6 +76,44 @@ export const useAppStore = create<AppStore>((set) => ({
   clearChat: () => 
     set({ chatMessages: [] }),
 
+  // Test method to add message with thinking and ReAct reasoning
+  addTestMessageWithThinking: () => 
+    set((state) => ({
+      chatMessages: [...state.chatMessages, {
+        id: `test_thinking_${Date.now()}`,
+        type: 'assistant' as const,
+        content: '✅ **React Component Generated!**\n\nI\'ve successfully created a functional React component for: "build a todo list"\n\n**Features Generated:**\n• Interactive UI with modern React hooks\n• Proper state management and event handling  \n• Responsive design with clean styling\n• Production-ready code structure',
+        thinking: 'Let me analyze this request step by step and generate the appropriate component.',
+        reasoningSteps: [
+          {
+            id: 'step_1_thought',
+            type: 'thought' as const,
+            content: 'I need to analyze this request: "build a todo list". Let me break down what the user wants and determine the best approach to create a functional React component.',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            id: 'step_2_action',
+            type: 'action' as const,
+            content: 'Based on my analysis, I\'ll create a React component using X.AI Grok for fast code generation. I\'m generating functional code with proper state management and interactive features...',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            id: 'step_3_observation',
+            type: 'observation' as const,
+            content: 'Generated component structure, but encountered some issues with code generation. Providing fallback solution.',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            id: 'step_4_final_answer',
+            type: 'final_answer' as const,
+            content: 'Successfully created a functional React component with interactive UI, proper state management, and responsive design. The component is production-ready and uses modern React patterns.',
+            timestamp: new Date().toISOString(),
+          }
+        ],
+        timestamp: Date.now()
+      }]
+    })),
+
   setResponseMode: (mode: ResponseMode) => {
     // Persist to localStorage
     try {

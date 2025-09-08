@@ -1,7 +1,6 @@
 import { streamText } from 'ai'
-import { createGroq } from '@ai-sdk/groq'
+import { xai } from '@ai-sdk/xai'
 import { openai } from '@ai-sdk/openai'
-import { anthropic } from '@ai-sdk/anthropic'
 
 export async function POST(request: Request) {
   try {
@@ -17,18 +16,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get AI provider from environment (priority: Groq > OpenAI > Anthropic)
+    // Use X.AI Grok Code Fast for code generation, GPT-5-nano as fallback
     let model
-    if (process.env.GROQ_API_KEY) {
-      const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
-      model = groq('llama-3.1-70b-versatile')
+    if (process.env.XAI_API_KEY) {
+      model = xai('grok-code-fast-1')
     } else if (process.env.OPENAI_API_KEY) {
-      model = openai('gpt-4o')
-    } else if (process.env.ANTHROPIC_API_KEY) {
-      model = anthropic('claude-3-5-sonnet-20241022')
+      model = openai('gpt-5-nano')
     } else {
       return new Response(
-        JSON.stringify({ error: 'No AI provider configured' }),
+        JSON.stringify({ error: 'No AI provider configured. Please set XAI_API_KEY or OPENAI_API_KEY' }),
         { 
           status: 500,
           headers: { 'Content-Type': 'application/json' }

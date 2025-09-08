@@ -1,9 +1,19 @@
+export interface ReasoningStep {
+  id: string
+  type: 'thought' | 'action' | 'observation' | 'final_answer'
+  content: string
+  timestamp: string
+  metadata?: any
+}
+
 export interface ChatMessage {
   id: string
   type: 'user' | 'assistant'
   content: string
   timestamp: number
   artifactId?: string
+  thinking?: string
+  reasoningSteps?: ReasoningStep[]
 }
 
 // Mock types since we don't have the grid-engine package for deployment
@@ -130,6 +140,7 @@ export interface StoreActions {
   setCurrentArtifact: (id: string | null) => void
   addChatMessage: (message: ChatMessage) => void
   clearChat: () => void
+  addTestMessageWithThinking: () => void
   setResponseMode: (mode: ResponseMode) => void
 }
 

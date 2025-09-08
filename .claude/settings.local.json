@@ -35,7 +35,14 @@
       "WebFetch(domain:blank-space-jzbz819ys-patricks-projects-1e98187f.vercel.app)",
       "WebFetch(domain:blank-space-dsmfmcquc-patricks-projects-1e98187f.vercel.app)",
       "WebFetch(domain:blank-space-mtbnk2eoy-patricks-projects-1e98187f.vercel.app)",
-      "WebFetch(domain:blank-space-omega.vercel.app)"
+      "WebFetch(domain:blank-space-omega.vercel.app)",
+      "Bash(git branch:*)",
+      "Read(//var/folders/z1/d00x39c93vgf5hj04v6w89mc0000gn/T/TemporaryItems/NSIRD_screencaptureui_uU0Vtk/**)",
+      "Bash(open http://localhost:3000)",
+      "mcp__vercel__deploy_to_vercel",
+      "WebSearch",
+      "mcp__vercel__web_fetch_vercel_url",
+      "mcp__vercel__get_deployment_build_logs"
     ],
     "deny": [],
     "ask": []

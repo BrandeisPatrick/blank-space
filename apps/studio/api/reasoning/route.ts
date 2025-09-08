@@ -1,7 +1,6 @@
 import { streamText } from 'ai'
-import { createGroq } from '@ai-sdk/groq'
+import { xai } from '@ai-sdk/xai'
 import { openai } from '@ai-sdk/openai'
-import { anthropic } from '@ai-sdk/anthropic'
 
 interface ReasoningStep {
   id: string
@@ -25,18 +24,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get AI provider from environment
-    let model
-    if (process.env.GROQ_API_KEY) {
-      const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
-      model = groq('llama-3.1-70b-versatile')
-    } else if (process.env.OPENAI_API_KEY) {
-      model = openai('gpt-4o')
-    } else if (process.env.ANTHROPIC_API_KEY) {
-      model = anthropic('claude-3-5-sonnet-20241022')
+    // Use OpenAI GPT-5-mini for complex reasoning and analysis
+    // Code generation will use X.AI grok-code-fast-1 via the generate endpoint
+    let reasoningModel
+    if (process.env.OPENAI_API_KEY) {
+      reasoningModel = openai('gpt-5-mini')
+    } else if (process.env.XAI_API_KEY) {
+      reasoningModel = xai('grok-code-fast-1')
     } else {
       return new Response(
-        JSON.stringify({ error: 'No AI provider configured' }),
+        JSON.stringify({ error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' }),
         { 
           status: 500,
           headers: { 'Content-Type': 'application/json' }
@@ -81,7 +78,7 @@ export async function POST(request: Request) {
           let intentResult: any
           try {
             const intentResponse = await streamText({
-              model,
+              model: reasoningModel,
               messages: [
                 {
                   role: 'system',

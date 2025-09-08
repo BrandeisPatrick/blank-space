@@ -1,4 +1,5 @@
 import { Artifact, ResponseMode } from '../types'
+import { parseAIResponseWithReasoning } from '../utils/aiResponseParser'
 
 // Always use relative API routes for Vercel deployment
 const API_BASE_URL = '/api'
@@ -195,7 +196,7 @@ export class GenerationService {
     recentMessages?: string[]
     currentArtifacts?: number
     responseMode?: ResponseMode
-  }): Promise<string> {
+  }): Promise<{ content: string; thinking?: string; reasoningSteps?: any[] }> {
     try {
       console.log('Making chat request to:', `${API_BASE_URL}/chat`)
       console.log('Request payload:', { message, context })
@@ -227,7 +228,13 @@ export class GenerationService {
         throw new Error(data.error || 'Chat response failed')
       }
 
-      return data.response
+      // Parse the AI response to extract thinking, content, and reasoning steps
+      const parsed = parseAIResponseWithReasoning(data.response)
+      return {
+        content: parsed.content,
+        thinking: parsed.thinking,
+        reasoningSteps: parsed.reasoningSteps
+      }
     } catch (error) {
       console.error('Chat error details:', error)
       console.error('Error type:', typeof error)
