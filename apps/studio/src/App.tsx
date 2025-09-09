@@ -14,6 +14,7 @@ import { useUserStore, initializeUserFromStorage } from './state/userStore'
 import { useResponsive } from './hooks/useResponsive'
 import { useTheme } from './contexts/ThemeContext'
 import { generationService } from './services/generationService'
+import { chatService } from './services/chatService'
 // import { conversationEngine } from './services/conversationEngine'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
@@ -135,7 +136,7 @@ function App() {
       responseMode
     }
     
-    const intentResult = await generationService.classifyIntent(message, hasActiveCode, responseMode)
+    const intentResult = await chatService.classifyIntent(message, hasActiveCode)
     return { intentResult, context }
   }
 
@@ -156,14 +157,13 @@ function App() {
     
     switch (intentResult.intent) {
       case 'generation':
-        // Generate new React component with ReAct reasoning
+        // Generate new React component with ReAct reasoning + actual code generation
         try {
           setGenerating(true)
           
-          // Use ReAct reasoning for step-by-step generation
-          const result = await generationService.generateWithReActReasoning(message, {
-            stream: true,
-            onStep: (step) => {
+          // Use the new ChatService for complete reasoning + generation pipeline
+          const result = await chatService.generateWithReasoning(message, {
+            onReasoningStep: (step) => {
               // Add each reasoning step as a chat message
               const stepMessage: ChatMessage = {
                 id: `msg_${Date.now()}_${step.id}`,
@@ -173,22 +173,63 @@ function App() {
                 metadata: { step }
               }
               addChatMessage(stepMessage)
+            },
+            onReasoningComplete: (steps) => {
+              console.log(`✅ Reasoning phase complete with ${steps.length} steps`)
+            },
+            onGenerationStart: () => {
+              console.log('⚡ Starting code generation phase...')
+              
+              // Add generation start message
+              const generationMessage: ChatMessage = {
+                id: `msg_${Date.now()}_generation_start`,
+                type: 'assistant',
+                content: '🔨 **Code Generation:** Now generating your React component files...',
+                timestamp: Date.now()
+              }
+              addChatMessage(generationMessage)
+            },
+            onGenerationComplete: (artifact) => {
+              console.log('🚀 Code generation complete!')
+              
+              // Add success message with artifact
+              const successMessage: ChatMessage = {
+                id: `msg_${Date.now()}_success`,
+                type: 'assistant',
+                content: `✅ **Component Generated Successfully!**\n\n**Created:**\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nYour React component is ready! Check the code editor and preview to see your new project structure.`,
+                timestamp: Date.now(),
+                artifactId: artifact.id
+              }
+              addChatMessage(successMessage)
+            },
+            onError: (error) => {
+              console.error('Generation pipeline failed:', error)
+              
+              // Add error message to chat
+              const errorMessage: ChatMessage = {
+                id: `msg_${Date.now()}_error`,
+                type: 'assistant',
+                content: 'Sorry, there was an error during code generation. Please check that your API keys are configured properly and try again.',
+                timestamp: Date.now()
+              }
+              addChatMessage(errorMessage)
             }
           })
 
           // Add the artifact if generation was successful
           if (result.artifact) {
             addArtifact(result.artifact)
+            setCurrentArtifact(result.artifact.id)
           }
           
         } catch (error) {
-          console.error('ReAct generation failed:', error)
+          console.error('Generation pipeline failed:', error)
           
           // Add error message to chat
           const errorMessage: ChatMessage = {
             id: `msg_${Date.now()}_error`,
             type: 'assistant',
-            content: 'Sorry, there was an error with the AI reasoning system. Please check that your API keys are configured properly and try again.',
+            content: 'Sorry, there was an unexpected error during generation. Please try again.',
             timestamp: Date.now()
           }
           addChatMessage(errorMessage)
@@ -286,33 +327,23 @@ ENHANCEMENT REQUIREMENTS:
       default:
         // Handle conversational interactions with LLM API
         try {
-          const llmResponse = await generationService.generateChatResponse(message, {
+          const aiMessage = await chatService.generateChatResponse(message, {
             hasActiveCode: context.hasActiveCode,
             recentMessages: context.recentMessages,
             currentArtifacts: context.currentArtifacts
           })
           
           // Add LLM-generated conversational response to chat
-          const aiMessage: ChatMessage = {
-            id: `msg_${Date.now()}_ai`,
-            type: 'assistant',
-            content: llmResponse.content,
-            thinking: llmResponse.thinking,
-            reasoningSteps: llmResponse.reasoningSteps,
-            timestamp: Date.now()
-          }
           addChatMessage(aiMessage)
           
         } catch (error) {
           console.error('Chat response failed:', error)
           
           // Fallback to local response if LLM fails
-          const fallbackResponse = "I'm having trouble connecting right now, but I'm here to help you build websites! What would you like to create?"
-          
           const fallbackMessage: ChatMessage = {
             id: `msg_${Date.now()}_ai`,
             type: 'assistant',
-            content: fallbackResponse,
+            content: "I'm having trouble connecting right now, but I'm here to help you build websites! What would you like to create?",
             timestamp: Date.now()
           }
           addChatMessage(fallbackMessage)

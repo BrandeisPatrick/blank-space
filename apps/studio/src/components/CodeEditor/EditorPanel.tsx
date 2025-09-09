@@ -221,6 +221,53 @@ console.log('Website loaded successfully');
               files={files}
               activeFile={activeFile}
               onFileSelect={setActiveFile}
+              onFileCreate={(filename, content) => {
+                const newFiles = {
+                  ...files,
+                  [filename]: content
+                }
+                setFiles(newFiles)
+                setActiveFile(filename)
+                
+                // Update the artifact in the store
+                if (currentArtifactId) {
+                  updateArtifact(currentArtifactId, newFiles)
+                }
+              }}
+              onFileDelete={(filename) => {
+                const newFiles = { ...files }
+                delete newFiles[filename]
+                setFiles(newFiles)
+                
+                // Switch to another file if the deleted file was active
+                if (filename === activeFile) {
+                  const remainingFiles = Object.keys(newFiles)
+                  if (remainingFiles.length > 0) {
+                    setActiveFile(remainingFiles[0])
+                  }
+                }
+                
+                // Update the artifact in the store
+                if (currentArtifactId) {
+                  updateArtifact(currentArtifactId, newFiles)
+                }
+              }}
+              onFileRename={(oldFilename, newFilename) => {
+                const newFiles = { ...files }
+                newFiles[newFilename] = newFiles[oldFilename]
+                delete newFiles[oldFilename]
+                setFiles(newFiles)
+                
+                // Update active file if it was renamed
+                if (activeFile === oldFilename) {
+                  setActiveFile(newFilename)
+                }
+                
+                // Update the artifact in the store
+                if (currentArtifactId) {
+                  updateArtifact(currentArtifactId, newFiles)
+                }
+              }}
             />
           )}
         </div>

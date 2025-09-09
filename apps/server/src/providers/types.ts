@@ -61,4 +61,4 @@ export interface ProviderConfig {
   organizationId?: string
 }
 
-export type ProviderName = 'groq' | 'openai' | 'anthropic' | 'gemini' | 'cohere' | 'together'
+export type ProviderName = 'openai'

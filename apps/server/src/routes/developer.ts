@@ -41,23 +41,11 @@ export const developerRoutes: FastifyPluginAsync = async (fastify) => {
           }
         },
         ai: {
-          defaultProvider: process.env.AI_PROVIDER || 'groq',
+          defaultProvider: process.env.AI_PROVIDER || 'openai',
           providers: {
-            groq: {
-              configured: !!process.env.GROQ_API_KEY,
-              model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
-            },
             openai: {
               configured: !!process.env.OPENAI_API_KEY,
               model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
-            },
-            anthropic: {
-              configured: !!process.env.ANTHROPIC_API_KEY,
-              model: process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229'
-            },
-            gemini: {
-              configured: !!process.env.GEMINI_API_KEY,
-              model: process.env.GEMINI_MODEL || 'gemini-pro'
             }
           }
         },
@@ -132,7 +120,7 @@ export const developerRoutes: FastifyPluginAsync = async (fastify) => {
           name: provider.name,
           configured: provider.configured,
           models: provider.models,
-          isDefault: provider.name === (process.env.AI_PROVIDER || 'groq'),
+          isDefault: provider.name === (process.env.AI_PROVIDER || 'openai'),
           healthCheck: provider.configured ? 'ready' : 'not_configured',
           lastTested: null,
           configuration: {

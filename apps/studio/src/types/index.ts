@@ -60,9 +60,29 @@ export interface Artifact {
     region: GridRegion
     framework?: string
     dependencies?: string[]
+    projectType?: 'react' | 'vanilla' | 'vue' | 'angular'
+    template?: string
   }
   createdAt: string
   author?: string
+}
+
+export interface FileOperation {
+  type: 'create' | 'update' | 'delete' | 'rename' | 'move'
+  path: string
+  content?: string
+  newPath?: string
+  timestamp: string
+}
+
+export interface ProjectTemplate {
+  id: string
+  name: string
+  description: string
+  framework: string
+  files: Record<string, string>
+  entryFile: string
+  dependencies?: string[]
 }
 
 export type ResponseMode = 'just-build' | 'show-options' | 'explain-first'
@@ -142,5 +162,11 @@ export interface StoreActions {
   clearChat: () => void
   addTestMessageWithThinking: () => void
   setResponseMode: (mode: ResponseMode) => void
+  // Enhanced file operations
+  createFile: (artifactId: string, filePath: string, content?: string) => void
+  createFolder: (artifactId: string, folderPath: string) => void
+  deleteFile: (artifactId: string, filePath: string) => void
+  renameFile: (artifactId: string, oldPath: string, newName: string) => void
+  updateFileContent: (artifactId: string, filePath: string, content: string) => void
 }
 

@@ -42,7 +42,13 @@
       "mcp__vercel__deploy_to_vercel",
       "WebSearch",
       "mcp__vercel__web_fetch_vercel_url",
-      "mcp__vercel__get_deployment_build_logs"
+      "mcp__vercel__get_deployment_build_logs",
+      "Bash(git restore:*)",
+      "Bash(cat:*)",
+      "Bash(npm run serve:local:*)",
+      "Bash(kill:*)",
+      "Bash(timeout 10 npm run deploy:local:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

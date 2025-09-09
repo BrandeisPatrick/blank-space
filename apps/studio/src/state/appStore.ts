@@ -155,5 +155,84 @@ export const useAppStore = create<AppStore>((set) => ({
             return state
         }
       }
-    })
+    }),
+
+  // Enhanced file operations
+  createFile: (artifactId: string, filePath: string, content: string = '') =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === artifactId
+          ? {
+              ...artifact,
+              files: {
+                ...artifact.files,
+                [filePath]: content
+              }
+            }
+          : artifact
+      )
+    })),
+
+  createFolder: (artifactId: string, folderPath: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === artifactId
+          ? {
+              ...artifact,
+              files: {
+                ...artifact.files,
+                [`${folderPath}/.gitkeep`]: '# This file keeps the folder in version control'
+              }
+            }
+          : artifact
+      )
+    })),
+
+  deleteFile: (artifactId: string, filePath: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact => {
+        if (artifact.id === artifactId) {
+          const newFiles = { ...artifact.files }
+          delete newFiles[filePath]
+          return { ...artifact, files: newFiles }
+        }
+        return artifact
+      })
+    })),
+
+  renameFile: (artifactId: string, oldPath: string, newName: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact => {
+        if (artifact.id === artifactId) {
+          const newFiles = { ...artifact.files }
+          const content = newFiles[oldPath]
+          
+          // Create new path
+          const pathParts = oldPath.split('/')
+          const newPath = [...pathParts.slice(0, -1), newName].join('/')
+          
+          // Update files
+          newFiles[newPath] = content
+          delete newFiles[oldPath]
+          
+          return { ...artifact, files: newFiles }
+        }
+        return artifact
+      })
+    })),
+
+  updateFileContent: (artifactId: string, filePath: string, content: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === artifactId
+          ? {
+              ...artifact,
+              files: {
+                ...artifact.files,
+                [filePath]: content
+              }
+            }
+          : artifact
+      )
+    }))
 }))

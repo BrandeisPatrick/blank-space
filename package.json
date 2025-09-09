@@ -2,6 +2,7 @@
   "name": "ui-grid-ai",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -16,7 +17,17 @@
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "clean": "npm run clean --workspaces && rm -rf node_modules"
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "deploy:local": "node scripts/deploy-local.js",
+    "deploy:preview": "node scripts/deploy-local.js preview",
+    "build:local": "node scripts/deploy-local.js build",
+    "serve:local": "node scripts/serve-local.js",
+    "sync:env": "node scripts/sync-env.js",
+    "sync:env:production": "node scripts/sync-env.js --env production",
+    "docker:build": "docker-compose -f docker-compose.local.yml build",
+    "docker:up": "docker-compose -f docker-compose.local.yml up",
+    "docker:down": "docker-compose -f docker-compose.local.yml down",
+    "docker:production": "docker-compose -f docker-compose.local.yml --profile production up"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -38,9 +49,12 @@
     "ai": "^5.0.33",
     "chalk": "^5.6.0",
     "commander": "^14.0.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+    "express": "^4.21.2",
     "groq-sdk": "^0.30.0",
+    "helmet": "^8.1.0",
     "inquirer": "^12.9.4",
     "nanoid": "^5.1.5"
   },
