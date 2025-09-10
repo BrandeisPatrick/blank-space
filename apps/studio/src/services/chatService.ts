@@ -1,4 +1,13 @@
 import { Artifact, ChatMessage, ReasoningStep } from '../types'
+import { ThinkingStep } from '../components/Chat/CompactThinkingPanel'
+
+// Phase events for the compact thinking panel
+export type PhaseEvent = 
+  | { type: 'phase_start'; phase: 'thinking' | 'generation' }
+  | { type: 'phase_step'; stepId: string; label: string; status: ThinkingStep['status'] }
+  | { type: 'phase_complete'; phase: 'thinking' | 'generation' }
+  | { type: 'answer_chunk'; text: string }
+  | { type: 'answer_complete'; fullAnswer: string }
 
 interface ChatServiceOptions {
   onReasoningStep?: (step: ReasoningStep) => void
@@ -6,6 +15,9 @@ interface ChatServiceOptions {
   onGenerationStart?: () => void
   onGenerationComplete?: (artifact: Artifact) => void
   onError?: (error: Error) => void
+  
+  // New compact thinking panel events
+  onPhaseEvent?: (event: PhaseEvent) => void
 }
 
 export class ChatService {
@@ -27,13 +39,18 @@ export class ChatService {
       onReasoningComplete,
       onGenerationStart,
       onGenerationComplete,
-      onError
+      onError,
+      onPhaseEvent
     } = options
 
     let reasoningSteps: ReasoningStep[] = []
     let artifact: Artifact | null = null
+    let currentStepId: string | null = null
 
     try {
+      // Emit thinking phase start
+      onPhaseEvent?.({ type: 'phase_start', phase: 'thinking' })
+      
       // Step 1: AI Reasoning Analysis
       console.log('🧠 Starting AI reasoning analysis...')
       
@@ -47,15 +64,15 @@ export class ChatService {
         throw new Error(`Reasoning failed: ${reasoningResponse.status}`)
       }
 
-      const reader = reasoningResponse.body?.getReader()
-      const decoder = new TextDecoder()
+      const reasoningReader = reasoningResponse.body?.getReader()
+      const reasoningDecoder = new TextDecoder()
 
-      if (reader) {
+      if (reasoningReader) {
         while (true) {
-          const { done, value } = await reader.read()
+          const { done, value } = await reasoningReader.read()
           if (done) break
 
-          const chunk = decoder.decode(value)
+          const chunk = reasoningDecoder.decode(value)
           const lines = chunk.split('\n')
 
           for (const line of lines) {
@@ -73,6 +90,29 @@ export class ChatService {
                   
                   reasoningSteps.push(step)
                   onReasoningStep?.(step)
+                  
+                  // Emit compact thinking panel events
+                  const thinkingLabel = this.mapReasoningStepToThinkingLabel(step)
+                  const stepId = `thinking_${step.id}`
+                  
+                  // Complete previous step if exists
+                  if (currentStepId) {
+                    onPhaseEvent?.({ 
+                      type: 'phase_step', 
+                      stepId: currentStepId, 
+                      label: '', 
+                      status: 'complete' 
+                    })
+                  }
+                  
+                  // Start new step
+                  currentStepId = stepId
+                  onPhaseEvent?.({ 
+                    type: 'phase_step', 
+                    stepId, 
+                    label: thinkingLabel, 
+                    status: 'active' 
+                  })
                 }
               } catch (e) {
                 console.warn('Failed to parse reasoning step:', e)
@@ -82,12 +122,33 @@ export class ChatService {
         }
       }
 
+      // Complete final reasoning step
+      if (currentStepId) {
+        onPhaseEvent?.({ 
+          type: 'phase_step', 
+          stepId: currentStepId, 
+          label: '', 
+          status: 'complete' 
+        })
+      }
+      
       onReasoningComplete?.(reasoningSteps)
+      onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
       console.log(`✅ Reasoning complete with ${reasoningSteps.length} steps`)
 
       // Step 2: Code Generation
       console.log('⚡ Starting code generation...')
       onGenerationStart?.()
+      onPhaseEvent?.({ type: 'phase_start', phase: 'generation' })
+      
+      // Add generation steps
+      const genStepId = 'gen_creating_files'
+      onPhaseEvent?.({ 
+        type: 'phase_step', 
+        stepId: genStepId, 
+        label: 'Generating React files', 
+        status: 'active' 
+      })
 
       const generateResponse = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
@@ -105,15 +166,15 @@ export class ChatService {
       }
 
       // Handle Server-Sent Events (SSE) response
-      const reader = generateResponse.body?.getReader()
-      const decoder = new TextDecoder()
+      const generateReader = generateResponse.body?.getReader()
+      const generateDecoder = new TextDecoder()
 
-      if (reader) {
+      if (generateReader) {
         while (true) {
-          const { done, value } = await reader.read()
+          const { done, value } = await generateReader.read()
           if (done) break
 
-          const chunk = decoder.decode(value)
+          const chunk = generateDecoder.decode(value)
           const lines = chunk.split('\n')
 
           for (const line of lines) {
@@ -125,13 +186,31 @@ export class ChatService {
                   // Successfully received the artifact
                   artifact = {
                     id: data.artifact.id || `artifact_${Date.now()}`,
-                    title: data.artifact.title || 'Generated Component',
-                    description: data.artifact.description || 'AI generated React component',
+                    projectId: data.artifact.projectId || 'default',
+                    regionId: data.artifact.regionId || 'full-page', 
                     files: data.artifact.files || {},
-                    createdAt: data.artifact.createdAt || Date.now()
+                    entry: data.artifact.entry || 'index.html',
+                    metadata: data.artifact.metadata || {
+                      device: 'desktop',
+                      region: { start: { x: 0, y: 0 }, end: { x: 23, y: 19 } },
+                      framework: 'react'
+                    },
+                    createdAt: data.artifact.createdAt || new Date().toISOString(),
+                    author: data.artifact.author || 'ai-generator'
                   }
 
-                  onGenerationComplete?.(artifact)
+                  // Complete generation step
+                  onPhaseEvent?.({ 
+                    type: 'phase_step', 
+                    stepId: genStepId, 
+                    label: 'Generating React files', 
+                    status: 'complete' 
+                  })
+                  
+                  if (artifact) {
+                    onGenerationComplete?.(artifact)
+                  }
+                  onPhaseEvent?.({ type: 'phase_complete', phase: 'generation' })
                   console.log('🚀 Code generation complete!')
                 } else if (data.type === 'error') {
                   throw new Error(data.error || 'Unknown generation error')
@@ -267,6 +346,58 @@ export class ChatService {
         reasoning: 'General conversation or unclear intent'
       }
     }
+  }
+
+  /**
+   * Maps reasoning step types to user-friendly labels for the compact thinking panel
+   */
+  private mapReasoningStepToThinkingLabel(step: ReasoningStep): string {
+    const labelMap: Record<ReasoningStep['type'], string[]> = {
+      thought: [
+        'Analyzing request',
+        'Understanding context', 
+        'Planning approach',
+        'Considering options'
+      ],
+      action: [
+        'Gathering information',
+        'Processing requirements',
+        'Checking resources',
+        'Validating approach'
+      ],
+      observation: [
+        'Reviewing findings',
+        'Analyzing results', 
+        'Evaluating options',
+        'Assessing feasibility'
+      ],
+      final_answer: [
+        'Finalizing response',
+        'Preparing answer',
+        'Completing analysis',
+        'Ready to generate'
+      ]
+    }
+
+    const labels = labelMap[step.type] || ['Processing']
+    const contentWords = step.content.toLowerCase().split(' ')
+    
+    // Try to pick a more specific label based on content
+    if (contentWords.includes('component') || contentWords.includes('react')) {
+      return 'Planning React component'
+    }
+    if (contentWords.includes('website') || contentWords.includes('page')) {
+      return 'Designing website structure'
+    }
+    if (contentWords.includes('analyze') || contentWords.includes('understand')) {
+      return 'Understanding requirements'
+    }
+    if (contentWords.includes('generate') || contentWords.includes('create')) {
+      return 'Preparing to generate'
+    }
+    
+    // Return a random label from the type's set for variety
+    return labels[Math.floor(Math.random() * labels.length)]
   }
 }
 

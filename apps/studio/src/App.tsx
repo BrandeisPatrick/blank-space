@@ -15,9 +15,12 @@ import { useResponsive } from './hooks/useResponsive'
 import { useTheme } from './contexts/ThemeContext'
 import { generationService } from './services/generationService'
 import { chatService } from './services/chatService'
+import { uiSummaryService, UISummaryEvent } from './services/uiSummaryService'
 // import { conversationEngine } from './services/conversationEngine'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
+import { CompactThinkingPanel } from './components/Chat/CompactThinkingPanel'
+import { useThinkingState } from './hooks/useThinkingState'
 
 type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard' | 'developer'
 
@@ -42,6 +45,60 @@ function App() {
   const { isMobile } = useResponsive()
   const { mode } = useTheme()
   const theme = getTheme(mode)
+  
+  // Compact thinking panel state
+  const thinking = useThinkingState({
+    autoCollapse: true,
+    collapseDelay: 3000
+  })
+
+  // Subscribe to UI summary events for clean user display
+  useEffect(() => {
+    const unsubscribe = uiSummaryService.subscribe((event: UISummaryEvent) => {
+      const phaseMap = {
+        analyzing: 'Understanding requirements',
+        planning: 'Planning solution', 
+        generating: 'Generating code',
+        finalizing: 'Finalizing project'
+      }
+      
+      switch (event.type) {
+        case 'phase_start':
+          // Add or update step in thinking panel
+          thinking.addStep(phaseMap[event.phase], 'active')
+          break
+          
+        case 'phase_progress':
+          // Update existing step with progress
+          const existingSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
+          if (existingSteps.length > 0) {
+            thinking.updateStep(existingSteps[0].id, { 
+              status: 'active',
+              label: event.message
+            })
+          }
+          break
+          
+        case 'phase_complete':
+          // Mark step as complete
+          const completeSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
+          if (completeSteps.length > 0) {
+            thinking.completeStep(completeSteps[0].id)
+          }
+          break
+          
+        case 'phase_error':
+          // Mark step as error
+          const errorSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
+          if (errorSteps.length > 0) {
+            thinking.errorStep(errorSteps[0].id)
+          }
+          break
+      }
+    })
+    
+    return unsubscribe
+  }, [thinking])
 
   // Initialize user from storage on app start
   useEffect(() => {
@@ -161,42 +218,38 @@ function App() {
         try {
           setGenerating(true)
           
-          // Use the new ChatService for complete reasoning + generation pipeline
+          // Reset thinking state for new generation
+          thinking.reset()
+          thinking.startThinking()
+          
+          // Start UI summary pipeline (clean user display)
+          uiSummaryService.startGeneration(message)
+          
+          // Run internal pipeline in parallel (actual AI work)
           const result = await chatService.generateWithReasoning(message, {
-            onReasoningStep: (step) => {
-              // Add each reasoning step as a chat message
-              const stepMessage: ChatMessage = {
-                id: `msg_${Date.now()}_${step.id}`,
-                type: 'assistant',
-                content: `**${step.type.charAt(0).toUpperCase() + step.type.slice(1)}:** ${step.content}`,
-                timestamp: Date.now(),
-                metadata: { step }
-              }
-              addChatMessage(stepMessage)
-            },
             onReasoningComplete: (steps) => {
               console.log(`✅ Reasoning phase complete with ${steps.length} steps`)
+              // Internal reasoning is complete, but UI summary continues independently
             },
             onGenerationStart: () => {
               console.log('⚡ Starting code generation phase...')
-              
-              // Add generation start message
-              const generationMessage: ChatMessage = {
-                id: `msg_${Date.now()}_generation_start`,
-                type: 'assistant',
-                content: '🔨 **Code Generation:** Now generating your React component files...',
-                timestamp: Date.now()
-              }
-              addChatMessage(generationMessage)
+              // Notify UI summary service that backend generation started
+              uiSummaryService.onBackendGenerationStart()
+              thinking.startStreaming()
             },
             onGenerationComplete: (artifact) => {
               console.log('🚀 Code generation complete!')
               
-              // Add success message with artifact
+              // Notify UI summary service of successful completion
+              const fileCount = Object.keys(artifact.files).length
+              uiSummaryService.onBackendGenerationComplete(fileCount)
+              thinking.complete()
+              
+              // Add clean success message
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,
                 type: 'assistant',
-                content: `✅ **Component Generated Successfully!**\n\n**Created:**\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nYour React component is ready! Check the code editor and preview to see your new project structure.`,
+                content: `✅ **Component Generated Successfully!**\n\n**Created ${fileCount} files:**\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nYour React component is ready! Check the code editor and preview.`,
                 timestamp: Date.now(),
                 artifactId: artifact.id
               }
@@ -204,6 +257,10 @@ function App() {
             },
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
+              
+              // Notify UI summary service of error
+              uiSummaryService.onBackendGenerationError(error.message)
+              thinking.error('Generation failed. Please try again.')
               
               // Add error message to chat
               const errorMessage: ChatMessage = {
@@ -224,6 +281,10 @@ function App() {
           
         } catch (error) {
           console.error('Generation pipeline failed:', error)
+          
+          // Notify UI summary service of error
+          uiSummaryService.onBackendGenerationError(error instanceof Error ? error.message : 'Unknown error')
+          thinking.error('Generation failed. Please try again.')
           
           // Add error message to chat
           const errorMessage: ChatMessage = {
@@ -414,6 +475,19 @@ ENHANCEMENT REQUIREMENTS:
             boxShadow: isMobile ? 'none' : theme.shadows.md,
             overflow: 'hidden', // Prevent overflow from breaking layout
           }}>
+            {/* Compact Thinking Panel */}
+            {thinking.isActive && (
+              <div style={{ padding: `${theme.spacing.md} ${theme.spacing.md} 0` }}>
+                <CompactThinkingPanel
+                  phase={thinking.phase}
+                  steps={thinking.steps}
+                  answer={thinking.answer}
+                  isVisible={thinking.isVisible}
+                  onToggleVisibility={thinking.toggleVisibility}
+                />
+              </div>
+            )}
+            
             <ChatPanel />
             <ChatInput onSend={handleSendMessage} />
           </div>
