@@ -41,6 +41,7 @@ temp/
 # Backup files
 **/index\ 2.*
 **/*\ 2.*
+**/*\ [0-9].*
 *.bak
 *~
 Thumbs.db

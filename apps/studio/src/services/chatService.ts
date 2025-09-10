@@ -57,7 +57,7 @@ export class ChatService {
       const reasoningResponse = await fetch(`${this.baseUrl}/api/reasoning`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ goal: prompt })
       })
 
       if (!reasoningResponse.ok) {

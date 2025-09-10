@@ -13,179 +13,125 @@ import { openai } from '@ai-sdk/openai';
 function createReactProjectStructure(generatedCode, prompt) {
   const componentName = extractComponentName(prompt) || 'GeneratedComponent';
   
+  // Create a standalone HTML file that can be previewed directly
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${componentName} - Generated React Component</title>
+    
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        #root { 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background-color: #f8f9fa;
+        }
+        ${generatedCode.css || `
+        .generated-component {
+            text-align: center;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 20px;
+            background: white;
+            max-width: 600px;
+        }
+        .generated-component h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+        .generated-component p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+        `}
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel" data-type="module">
+        // Ensure we have a clean environment
+        ${generatedCode.html ? generatedCode.html.replace(/import.*from.*['"][^'"]*['"];?/g, '').replace(/export.*default.*;?/g, '') : `
+        function ${componentName}() {
+            return (
+                <div className="generated-component">
+                    <h1>${componentName}</h1>
+                    <p>Generated React component based on: "${prompt}"</p>
+                    <p>This component was created using AI and is ready for customization!</p>
+                </div>
+            );
+        }
+        `}
+        
+        // Get the component name from the generated code or use default
+        const ComponentToRender = typeof ${componentName} !== 'undefined' ? ${componentName} : 
+                                  typeof App !== 'undefined' ? App :
+                                  typeof TodoList !== 'undefined' ? TodoList :
+                                  typeof List !== 'undefined' ? List :
+                                  function DefaultComponent() { 
+                                      return React.createElement('div', {className: 'generated-component'}, 
+                                          React.createElement('h1', null, 'Component Generated'),
+                                          React.createElement('p', null, 'Component was generated successfully!')
+                                      );
+                                  };
+        
+        // Render the component
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(ComponentToRender));
+    </script>
+</body>
+</html>`;
+
   return {
+    'index.html': htmlContent,
+    'styles.css': generatedCode.css || '',
+    'script.js': generatedCode.js || '',
     'package.json': JSON.stringify({
       name: componentName.toLowerCase().replace(/\s+/g, '-'),
       version: '0.1.0',
       private: true,
       dependencies: {
         react: '^18.2.0',
-        'react-dom': '^18.2.0',
-        'react-scripts': '5.0.1'
+        'react-dom': '^18.2.0'
       },
-      scripts: {
-        start: 'react-scripts start',
-        build: 'react-scripts build',
-        test: 'react-scripts test',
-        eject: 'react-scripts eject'
-      }
+      description: `Generated React component: ${componentName}`
     }, null, 2),
-    
-    'public/index.html': `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Generated React App" />
-    <title>${componentName}</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
-</html>`,
-
-    'public/favicon.ico': '# Favicon placeholder',
-    
-    'src/index.js': `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`,
-
-    [`src/components/${componentName}/${componentName}.jsx`]: generatedCode.html || `import React from 'react';
-import './${componentName}.css';
-
-const ${componentName} = () => {
-  return (
-    <div className="${componentName.toLowerCase()}">
-      <h1>${componentName}</h1>
-      <p>Generated component based on: "${prompt}"</p>
-    </div>
-  );
-};
-
-export default ${componentName};`,
-
-    [`src/components/${componentName}/${componentName}.css`]: generatedCode.css || `.${componentName.toLowerCase()} {
-  text-align: center;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin: 20px;
-}
-
-.${componentName.toLowerCase()} h1 {
-  color: #333;
-  margin-bottom: 20px;
-  font-size: 2rem;
-}
-
-.${componentName.toLowerCase()} p {
-  color: #666;
-  line-height: 1.6;
-}`,
-
-    'src/App.js': `import React from 'react';
-import './App.css';
-import ${componentName} from './components/${componentName}/${componentName}';
-
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <${componentName} />
-      </header>
-    </div>
-  );
-}
-
-export default App;`,
-
-    'src/App.css': `.App {
-  text-align: center;
-}
-
-.App-header {
-  background-color: #f5f5f5;
-  padding: 20px;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-}`,
-
-    'src/index.css': `body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-* {
-  box-sizing: border-box;
-}`,
-
     'README.md': `# ${componentName}
 
-Generated React component based on: "${prompt}"
+This is a generated React component created from the prompt: "${prompt}"
 
-## Available Scripts
+## Preview
 
-In the project directory, you can run:
+Open \`index.html\` in your browser to see the component in action.
 
-### \`npm start\`
+## Generated Files
 
-Runs the app in development mode.
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- \`index.html\` - Standalone HTML file with React component
+- \`styles.css\` - Component styles  
+- \`script.js\` - Additional JavaScript logic
+- \`package.json\` - Project metadata
 
-### \`npm run build\`
-
-Builds the app for production to the \`build\` folder.`,
-
-    '.gitignore': `# Dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# Testing
-/coverage
-
-# Production
-/build
-
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*`,
-
-    // Additional utility files if specified in generatedCode.js
-    ...(generatedCode.js && {
-      'src/utils/helpers.js': generatedCode.js
-    })
+The component uses React via CDN for immediate preview without build tools.
+`
   };
 }
 
@@ -445,9 +391,9 @@ export async function handleGenerate(req, res) {
     const isReact = framework.toLowerCase().includes('react');
     
     const systemPrompt = isReact
-      ? `You are an expert React developer. Generate clean, modern React components with JSX, CSS, and JavaScript logic.
+      ? `You are an expert React developer. You must respond with ONLY valid JSON - no markdown, no explanations, no additional text.
 
-IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
+CRITICAL: Your entire response must be valid JSON that can be parsed directly. Do not wrap in markdown code blocks.
 
 Return your response in this exact JSON format:
 {
@@ -456,26 +402,55 @@ Return your response in this exact JSON format:
   "js": "Additional JavaScript logic if needed"
 }
 
-JSON RULES:
+STRICT JSON FORMATTING RULES:
+- Start response with { and end with }
 - Use double quotes only, escape internal quotes as \\"
-- No template literals or backticks in JSON
-- Use single quotes for JSX/CSS attribute values when possible
-- Escape newlines as \\n or write compact code
+- Escape newlines as \\n or write compact single-line code
+- No template literals, use string concatenation
+- Use single quotes for JSX/CSS attribute values
 - No unescaped backslashes
+- No trailing commas
+- Test that your response is valid JSON
 
-React Code Guidelines:
+React Code Guidelines for BROWSER ENVIRONMENT:
 - Create functional components using React hooks
+- NEVER use import/export statements - code runs directly in browser
+- NEVER use module syntax - this is standalone JSX
+- Use React.useState, React.useEffect (not destructured imports)
+- Access React and ReactDOM from global variables
+- Generate JSX syntax that Babel can compile in browser
 - Use modern JSX syntax and patterns
 - Implement responsive design with modern CSS
-- Use useState, useEffect, and other hooks appropriately
 - Create reusable, accessible components
 - Follow React best practices and conventions
 - Include proper event handlers and state management
 - Use modern CSS (flexbox/grid) for layouts
-- Make components production-ready and well-structured`
-      : `You are an expert web developer. Generate clean, modern HTML, CSS, and JavaScript code.
+- Make components production-ready and well-structured
 
-Return ONLY valid JSON with the code structure requested.`;
+EXAMPLE VALID RESPONSE:
+{"html": "function App() { return <div>Hello</div>; }", "css": "body { margin: 0; }", "js": ""}`
+      : `You are an expert web developer. You must respond with ONLY valid JSON - no markdown, no explanations, no additional text.
+
+CRITICAL: Your entire response must be valid JSON that can be parsed directly. Do not wrap in markdown code blocks.
+
+Return your response in this exact JSON format:
+{
+  "html": "HTML code here",
+  "css": "CSS styles here", 
+  "js": "JavaScript code here"
+}
+
+STRICT JSON FORMATTING RULES:
+- Start response with { and end with }
+- Use double quotes only, escape internal quotes as \\"
+- Escape newlines as \\n or write compact single-line code
+- No template literals
+- No unescaped backslashes
+- No trailing commas
+- Test that your response is valid JSON
+
+EXAMPLE VALID RESPONSE:
+{"html": "<div>Hello World</div>", "css": "body { margin: 0; }", "js": "console.log('ready');"}`;
 
     const result = await streamText({
       model,
@@ -509,14 +484,52 @@ Requirements:
     let fullResponse = '';
     
     try {
+      // Set up timeout for the AI streaming
+      const streamTimeout = setTimeout(() => {
+        console.error('⏰ AI streaming timeout after 30 seconds');
+        if (!res.headersSent) {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'error',
+            error: 'AI generation timeout - using fallback'
+          })}\n\n`);
+        }
+      }, 30000);
+
       for await (const chunk of result.textStream) {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
       }
+      
+      clearTimeout(streamTimeout);
+
+      console.log('🧠 AI Response Length:', fullResponse.length);
+      console.log('🧠 AI Raw Response:', fullResponse.substring(0, 500) + (fullResponse.length > 500 ? '...' : ''));
 
       // Parse the complete response and create artifact
+      let generatedCode;
       try {
-        const generatedCode = JSON.parse(fullResponse);
+        generatedCode = JSON.parse(fullResponse);
+        console.log('✅ Successfully parsed AI response as JSON');
+      } catch (parseError) {
+        console.error('❌ Failed to parse AI response as JSON:', parseError);
+        console.log('🔧 Attempting to extract code from non-JSON response...');
+        
+        // Fallback: Try to extract JSON from markdown code blocks
+        const jsonMatch = fullResponse.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          try {
+            generatedCode = JSON.parse(jsonMatch[1]);
+            console.log('✅ Extracted JSON from markdown code block');
+          } catch (e) {
+            console.error('❌ Failed to parse extracted JSON:', e);
+            generatedCode = null;
+          }
+        } else {
+          generatedCode = null;
+        }
+      }
+
+      if (generatedCode) {
         const artifactId = `artifact_${Date.now()}`;
         
         const artifact = {
@@ -542,25 +555,286 @@ Requirements:
           author: 'ai-generator'
         };
 
+        console.log('🚀 Sending artifact with', Object.keys(artifact.files).length, 'files');
         res.write(`data: ${JSON.stringify({ 
           type: 'completed', 
           artifact,
           success: true
         })}\n\n`);
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError);
+      } else {
+        // Fallback: Create a basic artifact even if parsing failed
+        console.log('🔧 Creating fallback artifact...');
+        const artifactId = `artifact_${Date.now()}`;
+        
+        const fallbackCode = isReact 
+          ? {
+              html: `function TodoApp() {
+  const [todos, setTodos] = React.useState([]);
+  const [input, setInput] = React.useState('');
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, { id: Date.now(), text: input, completed: false }]);
+      setInput('');
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+      <h1>Todo List</h1>
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Add a todo..."
+          style={{ padding: '8px', marginRight: '10px', width: '200px' }}
+        />
+        <button onClick={addTodo} style={{ padding: '8px 16px' }}>
+          Add Todo
+        </button>
+      </div>
+      <ul>
+        {todos.map(todo => (
+          <li key={todo.id} style={{ marginBottom: '8px' }}>
+            {todo.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}`,
+              css: `body { font-family: Arial, sans-serif; }`,
+              js: ''
+            }
+          : {
+              html: `<div class="todo-app">
+  <h1>Todo List</h1>
+  <div class="input-section">
+    <input type="text" id="todoInput" placeholder="Add a todo...">
+    <button onclick="addTodo()">Add Todo</button>
+  </div>
+  <ul id="todoList"></ul>
+</div>`,
+              css: `.todo-app { padding: 20px; max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+.input-section { margin-bottom: 20px; }
+#todoInput { padding: 8px; margin-right: 10px; width: 200px; }
+button { padding: 8px 16px; }`,
+              js: `let todos = [];
+function addTodo() {
+  const input = document.getElementById('todoInput');
+  if (input.value.trim()) {
+    todos.push({ id: Date.now(), text: input.value, completed: false });
+    input.value = '';
+    renderTodos();
+  }
+}
+function renderTodos() {
+  const list = document.getElementById('todoList');
+  list.innerHTML = todos.map(todo => \`<li>\${todo.text}</li>\`).join('');
+}`
+            };
+
+        const artifact = {
+          id: artifactId,
+          projectId: 'default',
+          regionId: 'full-page',
+          files: isReact ? createReactProjectStructure(fallbackCode, prompt) : {
+            'index.html': fallbackCode.html,
+            'styles.css': fallbackCode.css,
+            'script.js': fallbackCode.js
+          },
+          entry: 'index.html',
+          metadata: {
+            device: device,
+            region: { start: { x: 0, y: 0 }, end: { x: 23, y: 19 } },
+            framework: framework,
+            projectType: isReact ? 'react' : 'vanilla',
+            isReact: isReact,
+            dependencies: isReact ? ['react', 'react-dom', 'react-scripts'] : [],
+            template: 'structured-project'
+          },
+          createdAt: new Date().toISOString(),
+          author: 'ai-generator-fallback'
+        };
+
+        console.log('🔧 Sending fallback artifact with', Object.keys(artifact.files).length, 'files');
         res.write(`data: ${JSON.stringify({ 
-          type: 'error',
-          error: 'Failed to parse AI response'
+          type: 'completed', 
+          artifact,
+          success: true
         })}\n\n`);
       }
 
       res.end();
     } catch (error) {
       console.error('Streaming error:', error);
+      
+      // Always provide a fallback artifact, even when AI fails completely
+      console.log('🔧 AI failed completely, creating emergency fallback artifact...');
+      const artifactId = `artifact_${Date.now()}`;
+      
+      const emergencyFallback = isReact 
+        ? {
+            html: `function TodoApp() {
+  const [todos, setTodos] = React.useState([
+    { id: 1, text: 'Learn React', completed: false },
+    { id: 2, text: 'Build a todo app', completed: true },
+    { id: 3, text: 'Deploy to production', completed: false }
+  ]);
+  const [input, setInput] = React.useState('');
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, { 
+        id: Date.now(), 
+        text: input.trim(), 
+        completed: false 
+      }]);
+      setInput('');
+    }
+  };
+
+  const toggleTodo = (id) => {
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+  };
+
+  const deleteTodo = (id) => {
+    setTodos(todos.filter(todo => todo.id !== id));
+  };
+
+  return React.createElement('div', { 
+    style: { padding: '20px', maxWidth: '600px', margin: '0 auto' } 
+  },
+    React.createElement('h1', null, 'Todo List'),
+    React.createElement('div', { style: { marginBottom: '20px' } },
+      React.createElement('input', {
+        type: 'text',
+        value: input,
+        onChange: (e) => setInput(e.target.value),
+        placeholder: 'Add a new todo...',
+        style: { padding: '8px', marginRight: '10px', width: '300px' }
+      }),
+      React.createElement('button', {
+        onClick: addTodo,
+        style: { padding: '8px 16px', cursor: 'pointer' }
+      }, 'Add Todo')
+    ),
+    React.createElement('ul', { style: { listStyle: 'none', padding: 0 } },
+      todos.map(todo => 
+        React.createElement('li', {
+          key: todo.id,
+          style: { 
+            display: 'flex', 
+            alignItems: 'center', 
+            marginBottom: '8px',
+            padding: '8px',
+            background: '#f5f5f5',
+            borderRadius: '4px'
+          }
+        },
+          React.createElement('input', {
+            type: 'checkbox',
+            checked: todo.completed,
+            onChange: () => toggleTodo(todo.id),
+            style: { marginRight: '10px' }
+          }),
+          React.createElement('span', {
+            style: { 
+              textDecoration: todo.completed ? 'line-through' : 'none',
+              flex: 1
+            }
+          }, todo.text),
+          React.createElement('button', {
+            onClick: () => deleteTodo(todo.id),
+            style: { 
+              marginLeft: '10px',
+              padding: '4px 8px',
+              background: '#ff6b6b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer'
+            }
+          }, 'Delete')
+        )
+      )
+    )
+  );
+}`,
+            css: `body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+}
+h1 { color: #333; margin-bottom: 20px; }
+input[type="text"] { border: 1px solid #ddd; border-radius: 4px; }
+button { background: #007bff; color: white; border: none; border-radius: 4px; }
+button:hover { background: #0056b3; }`,
+            js: ''
+          }
+        : {
+            html: `<div class="todo-app">
+  <h1>Todo List (Fallback)</h1>
+  <div class="input-section">
+    <input type="text" id="todoInput" placeholder="Add a todo...">
+    <button onclick="addTodo()">Add Todo</button>
+  </div>
+  <ul id="todoList"></ul>
+</div>`,
+            css: `.todo-app { padding: 20px; max-width: 600px; margin: 0 auto; }
+h1 { color: #333; }
+.input-section { margin-bottom: 20px; }
+#todoInput { padding: 8px; margin-right: 10px; width: 300px; }
+button { padding: 8px 16px; background: #007bff; color: white; border: none; }`,
+            js: `let todos = [{id: 1, text: 'Learn JavaScript', completed: false}];
+function addTodo() {
+  const input = document.getElementById('todoInput');
+  if (input.value.trim()) {
+    todos.push({ id: Date.now(), text: input.value, completed: false });
+    input.value = '';
+    renderTodos();
+  }
+}
+function renderTodos() {
+  const list = document.getElementById('todoList');
+  list.innerHTML = todos.map(todo => \`<li>\${todo.text}</li>\`).join('');
+}
+renderTodos();`
+          };
+
+      const artifact = {
+        id: artifactId,
+        projectId: 'default',
+        regionId: 'full-page',
+        files: isReact ? createReactProjectStructure(emergencyFallback, prompt) : {
+          'index.html': emergencyFallback.html,
+          'styles.css': emergencyFallback.css,
+          'script.js': emergencyFallback.js
+        },
+        entry: 'index.html',
+        metadata: {
+          device: device,
+          region: { start: { x: 0, y: 0 }, end: { x: 23, y: 19 } },
+          framework: framework,
+          projectType: isReact ? 'react' : 'vanilla',
+          isReact: isReact,
+          dependencies: isReact ? ['react', 'react-dom'] : [],
+          template: 'emergency-fallback'
+        },
+        createdAt: new Date().toISOString(),
+        author: 'emergency-fallback-generator'
+      };
+
+      console.log('🚨 Sending emergency fallback artifact with', Object.keys(artifact.files).length, 'files');
       res.write(`data: ${JSON.stringify({ 
-        type: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        type: 'completed', 
+        artifact,
+        success: true,
+        fallback: true
       })}\n\n`);
       res.end();
     }

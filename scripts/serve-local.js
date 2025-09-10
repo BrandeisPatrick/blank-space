@@ -78,7 +78,7 @@ class ProductionServer {
           fontSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
+          frameSrc: ["'self'", "blob:", "data:"],
           workerSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net"]
         }
       }

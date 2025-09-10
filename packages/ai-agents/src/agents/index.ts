@@ -2,7 +2,6 @@
 export { WebsiteGenerationAgent } from './WebsiteGenerationAgent';
 export { ChatAssistantAgent } from './ChatAssistantAgent'; 
 export { IntentClassificationAgent } from './IntentClassificationAgent';
-export { FrameworkAdvisorAgent } from './FrameworkAdvisorAgent';
 export { WorkflowOrchestrationAgent } from './WorkflowOrchestrationAgent';
 export { CodeReviewAgent } from './CodeReviewAgent';
 export { DocumentationAgent } from './DocumentationAgent';
@@ -13,10 +12,7 @@ export type {
   WebsiteGenerationOutput,
   ChatInput,
   IntentClassificationInput, 
-  IntentClassificationOutput,
-  FrameworkAdvisorInput,
-  FrameworkAdvisorOutput,
-  FrameworkRecommendation
+  IntentClassificationOutput
 } from '../types';
 
 // Export workflow orchestration types
