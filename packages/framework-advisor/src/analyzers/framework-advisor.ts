@@ -244,7 +244,7 @@ export class FrameworkAdvisor {
     return considerations;
   }
   
-  private async generateAiReasoning(primary: any, requirements: ProjectRequirements): Promise<string> {
+  private async generateAiReasoning(primary: any, _requirements: ProjectRequirements): Promise<string> {
     // This would integrate with the AI provider system
     // For now, return a placeholder that could be enhanced with actual AI calls
     return `As a senior engineer, I recommend ${primary.framework.name} because it balances your project requirements effectively. ${primary.reasoning}`;

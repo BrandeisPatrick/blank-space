@@ -341,7 +341,7 @@ export class ScoringEngine {
     return 'low';
   }
   
-  private generateAlternatives(framework: Framework, requirements: ProjectRequirements): Array<{ framework: Framework; reason: string }> {
+  private generateAlternatives(_framework: Framework, _requirements: ProjectRequirements): Array<{ framework: Framework; reason: string }> {
     // This would typically involve scoring other frameworks
     // For now, return empty array - this would be implemented with the full framework list
     return [];
