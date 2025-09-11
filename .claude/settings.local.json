@@ -50,7 +50,8 @@
       "Bash(timeout 10 npm run deploy:local:*)",
       "Bash(pkill:*)",
       "Bash(git merge:*)",
-      "Bash(PORT=3001 npm run serve:local)"
+      "Bash(PORT=3001 npm run serve:local)",
+      "Bash(echo $VITE_API_BASE_URL)"
     ],
     "deny": [],
     "ask": []
