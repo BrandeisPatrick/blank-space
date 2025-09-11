@@ -24,7 +24,8 @@ export class ChatService {
   private baseUrl: string
 
   constructor() {
-    this.baseUrl = window.location.origin
+    // Use environment variable for API base URL, fallback to window origin for local dev
+    this.baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin
   }
 
   /**

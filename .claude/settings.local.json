@@ -48,7 +48,8 @@
       "Bash(npm run serve:local:*)",
       "Bash(kill:*)",
       "Bash(timeout 10 npm run deploy:local:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
