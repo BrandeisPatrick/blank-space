@@ -53,16 +53,12 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 4. **Start Development Servers**
    ```bash
-   # Terminal 1: Frontend
+   # Start development server (frontend + API routes)
    npm run dev
-   
-   # Terminal 2: Backend
-   npm run dev:server
    ```
 
 5. **Verify Setup**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3001
+   - Application: http://localhost:3000
 
 ## Development Process
 

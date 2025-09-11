@@ -9,11 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/studio",
-    "dev:server": "npm run dev --workspace=apps/server",
-    "dev:ai-cli": "npm run dev --workspace=packages/cli-interface",
-    "ai-code": "npm run dev --workspace=packages/ai-coding-system",
     "build": "npm run build --workspaces",
-    "build:ai-system": "npm run build --workspace=packages/agent-engine && npm run build --workspace=packages/react-reasoning && npm run build --workspace=packages/cli-interface && npm run build --workspace=packages/ai-coding-system",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
@@ -23,11 +19,7 @@
     "build:local": "node scripts/deploy-local.js build",
     "serve:local": "node scripts/serve-local.js",
     "sync:env": "node scripts/sync-env.js",
-    "sync:env:production": "node scripts/sync-env.js --env production",
-    "docker:build": "docker-compose -f docker-compose.local.yml build",
-    "docker:up": "docker-compose -f docker-compose.local.yml up",
-    "docker:down": "docker-compose -f docker-compose.local.yml down",
-    "docker:production": "docker-compose -f docker-compose.local.yml --profile production up"
+    "sync:env:production": "node scripts/sync-env.js --env production"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

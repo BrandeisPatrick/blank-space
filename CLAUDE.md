@@ -11,8 +11,7 @@ This file provides essential context and commands for working with the UI Grid A
 ```
 ui-grid-ai/                 # Root monorepo
 ├── apps/
-│   ├── studio/            # React frontend (main app)
-│   └── server/            # Fastify backend API
+│   └── studio/            # React frontend (main app) with API routes
 ├── packages/
 │   ├── grid-engine/       # Grid layout system
 │   ├── compiler/          # Code generation utilities
@@ -26,8 +25,8 @@ ui-grid-ai/                 # Root monorepo
 ## Key Technologies
 
 - **Frontend**: React 18, TypeScript, Vite, Zustand
-- **Backend**: Fastify, TypeScript, PostgreSQL
-- **AI**: Multi-provider support (OpenAI, Anthropic, Groq, etc.)
+- **Backend**: Vercel API routes, serverless functions
+- **AI**: Multi-provider support (OpenAI, Anthropic, X.AI, etc.)
 - **Build**: npm workspaces, TypeScript, ESLint, Prettier
 
 ## Common Development Commands
@@ -40,8 +39,7 @@ npm install
 # Start frontend development server
 npm run dev
 
-# Start backend server (separate terminal)
-npm run dev:server
+# Backend API routes are served by Vite dev server
 ```
 
 ### Building and Testing
@@ -69,10 +67,7 @@ npm run dev --workspace=apps/studio
 npm run build --workspace=apps/studio
 npm run preview --workspace=apps/studio
 
-# Backend (server) commands  
-npm run dev --workspace=apps/server
-npm run build --workspace=apps/server
-npm run start --workspace=apps/server
+# API routes are handled by Vercel in production and Vite in development
 
 # Package commands
 npm run build --workspace=packages/grid-engine
@@ -88,26 +83,22 @@ npm run test --workspace=packages/compiler
 
 ### Key Environment Variables
 ```env
-# Server
-PORT=3001
+# Development
 NODE_ENV=development
+VITE_API_BASE_URL=http://localhost:3000
 
 # AI Provider (configure at least one)
-AI_PROVIDER=groq
-GROQ_API_KEY=your_key_here
+AI_PROVIDER=openai
 OPENAI_API_KEY=your_key_here
+XAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
-
-# Database (if using PostgreSQL)
-DATABASE_URL=postgresql://user:pass@localhost:5432/db
 ```
 
 ## Development Workflow
 
-1. **Start Development Servers**:
+1. **Start Development Server**:
    ```bash
-   npm run dev          # Frontend (port 5173)
-   npm run dev:server   # Backend (port 3001)
+   npm run dev          # Frontend + API routes (port 3000)
    ```
 
 2. **Make Changes**: Edit code in `apps/` or `packages/`
@@ -140,7 +131,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/db
 
 ### Entry Points
 - `apps/studio/src/main.tsx` - Frontend entry
-- `apps/server/src/index.ts` - Backend entry
+- `apps/studio/api/*` - API route handlers
 - Package entry points defined in respective `package.json`
 
 ## Debugging and Troubleshooting
@@ -148,8 +139,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/db
 ### Common Issues
 
 1. **Port conflicts**: 
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3001
+   - Dev server: http://localhost:3000
 
 2. **Missing dependencies**: Run `npm install` in root
 
@@ -161,12 +151,11 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/db
 
 ### Useful Commands for Debugging
 ```bash
-# Check all processes
-npm run dev & npm run dev:server
+# Start development
+npm run dev
 
 # Check specific workspace
 cd apps/studio && npm run dev
-cd apps/server && npm run dev
 
 # View logs with timestamps
 npm run dev 2>&1 | ts '[%Y-%m-%d %H:%M:%S]'
@@ -182,14 +171,11 @@ npm audit
 
 ### Apps Dependencies
 - `apps/studio` depends on `packages/grid-engine`, `packages/compiler`
-- `apps/server` depends on `packages/codegen-prompts`
 
 ### Key External Dependencies
 - React ecosystem (react, react-dom, vite)
-- Fastify ecosystem (fastify, @fastify/cors)
-- AI SDKs (openai, @anthropic-ai/sdk, groq-sdk)
-- Database (pg for PostgreSQL)
-- Utilities (zod, dotenv, clsx)
+- Vercel AI SDK (@ai-sdk/openai, @ai-sdk/xai, ai)
+- Utilities (zod, clsx)
 
 ## Git Workflow
 
@@ -224,24 +210,21 @@ gh pr create --title "Add new feature" --body "Description"
 ## AI Integration Notes
 
 ### Supported Providers
-- Groq (default) - Fast inference
 - OpenAI - GPT models
+- X.AI - Grok models (code generation)
 - Anthropic - Claude models  
-- Google Gemini - Multimodal
-- Cohere - Enterprise models
-- Together AI - Open source models
 
 ### Provider Switching
 Change provider in `.env`:
 ```env
-AI_PROVIDER=openai  # or groq, anthropic, gemini, cohere, together
+AI_PROVIDER=openai  # or xai, anthropic
 ```
 
 ### API Endpoints
 - `POST /api/generate` - Generate code
 - `POST /api/chat` - Chat with AI
-- `GET /api/providers` - List providers
-- `POST /api/test-provider` - Test provider
+- `POST /api/classify-intent` - Classify user intent
+- `POST /api/reasoning` - AI reasoning steps
 
 ## Quick Reference
 
@@ -249,7 +232,6 @@ AI_PROVIDER=openai  # or groq, anthropic, gemini, cohere, together
 |--------|---------|
 | Install dependencies | `npm install` |
 | Start development | `npm run dev` |
-| Start backend | `npm run dev:server` |
 | Build everything | `npm run build` |
 | Type check | `npm run typecheck` |
 | Lint code | `npm run lint` |

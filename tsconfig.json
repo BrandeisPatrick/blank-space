@@ -21,7 +21,6 @@
   "include": [],
   "references": [
     { "path": "./apps/studio" },
-    { "path": "./apps/server" },
     { "path": "./packages/grid-engine" },
     { "path": "./packages/compiler" },
     { "path": "./packages/preview-sandbox" },

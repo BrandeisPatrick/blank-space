@@ -11,19 +11,17 @@ npm install
 # Start development server
 npm run dev
 
-# Start backend server (in another terminal)
-npm run dev:server
+# API routes are served by the same dev server
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view the application.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## Project Structure
 
 ```
 blank-space/
 ├── apps/
-│   ├── studio/          # React frontend
-│   └── server/          # Fastify backend
+│   └── studio/          # React frontend + API routes
 ├── packages/
 │   ├── grid-engine/     # Grid layout system
 │   ├── compiler/        # Code utilities
@@ -34,9 +32,8 @@ blank-space/
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite
-- **Backend**: Fastify, Node.js
-- **AI**: Multi-provider support (OpenAI, Anthropic, Groq)
-- **Database**: PostgreSQL
+- **Backend**: Vercel API routes
+- **AI**: Multi-provider support (OpenAI, X.AI, Anthropic)
 
 ## Development
 
@@ -47,8 +44,7 @@ blank-space/
 
 ### Commands
 ```bash
-npm run dev              # Start frontend
-npm run dev:server       # Start backend
+npm run dev              # Start frontend + API routes
 npm run build           # Build all
 npm run test            # Run tests
 npm run lint            # Lint code
@@ -57,15 +53,14 @@ npm run lint            # Lint code
 ## AI Providers
 
 Supports multiple AI providers for code generation:
-- Groq (default)
-- OpenAI
-- Anthropic
-- Google Gemini
+- OpenAI (GPT models)
+- X.AI (Grok models)
+- Anthropic (Claude models)
 
 Configure in `.env`:
 ```env
-AI_PROVIDER=groq
-GROQ_API_KEY=your_key_here
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_key_here
 ```
 
 ## License
