@@ -175,69 +175,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           artifactFiles = isReact ? {
             'App.jsx': generatedCode.html || '',
             'App.module.css': generatedCode.css || '',
-            'hooks.js': generatedCode.js || '',
-            'index.html': `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React Component Preview</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-</head>
-<body>
-    <div id="root"></div>
-    <script>
-        // Generated component code (pre-transpiled)
-        ${generatedCode.html || ''}
-        
-        // Component safety wrapper - provides fallback only when App is truly missing
-        if (typeof App === 'undefined') {
-          console.warn('App component not found, using fallback component');
-          function App() {
-            return React.createElement('div', {
-              style: { 
-                padding: '40px', 
-                textAlign: 'center', 
-                fontFamily: 'system-ui, sans-serif',
-                color: '#666',
-                border: '2px dashed #ccc',
-                borderRadius: '8px',
-                margin: '20px'
-              }
-            }, [
-              React.createElement('h3', { key: 'title', style: { margin: '0 0 16px 0' } }, '⚠️ Component Not Found'),
-              React.createElement('p', { key: 'message', style: { margin: '0', lineHeight: '1.5' } }, 
-                'The generated React component could not be rendered. Please try generating again with a different prompt.')
-            ]);
-          }
-        }
-        
-        // Render with error boundary using React 18 createRoot API
-        try {
-          const rootElement = document.getElementById('root');
-          if (rootElement) {
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(React.createElement(App));
-          } else {
-            console.error('Root element not found');
-          }
-        } catch (error) {
-          console.error('React render error:', error);
-          const root = document.getElementById('root');
-          if (root) {
-            root.innerHTML = \`
-              <div style="color: #d73a49; padding: 20px; border: 1px solid #d73a49; border-radius: 6px; margin: 20px; font-family: system-ui, sans-serif;">
-                <h4 style="margin: 0 0 12px 0;">❌ React Render Error</h4>
-                <p style="margin: 0; font-family: monospace; font-size: 14px;">\${error.message}</p>
-              </div>
-            \`;
-          }
-        }
-    </script>
-    <style>${generatedCode.css || ''}</style>
-</body>
-</html>`
+            'hooks.js': generatedCode.js || ''
+            // Don't include index.html - let the frontend handle transpilation and HTML generation
           } : {
             'index.html': generatedCode.html || '',
             'styles.css': generatedCode.css || '',

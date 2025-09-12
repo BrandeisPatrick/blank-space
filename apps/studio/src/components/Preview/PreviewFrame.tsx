@@ -116,25 +116,25 @@ export const PreviewFrame = () => {
           
           const transpilerService = TranspilerService.getInstance()
           
-          // Get the component code from App.jsx or from the pre-built HTML
-          let componentCode = ''
-          if (currentArtifact.files['App.jsx']) {
-            componentCode = currentArtifact.files['App.jsx']
-          } else if (currentArtifact.files['index.html']) {
-            // Extract component code from the existing HTML (fallback)
-            const htmlContent = currentArtifact.files['index.html']
-            const scriptMatch = htmlContent.match(/<script[^>]*>([\s\S]*?)<\/script>/)
-            if (scriptMatch && scriptMatch[1]) {
-              // This is already transpiled code from the API, use it directly
-              fullHtml = htmlContent
-            } else {
-              componentCode = htmlContent
-            }
-          }
-
-          if (componentCode && !fullHtml) {
+          // Get the component code from App.jsx
+          const componentCode = currentArtifact.files['App.jsx'] || ''
+          
+          if (componentCode) {
             const cssCode = currentArtifact.files['App.module.css'] || currentArtifact.files['styles.css'] || ''
             fullHtml = await transpilerService.createReactHTML(componentCode, cssCode)
+          } else {
+            // No App.jsx found
+            console.error('No App.jsx file found for React component')
+            fullHtml = `
+              <html>
+                <body>
+                  <div style="color: #d73a49; padding: 20px; border: 1px solid #d73a49; border-radius: 6px; margin: 20px; font-family: system-ui, sans-serif;">
+                    <h3>❌ Component File Not Found</h3>
+                    <p>No App.jsx file was generated. Please try generating the component again.</p>
+                  </div>
+                </body>
+              </html>
+            `
           }
         }
       } else {
