@@ -87,6 +87,22 @@ export class TranspilerService {
         }
       }
 
+      // Check if App component exists in the transformed code
+      const hasAppComponent = /(?:function\s+App|const\s+App\s*=|var\s+App\s*=|let\s+App\s*=)/.test(transformedCode)
+      if (!hasAppComponent) {
+        console.warn('⚠️ No App component found in transformed code')
+        
+        // Try to extract any component function and rename it to App
+        const componentMatch = transformedCode.match(/(?:function\s+(\w+)|const\s+(\w+)\s*=|var\s+(\w+)\s*=|let\s+(\w+)\s*=).*?React\.createElement/)
+        if (componentMatch) {
+          const componentName = componentMatch[1] || componentMatch[2] || componentMatch[3] || componentMatch[4]
+          console.log(`🔄 Found component '${componentName}', renaming to 'App'`)
+          transformedCode = transformedCode.replace(new RegExp(`\\b${componentName}\\b`, 'g'), 'App')
+        } else {
+          console.warn('⚠️ No React components found in code')
+        }
+      }
+
       return {
         code: transformedCode,
         warnings: [
@@ -107,19 +123,17 @@ export class TranspilerService {
    * Basic JSX transformation without full transpilation
    */
   private basicJSXTransform(code: string): string {
-    // Remove imports and exports for browser compatibility
+    // Remove imports for browser compatibility but preserve the component structure
     let transformed = code
       .replace(/^\s*import\s+.*?from\s+['"].*?['"];?\s*$/gm, '')
-      .replace(/^\s*export\s+.*?$/gm, '')
-      .replace(/export\s+default\s+/, '')
-      .replace(/export\s+/, '')
-
-    // Handle React Fragment syntax
+    
+    // Handle exports more carefully - preserve function declarations
     transformed = transformed
-      .replace(/<React\.Fragment([^>]*)>/g, 'React.createElement(React.Fragment$1 ? , $1 : )')
-      .replace(/<\/React\.Fragment>/g, ')')
-      .replace(/<>([^<]*)</g, 'React.createElement(React.Fragment, null, "$1", ')
-      .replace(/<\/>/g, ')')
+      .replace(/export\s+default\s+(function\s+\w+)/g, '$1') // export default function App -> function App
+      .replace(/export\s+default\s+(const\s+\w+\s*=)/g, '$1') // export default const App = -> const App =  
+      .replace(/export\s+(function\s+\w+)/g, '$1') // export function App -> function App
+      .replace(/export\s+(const\s+\w+\s*=)/g, '$1') // export const App = -> const App =
+      .replace(/^\s*export\s*\{\s*.*?\s*\}\s*;?\s*$/gm, '') // Remove export { ... } statements
 
     // Transform self-closing JSX elements first
     transformed = transformed
@@ -129,10 +143,10 @@ export class TranspilerService {
       })
 
     // Transform JSX elements with children
-    // Use a more robust regex that handles nested elements
+    // Use iterative approach for nested elements
     let lastTransformed = ''
     let iterations = 0
-    const maxIterations = 10 // Prevent infinite loops
+    const maxIterations = 10
     
     while (transformed !== lastTransformed && iterations < maxIterations) {
       lastTransformed = transformed
@@ -144,6 +158,16 @@ export class TranspilerService {
         })
       iterations++
     }
+
+    // Handle React Fragments (after JSX transformation to avoid conflicts)
+    transformed = transformed
+      .replace(/<React\.Fragment([^>]*)>/g, (match, props) => {
+        const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
+        return `React.createElement(React.Fragment${propsStr}`
+      })
+      .replace(/<\/React\.Fragment>/g, ')')
+      .replace(/<>/g, 'React.createElement(React.Fragment, null, ')
+      .replace(/<\/>/g, ')')
 
     return transformed
   }

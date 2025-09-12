@@ -22,10 +22,10 @@ export async function initializeEsbuild(): Promise<void> {
   const wasmSources = [
     'https://unpkg.com/esbuild-wasm@0.19.12/esbuild.wasm',
     'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm',
-    'https://esm.run/esbuild-wasm@0.19.12/esbuild.wasm',
-    'https://cdn.skypack.dev/esbuild-wasm@0.19.12/esbuild.wasm',
     // Fallback to latest version if specific version fails
-    'https://unpkg.com/esbuild-wasm@latest/esbuild.wasm'
+    'https://unpkg.com/esbuild-wasm@latest/esbuild.wasm',
+    // Alternative working CDN sources
+    'https://cdn.jsdelivr.net/npm/esbuild-wasm@latest/esbuild.wasm'
   ]
 
   initPromise = tryInitializeEsbuild(wasmSources, 0)
