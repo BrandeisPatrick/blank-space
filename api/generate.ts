@@ -65,36 +65,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       - Examples: className={'item ' + (active ? 'active' : '')}
       - Examples: className={['item', active && 'active'].filter(Boolean).join(' ')}
       
-      React Code Guidelines:
-      - Create functional components using React hooks
-      - Use modern JSX syntax and patterns
-      - Implement responsive design with modern CSS
-      - Use useState, useEffect, and other hooks appropriately
-      - Create reusable, accessible components
-      - Follow React best practices and conventions
-      - Include proper event handlers and state management
-      - Use modern CSS (flexbox/grid) for layouts
-      - Make components production-ready and well-structured
+      CRITICAL: You MUST use React.createElement ONLY - NO JSX SYNTAX ALLOWED!
       
-      CRITICAL BROWSER COMPATIBILITY RULES:
-      - DO NOT use ES6 module syntax (no import/export statements)
-      - DO NOT use require() or module.exports
-      - Write code that runs directly in browser with Babel transpilation
-      - Use function declarations, not ES6 modules
-      - All code must be executable in a browser script tag with type="text/babel"
-      - If you need React hooks, use them directly (useState, useEffect available globally)
+      DO NOT write JSX like: <div>, <button>, <Component />
+      INSTEAD use: React.createElement('div', props, children)
       
-      MANDATORY COMPONENT NAMING:
-      - Your main component MUST be named 'App' (capital A)
-      - Use either: function App() { ... } OR const App = () => { ... }
-      - DO NOT export the component - just define it
-      - The component will be rendered with: ReactDOM.render(<App />, root)
+      React.createElement syntax:
+      - First argument: element type as string ('div', 'button', 'h1', etc.)
+      - Second argument: props object or null
+      - Third+ arguments: children (strings, numbers, or more React.createElement calls)
       
-      Example structure:
+      Examples:
+      // Simple element
+      React.createElement('div', null, 'Hello World')
+      
+      // With props
+      React.createElement('button', {onClick: handleClick, className: 'btn'}, 'Click me')
+      
+      // Nested elements
+      React.createElement('div', {className: 'container'},
+        React.createElement('h1', null, 'Title'),
+        React.createElement('p', null, 'Paragraph text')
+      )
+      
+      // With state
       function App() {
         const [count, setCount] = React.useState(0);
-        return <div onClick={() => setCount(count + 1)}>Count: {count}</div>;
-      }`
+        return React.createElement('div', null,
+          React.createElement('h1', null, 'Count: ' + count),
+          React.createElement('button', {onClick: () => setCount(count + 1)}, 'Increment')
+        );
+      }
+      
+      REQUIREMENTS:
+      - Component MUST be named 'App'
+      - NO import/export statements
+      - Use React.useState() and React.useEffect() directly
+      - This generates plain JavaScript that runs directly in browser!`
       : `You are an expert web developer. Generate clean, modern HTML, CSS, and JavaScript code.
       
       Return ONLY valid JSON with the code structure requested.`

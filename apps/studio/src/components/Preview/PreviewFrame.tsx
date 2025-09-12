@@ -111,17 +111,59 @@ export const PreviewFrame = () => {
             `
           }
         } else {
-          // Single-file React component - use existing transpiler
-          console.log('📄 Single-file component detected, using transpiler...')
+          // Single-file React component - now using React.createElement directly
+          console.log('📄 Single-file component detected, using direct JavaScript...')
           
-          const transpilerService = TranspilerService.getInstance()
-          
-          // Get the component code from App.jsx
+          // Get the component code from App.jsx (now contains React.createElement calls)
           const componentCode = currentArtifact.files['App.jsx'] || ''
+          const cssCode = currentArtifact.files['App.module.css'] || currentArtifact.files['styles.css'] || ''
           
           if (componentCode) {
-            const cssCode = currentArtifact.files['App.module.css'] || currentArtifact.files['styles.css'] || ''
-            fullHtml = await transpilerService.createReactHTML(componentCode, cssCode)
+            // Since AI now generates React.createElement directly, no transpilation needed!
+            fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Component Preview</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <style>
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+      ${cssCode}
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        try {
+          // Component code (already in React.createElement format)
+          ${componentCode}
+          
+          // Render the component
+          const rootElement = document.getElementById('root');
+          if (rootElement && typeof App !== 'undefined') {
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(React.createElement(App));
+          } else {
+            console.error('App component not found or root element missing');
+            throw new Error('App component not defined');
+          }
+        } catch (error) {
+          console.error('React render error:', error);
+          const root = document.getElementById('root');
+          if (root) {
+            root.innerHTML = \`
+              <div style="color: #d73a49; padding: 20px; border: 1px solid #d73a49; border-radius: 6px; margin: 20px; font-family: system-ui, sans-serif;">
+                <h4>❌ React Render Error</h4>
+                <p style="margin: 0; font-family: monospace; font-size: 14px;">\${error.message}</p>
+              </div>
+            \`;
+          }
+        }
+    </script>
+</body>
+</html>`
           } else {
             // No App.jsx found
             console.error('No App.jsx file found for React component')
