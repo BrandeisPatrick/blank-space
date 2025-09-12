@@ -21,8 +21,7 @@ export async function initializeEsbuild(): Promise<void> {
 
   const wasmSources = [
     'https://unpkg.com/esbuild-wasm@0.19.12/esbuild.wasm',
-    'https://cdn.skypack.dev/-/esbuild-wasm@v0.19.12-dBxGgUt0qMtC77p7cD1Q/dist=es2019,mode=raw/esbuild.wasm',
-    'https://esm.sh/esbuild-wasm@0.19.12/esbuild.wasm'
+    'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm'
   ]
 
   initPromise = tryInitializeEsbuild(wasmSources, 0)

@@ -1,6 +1,5 @@
 import { VirtualFileSystem, VFSFile } from '../utils/vfs'
 import { TranspilerService, TranspilerResult } from './transpiler'
-import { ReactRefreshService } from './reactRefresh'
 
 export interface BundleResult {
   code: string
@@ -16,12 +15,10 @@ export interface BundleOptions {
   target?: 'es2020' | 'es2022'
   format?: 'iife' | 'esm'
   minify?: boolean
-  enableRefresh?: boolean
 }
 
 export class ModuleBundler {
   private transpilerService: TranspilerService
-  private refreshService: ReactRefreshService | null = null
   private resolvedModules: Map<string, string> = new Map()
   
   constructor() {
@@ -41,15 +38,8 @@ export class ModuleBundler {
       const {
         entryPoint,
         target = 'es2020',
-        format = 'iife',
-        enableRefresh = false
+        format = 'iife'
       } = options
-
-      // Initialize React Refresh service if needed
-      if (enableRefresh && !this.refreshService) {
-        this.refreshService = new ReactRefreshService()
-        await this.refreshService.initialize()
-      }
 
       // Reset resolved modules for this bundle
       this.resolvedModules.clear()
@@ -105,9 +95,7 @@ export class ModuleBundler {
       return {
         code: bundledCode,
         css: bundledCSS,
-        html: enableRefresh && this.refreshService 
-          ? this.refreshService.createRefreshHTML(bundledCode, bundledCSS)
-          : this.createHTMLWrapper(bundledCode, bundledCSS),
+        html: this.createHTMLWrapper(bundledCode, bundledCSS),
         warnings,
         dependencies: moduleGraph.dependencies
       }

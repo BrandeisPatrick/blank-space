@@ -4,8 +4,6 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { TranspilerService } from '../../services/transpiler'
 import { ModuleBundler } from '../../services/bundler'
-import { HMRService, HMRUpdate } from '../../services/hmr'
-import { ReactRefreshService } from '../../services/reactRefresh'
 
 interface PreviewError {
   message: string
@@ -22,8 +20,6 @@ interface ConsoleMessage {
 
 export const PreviewFrame = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const hmrServiceRef = useRef<HMRService | null>(null)
-  const refreshServiceRef = useRef<ReactRefreshService | null>(null)
   const { currentArtifactId, artifacts, getVFS } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -31,96 +27,10 @@ export const PreviewFrame = () => {
   const [showErrors, setShowErrors] = useState(false)
   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
   const [showConsole, setShowConsole] = useState(false)
-  const [hmrEnabled, setHmrEnabled] = useState(false)
   
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
 
-  // HMR Update Handler
-  const handleHMRUpdate = (update: HMRUpdate) => {
-    if (!iframeRef.current?.contentWindow) return
 
-    switch (update.type) {
-      case 'component':
-        // Send React Refresh update to iframe
-        iframeRef.current.contentWindow.postMessage({
-          type: 'react-refresh-update',
-          code: update.bundleResult?.code,
-          timestamp: update.timestamp
-        }, '*')
-        break
-        
-      case 'style':
-        // Update styles without full reload
-        iframeRef.current.contentWindow.postMessage({
-          type: 'style-update',
-          files: update.files,
-          timestamp: update.timestamp
-        }, '*')
-        break
-        
-      case 'full-reload':
-        // Force iframe reload
-        if (iframeRef.current.src) {
-          const currentSrc = iframeRef.current.src
-          iframeRef.current.src = ''
-          setTimeout(() => {
-            if (iframeRef.current) {
-              iframeRef.current.src = currentSrc
-            }
-          }, 50)
-        }
-        break
-    }
-  }
-
-  // Initialize HMR for multi-file projects
-  useEffect(() => {
-    if (!currentArtifact) {
-      // Cleanup HMR when artifact changes
-      if (hmrServiceRef.current) {
-        hmrServiceRef.current.dispose()
-        hmrServiceRef.current = null
-        setHmrEnabled(false)
-      }
-      return
-    }
-
-    const fileNames = Object.keys(currentArtifact.files)
-    const isMultiFile = fileNames.some(name => 
-      name.startsWith('components/') || 
-      name.includes('import') ||
-      fileNames.length > 3
-    )
-
-    if (isMultiFile) {
-      const initializeHMR = async () => {
-        try {
-          const vfs = getVFS(currentArtifact.id)
-          const hmrService = new HMRService()
-          
-          await hmrService.initialize(vfs, handleHMRUpdate)
-          
-          hmrServiceRef.current = hmrService
-          setHmrEnabled(true)
-          
-          console.log('🔥 HMR enabled for multi-file project')
-        } catch (error) {
-          console.error('Failed to initialize HMR:', error)
-          setHmrEnabled(false)
-        }
-      }
-
-      initializeHMR()
-    }
-
-    return () => {
-      if (hmrServiceRef.current) {
-        hmrServiceRef.current.dispose()
-        hmrServiceRef.current = null
-        setHmrEnabled(false)
-      }
-    }
-  }, [currentArtifact?.id])
 
   useEffect(() => {
     if (!currentArtifact || !iframeRef.current) return
@@ -168,8 +78,7 @@ export const PreviewFrame = () => {
             const bundleResult = await bundler.bundle(vfs, {
               entryPoint,
               format: 'iife',
-              target: 'es2020',
-              enableRefresh: hmrEnabled
+              target: 'es2020'
             })
 
             if (bundleResult.error) {
@@ -499,21 +408,10 @@ export const PreviewFrame = () => {
             width: '8px',
             height: '8px',
             borderRadius: theme.radius.full,
-            background: hmrEnabled ? theme.colors.accent.warning : theme.colors.accent.success,
-            boxShadow: hmrEnabled 
-              ? `0 0 8px ${theme.colors.accent.warning}40`
-              : `0 0 8px ${theme.colors.accent.success}40`,
+            background: theme.colors.accent.success,
+            boxShadow: `0 0 8px ${theme.colors.accent.success}40`,
           }}></div>
-          {hmrEnabled ? 'Hot Reload' : 'Live Preview'}
-          {hmrEnabled && (
-            <span style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.text.tertiary,
-              fontWeight: theme.typography.fontWeight.normal,
-            }}>
-              (Fast Refresh)
-            </span>
-          )}
+          Live Preview
         </div>
         
         <div style={{
