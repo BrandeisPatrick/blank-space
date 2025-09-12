@@ -34,11 +34,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       IMPORTANT: Return ONLY valid JSON. Escape all quotes and newlines properly.
       
-      Return your response in this exact JSON format:
+      Return your response in this exact JSON format for single-file components:
       {
         "html": "React JSX component code here",
         "css": "CSS styles here (use modern CSS)", 
         "js": "Additional JavaScript logic if needed"
+      }
+      
+      OR for multi-file projects (complex components):
+      {
+        "files": {
+          "App.jsx": "Main component code with imports",
+          "components/Header.jsx": "Header component code",  
+          "components/Button.jsx": "Button component code",
+          "styles/App.css": "Main styles"
+        }
       }
       
       JSON RULES:
@@ -105,7 +115,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             - Use functional components with hooks
             - Make it responsive and accessible
             - Include proper styling
-            - Add interactivity where appropriate`
+            - Add interactivity where appropriate
+            - For complex components, create multiple files with proper imports
+            - Use components/ folder for reusable components
+            - Example multi-file structure: App.jsx imports from components/Header.jsx`
             : `Create a website based on this request: ${prompt}`
         }
       ],
@@ -151,11 +164,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .replace(/\`([^`]*)\$\{([^}]*)\}([^`]*)\`/g, "'$1' + ($2) + '$3'")
         }
         
-        const artifact = {
-          id: artifactId,
-          projectId: 'default',
-          regionId: 'full-page',
-          files: isReact ? {
+        // Handle both single-file and multi-file responses
+        let artifactFiles: Record<string, string>
+        
+        if (generatedCode.files) {
+          // Multi-file response
+          artifactFiles = generatedCode.files
+        } else {
+          // Single-file response (legacy format)
+          artifactFiles = isReact ? {
             'App.jsx': generatedCode.html || '',
             'App.module.css': generatedCode.css || '',
             'hooks.js': generatedCode.js || '',
@@ -167,12 +184,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <title>React Component Preview</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel">
-        // Generated component code
+    <script>
+        // Generated component code (pre-transpiled)
         ${generatedCode.html || ''}
         
         // Component safety wrapper - provides fallback only when App is truly missing
@@ -226,7 +242,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             'index.html': generatedCode.html || '',
             'styles.css': generatedCode.css || '',
             'script.js': generatedCode.js || ''
-          },
+          }
+        }
+        
+        const artifact = {
+          id: artifactId,
+          projectId: 'default',
+          regionId: 'full-page',
+          files: artifactFiles,
           entry: 'index.html',
           metadata: {
             device: device,

@@ -54,7 +54,8 @@
       "Bash(echo $VITE_API_BASE_URL)",
       "Bash(npm uninstall:*)",
       "mcp__vercel__list_teams",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "mcp__vercel__list_deployments"
     ],
     "deny": [],
     "ask": []

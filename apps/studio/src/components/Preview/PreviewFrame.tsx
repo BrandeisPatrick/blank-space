@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../state/appStore'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
+import { TranspilerService } from '../../services/transpiler'
+import { ModuleBundler } from '../../services/bundler'
+import { HMRService, HMRUpdate } from '../../services/hmr'
+import { ReactRefreshService } from '../../services/reactRefresh'
 
 interface PreviewError {
   message: string
@@ -18,15 +22,105 @@ interface ConsoleMessage {
 
 export const PreviewFrame = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const { currentArtifactId, artifacts } = useAppStore()
+  const hmrServiceRef = useRef<HMRService | null>(null)
+  const refreshServiceRef = useRef<ReactRefreshService | null>(null)
+  const { currentArtifactId, artifacts, getVFS } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const [errors, setErrors] = useState<PreviewError[]>([])
   const [showErrors, setShowErrors] = useState(false)
   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
   const [showConsole, setShowConsole] = useState(false)
+  const [hmrEnabled, setHmrEnabled] = useState(false)
   
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
+
+  // HMR Update Handler
+  const handleHMRUpdate = (update: HMRUpdate) => {
+    if (!iframeRef.current?.contentWindow) return
+
+    switch (update.type) {
+      case 'component':
+        // Send React Refresh update to iframe
+        iframeRef.current.contentWindow.postMessage({
+          type: 'react-refresh-update',
+          code: update.bundleResult?.code,
+          timestamp: update.timestamp
+        }, '*')
+        break
+        
+      case 'style':
+        // Update styles without full reload
+        iframeRef.current.contentWindow.postMessage({
+          type: 'style-update',
+          files: update.files,
+          timestamp: update.timestamp
+        }, '*')
+        break
+        
+      case 'full-reload':
+        // Force iframe reload
+        if (iframeRef.current.src) {
+          const currentSrc = iframeRef.current.src
+          iframeRef.current.src = ''
+          setTimeout(() => {
+            if (iframeRef.current) {
+              iframeRef.current.src = currentSrc
+            }
+          }, 50)
+        }
+        break
+    }
+  }
+
+  // Initialize HMR for multi-file projects
+  useEffect(() => {
+    if (!currentArtifact) {
+      // Cleanup HMR when artifact changes
+      if (hmrServiceRef.current) {
+        hmrServiceRef.current.dispose()
+        hmrServiceRef.current = null
+        setHmrEnabled(false)
+      }
+      return
+    }
+
+    const fileNames = Object.keys(currentArtifact.files)
+    const isMultiFile = fileNames.some(name => 
+      name.startsWith('components/') || 
+      name.includes('import') ||
+      fileNames.length > 3
+    )
+
+    if (isMultiFile) {
+      const initializeHMR = async () => {
+        try {
+          const vfs = getVFS(currentArtifact.id)
+          const hmrService = new HMRService()
+          
+          await hmrService.initialize(vfs, handleHMRUpdate)
+          
+          hmrServiceRef.current = hmrService
+          setHmrEnabled(true)
+          
+          console.log('🔥 HMR enabled for multi-file project')
+        } catch (error) {
+          console.error('Failed to initialize HMR:', error)
+          setHmrEnabled(false)
+        }
+      }
+
+      initializeHMR()
+    }
+
+    return () => {
+      if (hmrServiceRef.current) {
+        hmrServiceRef.current.dispose()
+        hmrServiceRef.current = null
+        setHmrEnabled(false)
+      }
+    }
+  }, [currentArtifact?.id])
 
   useEffect(() => {
     if (!currentArtifact || !iframeRef.current) return
@@ -40,88 +134,108 @@ export const PreviewFrame = () => {
                            currentArtifact.metadata?.isReact || 
                            currentArtifact.metadata?.framework === 'react'
     
-    let html, css, js
-    if (isReactArtifact && currentArtifact.files['index.html']) {
-      // For React artifacts, use the pre-built index.html that includes Babel
-      const fullHtmlContent = currentArtifact.files['index.html']
-      // Extract just the HTML content (the entire file is ready to use)
-      html = fullHtmlContent
-      css = ''  // CSS is already included in the index.html
-      js = ''   // JS is already included in the index.html
-    } else {
-      // For regular HTML artifacts, use separate files
-      html = currentArtifact.files['index.html'] || ''
-      css = currentArtifact.files['styles.css'] || ''
-      js = currentArtifact.files['script.js'] || ''
-    }
+    const generatePreview = async () => {
+      let fullHtml: string
 
-    let fullHtml
-    if (isReactArtifact && html && html.includes('<!DOCTYPE html>')) {
-      // For React artifacts with complete HTML, inject console interception
-      fullHtml = html.replace(
-        '</body>',
-        `<script>
-          // Console interception for React components
-          const originalConsole = {
-            log: console.log,
-            warn: console.warn,
-            error: console.error,
-            info: console.info
-          };
+      if (isReactArtifact) {
+        // Check if this is a multi-file project
+        const fileNames = Object.keys(currentArtifact.files)
+        const hasMultipleComponents = fileNames.some(name => 
+          name.startsWith('components/') || 
+          name.includes('import') ||
+          fileNames.length > 3 // More than App.jsx, styles.css, and index.html
+        )
 
-          function interceptConsole(type) {
-            console[type] = function(...args) {
-              // Call original console method
-              originalConsole[type].apply(console, args);
-              
-              // Send to parent
-              window.parent.postMessage({
-                type: 'console-message',
-                message: {
-                  type: type,
-                  message: args.map(arg => 
-                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-                  ).join(' '),
-                  timestamp: Date.now()
-                }
-              }, '*');
-            };
+        if (hasMultipleComponents) {
+          // Use bundler for multi-file projects
+          console.log('🏗️ Multi-file project detected, using bundler...')
+          
+          const vfs = getVFS(currentArtifact.id)
+          const bundler = new ModuleBundler()
+          
+          // Find entry point (prefer App.tsx > App.jsx > index.tsx > index.jsx)
+          let entryPoint = '/App.jsx'
+          const entryOptions = ['/App.tsx', '/App.jsx', '/index.tsx', '/index.jsx', '/src/App.tsx', '/src/App.jsx']
+          
+          for (const option of entryOptions) {
+            if (vfs.exists(option)) {
+              entryPoint = option
+              break
+            }
           }
 
-          // Intercept all console methods
-          interceptConsole('log');
-          interceptConsole('warn');
-          interceptConsole('error');
-          interceptConsole('info');
+          try {
+            const bundleResult = await bundler.bundle(vfs, {
+              entryPoint,
+              format: 'iife',
+              target: 'es2020',
+              enableRefresh: hmrEnabled
+            })
 
-          // Error handling for React components
-          window.addEventListener('error', function(e) {
-            window.parent.postMessage({
-              type: 'preview-error',
-              error: {
-                message: e.message,
-                line: e.lineno,
-                source: e.filename,
-                timestamp: Date.now()
-              }
-            }, '*');
-          });
+            if (bundleResult.error) {
+              console.error('Bundle error:', bundleResult.error)
+              fullHtml = `
+                <html>
+                  <body>
+                    <div style="color: red; padding: 20px;">
+                      <h3>Bundle Error</h3>
+                      <pre>${bundleResult.error}</pre>
+                    </div>
+                  </body>
+                </html>
+              `
+            } else {
+              console.log('✅ Bundle created successfully')
+              fullHtml = bundleResult.html
+            }
+          } catch (error) {
+            console.error('Bundling failed:', error)
+            fullHtml = `
+              <html>
+                <body>
+                  <div style="color: red; padding: 20px;">
+                    <h3>Bundling Failed</h3>
+                    <pre>${error instanceof Error ? error.message : 'Unknown error'}</pre>
+                  </div>
+                </body>
+              </html>
+            `
+          }
+        } else {
+          // Single-file React component - use existing transpiler
+          console.log('📄 Single-file component detected, using transpiler...')
+          
+          const transpilerService = TranspilerService.getInstance()
+          
+          // Get the component code from App.jsx or from the pre-built HTML
+          let componentCode = ''
+          if (currentArtifact.files['App.jsx']) {
+            componentCode = currentArtifact.files['App.jsx']
+          } else if (currentArtifact.files['index.html']) {
+            // Extract component code from the existing HTML (fallback)
+            const htmlContent = currentArtifact.files['index.html']
+            const scriptMatch = htmlContent.match(/<script[^>]*>([\s\S]*?)<\/script>/)
+            if (scriptMatch && scriptMatch[1]) {
+              // This is already transpiled code from the API, use it directly
+              fullHtml = htmlContent
+            } else {
+              componentCode = htmlContent
+            }
+          }
 
-          window.addEventListener('unhandledrejection', function(e) {
-            window.parent.postMessage({
-              type: 'preview-error',
-              error: {
-                message: 'Promise rejection: ' + (e.reason?.message || e.reason),
-                timestamp: Date.now()
-              }
-            }, '*');
-          });
-        </script>
-        </body>`
-      )
-    } else {
-      // For regular HTML artifacts, construct the full HTML
-      fullHtml = `
+          if (componentCode && !fullHtml) {
+            const cssCode = currentArtifact.files['App.module.css'] || currentArtifact.files['styles.css'] || ''
+            fullHtml = await transpilerService.createReactHTML(componentCode, cssCode)
+          }
+        }
+      } else {
+        // For regular HTML artifacts, use separate files
+        const html = currentArtifact.files['index.html'] || ''
+        const css = currentArtifact.files['styles.css'] || ''
+        const js = currentArtifact.files['script.js'] || ''
+
+        // For regular HTML artifacts, construct the full HTML
+        fullHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -207,16 +321,86 @@ export const PreviewFrame = () => {
     </script>
 </body>
 </html>`
+      }
+
+      // Add console interception to React components
+      if (isReactArtifact && fullHtml) {
+        fullHtml = fullHtml.replace(
+          '</body>',
+          `<script>
+            // Console interception for React components
+            const originalConsole = {
+              log: console.log,
+              warn: console.warn,
+              error: console.error,
+              info: console.info
+            };
+
+            function interceptConsole(type) {
+              console[type] = function(...args) {
+                // Call original console method
+                originalConsole[type].apply(console, args);
+                
+                // Send to parent
+                window.parent.postMessage({
+                  type: 'console-message',
+                  message: {
+                    type: type,
+                    message: args.map(arg => 
+                      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                    ).join(' '),
+                    timestamp: Date.now()
+                  }
+                }, '*');
+              };
+            }
+
+            // Intercept all console methods
+            interceptConsole('log');
+            interceptConsole('warn');
+            interceptConsole('error');
+            interceptConsole('info');
+
+            // Error handling for React components
+            window.addEventListener('error', function(e) {
+              window.parent.postMessage({
+                type: 'preview-error',
+                error: {
+                  message: e.message,
+                  line: e.lineno,
+                  source: e.filename,
+                  timestamp: Date.now()
+                }
+              }, '*');
+            });
+
+            window.addEventListener('unhandledrejection', function(e) {
+              window.parent.postMessage({
+                type: 'preview-error',
+                error: {
+                  message: 'Promise rejection: ' + (e.reason?.message || e.reason),
+                  timestamp: Date.now()
+                }
+              }, '*');
+            });
+          </script>
+          </body>`
+        )
+      }
+
+      const blob = new Blob([fullHtml], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      
+      if (iframeRef.current) {
+        iframeRef.current.src = url
+      }
+
+      return () => {
+        URL.revokeObjectURL(url)
+      }
     }
 
-    const blob = new Blob([fullHtml], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    
-    iframeRef.current.src = url
-
-    return () => {
-      URL.revokeObjectURL(url)
-    }
+    generatePreview()
   }, [currentArtifact])
 
   // Listen for error and console messages from iframe
@@ -315,10 +499,21 @@ export const PreviewFrame = () => {
             width: '8px',
             height: '8px',
             borderRadius: theme.radius.full,
-            background: theme.colors.accent.success,
-            boxShadow: `0 0 8px ${theme.colors.accent.success}40`,
+            background: hmrEnabled ? theme.colors.accent.warning : theme.colors.accent.success,
+            boxShadow: hmrEnabled 
+              ? `0 0 8px ${theme.colors.accent.warning}40`
+              : `0 0 8px ${theme.colors.accent.success}40`,
           }}></div>
-          Live Preview
+          {hmrEnabled ? 'Hot Reload' : 'Live Preview'}
+          {hmrEnabled && (
+            <span style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.text.tertiary,
+              fontWeight: theme.typography.fontWeight.normal,
+            }}>
+              (Fast Refresh)
+            </span>
+          )}
         </div>
         
         <div style={{
