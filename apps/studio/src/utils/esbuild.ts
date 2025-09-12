@@ -128,8 +128,7 @@ export async function transformCode(
       jsxFactory: 'React.createElement',
       jsxFragment: 'React.Fragment',
       target: 'es2020',
-      format: 'iife',
-      globalName: '__esbuild_result__',
+      // Don't use IIFE format - keep functions in global scope
       sourcemap: 'inline',
       define: {
         'process.env.NODE_ENV': '"development"'
@@ -167,15 +166,9 @@ export async function transformReactComponent(code: string): Promise<string> {
     
     console.log(`⚡ esbuild transform completed in ${(endTime - startTime).toFixed(2)}ms`)
     
-    // Wrap the transformed code to make it executable in browser
-    const wrappedCode = `
-      (function() {
-        ${result.code}
-        return __esbuild_result__;
-      })();
-    `
-    
-    return wrappedCode
+    // Return the transformed code directly without wrapping
+    // This keeps the App function in the global scope
+    return result.code
   } catch (error) {
     console.error('Failed to transform React component:', error)
     // Return original code as fallback
