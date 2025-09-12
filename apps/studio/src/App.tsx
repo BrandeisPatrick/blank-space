@@ -249,7 +249,7 @@ function App() {
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,
                 type: 'assistant',
-                content: `✅ **Component Generated Successfully!**\n\n**Created ${fileCount} files:**\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nYour React component is ready! Check the code editor and preview.`,
+                content: `Great! I've created your component successfully.\n\nI made ${fileCount} ${fileCount === 1 ? 'file' : 'files'} for you:\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nEverything's ready to go - you can check it out in the code editor and see how it looks in the preview on the right.`,
                 timestamp: Date.now(),
                 artifactId: artifact.id
               }
@@ -266,7 +266,7 @@ function App() {
               const errorMessage: ChatMessage = {
                 id: `msg_${Date.now()}_error`,
                 type: 'assistant',
-                content: 'Sorry, there was an error during code generation. Please check that your API keys are configured properly and try again.',
+                content: 'Hmm, I ran into a problem generating that code. Could you double-check that your API keys are set up correctly? Once that\'s sorted, we can try again.',
                 timestamp: Date.now()
               }
               addChatMessage(errorMessage)
@@ -290,7 +290,7 @@ function App() {
           const errorMessage: ChatMessage = {
             id: `msg_${Date.now()}_error`,
             type: 'assistant',
-            content: 'Sorry, there was an unexpected error during generation. Please try again.',
+            content: 'Oops, something unexpected happened while I was working on that. Let\'s give it another shot - could you try again?',
             timestamp: Date.now()
           }
           addChatMessage(errorMessage)
@@ -338,7 +338,7 @@ ENHANCEMENT REQUIREMENTS:
             const successMessage: ChatMessage = {
               id: `msg_${Date.now()}_ai`,
               type: 'assistant',
-              content: `Perfect! I've enhanced your website with the requested changes. 🚀\n\n**Enhanced:**\n• Preserved all existing functionality\n• Added your requested feature\n• Maintained the design aesthetic\n• Ensured everything works together\n\nYou can see the enhanced version in the editor and preview!`,
+              content: `Nice! I've added those changes to your website.\n\nHere's what I did:\n• Kept everything that was already working\n• Added the new feature you asked for\n• Made sure the design stays consistent\n• Double-checked that everything plays nicely together\n\nTake a look at the updated version in the editor and preview - I think you'll like how it turned out!`,
               timestamp: Date.now(),
               artifactId: enhancedArtifact.id
             }
@@ -350,7 +350,7 @@ ENHANCEMENT REQUIREMENTS:
             const errorMessage: ChatMessage = {
               id: `msg_${Date.now()}_error`,
               type: 'assistant',
-              content: 'Sorry, there was an error enhancing your website. Let me try a different approach or you can describe the changes differently.',
+              content: 'Hmm, I had some trouble making those changes. Maybe we could try a different approach? Feel free to describe what you want in another way and I\'ll give it another go.',
               timestamp: Date.now()
             }
             addChatMessage(errorMessage)
@@ -373,7 +373,7 @@ ENHANCEMENT REQUIREMENTS:
 
       case 'explanation':
         // Handle code explanations (future feature)
-        const explanationResponse = "I'd love to explain code for you! 📚\n\nCode explanation features are coming soon. For now, I can:\n• **Generate new websites** from your descriptions\n• **Create components** like forms, navigation bars, etc.\n• **Build applications** like dashboards, portfolios, blogs\n\nWhat would you like me to create for you?"
+        const explanationResponse = "I'd be happy to explain code for you!\n\nThat feature is coming soon, but right now I can help you with:\n• Creating new websites from your descriptions\n• Building components like forms, navigation bars, and more\n• Making full applications like dashboards, portfolios, or blogs\n\nWhat would you like me to help you build today?"
         
         const expMessage: ChatMessage = {
           id: `msg_${Date.now()}_ai`,

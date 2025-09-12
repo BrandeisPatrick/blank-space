@@ -222,26 +222,26 @@ export class ConversationEngine {
     const greeting = casualGreetings[Math.floor(Math.random() * casualGreetings.length)]
     
     if (context.currentArtifacts > 0) {
-      return `${greeting}\n\nI see you already have some projects going! I'm here to help you:\n\n• **Build** something completely new\n• **Modify** your existing code\n• **Brainstorm** ideas for your next project\n• **Answer** any questions you have\n\nWhat would you like to work on today?`
+      return `${greeting}\n\nI see you already have some projects going! I'm here to help you:\n\n• Build something completely new\n• Modify your existing code\n• Brainstorm ideas for your next project\n• Answer any questions you have\n\nWhat would you like to work on today?`
     }
     
-    return `${greeting}\n\nI'm your AI website builder assistant, and I'm excited to help you create something awesome! I can build:\n\n✨ **Websites** - portfolios, blogs, business sites\n🎨 **Components** - forms, navigation, layouts  \n📱 **Apps** - dashboards, tools, interactive pages\n\nWhat's your idea? Even just saying "build me a simple website" is a great start!`
+    return `${greeting}\n\nI'm your AI website builder assistant, and I'm excited to help you create something awesome! I can build:\n\n✨ Websites - portfolios, blogs, business sites\n🎨 Components - forms, navigation, layouts  \n📱 Apps - dashboards, tools, interactive pages\n\nWhat's your idea? Even just saying "build me a simple website" is a great start!`
   }
 
   private getCapabilityResponse(): string {
-    return `I'm a specialized AI assistant for web development! Here's what I can do:\n\n**🏗️ Build Websites**\n• Complete websites with HTML, CSS, and JavaScript\n• Responsive designs that work on all devices\n• Modern styling with gradients, shadows, and animations\n\n**🎨 Create Components**\n• Navigation bars, forms, buttons, cards\n• Interactive elements and user interfaces\n• Custom layouts and designs\n\n**⚡ Add Functionality**\n• Interactive features with JavaScript\n• Form validation and user interactions\n• Dynamic content and API integrations\n\n**🔧 Help You Code**\n• Explain existing code\n• Fix bugs and issues\n• Modify and improve existing projects\n\n**Just describe what you want to build, and I'll generate the code for you!**`
+    return `I'm a specialized AI assistant for web development! Here's what I can do:\n\n🏗️ Build Websites\n• Complete websites with HTML, CSS, and JavaScript\n• Responsive designs that work on all devices\n• Modern styling with gradients, shadows, and animations\n\n🎨 Create Components\n• Navigation bars, forms, buttons, cards\n• Interactive elements and user interfaces\n• Custom layouts and designs\n\n⚡ Add Functionality\n• Interactive features with JavaScript\n• Form validation and user interactions\n• Dynamic content and API integrations\n\n🔧 Help You Code\n• Explain existing code\n• Fix bugs and issues\n• Modify and improve existing projects\n\nJust describe what you want to build, and I'll generate the code for you!`
   }
 
   private getHelpResponse(context: ConversationContext): string {
     if (context.hasActiveCode) {
-      return `**Working with Code:**\n\n• **Select code** and ask me to explain or modify it\n• **Ask for changes**: "Change the background to blue"\n• **Add features**: "Add a contact form to this page"\n• **Fix issues**: "This button isn't working"\n\n**Creating New Things:**\n• Describe what you want: "Create a modern portfolio"\n• Be specific: "Build a landing page with hero section"\n• Ask for components: "Make a navigation bar"\n\nWhat would you like to work on?`
+      return `Working with Code:\n\n• Select code and ask me to explain or modify it\n• Ask for changes: "Change the background to blue"\n• Add features: "Add a contact form to this page"\n• Fix issues: "This button isn't working"\n\nCreating New Things:\n• Describe what you want: "Create a modern portfolio"\n• Be specific: "Build a landing page with hero section"\n• Ask for components: "Make a navigation bar"\n\nWhat would you like to work on?`
     }
     
-    return `**How to use me:**\n\n🗣️ **For conversation**: Say "hello", ask questions\n🏗️ **To build**: Use words like "create", "build", "make"\n🎯 **Be specific**: "Create a portfolio website with dark theme"\n📱 **Any device**: I make responsive designs automatically\n\n**Example requests:**\n• "Build a landing page for my restaurant"\n• "Create a dashboard with charts"\n• "Make a contact form with validation"\n• "Design a blog layout"\n\nWhat would you like to create?`
+    return `How to use me:\n\n🗣️ For conversation: Say "hello", ask questions\n🏗️ To build: Use words like "create", "build", "make"\n🎯 Be specific: "Create a portfolio website with dark theme"\n📱 Any device: I make responsive designs automatically\n\nExample requests:\n• "Build a landing page for my restaurant"\n• "Create a dashboard with charts"\n• "Make a contact form with validation"\n• "Design a blog layout"\n\nWhat would you like to create?`
   }
 
   private getIdentityResponse(): string {
-    return `I'm your **AI Website Builder Assistant**! 🤖\n\nI specialize in:\n• **Web Development**: HTML, CSS, JavaScript\n• **UI/UX Design**: Modern, responsive layouts\n• **Code Generation**: From descriptions to working websites\n• **Interactive Features**: Forms, buttons, animations\n\nI'm powered by AI and designed specifically to help you build websites quickly and easily. Whether you're a beginner or experienced developer, I can help turn your ideas into code!\n\n**Ready to build something amazing?**`
+    return `I'm your AI Website Builder Assistant! 🤖\n\nI specialize in:\n• Web Development: HTML, CSS, JavaScript\n• UI/UX Design: Modern, responsive layouts\n• Code Generation: From descriptions to working websites\n• Interactive Features: Forms, buttons, animations\n\nI'm powered by AI and designed specifically to help you build websites quickly and easily. Whether you're a beginner or experienced developer, I can help turn your ideas into code!\n\nReady to build something amazing?`
   }
 
   private getGratitudeResponse(): string {
@@ -293,7 +293,7 @@ export class ConversationEngine {
     
     // Explain First mode - detailed explanations
     if (lowerMessage.includes('spin wheel') || lowerMessage.includes('wheel')) {
-      return "I understand you're looking for a spin wheel! A spinning wheel typically consists of several components:\n\n• **Visual Design**: A circular wheel with segments/sections\n• **Animation**: CSS or JavaScript animations for spinning\n• **Interaction**: Click handlers to trigger the spin\n• **Results**: Logic to determine where it lands\n\nI can create a complete spinning wheel with smooth animations, customizable segments, and proper functionality. Would you like me to proceed with building this?"
+      return "I understand you're looking for a spin wheel! A spinning wheel typically consists of several components:\n\n• Visual Design: A circular wheel with segments/sections\n• Animation: CSS or JavaScript animations for spinning\n• Interaction: Click handlers to trigger the spin\n• Results: Logic to determine where it lands\n\nI can create a complete spinning wheel with smooth animations, customizable segments, and proper functionality. Would you like me to proceed with building this?"
     }
     
     return "I see there's an issue that needs addressing. Let me explain what might be happening and how I can fix it. Then I'll implement the solution with your approval."
@@ -314,11 +314,11 @@ export class ConversationEngine {
     
     if (modeConfig.behavior.showAlternatives) {
       // Show Options mode - provide alternatives
-      return "I can see you want to modify the existing code! 🔧\n\nHere are your options:\n\n**Option 1: Describe & Regenerate**\n• Copy the current code from the editor\n• Describe the changes you want\n• I'll generate a new version with your modifications\n\n**Option 2: Specific Request**\n• Tell me exactly what you want to build\n• I'll create it from scratch with your specifications\n\n**Option 3: Incremental Building** ⭐\n• Just tell me what to add/change (e.g., \"add a contact form\", \"make it dark theme\")\n• I'll enhance the existing code while keeping everything that works\n• Try it now: describe what you want to add!\n\nWhich approach would you prefer, or what specific enhancement would you like?"
+      return "I can see you want to modify the existing code! 🔧\n\nHere are your options:\n\nOption 1: Describe & Regenerate\n• Copy the current code from the editor\n• Describe the changes you want\n• I'll generate a new version with your modifications\n\nOption 2: Specific Request\n• Tell me exactly what you want to build\n• I'll create it from scratch with your specifications\n\nOption 3: Incremental Building ⭐\n• Just tell me what to add/change (e.g., \"add a contact form\", \"make it dark theme\")\n• I'll enhance the existing code while keeping everything that works\n• Try it now: describe what you want to add!\n\nWhich approach would you prefer, or what specific enhancement would you like?"
     }
     
     // Explain First mode - detailed explanation
-    return "I can see you want to modify the existing code! 🔧\n\n**Available Now: Incremental Building**\nI can enhance your existing code by adding new features while preserving what's already working. Just describe what you want to add or change.\n\n**Examples:**\n• \"Add a contact form to the bottom\"\n• \"Change to a dark theme\"\n• \"Add navigation menu\"\n• \"Include a photo gallery\"\n• \"Make it more colorful\"\n\n**How it works:**\n1. I analyze your current code structure\n2. I understand what you want to add/change\n3. I generate an enhanced version that builds upon the existing design\n4. Your current layout and working features are preserved\n\n**What would you like me to add or change?**"
+    return "I can see you want to modify the existing code! 🔧\n\nAvailable Now: Incremental Building\nI can enhance your existing code by adding new features while preserving what's already working. Just describe what you want to add or change.\n\nExamples:\n• \"Add a contact form to the bottom\"\n• \"Change to a dark theme\"\n• \"Add navigation menu\"\n• \"Include a photo gallery\"\n• \"Make it more colorful\"\n\nHow it works:\n1. I analyze your current code structure\n2. I understand what you want to add/change\n3. I generate an enhanced version that builds upon the existing design\n4. Your current layout and working features are preserved\n\nWhat would you like me to add or change?"
   }
 
   isIncrementalRequest(message: string): boolean {
@@ -346,7 +346,7 @@ export class ConversationEngine {
 
   private getClarificationResponse(message: string, context: ConversationContext): string {
     const suggestions = [
-      "**To create something new:**\n• \"Create a portfolio website\"\n• \"Build a landing page for my business\"\n• \"Make a contact form\"",
+      "To create something new:\n• \"Create a portfolio website\"\n• \"Build a landing page for my business\"\n• \"Make a contact form\"",
       
       "**To get help:**\n• \"What can you do?\"\n• \"Help me build a website\"\n• \"Show me examples\"",
       

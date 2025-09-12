@@ -56,7 +56,9 @@
       "mcp__vercel__list_teams",
       "Bash(lsof:*)",
       "mcp__vercel__list_deployments",
-      "WebFetch(domain:unpkg.com)"
+      "WebFetch(domain:unpkg.com)",
+      "Bash(git revert:*)",
+      "WebFetch(domain:blank-space-atywgcin0-patricks-projects-1e98187f.vercel.app)"
     ],
     "deny": [],
     "ask": []
