@@ -1,19 +1,18 @@
+import { VercelRequest, VercelResponse } from '@vercel/node'
 import { streamText } from 'ai'
 import { xai } from '@ai-sdk/xai'
 import { openai } from '@ai-sdk/openai'
 
-export async function POST(request: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   try {
-    const { message, hasActiveCode = false, responseMode = 'show-options' } = await request.json()
+    const { message, hasActiveCode = false, responseMode = 'show-options' } = req.body
 
     if (!message) {
-      return new Response(
-        JSON.stringify({ error: 'Message is required' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
+      return res.status(400).json({ error: 'Message is required' })
     }
 
     // Use OpenAI GPT-5-mini for intent classification (better at analysis)
@@ -23,13 +22,9 @@ export async function POST(request: Request) {
     } else if (process.env.XAI_API_KEY) {
       model = xai('grok-code-fast-1')
     } else {
-      return new Response(
-        JSON.stringify({ error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
+      return res.status(500).json({ 
+        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' 
+      })
     }
 
     const result = await streamText({
@@ -111,29 +106,17 @@ Return this exact JSON format:
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        ...intentResult
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    return res.status(200).json({ 
+      success: true,
+      ...intentResult
+    })
 
   } catch (error) {
     console.error('Intent classification error:', error)
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 }

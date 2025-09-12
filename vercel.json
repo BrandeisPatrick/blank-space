@@ -1,5 +1,12 @@
 {
-  "buildCommand": "cd apps/studio && npm run build",
+  "version": 2,
+  "buildCommand": "npm run build --workspace=apps/studio",
+  "installCommand": "npm install",
   "outputDirectory": "apps/studio/dist",
-  "installCommand": "npm install"
+  "rewrites": [
+    { 
+      "source": "/(.*)", 
+      "destination": "/index.html" 
+    }
+  ]
 }

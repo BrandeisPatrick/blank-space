@@ -24,8 +24,8 @@ export class ChatService {
   private baseUrl: string
 
   constructor() {
-    // Use environment variable for API base URL, fallback to window origin for local dev
-    this.baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin
+    // Always use relative paths - Vercel dev and production handle this automatically
+    this.baseUrl = ''
   }
 
   /**

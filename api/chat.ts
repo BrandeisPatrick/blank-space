@@ -1,19 +1,17 @@
 import { streamText } from 'ai'
 import { xai } from '@ai-sdk/xai'
 import { openai } from '@ai-sdk/openai'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-export async function POST(request: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
   try {
-    const { message, context } = await request.json()
+    const { message, context } = req.body
 
     if (!message) {
-      return new Response(
-        JSON.stringify({ error: 'Message is required' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
+      return res.status(400).json({ error: 'Message is required' })
     }
 
     // Use OpenAI GPT-5-nano for quick chat responses
@@ -23,13 +21,9 @@ export async function POST(request: Request) {
     } else if (process.env.XAI_API_KEY) {
       model = xai('grok-code-fast-1')
     } else {
-      return new Response(
-        JSON.stringify({ error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
+      return res.status(500).json({ 
+        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' 
+      })
     }
 
     // Build context for the AI
@@ -85,36 +79,24 @@ Respond naturally and conversationally. You can include thinking/reasoning in yo
     const thinking = thinkingMatch ? thinkingMatch[1].trim() : null
     const content = fullResponse.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim()
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        response: content,
-        thinking: thinking,
-        metadata: {
-          model: process.env.OPENAI_API_KEY ? 'gpt-5-nano' : 'grok-code-fast-1',
-          provider: process.env.OPENAI_API_KEY ? 'openai' : 'xai',
-          hasThinking: !!thinking,
-          responseLength: content.length
-        }
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
+    return res.status(200).json({ 
+      success: true,
+      response: content,
+      thinking: thinking,
+      metadata: {
+        model: process.env.OPENAI_API_KEY ? 'gpt-5-nano' : 'grok-code-fast-1',
+        provider: process.env.OPENAI_API_KEY ? 'openai' : 'xai',
+        hasThinking: !!thinking,
+        responseLength: content.length
       }
-    )
+    })
 
   } catch (error) {
     console.error('Chat API Error:', error)
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 }

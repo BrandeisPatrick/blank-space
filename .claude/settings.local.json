@@ -51,7 +51,10 @@
       "Bash(pkill:*)",
       "Bash(git merge:*)",
       "Bash(PORT=3001 npm run serve:local)",
-      "Bash(echo $VITE_API_BASE_URL)"
+      "Bash(echo $VITE_API_BASE_URL)",
+      "Bash(npm uninstall:*)",
+      "mcp__vercel__list_teams",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

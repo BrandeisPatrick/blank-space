@@ -35,11 +35,93 @@ export const PreviewFrame = () => {
     setErrors([])
     setConsoleMessages([])
 
-    const html = currentArtifact.files['index.html'] || ''
-    const css = currentArtifact.files['styles.css'] || ''
-    const js = currentArtifact.files['script.js'] || ''
+    // Check if this is a React artifact or regular HTML
+    const isReactArtifact = currentArtifact.files['App.jsx'] || 
+                           currentArtifact.metadata?.isReact || 
+                           currentArtifact.metadata?.framework === 'react'
+    
+    let html, css, js
+    if (isReactArtifact && currentArtifact.files['index.html']) {
+      // For React artifacts, use the pre-built index.html that includes Babel
+      const fullHtmlContent = currentArtifact.files['index.html']
+      // Extract just the HTML content (the entire file is ready to use)
+      html = fullHtmlContent
+      css = ''  // CSS is already included in the index.html
+      js = ''   // JS is already included in the index.html
+    } else {
+      // For regular HTML artifacts, use separate files
+      html = currentArtifact.files['index.html'] || ''
+      css = currentArtifact.files['styles.css'] || ''
+      js = currentArtifact.files['script.js'] || ''
+    }
 
-    const fullHtml = `
+    let fullHtml
+    if (isReactArtifact && html && html.includes('<!DOCTYPE html>')) {
+      // For React artifacts with complete HTML, inject console interception
+      fullHtml = html.replace(
+        '</body>',
+        `<script>
+          // Console interception for React components
+          const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error,
+            info: console.info
+          };
+
+          function interceptConsole(type) {
+            console[type] = function(...args) {
+              // Call original console method
+              originalConsole[type].apply(console, args);
+              
+              // Send to parent
+              window.parent.postMessage({
+                type: 'console-message',
+                message: {
+                  type: type,
+                  message: args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                  ).join(' '),
+                  timestamp: Date.now()
+                }
+              }, '*');
+            };
+          }
+
+          // Intercept all console methods
+          interceptConsole('log');
+          interceptConsole('warn');
+          interceptConsole('error');
+          interceptConsole('info');
+
+          // Error handling for React components
+          window.addEventListener('error', function(e) {
+            window.parent.postMessage({
+              type: 'preview-error',
+              error: {
+                message: e.message,
+                line: e.lineno,
+                source: e.filename,
+                timestamp: Date.now()
+              }
+            }, '*');
+          });
+
+          window.addEventListener('unhandledrejection', function(e) {
+            window.parent.postMessage({
+              type: 'preview-error',
+              error: {
+                message: 'Promise rejection: ' + (e.reason?.message || e.reason),
+                timestamp: Date.now()
+              }
+            }, '*');
+          });
+        </script>
+        </body>`
+      )
+    } else {
+      // For regular HTML artifacts, construct the full HTML
+      fullHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,6 +207,7 @@ export const PreviewFrame = () => {
     </script>
 </body>
 </html>`
+    }
 
     const blob = new Blob([fullHtml], { type: 'text/html' })
     const url = URL.createObjectURL(blob)

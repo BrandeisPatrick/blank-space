@@ -16,9 +16,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../../packages/grid-engine" },
-    { "path": "../../packages/compiler" }
-  ]
+  "include": ["src"]
 }
