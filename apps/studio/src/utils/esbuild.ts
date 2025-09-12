@@ -21,7 +21,11 @@ export async function initializeEsbuild(): Promise<void> {
 
   const wasmSources = [
     'https://unpkg.com/esbuild-wasm@0.19.12/esbuild.wasm',
-    'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm'
+    'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm',
+    'https://esm.run/esbuild-wasm@0.19.12/esbuild.wasm',
+    'https://cdn.skypack.dev/esbuild-wasm@0.19.12/esbuild.wasm',
+    // Fallback to latest version if specific version fails
+    'https://unpkg.com/esbuild-wasm@latest/esbuild.wasm'
   ]
 
   initPromise = tryInitializeEsbuild(wasmSources, 0)
@@ -71,16 +75,27 @@ function addEsbuildPolyfills(): void {
  */
 async function tryInitializeEsbuild(sources: string[], index: number): Promise<void> {
   if (index >= sources.length) {
-    throw new Error('All esbuild WASM sources failed to load')
+    const errorMsg = `All ${sources.length} esbuild WASM sources failed to load. This may be due to network issues or CORS restrictions.`
+    console.error(errorMsg)
+    console.log('Attempted sources:', sources)
+    throw new Error(errorMsg)
   }
 
+  const currentSource = sources[index]
+  console.log(`🔄 Attempting to load esbuild WASM from source ${index + 1}/${sources.length}: ${currentSource}`)
+
   try {
+    // Try with worker disabled first (more compatible)
     await esbuild.initialize({
-      wasmURL: sources[index],
-      worker: false // Disable worker to avoid additional complexity
+      wasmURL: currentSource,
+      worker: false
     })
+    console.log(`✅ Successfully loaded esbuild WASM from: ${currentSource}`)
   } catch (error) {
-    console.warn(`esbuild WASM source ${index} failed:`, error)
+    console.warn(`❌ esbuild WASM source ${index + 1} failed: ${currentSource}`)
+    console.warn('Error details:', error)
+    
+    // Try next source
     return tryInitializeEsbuild(sources, index + 1)
   }
 }

@@ -65,17 +65,37 @@ export class TranspilerService {
     try {
       const startTime = performance.now()
       
+      console.log('🔄 Using Babel fallback for JSX transpilation')
+      console.log('Input code preview:', code.substring(0, 200) + (code.length > 200 ? '...' : ''))
+      
       // Simple JSX transformation for fallback
       const transformedCode = this.basicJSXTransform(code)
       
       const endTime = performance.now()
       console.log(`📚 Babel fallback completed in ${(endTime - startTime).toFixed(2)}ms`)
+      console.log('Output code preview:', transformedCode.substring(0, 200) + (transformedCode.length > 200 ? '...' : ''))
+
+      // Validate generated code for basic syntax
+      try {
+        new Function(transformedCode)
+        console.log('✅ Generated code passed basic syntax validation')
+      } catch (syntaxError) {
+        console.warn('⚠️ Generated code has syntax issues:', syntaxError)
+        return {
+          code: '',
+          error: `Generated code has syntax errors: ${syntaxError instanceof Error ? syntaxError.message : 'Unknown syntax error'}`
+        }
+      }
 
       return {
         code: transformedCode,
-        warnings: ['Using Babel fallback due to esbuild initialization failure']
+        warnings: [
+          'Using Babel fallback due to esbuild WASM initialization failure',
+          'Basic JSX transformation - complex features may not work correctly'
+        ]
       }
     } catch (fallbackError) {
+      console.error('❌ Babel fallback failed:', fallbackError)
       return {
         code: '',
         error: `Both esbuild and fallback transpilation failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`
@@ -94,18 +114,36 @@ export class TranspilerService {
       .replace(/export\s+default\s+/, '')
       .replace(/export\s+/, '')
 
-    // Simple JSX to React.createElement transformation
-    // This is very basic - just enough to get components working
+    // Handle React Fragment syntax
     transformed = transformed
-      .replace(/<(\w+)([^>]*?)>(.*?)<\/\1>/gs, (match, tag, props, children) => {
-        const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
-        const childrenStr = children.trim() ? `, ${this.parseChildren(children)}` : ''
-        return `React.createElement('${tag}'${propsStr}${childrenStr})`
-      })
+      .replace(/<React\.Fragment([^>]*)>/g, 'React.createElement(React.Fragment$1 ? , $1 : )')
+      .replace(/<\/React\.Fragment>/g, ')')
+      .replace(/<>([^<]*)</g, 'React.createElement(React.Fragment, null, "$1", ')
+      .replace(/<\/>/g, ')')
+
+    // Transform self-closing JSX elements first
+    transformed = transformed
       .replace(/<(\w+)([^>]*?)\/>/gs, (match, tag, props) => {
         const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
         return `React.createElement('${tag}'${propsStr})`
       })
+
+    // Transform JSX elements with children
+    // Use a more robust regex that handles nested elements
+    let lastTransformed = ''
+    let iterations = 0
+    const maxIterations = 10 // Prevent infinite loops
+    
+    while (transformed !== lastTransformed && iterations < maxIterations) {
+      lastTransformed = transformed
+      transformed = transformed
+        .replace(/<(\w+)([^>]*?)>(.*?)<\/\1>/gs, (match, tag, props, children) => {
+          const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
+          const childrenStr = children.trim() ? `, ${this.parseChildren(children)}` : ''
+          return `React.createElement('${tag}'${propsStr}${childrenStr})`
+        })
+      iterations++
+    }
 
     return transformed
   }
@@ -116,12 +154,32 @@ export class TranspilerService {
   private parseProps(propsStr: string): string {
     if (!propsStr.trim()) return 'null'
     
-    // Very basic prop parsing - just return as object
-    const cleaned = propsStr.trim().replace(/\s+/g, ' ')
-    if (cleaned.includes('=')) {
-      return `{${cleaned.replace(/(\w+)=\{([^}]+)\}/g, '$1: $2').replace(/(\w+)="([^"]+)"/g, '$1: "$2"')}}`
+    const props: string[] = []
+    const cleaned = propsStr.trim()
+    
+    // Match attribute patterns: name="value", name={expression}, name (boolean)
+    const attrRegex = /(\w+)(?:=(?:"([^"]*)"|'([^']*)'|\{([^}]+)\}))?/g
+    let match
+    
+    while ((match = attrRegex.exec(cleaned)) !== null) {
+      const [, name, doubleQuoted, singleQuoted, expression] = match
+      
+      if (doubleQuoted !== undefined) {
+        // String value with double quotes
+        props.push(`${name}: "${doubleQuoted}"`)
+      } else if (singleQuoted !== undefined) {
+        // String value with single quotes  
+        props.push(`${name}: "${singleQuoted}"`)
+      } else if (expression !== undefined) {
+        // JavaScript expression in braces
+        props.push(`${name}: ${expression}`)
+      } else {
+        // Boolean attribute
+        props.push(`${name}: true`)
+      }
     }
-    return 'null'
+    
+    return props.length > 0 ? `{${props.join(', ')}}` : 'null'
   }
 
   /**
@@ -130,13 +188,27 @@ export class TranspilerService {
   private parseChildren(children: string): string {
     if (!children.trim()) return ''
     
-    // If it's just text, wrap in quotes
-    if (!children.includes('<')) {
-      return `"${children.trim()}"`
+    const trimmed = children.trim()
+    
+    // If it's just text content, wrap in quotes and escape
+    if (!trimmed.includes('<') && !trimmed.includes('{')) {
+      // Escape quotes and newlines in text content
+      const escaped = trimmed
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+      return `"${escaped}"`
     }
     
-    // For complex children, just return as-is (likely already transformed)
-    return children.trim()
+    // If contains JSX elements, it should already be transformed by parent regex
+    // If contains expressions {}, return as-is
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed.slice(1, -1) // Remove outer braces
+    }
+    
+    // For mixed content or already transformed content
+    return trimmed
   }
 
   /**
