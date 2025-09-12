@@ -10,6 +10,9 @@ interface LandingPageProps {
 export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
+  
+  // Check if mobile viewport
+  const isMobile = window.innerWidth <= 768
 
   return (
     <div style={{
@@ -37,7 +40,7 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
           gap: theme.spacing.md,
         }}>
           <h1 style={{
-            fontSize: theme.typography.fontSize['2xl'],
+            fontSize: isMobile ? theme.typography.fontSize.xl : theme.typography.fontSize['2xl'],
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text.primary,
             margin: 0,
@@ -88,7 +91,7 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: theme.spacing['3xl'],
+        padding: isMobile ? theme.spacing.xl : theme.spacing['3xl'],
       }}>
         <div style={{
           maxWidth: '800px',
@@ -96,7 +99,7 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
         }}>
           {/* Hero Title */}
           <h2 style={{
-            fontSize: '3.5rem',
+            fontSize: isMobile ? '2.5rem' : '3.5rem',
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text.primary,
             margin: `0 0 ${theme.spacing.xl} 0`,
@@ -113,9 +116,9 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
 
           {/* Hero Subtitle */}
           <p style={{
-            fontSize: theme.typography.fontSize.xl,
+            fontSize: isMobile ? theme.typography.fontSize.lg : theme.typography.fontSize.xl,
             color: theme.colors.text.secondary,
-            margin: `0 0 ${theme.spacing['3xl']} 0`,
+            margin: `0 0 ${isMobile ? theme.spacing['2xl'] : theme.spacing['3xl']} 0`,
             lineHeight: theme.typography.lineHeight.relaxed,
             maxWidth: '600px',
             marginLeft: 'auto',
@@ -128,15 +131,17 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
           {/* CTA Buttons */}
           <div style={{
             display: 'flex',
-            gap: theme.spacing.lg,
+            gap: isMobile ? theme.spacing.md : theme.spacing.lg,
             justifyContent: 'center',
             flexWrap: 'wrap',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'center' : 'flex-start',
           }}>
             <button
               onClick={onTryNow}
               style={{
-                padding: `${theme.spacing.xl} ${theme.spacing['2xl']}`,
-                fontSize: theme.typography.fontSize.lg,
+                padding: isMobile ? `${theme.spacing.lg} ${theme.spacing.xl}` : `${theme.spacing.xl} ${theme.spacing['2xl']}`,
+                fontSize: isMobile ? theme.typography.fontSize.base : theme.typography.fontSize.lg,
                 fontWeight: theme.typography.fontWeight.bold,
                 color: '#ffffff',
                 backgroundColor: '#2a2a2a',
@@ -146,7 +151,7 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
                 fontFamily: theme.typography.fontFamily.sans,
                 transition: `all ${theme.animation.normal}`,
                 boxShadow: '8px 8px 16px rgba(0, 0, 0, 0.6), -8px -8px 16px rgba(255, 255, 255, 0.1), inset 2px 2px 4px rgba(255, 255, 255, 0.1), inset -2px -2px 4px rgba(0, 0, 0, 0.3)',
-                minWidth: '160px',
+                minWidth: isMobile ? '200px' : '160px',
                 position: 'relative',
                 overflow: 'hidden',
               }}
@@ -176,8 +181,8 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
             <button
               onClick={onSignIn}
               style={{
-                padding: `${theme.spacing.xl} ${theme.spacing['2xl']}`,
-                fontSize: theme.typography.fontSize.lg,
+                padding: isMobile ? `${theme.spacing.lg} ${theme.spacing.xl}` : `${theme.spacing.xl} ${theme.spacing['2xl']}`,
+                fontSize: isMobile ? theme.typography.fontSize.base : theme.typography.fontSize.lg,
                 fontWeight: theme.typography.fontWeight.bold,
                 color: '#ffffff',
                 backgroundColor: '#2a2a2a',
@@ -187,7 +192,7 @@ export const LandingPage = ({ onTryNow, onSignIn }: LandingPageProps) => {
                 fontFamily: theme.typography.fontFamily.sans,
                 transition: `all ${theme.animation.normal}`,
                 boxShadow: '8px 8px 16px rgba(0, 0, 0, 0.6), -8px -8px 16px rgba(255, 255, 255, 0.1), inset 2px 2px 4px rgba(255, 255, 255, 0.1), inset -2px -2px 4px rgba(0, 0, 0, 0.3)',
-                minWidth: '160px',
+                minWidth: isMobile ? '200px' : '160px',
                 position: 'relative',
                 overflow: 'hidden',
               }}

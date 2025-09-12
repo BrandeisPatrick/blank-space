@@ -69,7 +69,7 @@ export class TranspilerService {
       console.log('Input code preview:', code.substring(0, 200) + (code.length > 200 ? '...' : ''))
       
       // Simple JSX transformation for fallback
-      const transformedCode = this.basicJSXTransform(code)
+      let transformedCode = this.basicJSXTransform(code)
       
       const endTime = performance.now()
       console.log(`📚 Babel fallback completed in ${(endTime - startTime).toFixed(2)}ms`)
