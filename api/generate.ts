@@ -47,6 +47,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       - Use single quotes for JSX/CSS attribute values when possible
       - Escape newlines as \\n or write compact code
       - No unescaped backslashes
+
+      JSX TEMPLATE LITERAL RULES (CRITICAL):
+      - NEVER use template literals (backticks \`) in JSX code
+      - NEVER use \${} syntax in JSX attributes or content
+      - For dynamic className: use string concatenation or array methods
+      - Examples: className={'item ' + (active ? 'active' : '')}
+      - Examples: className={['item', active && 'active'].filter(Boolean).join(' ')}
       
       React Code Guidelines:
       - Create functional components using React hooks
@@ -126,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const generatedCode = JSON.parse(fullResponse)
         const artifactId = `artifact_${Date.now()}`
         
-        // Sanitize React code to remove problematic module syntax
+        // Sanitize React code to remove problematic module syntax and template literals
         if (isReact && generatedCode.html) {
           // Remove any ES6 module syntax that could cause "exports is not defined"
           generatedCode.html = generatedCode.html
@@ -135,6 +142,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .replace(/^\s*module\.exports\s*=.*$/gm, '')
             .replace(/^\s*exports\.[a-zA-Z_$][a-zA-Z0-9_$]*\s*=.*$/gm, '')
             .trim()
+          
+          // Replace template literals that cause Babel parsing errors
+          generatedCode.html = generatedCode.html
+            .replace(/className=\{\`([^`]*)\$\{([^}]*)\}([^`]*)\`\}/g, 
+              "className={'$1' + ($2) + '$3'}")
+            .replace(/className=\{\`([^`]*)\`\}/g, "className={'$1'}")
+            .replace(/\`([^`]*)\$\{([^}]*)\}([^`]*)\`/g, "'$1' + ($2) + '$3'")
         }
         
         const artifact = {
@@ -161,53 +175,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Generated component code
         ${generatedCode.html || ''}
         
-        // Component safety wrapper - ensures App exists
+        // Component safety wrapper - provides fallback only when App is truly missing
         if (typeof App === 'undefined') {
-          console.warn('App component not found, attempting to detect alternative component...');
-          
-          // Try to find any defined React component
-          const codeString = \`${generatedCode.html || ''}\`;
-          const componentMatches = codeString.match(/(?:function|const|let|var)\\s+([A-Z][a-zA-Z0-9_]*)/g);
-          
-          if (componentMatches) {
-            for (const match of componentMatches) {
-              const nameMatch = match.match(/(?:function|const|let|var)\\s+([A-Z][a-zA-Z0-9_]*)/);
-              if (nameMatch && typeof window[nameMatch[1]] !== 'undefined') {
-                console.info(\`Using component: \${nameMatch[1]} as App\`);
-                var App = window[nameMatch[1]];
-                break;
+          console.warn('App component not found, using fallback component');
+          function App() {
+            return React.createElement('div', {
+              style: { 
+                padding: '40px', 
+                textAlign: 'center', 
+                fontFamily: 'system-ui, sans-serif',
+                color: '#666',
+                border: '2px dashed #ccc',
+                borderRadius: '8px',
+                margin: '20px'
               }
-            }
-          }
-          
-          // Final fallback component
-          if (typeof App === 'undefined') {
-            console.warn('No React component found, using fallback');
-            var App = function() {
-              return React.createElement('div', {
-                style: { 
-                  padding: '40px', 
-                  textAlign: 'center', 
-                  fontFamily: 'system-ui, sans-serif',
-                  color: '#666',
-                  border: '2px dashed #ccc',
-                  borderRadius: '8px',
-                  margin: '20px'
-                }
-              }, [
-                React.createElement('h3', { key: 'title', style: { margin: '0 0 16px 0' } }, '⚠️ Component Not Found'),
-                React.createElement('p', { key: 'message', style: { margin: '0', lineHeight: '1.5' } }, 
-                  'The generated React component could not be rendered. Please try generating again with a different prompt.')
-              ]);
-            };
+            }, [
+              React.createElement('h3', { key: 'title', style: { margin: '0 0 16px 0' } }, '⚠️ Component Not Found'),
+              React.createElement('p', { key: 'message', style: { margin: '0', lineHeight: '1.5' } }, 
+                'The generated React component could not be rendered. Please try generating again with a different prompt.')
+            ]);
           }
         }
         
-        // Render with error boundary
+        // Render with error boundary using React 18 createRoot API
         try {
-          const root = document.getElementById('root');
-          if (root) {
-            ReactDOM.render(React.createElement(App), root);
+          const rootElement = document.getElementById('root');
+          if (rootElement) {
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(React.createElement(App));
           } else {
             console.error('Root element not found');
           }

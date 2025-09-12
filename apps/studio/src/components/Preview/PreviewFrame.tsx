@@ -390,7 +390,7 @@ export const PreviewFrame = () => {
             border: 'none',
             borderRadius: (errors.length > 0 || consoleMessages.length > 0) ? '0' : `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
           }}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts allow-same-origin allow-forms"
           title="Website Preview"
         />
       </div>
