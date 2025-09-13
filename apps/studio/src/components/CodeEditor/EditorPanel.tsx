@@ -190,7 +190,7 @@ console.log('Website loaded successfully');
             alignItems: 'center',
             fontSize: '14px',
             fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.accent.primary,
+            color: '#808080',
             fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
           }}>
             <span style={{ opacity: 0.7 }}>&lt;</span>

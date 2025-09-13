@@ -59,11 +59,11 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
             color: theme.colors.text.primary,
             margin: 0,
           }}>
-            <span style={{ 
-              color: theme.colors.accent.primary,
+            <span style={{
+              color: '#808080',
               fontWeight: theme.typography.fontWeight.bold,
-            }}>&lt;</span> blank space <span style={{ 
-              color: theme.colors.accent.primary,
+            }}>&lt;</span> blank space <span style={{
+              color: '#808080',
               fontWeight: theme.typography.fontWeight.bold,
             }}>&gt;</span>
           </h1>

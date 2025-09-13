@@ -145,15 +145,15 @@ export const TopBar = ({ onNavigateToSignIn, onNavigateToDeveloper, user, isAuth
         <span style={{ whiteSpace: 'nowrap' }}>
           {isMobile ? 'Studio' : (
             <>
-              <span style={{ 
+              <span style={{
                 textShadow: '2px 2px 0px rgba(0, 0, 0, 0.5), 4px 4px 10px rgba(0, 0, 0, 0.8)',
-                color: theme.colors.accent.primary,
+                color: '#808080',
                 fontWeight: theme.typography.fontWeight.bold,
                 display: 'inline-block',
                 transform: 'translateZ(0)'
-              }}>&lt;</span> blank space <span style={{ 
+              }}>&lt;</span> blank space <span style={{
                 textShadow: '2px 2px 0px rgba(0, 0, 0, 0.5), 4px 4px 10px rgba(0, 0, 0, 0.8)',
-                color: theme.colors.accent.primary,
+                color: '#808080',
                 fontWeight: theme.typography.fontWeight.bold,
                 display: 'inline-block',
                 transform: 'translateZ(0)'
