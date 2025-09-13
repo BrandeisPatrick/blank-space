@@ -7,7 +7,7 @@ import { ReasoningTab } from './ReasoningTab'
 
 export const ChatPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { chatMessages, addTestMessageWithThinking } = useAppStore()
+  const { chatMessages } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
@@ -55,21 +55,6 @@ export const ChatPanel = () => {
             }}></div>
             AI Assistant
           </div>
-          <button
-            onClick={addTestMessageWithThinking}
-            style={{
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              background: theme.colors.accent.primary,
-              color: 'white',
-              border: 'none',
-              borderRadius: theme.radius.sm,
-              fontSize: theme.typography.fontSize.xs,
-              cursor: 'pointer',
-              fontWeight: theme.typography.fontWeight.medium,
-            }}
-          >
-            Test Thinking
-          </button>
         </div>
         <div style={{
           fontSize: theme.typography.fontSize.sm,

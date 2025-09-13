@@ -163,7 +163,6 @@ export interface StoreActions {
   setCurrentArtifact: (id: string | null) => void
   addChatMessage: (message: ChatMessage) => void
   clearChat: () => void
-  addTestMessageWithThinking: () => void
   setResponseMode: (mode: ResponseMode) => void
   // Enhanced file operations
   createFile: (artifactId: string, filePath: string, content?: string) => void
