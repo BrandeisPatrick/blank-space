@@ -58,7 +58,9 @@
       "mcp__vercel__list_deployments",
       "WebFetch(domain:unpkg.com)",
       "Bash(git revert:*)",
-      "WebFetch(domain:blank-space-atywgcin0-patricks-projects-1e98187f.vercel.app)"
+      "WebFetch(domain:blank-space-atywgcin0-patricks-projects-1e98187f.vercel.app)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

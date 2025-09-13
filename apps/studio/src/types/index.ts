@@ -22,6 +22,8 @@ export interface DevicePreset {
   name: string
   width: number
   height: number
+  gridCols?: number
+  gridRows?: number
 }
 
 export interface GridPosition {
@@ -62,6 +64,7 @@ export interface Artifact {
     dependencies?: string[]
     projectType?: 'react' | 'vanilla' | 'vue' | 'angular'
     template?: string
+    isReact?: boolean
   }
   createdAt: string
   author?: string

@@ -67,7 +67,7 @@ const ContextMenu = ({ x, y, visible, onClose, onCreateFile, onCreateFolder, onR
           background: theme.colors.bg.primary,
           border: `1px solid ${theme.colors.border}`,
           borderRadius: theme.radius.md,
-          boxShadow: `0 4px 12px ${theme.colors.shadow}`,
+          boxShadow: theme.shadows.md,
           zIndex: 1000,
           minWidth: '160px',
           padding: `${theme.spacing.xs} 0`,

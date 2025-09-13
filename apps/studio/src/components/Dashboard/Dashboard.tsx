@@ -16,7 +16,7 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredArtifacts = artifacts.filter(artifact =>
-    (artifact.title || artifact.id).toLowerCase().includes(searchTerm.toLowerCase())
+    artifact.id.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const formatDate = (timestamp: number) => {
@@ -208,7 +208,7 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
             fontSize: theme.typography.fontSize.sm,
           }}>
             <span>{artifacts.length} projects</span>
-            <span>{artifacts.filter(a => Date.now() - (a.createdAt || 0) < 7 * 24 * 60 * 60 * 1000).length} this week</span>
+            <span>{artifacts.filter(a => Date.now() - new Date(a.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000).length} this week</span>
           </div>
         </div>
 
@@ -366,7 +366,7 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}>
-                  {artifact.title || `Project ${artifact.id.slice(-8)}`}
+                  {`Project ${artifact.id.slice(-8)}`}
                 </h3>
                 
                 <p style={{
@@ -379,7 +379,7 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                 }}>
-                  {artifact.description || 'No description available'}
+                  {'Created ' + new Date(artifact.createdAt).toLocaleDateString()}
                 </p>
 
                 <div style={{
@@ -389,7 +389,7 @@ export const Dashboard = ({ onCreateNew, onOpenArtifact, onSignOut }: DashboardP
                   fontSize: theme.typography.fontSize.xs,
                   color: theme.colors.text.tertiary,
                 }}>
-                  <span>Created {formatDate(artifact.createdAt || Date.now())}</span>
+                  <span>Created {formatDate(new Date(artifact.createdAt).getTime())}</span>
                   <div style={{
                     display: 'flex',
                     gap: theme.spacing.sm,

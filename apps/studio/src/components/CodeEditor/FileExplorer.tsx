@@ -375,12 +375,12 @@ export const ${createValue.split('.')[0]} = () => {
                 borderRadius: theme.radius.lg,
                 padding: theme.spacing.lg,
                 minWidth: '300px',
-                boxShadow: `0 8px 24px ${theme.colors.shadow}`,
+                boxShadow: theme.shadows.lg,
               }}
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{
-                fontSize: theme.typography.fontSize.md,
+                fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.medium,
                 color: theme.colors.text.primary,
                 marginBottom: theme.spacing.md,

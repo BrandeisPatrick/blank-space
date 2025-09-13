@@ -8,6 +8,7 @@ const lightTheme = {
       secondary: '#f9f6f1',    // Soft cream for cards
       tertiary: '#f4f0ea',     // Slightly darker cream for active states
       hover: '#ede8e1',        // Hover states
+      border: '#e6e1d8',       // Border color in bg context
     },
     border: '#e6e1d8',         // Subtle cream borders
     text: {
@@ -22,6 +23,7 @@ const lightTheme = {
       success: '#7d8471',      // Sage green
       warning: '#c4965a',      // Warm amber
       error: '#b8695d',        // Soft terracotta
+      info: '#a68b5b',         // Golden brown for info
     },
     status: {
       success: '#7d8471',      // Sage green
@@ -56,6 +58,7 @@ const darkTheme = {
       secondary: '#212121',    // Slightly lighter grey
       tertiary: '#2a2a2a',     // Medium grey for active states
       hover: '#333333',        // Lighter grey for hover
+      border: '#404040',       // Border color in bg context
     },
     border: '#404040',         // Border grey
     text: {
@@ -70,6 +73,7 @@ const darkTheme = {
       success: '#4ade80',      // Bright green
       warning: '#fbbf24',      // Bright yellow
       error: '#f87171',        // Bright red
+      info: '#60a5fa',         // Bright blue for info
     },
     status: {
       success: '#4ade80',      // Bright green
@@ -98,10 +102,14 @@ const darkTheme = {
 }
 
 export const getTheme = (mode: ThemeMode) => {
+  const baseTheme = mode === 'light' ? lightTheme : darkTheme
   return {
-    ...(mode === 'light' ? lightTheme : darkTheme),
+    ...baseTheme,
+    shadow: baseTheme.shadows, // Add shadow alias for shadows
     radius: {
+      xs: '4px',
       sm: '8px',
+      base: '12px', 
       md: '16px',
       lg: '20px',
       xl: '24px',
