@@ -264,13 +264,6 @@ export const FileTree = ({
             </span>
           )}
           
-          {/* File/Folder Icon */}
-          <span style={{ fontSize: '14px' }}>
-            {node.type === 'folder' 
-              ? getFolderIcon(node.name, isExpanded)
-              : getFileIcon(node.name, false)
-            }
-          </span>
           
           {/* Name or Rename Input */}
           {renaming === node.path ? (

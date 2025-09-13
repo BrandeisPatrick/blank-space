@@ -162,28 +162,20 @@ export const FileTabs = ({ files, activeFile, onFileSelect, onFileClose, showExp
             transition: `all ${theme.animation.normal}`,
           }} />
           
+          {/* Filename with highlighted extension */}
           <span style={{
             flex: 1,
             textAlign: 'left',
-          }}>{filename}</span>
-          
-          {/* File Type Badge */}
-          <span style={{
-            fontSize: '9px',
-            fontWeight: theme.typography.fontWeight.bold,
-            color: activeFile === filename 
-              ? getFileTypeColor(filename) 
-              : theme.colors.text.tertiary,
-            background: activeFile === filename
-              ? `${getFileTypeColor(filename)}20`
-              : theme.colors.bg.secondary,
-            padding: '1px 4px',
-            borderRadius: '3px',
-            marginLeft: 'auto',
-            flexShrink: 0,
-            transition: `all ${theme.animation.normal}`,
+            display: 'flex',
+            alignItems: 'center',
           }}>
-            {getFileTypeLabel(filename)}
+            <span>{filename.substring(0, filename.lastIndexOf('.'))}</span>
+            <span style={{
+              color: getFileTypeColor(filename),
+              fontWeight: theme.typography.fontWeight.bold,
+            }}>
+              {filename.substring(filename.lastIndexOf('.'))}
+            </span>
           </span>
           
           {/* Close Button */}

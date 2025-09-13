@@ -242,7 +242,6 @@ export const ${createValue.split('.')[0]} = () => {
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
-          <span style={{ fontSize: '14px' }}>📁</span>
           <span>Explorer</span>
         </div>
         
