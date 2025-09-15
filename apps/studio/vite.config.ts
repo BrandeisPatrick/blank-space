@@ -13,9 +13,6 @@ export default defineConfig({
       },
     },
   },
-  optimizeDeps: {
-    include: ['ai', '@ai-sdk/openai', '@ai-sdk/anthropic', '@ai-sdk/groq']
-  },
   define: {
     global: 'globalThis'
   }

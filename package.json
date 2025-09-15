@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/*"
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=apps/studio",
@@ -33,15 +32,9 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.11",
     "@ai-sdk/openai": "^2.0.23",
     "@ai-sdk/xai": "^2.0.16",
-    "@monaco-editor/react": "^4.7.0",
-    "ai": "^5.0.33",
-    "dotenv": "^17.2.1",
-    "esbuild-wasm": "^0.25.9",
-    "groq-sdk": "^0.30.0",
-    "nanoid": "^5.1.5"
+    "ai": "^5.0.33"
   },
   "eslintConfig": {
     "extends": [

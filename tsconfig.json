@@ -13,17 +13,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
-    "paths": {
-      "@ui-grid-ai/*": ["packages/*/src"]
-    }
+    "baseUrl": "."
   },
   "include": [],
   "references": [
-    { "path": "./apps/studio" },
-    { "path": "./packages/grid-engine" },
-    { "path": "./packages/compiler" },
-    { "path": "./packages/preview-sandbox" },
-    { "path": "./packages/codegen-prompts" }
+    { "path": "./apps/studio" }
   ]
 }

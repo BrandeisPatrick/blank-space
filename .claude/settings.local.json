@@ -60,7 +60,10 @@
       "Bash(git revert:*)",
       "WebFetch(domain:blank-space-atywgcin0-patricks-projects-1e98187f.vercel.app)",
       "Bash(timeout 10 npm run dev)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(for pkg in agent-engine ai-agents codegen-prompts compiler framework-advisor preview-sandbox react-reasoning)",
+      "Bash(do echo \"=== $pkg ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
