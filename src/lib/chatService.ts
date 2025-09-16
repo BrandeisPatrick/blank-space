@@ -47,148 +47,115 @@ export class ChatService {
     let reasoningSteps: ReasoningStep[] = []
     let artifact: Artifact | null = null
     let currentStepId: string | null = null
+    let inReasoningPhase = true
 
     try {
       // Emit thinking phase start
       onPhaseEvent?.({ type: 'phase_start', phase: 'thinking' })
-      
-      // Step 1: AI Reasoning Analysis
-      console.log('🧠 Starting AI reasoning analysis...')
-      
-      const reasoningResponse = await fetch(`${this.baseUrl}/api/think`, {
+
+      console.log('🧠 Starting integrated reasoning and generation...')
+
+      // Use enhanced generate API with reasoning enabled
+      const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: prompt })
+        body: JSON.stringify({
+          prompt,
+          framework: 'react',
+          device: 'desktop',
+          withReasoning: true
+        })
       })
 
-      if (!reasoningResponse.ok) {
-        throw new Error(`Reasoning failed: ${reasoningResponse.status}`)
+      if (!response.ok) {
+        throw new Error(`Generation with reasoning failed: ${response.status}`)
       }
 
-      const reasoningReader = reasoningResponse.body?.getReader()
-      const reasoningDecoder = new TextDecoder()
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
 
-      if (reasoningReader) {
+      if (reader) {
         while (true) {
-          const { done, value } = await reasoningReader.read()
+          const { done, value } = await reader.read()
           if (done) break
 
-          const chunk = reasoningDecoder.decode(value)
-          const lines = chunk.split('\n')
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n\n')
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6))
-                
-                if (data.type === 'reasoning_step') {
+
+                if (data.type === 'reasoning_step' && inReasoningPhase) {
                   const step: ReasoningStep = {
                     id: data.step.id || `step_${Date.now()}`,
                     type: data.step.type as ReasoningStep['type'],
                     content: data.step.content,
                     timestamp: data.step.timestamp || new Date().toISOString()
                   }
-                  
+
                   reasoningSteps.push(step)
                   onReasoningStep?.(step)
-                  
+
                   // Emit compact thinking panel events
                   const thinkingLabel = this.mapReasoningStepToThinkingLabel(step)
                   const stepId = `thinking_${step.id}`
-                  
+
                   // Complete previous step if exists
                   if (currentStepId) {
-                    onPhaseEvent?.({ 
-                      type: 'phase_step', 
-                      stepId: currentStepId, 
-                      label: '', 
-                      status: 'complete' 
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: currentStepId,
+                      label: '',
+                      status: 'complete'
                     })
                   }
-                  
+
                   // Start new step
                   currentStepId = stepId
-                  onPhaseEvent?.({ 
-                    type: 'phase_step', 
-                    stepId, 
-                    label: thinkingLabel, 
-                    status: 'active' 
+                  onPhaseEvent?.({
+                    type: 'phase_step',
+                    stepId,
+                    label: thinkingLabel,
+                    status: 'active'
                   })
-                }
-              } catch (e) {
-                console.warn('Failed to parse reasoning step:', e)
-              }
-            }
-          }
-        }
-      }
+                } else if (data.type === 'reasoning_complete') {
+                  // Reasoning phase is complete
+                  if (currentStepId) {
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: currentStepId,
+                      label: '',
+                      status: 'complete'
+                    })
+                  }
 
-      // Complete final reasoning step
-      if (currentStepId) {
-        onPhaseEvent?.({ 
-          type: 'phase_step', 
-          stepId: currentStepId, 
-          label: '', 
-          status: 'complete' 
-        })
-      }
-      
-      onReasoningComplete?.(reasoningSteps)
-      onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
-      console.log(`✅ Reasoning complete with ${reasoningSteps.length} steps`)
+                  onReasoningComplete?.(reasoningSteps)
+                  onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
+                  console.log(`✅ Reasoning complete with ${reasoningSteps.length} steps`)
 
-      // Step 2: Code Generation
-      console.log('⚡ Starting code generation...')
-      onGenerationStart?.()
-      onPhaseEvent?.({ type: 'phase_start', phase: 'generation' })
-      
-      // Add generation steps
-      const genStepId = 'gen_creating_files'
-      onPhaseEvent?.({ 
-        type: 'phase_step', 
-        stepId: genStepId, 
-        label: 'Generating React files', 
-        status: 'active' 
-      })
+                  // Switch to generation phase
+                  inReasoningPhase = false
+                  console.log('⚡ Starting code generation...')
+                  onGenerationStart?.()
+                  onPhaseEvent?.({ type: 'phase_start', phase: 'generation' })
 
-      const generateResponse = await fetch(`${this.baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt,
-          framework: 'react',
-          device: 'desktop',
-          reasoning_steps: reasoningSteps // Pass reasoning context to generation
-        })
-      })
-
-      if (!generateResponse.ok) {
-        throw new Error(`Generation failed: ${generateResponse.status}`)
-      }
-
-      // Handle Server-Sent Events (SSE) response
-      const generateReader = generateResponse.body?.getReader()
-      const generateDecoder = new TextDecoder()
-
-      if (generateReader) {
-        while (true) {
-          const { done, value } = await generateReader.read()
-          if (done) break
-
-          const chunk = generateDecoder.decode(value)
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                
-                if (data.type === 'completed' && data.artifact) {
+                  // Add generation step
+                  const genStepId = 'gen_creating_files'
+                  onPhaseEvent?.({
+                    type: 'phase_step',
+                    stepId: genStepId,
+                    label: 'Generating React files',
+                    status: 'active'
+                  })
+                  currentStepId = genStepId
+                } else if (data.type === 'generation_complete' && data.artifact) {
                   // Successfully received the artifact
                   artifact = {
                     id: data.artifact.id || `artifact_${Date.now()}`,
                     projectId: data.artifact.projectId || 'default',
-                    regionId: data.artifact.regionId || 'full-page', 
+                    regionId: data.artifact.regionId || 'full-page',
                     files: data.artifact.files || {},
                     entry: data.artifact.entry || 'index.html',
                     metadata: data.artifact.metadata || {
@@ -201,13 +168,15 @@ export class ChatService {
                   }
 
                   // Complete generation step
-                  onPhaseEvent?.({ 
-                    type: 'phase_step', 
-                    stepId: genStepId, 
-                    label: 'Generating React files', 
-                    status: 'complete' 
-                  })
-                  
+                  if (currentStepId) {
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: currentStepId,
+                      label: 'Generating React files',
+                      status: 'complete'
+                    })
+                  }
+
                   if (artifact) {
                     onGenerationComplete?.(artifact)
                   }
@@ -217,7 +186,7 @@ export class ChatService {
                   throw new Error(data.error || 'Unknown generation error')
                 }
               } catch (e) {
-                console.warn('Failed to parse generation chunk:', e)
+                console.warn('Failed to parse response:', e)
               }
             }
           }
@@ -298,7 +267,7 @@ export class ChatService {
     reasoning: string
   }> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/classify-intent`, {
+      const response = await fetch(`${this.baseUrl}/api/intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

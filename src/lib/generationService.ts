@@ -37,10 +37,10 @@ export class GenerationService {
     return GenerationService.instance
   }
 
-  private async generateWithSecureAPI(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
+  private async generateWithSecureAPI(prompt: string, options: GenerationOptions & { withReasoning?: boolean } = {}): Promise<Artifact> {
     // Secure API generation using server-side AI calls
     const apiUrl = `${API_BASE_URL}/generate`
-    
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -50,7 +50,8 @@ export class GenerationService {
         body: JSON.stringify({
           prompt,
           device: options.device || 'desktop',
-          framework: options.framework || 'react'
+          framework: options.framework || 'react',
+          withReasoning: options.withReasoning || false
         })
       })
 
@@ -76,7 +77,7 @@ export class GenerationService {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
-              if (data.type === 'completed' && data.artifact) {
+              if (data.type === 'generation_complete' && data.artifact) {
                 artifact = data.artifact
               }
             } catch (e) {
@@ -98,15 +99,15 @@ export class GenerationService {
   }
 
   async generateWithReActReasoning(
-    goal: string, 
-    options: GenerationOptions & { 
+    goal: string,
+    options: GenerationOptions & {
       onStep?: (step: ReasoningStep) => void,
-      stream?: boolean 
+      stream?: boolean
     } = {}
   ): Promise<ReActResult> {
-    // Use secure ReAct reasoning API
-    const apiUrl = `${API_BASE_URL}/think`
-    
+    // Use enhanced generate API with reasoning enabled
+    const apiUrl = `${API_BASE_URL}/generate`
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -114,11 +115,10 @@ export class GenerationService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          goal,
-          options: {
-            ...options,
-            stream: options.stream !== false // Default to streaming
-          }
+          prompt: goal,
+          device: options.device || 'desktop',
+          framework: options.framework || 'react',
+          withReasoning: true
         })
       })
 
@@ -126,7 +126,7 @@ export class GenerationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      // Handle streaming reasoning response
+      // Handle streaming reasoning and generation response
       const reader = response.body?.getReader()
       if (!reader) {
         throw new Error('No response body')
@@ -134,28 +134,30 @@ export class GenerationService {
 
       const steps: ReasoningStep[] = []
       let finalResult: ReActResult | undefined
-      
+      let artifact: Artifact | undefined
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        
+
         const chunk = new TextDecoder().decode(value)
         const lines = chunk.split('\n\n')
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
-              
-              if (data.type === 'step' && options.onStep) {
+
+              if (data.type === 'reasoning_step' && options.onStep) {
                 steps.push(data.step)
                 options.onStep(data.step)
-              } else if (data.type === 'completed') {
+              } else if (data.type === 'generation_complete') {
+                artifact = data.artifact
                 finalResult = {
-                  success: data.success || true,
-                  steps: data.steps || steps,
-                  finalAnswer: data.finalAnswer || 'Reasoning completed',
-                  totalSteps: data.totalSteps || steps.length,
+                  success: true,
+                  steps: data.reasoningSteps || steps,
+                  finalAnswer: steps.find(s => s.type === 'final_answer')?.content || 'Generation completed',
+                  totalSteps: (data.reasoningSteps || steps).length,
                   executionTime: Date.now(), // Approximate
                   artifact: data.artifact
                 }
@@ -251,7 +253,7 @@ export class GenerationService {
     shouldShowOptions?: boolean
   }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/classify-intent`, {
+      const response = await fetch(`${API_BASE_URL}/intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
