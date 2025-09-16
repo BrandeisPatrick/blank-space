@@ -123,7 +123,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       ],
       temperature: 0.7,
-      maxTokens: 8000,
     })
 
     // Set up Server-Sent Events headers

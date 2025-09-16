@@ -59,7 +59,6 @@ Return this exact JSON format:
         }
       ],
       temperature: 0.1,
-      maxTokens: 300,
     })
 
     let intentText = ''

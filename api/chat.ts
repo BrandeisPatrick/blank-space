@@ -66,7 +66,6 @@ Respond naturally and conversationally. You can include thinking/reasoning in yo
         }
       ],
       temperature: 0.7,
-      maxTokens: 1000,
     })
 
     let fullResponse = ''

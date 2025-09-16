@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { goal, options = {} } = req.body
+    const { goal } = req.body
 
     if (!goal) {
       return res.status(400).json({ error: 'Goal is required' })
@@ -91,7 +91,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
               ],
               temperature: 0.1,
-              maxTokens: 200,
             })
 
             let intentText = ''
@@ -131,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           try {
             // Call our own generate endpoint - we'll skip this in the conversion for now
             // and focus on making the SSE streaming work properly
-            const generateResponse = null
+            // Generation response is disabled for now
 
             // Generate response is disabled for now - just simulate success
           } catch (error) {
