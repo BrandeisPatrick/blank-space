@@ -55,7 +55,7 @@ export class ChatService {
       // Step 1: AI Reasoning Analysis
       console.log('🧠 Starting AI reasoning analysis...')
       
-      const reasoningResponse = await fetch(`${this.baseUrl}/api/reasoning`, {
+      const reasoningResponse = await fetch(`${this.baseUrl}/api/think`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal: prompt })

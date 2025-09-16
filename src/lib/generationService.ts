@@ -105,7 +105,7 @@ export class GenerationService {
     } = {}
   ): Promise<ReActResult> {
     // Use secure ReAct reasoning API
-    const apiUrl = `${API_BASE_URL}/reasoning`
+    const apiUrl = `${API_BASE_URL}/think`
     
     try {
       const response = await fetch(apiUrl, {
