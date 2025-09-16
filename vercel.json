@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "npm run build --workspace=apps/studio",
+  "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "apps/studio/dist",
+  "outputDirectory": "dist",
   "rewrites": [
-    { 
-      "source": "/(.*)", 
-      "destination": "/index.html" 
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
