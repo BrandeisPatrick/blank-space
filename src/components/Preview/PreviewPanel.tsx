@@ -141,7 +141,7 @@ export const PreviewPanel = () => {
           paddingTop: '40px',
           boxSizing: 'border-box'
         }}
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts"
         title="Generated Website Preview"
       />
     </div>
