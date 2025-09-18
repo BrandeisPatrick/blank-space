@@ -523,15 +523,15 @@ export const PreviewFrame = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: `linear-gradient(135deg, ${theme.colors.bg.primary}ee, ${theme.colors.bg.secondary}ee)`,
-            backdropFilter: 'blur(4px)',
+            background: theme.colors.bg.secondary,
+            backdropFilter: 'blur(8px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: theme.spacing.lg,
             zIndex: 10,
-            border: `1px solid ${theme.colors.border}30`,
+            border: `1px solid ${theme.colors.border}`,
           }}>
             {/* Animated Spinner */}
             <div style={{
@@ -556,9 +556,9 @@ export const PreviewFrame = () => {
                 color: theme.colors.text.primary,
                 textShadow: `0 1px 3px ${theme.colors.bg.primary}80`,
               }}>
-                {loadingPhase === 'transpiling' && '🔄 Transpiling React code...'}
-                {loadingPhase === 'bundling' && '📦 Bundling components...'}
-                {loadingPhase === 'rendering' && '🎨 Rendering preview...'}
+                {loadingPhase === 'transpiling' && 'Transpiling React code...'}
+                {loadingPhase === 'bundling' && 'Bundling components...'}
+                {loadingPhase === 'rendering' && 'Rendering preview...'}
               </div>
               <div style={{
                 fontSize: theme.typography.fontSize.sm,
