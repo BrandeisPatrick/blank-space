@@ -99,7 +99,17 @@ Generate a complete project plan including:
 - Estimate development time realistically
 - Write clear user stories
 
-Make the app production-ready with modern UX patterns, not just a basic prototype.
+**CRITICAL DESIGN REQUIREMENTS:**
+- Apps must look STUNNING and PROFESSIONAL (2024 design standards)
+- Include modern gradients, glassmorphism effects, and smooth animations
+- Use proper spacing scales (8px system), professional typography
+- Implement hover states, transitions, and micro-interactions
+- Apply contemporary color schemes (not just black/white/grey)
+- Ensure components have depth with shadows and layering
+- Include loading skeletons and empty states
+- Make interfaces that users would be proud to deploy in production
+
+Make the app production-ready with modern UX patterns and beautiful visual design.
       `,
       temperature: 0.7,
     })

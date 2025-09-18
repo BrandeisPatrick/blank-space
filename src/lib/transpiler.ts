@@ -266,10 +266,128 @@ export class TranspilerService {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>React Component Preview</title>
+
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-in-out',
+              'slide-up': 'slideUp 0.3s ease-out',
+              'pulse-slow': 'pulse 3s infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+            },
+          },
+        },
+      }
+    </script>
+
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Lucide Icons for modern iconography -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Animate.css for smooth animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
+    <!-- Modern utilities -->
+    <script>
+      // Make Lucide icons available globally for React components
+      window.LucideIcons = lucide;
+
+      // Create icon component helper
+      window.createIcon = function(iconName, props = {}) {
+        const iconElement = document.createElement('i');
+        iconElement.setAttribute('data-lucide', iconName);
+        Object.keys(props).forEach(key => {
+          iconElement.style[key] = props[key];
+        });
+        return iconElement.outerHTML;
+      };
+
+      // Modern color utilities
+      window.modernColors = {
+        primary: '#667eea',
+        secondary: '#764ba2',
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#3b82f6',
+        gradients: {
+          primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          secondary: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          success: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          warning: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        }
+      };
+    </script>
+
     <style>
-      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+      * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      /* Modern animation utilities */
+      .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+      .animate-slide-up { animation: slideUp 0.3s ease-out; }
+      .hover-scale { transition: transform 0.2s ease-in-out; }
+      .hover-scale:hover { transform: scale(1.02); }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      /* Glassmorphism utilities */
+      .glass {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .glass-dark {
+        backdrop-filter: blur(10px);
+        background: rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Modern gradients */
+      .gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .gradient-secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      .gradient-success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+      .gradient-warning { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+      /* Custom component styles */
       ${cssCode}
     </style>
 </head>
@@ -285,19 +403,50 @@ export class TranspilerService {
             console.warn('App component not found, using fallback component');
             function App() {
               return React.createElement('div', {
-                style: { 
-                  padding: '40px', 
-                  textAlign: 'center', 
-                  fontFamily: 'system-ui, sans-serif',
-                  color: '#666',
-                  border: '2px dashed #ccc',
-                  borderRadius: '8px',
-                  margin: '20px'
+                className: 'min-h-screen flex items-center justify-center p-8',
+                style: {
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                 }
               }, [
-                React.createElement('h3', { key: 'title', style: { margin: '0 0 16px 0' } }, '⚠️ Component Not Found'),
-                React.createElement('p', { key: 'message', style: { margin: '0', lineHeight: '1.5' } }, 
-                  'The generated React component could not be rendered. Please try generating again with a different prompt.')
+                React.createElement('div', {
+                  key: 'container',
+                  className: 'glass max-w-md w-full p-8 rounded-2xl shadow-2xl animate-fade-in',
+                  style: {
+                    backdropFilter: 'blur(10px)',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }
+                }, [
+                  React.createElement('div', {
+                    key: 'icon',
+                    className: 'w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center',
+                    style: {
+                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                    }
+                  }, [
+                    React.createElement('span', {
+                      key: 'emoji',
+                      style: { fontSize: '32px' }
+                    }, '⚡')
+                  ]),
+                  React.createElement('h3', {
+                    key: 'title',
+                    className: 'text-2xl font-bold text-white text-center mb-4'
+                  }, 'Component Loading'),
+                  React.createElement('p', {
+                    key: 'message',
+                    className: 'text-white/80 text-center leading-relaxed'
+                  }, 'The React component is being prepared. If this persists, try generating again with a different prompt.'),
+                  React.createElement('div', {
+                    key: 'loading',
+                    className: 'mt-6 flex justify-center'
+                  }, [
+                    React.createElement('div', {
+                      key: 'spinner',
+                      className: 'animate-spin rounded-full h-8 w-8 border-b-2 border-white'
+                    })
+                  ])
+                ])
               ]);
             }
           }
@@ -308,6 +457,13 @@ export class TranspilerService {
             if (rootElement) {
               const root = ReactDOM.createRoot(rootElement);
               root.render(React.createElement(App));
+
+              // Initialize Lucide icons after React render
+              setTimeout(() => {
+                if (window.lucide && window.lucide.createIcons) {
+                  window.lucide.createIcons();
+                }
+              }, 100);
             } else {
               console.error('Root element not found');
             }

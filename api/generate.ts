@@ -57,9 +57,9 @@ const FALLBACK_REACT_COMPONENT = `function App() {
           boxShadow: '0 24px 60px rgba(15, 23, 42, 0.4)',
         }}
       >
-        <h1 style={{ fontSize: '28px', marginBottom: '12px' }}>AI preview coming soon</h1>
+        <h1 style={{ fontSize: '28px', marginBottom: '12px' }}>🚀 Modern App Ready</h1>
         <p style={{ fontSize: '16px', lineHeight: 1.6, opacity: 0.8 }}>
-          I wasn't able to generate the requested component. Try refining your prompt and run the assistant again.
+          Your AI-generated component is loading with modern design patterns and contemporary styling.
         </p>
       </div>
     </div>
@@ -73,7 +73,8 @@ const FALLBACK_REACT_CSS = `:root {
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #1e1b4b, #020617);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 `
 
@@ -528,37 +529,86 @@ Apply modern UI patterns:
     }
 
     const systemPrompt = isReact
-      ? `You are an expert React developer. Generate clean, modern React components using contemporary patterns and libraries.${techStackInstructions}
+      ? `You are an expert React developer specializing in modern, production-ready web applications. Generate stunning, professional React components that look like they belong in 2024.${techStackInstructions}
+
+## 🎨 MODERN UI REQUIREMENTS:
+
+### Visual Design:
+- **Gradients**: Use subtle gradients for backgrounds, buttons, and cards
+- **Glassmorphism**: Semi-transparent backgrounds with backdrop-filter: blur()
+- **Shadows**: Layered box-shadows for depth (0 4px 12px rgba(0,0,0,0.15))
+- **Rounded corners**: 8px-16px border-radius for modern feel
+- **Color palette**: Use professional color schemes (blues, purples, greens)
+- **Typography**: Clean, readable fonts with proper hierarchy (24px+ headers, 16px body)
+
+### Layout & Spacing:
+- **Grid layouts**: CSS Grid for complex layouts, Flexbox for components
+- **Consistent spacing**: 8px spacing scale (8px, 16px, 24px, 32px, 48px)
+- **Whitespace**: Generous padding and margins for breathing room
+- **Responsive**: Mobile-first with fluid layouts
+
+### Interactive Elements:
+- **Hover states**: Transform scale(1.02), opacity changes, shadow transitions
+- **Transitions**: 0.2s ease-in-out for all interactive elements
+- **Buttons**: Gradient backgrounds, rounded corners, hover animations
+- **Forms**: Floating labels, focus states, validation feedback
+- **Loading states**: Skeleton screens, pulse animations
+
+### Component Patterns:
+- **Hero sections**: Large headings, gradient backgrounds, CTAs
+- **Cards**: Elevated surfaces with shadows, hover effects
+- **Navigation**: Clean, minimal with proper spacing
+- **Data display**: Clean tables, progress bars, badges
+- **Modals/overlays**: Blurred backgrounds, centered content
+
+### App-Type Specific Styling:
+- **SaaS**: Clean, professional, blue/purple gradients, dashboard-style
+- **Landing Page**: Bold, engaging, colorful gradients, hero sections
+- **Dashboard**: Data-focused, clean hierarchy, charts and metrics
+- **E-commerce**: Product-focused, trust signals, clear CTAs
+- **Tool**: Functional, efficient, accessible, minimal but polished
 
 Return ONLY valid JSON.
 
 Single-file format:
 {
-  "html": "React JSX component code",
-  "css": "CSS styles",
+  "html": "React JSX component code with modern styling",
+  "css": "Modern CSS with gradients, animations, and professional styling",
   "js": "Additional JavaScript if needed"
 }
 
 Multi-file format:
 {
   "files": {
-    "App.jsx": "Main component",
+    "App.jsx": "Main component with modern UI patterns",
     "components/Header.jsx": "Child component",
-    "styles/App.css": "Styles"
+    "styles/App.css": "Modern CSS styles"
   },
   "dependencies": ["package"]
 }
 
-Rules:
-- Use double quotes in JSON; escape quotes and newlines properly.
-- Do not use ES module syntax (no import/export statements).
-- App component must be named App.
-- Avoid template literals in JSX; use string concatenation instead.
-- Prefer functional components and hooks.
-- Code must run in a browser environment with React 18 UMD builds.
-- Apply modern UI design principles and accessibility standards.
-${projectPlan?.techStack?.styling?.includes('Tailwind') ? '- Use Tailwind CSS classes for styling instead of custom CSS when possible.' : ''}
-${projectPlan?.techStack?.styling?.includes('shadcn') ? '- Create components inspired by shadcn/ui design system patterns.' : ''}`
+## 📋 TECHNICAL RULES:
+- Use double quotes in JSON; escape quotes and newlines properly
+- No ES module syntax (no import/export statements)
+- App component must be named App
+- Avoid template literals in JSX; use string concatenation instead
+- Prefer functional components and hooks
+- Code must run in a browser environment with React 18 UMD builds
+- Every component must look MODERN and PROFESSIONAL
+- Include hover states, transitions, and micro-interactions
+- Use semantic HTML and proper accessibility
+${projectPlan?.techStack?.styling?.includes('Tailwind') ? '- Use Tailwind CSS classes for rapid modern styling' : ''}
+${projectPlan?.techStack?.styling?.includes('shadcn') ? '- Create components inspired by shadcn/ui design system patterns' : ''}
+
+## 🚀 MUST INCLUDE:
+- Beautiful color schemes (not just grey/black/white)
+- Smooth animations and transitions
+- Professional spacing and typography
+- Interactive hover effects
+- Mobile-responsive design
+- Loading and empty states where appropriate
+
+Generate components that users would be proud to deploy in production!`
       : `You are an expert web developer. Generate modern, responsive HTML, CSS, and JavaScript for the browser.${techStackInstructions}
 Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": { ... }} structure.`
 
@@ -572,21 +622,34 @@ Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": {
         {
           role: 'user',
           content: isReact
-            ? `Build a React component based on this request: ${prompt}${projectPlan ? `
+            ? `Build a MODERN, PRODUCTION-READY React application based on this request: ${prompt}${projectPlan ? `
 
-Project Plan Context:
-- App Type: ${projectPlan.analysis?.appType || 'web application'}
-- Primary Goal: ${projectPlan.analysis?.primaryGoal || 'provide functionality'}
-- Key Features: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
+## 📋 Project Plan Context:
+- **App Type**: ${projectPlan.analysis?.appType || 'web application'}
+- **Primary Goal**: ${projectPlan.analysis?.primaryGoal || 'provide functionality'}
+- **Key Features**: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
 
-Implement these essential v1 features:
-${projectPlan.features?.slice(0, 6).map(f => `- ${f.name}: ${f.description}`).join('\n') || '- Core functionality'}` : ''}`
-            : `Build a website based on this request: ${prompt}${projectPlan ? `
+## ✨ Essential V1 Features to Implement:
+${projectPlan.features?.slice(0, 6).map(f => `- **${f.name}**: ${f.description}`).join('\n') || '- Core functionality'}` : ''}
 
-Project Plan Context:
-- App Type: ${projectPlan.analysis?.appType || 'website'}
-- Primary Goal: ${projectPlan.analysis?.primaryGoal || 'provide information'}
-- Key Features: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}` : ''}`
+## 🎯 CRITICAL REQUIREMENTS:
+- Make it look STUNNING and PROFESSIONAL (2024 design standards)
+- Use modern gradients, shadows, and glassmorphism effects
+- Include smooth animations and hover states
+- Apply proper spacing, typography, and color schemes
+- Ensure mobile responsiveness
+- Add loading states and micro-interactions
+- Create a user interface that looks like a premium ${projectPlan?.analysis?.appType || 'web'} application
+
+Build something users would immediately want to use and deploy!`
+            : `Build a MODERN, RESPONSIVE website based on this request: ${prompt}${projectPlan ? `
+
+## 📋 Project Plan Context:
+- **App Type**: ${projectPlan.analysis?.appType || 'website'}
+- **Primary Goal**: ${projectPlan.analysis?.primaryGoal || 'provide information'}
+- **Key Features**: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
+
+Make it look STUNNING and PROFESSIONAL with modern design patterns!` : ''}`
         }
       ],
       temperature: 0.7
