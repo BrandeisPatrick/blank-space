@@ -1,25 +1,28 @@
 import { Artifact, ChatMessage, ReasoningStep } from '../types'
 import { ThinkingStep } from '../components/Chat/CompactThinkingPanel'
 import { memoryService } from './memoryService'
+import { featurePlanningService, ProjectPlan } from './featurePlanningService'
 
 // Phase events for the compact thinking panel
 export type PhaseEvent =
-  | { type: 'phase_start'; phase: 'thinking' | 'generation'; totalSteps?: number }
+  | { type: 'phase_start'; phase: 'thinking' | 'planning' | 'generation'; totalSteps?: number }
   | { type: 'phase_step'; stepId: string; label: string; status: ThinkingStep['status']; progress?: number }
-  | { type: 'phase_progress'; phase: 'thinking' | 'generation'; progress: number; message?: string }
-  | { type: 'phase_complete'; phase: 'thinking' | 'generation' }
-  | { type: 'stream_start'; phase: 'thinking' | 'generation' }
+  | { type: 'phase_progress'; phase: 'thinking' | 'planning' | 'generation'; progress: number; message?: string }
+  | { type: 'phase_complete'; phase: 'thinking' | 'planning' | 'generation' }
+  | { type: 'stream_start'; phase: 'thinking' | 'planning' | 'generation' }
   | { type: 'stream_progress'; bytesReceived: number; estimatedTotal?: number }
   | { type: 'answer_chunk'; text: string }
   | { type: 'answer_complete'; fullAnswer: string }
+  | { type: 'planning_complete'; projectPlan: ProjectPlan }
 
 interface ChatServiceOptions {
   onReasoningStep?: (step: ReasoningStep) => void
   onReasoningComplete?: (steps: ReasoningStep[]) => void
+  onPlanningComplete?: (projectPlan: ProjectPlan) => void
   onGenerationStart?: () => void
   onGenerationComplete?: (artifact: Artifact) => void
   onError?: (error: Error) => void
-  
+
   // New compact thinking panel events
   onPhaseEvent?: (event: PhaseEvent) => void
 }
@@ -33,15 +36,16 @@ export class ChatService {
   }
 
   /**
-   * Complete AI generation pipeline: reasoning + code generation
+   * Complete AI generation pipeline: reasoning + feature planning + code generation
    */
   async generateWithReasoning(
     prompt: string,
     options: ChatServiceOptions = {}
-  ): Promise<{ reasoningSteps: ReasoningStep[]; artifact: Artifact | null }> {
+  ): Promise<{ reasoningSteps: ReasoningStep[]; projectPlan?: ProjectPlan; artifact: Artifact | null }> {
     const {
       onReasoningStep,
       onReasoningComplete,
+      onPlanningComplete,
       onGenerationStart,
       onGenerationComplete,
       onError,
@@ -49,6 +53,7 @@ export class ChatService {
     } = options
 
     let reasoningSteps: ReasoningStep[] = []
+    let projectPlan: ProjectPlan | undefined = undefined
     let artifact: Artifact | null = null
     let currentStepId: string | null = null
     let inReasoningPhase = true
@@ -79,7 +84,8 @@ export class ChatService {
           device: 'desktop',
           withReasoning: true,
           sessionContext: sessionContext || undefined,
-          userPreferences: memoryService.getUserPreferences()
+          userPreferences: memoryService.getUserPreferences(),
+          projectPlan: projectPlan || undefined
         })
       })
 
@@ -178,6 +184,121 @@ export class ChatService {
                   onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
                   console.log(`✅ Reasoning complete with ${reasoningSteps.length} steps`)
 
+                  // Start feature planning phase
+                  console.log('📋 Starting feature planning...')
+                  onPhaseEvent?.({ type: 'phase_start', phase: 'planning', totalSteps: 3 })
+
+                  const planningStepId = 'plan_analyzing'
+                  onPhaseEvent?.({
+                    type: 'phase_step',
+                    stepId: planningStepId,
+                    label: 'Analyzing app requirements',
+                    status: 'active',
+                    progress: 0
+                  })
+                  currentStepId = planningStepId
+
+                  onPhaseEvent?.({
+                    type: 'phase_progress',
+                    phase: 'planning',
+                    progress: 20,
+                    message: 'Analyzing requirements with ChatGPT'
+                  })
+
+                  try {
+                    // Use feature planning service to analyze and plan features
+                    projectPlan = await featurePlanningService.analyzeAndPlanFeatures(prompt)
+
+                    // Complete planning step
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: planningStepId,
+                      label: 'Analyzing app requirements',
+                      status: 'complete',
+                      progress: 100
+                    })
+
+                    // Add features step
+                    const featuresStepId = 'plan_features'
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: featuresStepId,
+                      label: `Planning ${projectPlan.features.length} v1 features`,
+                      status: 'active',
+                      progress: 0
+                    })
+                    currentStepId = featuresStepId
+
+                    onPhaseEvent?.({
+                      type: 'phase_progress',
+                      phase: 'planning',
+                      progress: 60,
+                      message: `Identified ${projectPlan.features.length} essential features`
+                    })
+
+                    // Complete features step
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: featuresStepId,
+                      label: `Planning ${projectPlan.features.length} v1 features`,
+                      status: 'complete',
+                      progress: 100
+                    })
+
+                    // Add tech stack step
+                    const techStackStepId = 'plan_techstack'
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: techStackStepId,
+                      label: 'Selecting modern tech stack',
+                      status: 'active',
+                      progress: 0
+                    })
+                    currentStepId = techStackStepId
+
+                    onPhaseEvent?.({
+                      type: 'phase_progress',
+                      phase: 'planning',
+                      progress: 90,
+                      message: `Tech stack: ${projectPlan.techStack.frontend.join(', ')}`
+                    })
+
+                    // Complete tech stack step
+                    onPhaseEvent?.({
+                      type: 'phase_step',
+                      stepId: techStackStepId,
+                      label: 'Selecting modern tech stack',
+                      status: 'complete',
+                      progress: 100
+                    })
+
+                    onPhaseEvent?.({
+                      type: 'phase_progress',
+                      phase: 'planning',
+                      progress: 100,
+                      message: 'Project plan complete'
+                    })
+
+                    onPlanningComplete?.(projectPlan)
+                    onPhaseEvent?.({ type: 'planning_complete', projectPlan })
+                    onPhaseEvent?.({ type: 'phase_complete', phase: 'planning' })
+                    console.log(`📋 Feature planning complete: ${projectPlan.name}`)
+
+                  } catch (planningError) {
+                    console.warn('Feature planning failed, continuing with generation:', planningError)
+                    // If planning fails, continue with generation anyway
+                    if (currentStepId) {
+                      onPhaseEvent?.({
+                        type: 'phase_step',
+                        stepId: currentStepId,
+                        label: 'Planning (fallback)',
+                        status: 'complete',
+                        progress: 100
+                      })
+                    }
+                    onPhaseEvent?.({ type: 'phase_complete', phase: 'planning' })
+                  }
+
                   // Switch to generation phase
                   inReasoningPhase = false
                   console.log('⚡ Starting code generation...')
@@ -265,7 +386,7 @@ export class ChatService {
       onError?.(errorObj)
     }
 
-    return { reasoningSteps, artifact }
+    return { reasoningSteps, projectPlan, artifact }
   }
 
   /**

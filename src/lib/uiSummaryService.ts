@@ -57,6 +57,7 @@ export class UISummaryService {
     // Map ChatService phases to UI phases
     const phaseMap: Record<string, UISummaryEvent['phase']> = {
       thinking: 'analyzing',
+      planning: 'planning',
       generation: 'generating'
     }
 
@@ -178,7 +179,7 @@ export class UISummaryService {
   private getPhaseStartMessage(phase: UISummaryEvent['phase']): string {
     const messages = {
       analyzing: 'Understanding your request...',
-      planning: 'Planning the solution...',
+      planning: 'Planning v1 features with ChatGPT...',
       generating: 'Creating your React component...',
       finalizing: 'Preparing your project...'
     }
@@ -188,7 +189,7 @@ export class UISummaryService {
   private getProgressMessage(phase: UISummaryEvent['phase'], progress: number): string {
     const progressMessages = {
       analyzing: progress < 50 ? 'Analyzing requirements' : 'Understanding context',
-      planning: progress < 70 ? 'Designing component structure' : 'Selecting optimal approach',
+      planning: progress < 40 ? 'Analyzing app requirements' : progress < 80 ? 'Identifying v1 features' : 'Selecting modern tech stack',
       generating: progress < 30 ? 'Writing component code' : progress < 70 ? 'Adding styling and interactions' : 'Finalizing file structure',
       finalizing: 'Optimizing generated code'
     }
@@ -198,7 +199,7 @@ export class UISummaryService {
   private getPhaseCompleteMessage(phase: UISummaryEvent['phase']): string {
     const messages = {
       analyzing: 'Requirements understood',
-      planning: 'Solution plan ready',
+      planning: 'V1 features planned',
       generating: 'React component generated',
       finalizing: 'Your project is ready!'
     }
@@ -235,9 +236,9 @@ export class UISummaryService {
         'Identifying key features and interactions...'
       ],
       planning: [
-        `Designing the ${componentType} architecture...`,
-        'Planning component structure and data flow...',
-        'Selecting optimal React patterns...'
+        `Analyzing ${componentType} requirements with ChatGPT...`,
+        'Identifying essential v1 features...',
+        'Selecting modern tech stack and UI frameworks...'
       ],
       generating: [
         `Creating your React ${componentType}...`,

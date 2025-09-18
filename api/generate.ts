@@ -276,7 +276,8 @@ function ensureVanillaDefaults(files: Record<string, string>): string {
 
 function buildFilesFromGeneration(
   generatedCode: any,
-  isReact: boolean
+  isReact: boolean,
+  projectPlan?: any
 ): { files: Record<string, string>; entry: string; dependencies: string[] } {
   const files: Record<string, string> = {}
   const dependencySet = new Set<string>()
@@ -350,6 +351,11 @@ function buildFilesFromGeneration(
 
   entry = isReact ? ensureReactDefaults(files) : ensureVanillaDefaults(files)
 
+  // Add plan.md if projectPlan is available
+  if (projectPlan && projectPlan.planMarkdown) {
+    files['plan.md'] = projectPlan.planMarkdown
+  }
+
   return {
     files,
     entry,
@@ -367,7 +373,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prompt,
       device = 'desktop',
       framework = 'react',
-      withReasoning = false
+      withReasoning = false,
+      projectPlan = null
     } = req.body
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
@@ -499,8 +506,29 @@ Respond only with valid JSON that matches this schema:
 
     res.write(`data: ${JSON.stringify({ type: 'generation_start' })}\n\n`)
 
+    // Build tech stack instructions from project plan
+    let techStackInstructions = ''
+    if (projectPlan?.techStack) {
+      const techStack = projectPlan.techStack
+      techStackInstructions = `
+
+IMPORTANT - Use this modern tech stack based on project analysis:
+- Frontend: ${techStack.frontend?.join(', ') || 'React, TypeScript'}
+- Styling: ${techStack.styling?.join(', ') || 'Tailwind CSS, modern CSS'}
+- State Management: ${techStack.stateManagement?.join(', ') || 'React hooks'}
+${techStack.backend?.length ? `- Backend considerations: ${techStack.backend.join(', ')}` : ''}
+
+Apply modern UI patterns:
+- Use ${techStack.styling?.includes('Tailwind') ? 'Tailwind CSS utility classes' : 'CSS-in-JS or CSS modules'}
+- Implement responsive design with mobile-first approach
+- Use modern color schemes and typography
+- Add proper accessibility attributes
+- Include loading states and error handling
+`
+    }
+
     const systemPrompt = isReact
-      ? `You are an expert React developer. Generate clean, modern React components with JSX, CSS, and JavaScript logic.
+      ? `You are an expert React developer. Generate clean, modern React components using contemporary patterns and libraries.${techStackInstructions}
 
 Return ONLY valid JSON.
 
@@ -527,8 +555,11 @@ Rules:
 - App component must be named App.
 - Avoid template literals in JSX; use string concatenation instead.
 - Prefer functional components and hooks.
-- Code must run in a browser environment with React 18 UMD builds.`
-      : `You are an expert web developer. Generate modern, responsive HTML, CSS, and JavaScript for the browser.
+- Code must run in a browser environment with React 18 UMD builds.
+- Apply modern UI design principles and accessibility standards.
+${projectPlan?.techStack?.styling?.includes('Tailwind') ? '- Use Tailwind CSS classes for styling instead of custom CSS when possible.' : ''}
+${projectPlan?.techStack?.styling?.includes('shadcn') ? '- Create components inspired by shadcn/ui design system patterns.' : ''}`
+      : `You are an expert web developer. Generate modern, responsive HTML, CSS, and JavaScript for the browser.${techStackInstructions}
 Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": { ... }} structure.`
 
     const generation = await streamText({
@@ -541,8 +572,21 @@ Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": {
         {
           role: 'user',
           content: isReact
-            ? `Build a React component based on this request: ${prompt}`
-            : `Build a website based on this request: ${prompt}`
+            ? `Build a React component based on this request: ${prompt}${projectPlan ? `
+
+Project Plan Context:
+- App Type: ${projectPlan.analysis?.appType || 'web application'}
+- Primary Goal: ${projectPlan.analysis?.primaryGoal || 'provide functionality'}
+- Key Features: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
+
+Implement these essential v1 features:
+${projectPlan.features?.slice(0, 6).map(f => `- ${f.name}: ${f.description}`).join('\n') || '- Core functionality'}` : ''}`
+            : `Build a website based on this request: ${prompt}${projectPlan ? `
+
+Project Plan Context:
+- App Type: ${projectPlan.analysis?.appType || 'website'}
+- Primary Goal: ${projectPlan.analysis?.primaryGoal || 'provide information'}
+- Key Features: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}` : ''}`
         }
       ],
       temperature: 0.7
@@ -579,7 +623,7 @@ Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": {
         })
       }
 
-      const { files, entry, dependencies: generatedDependencies } = buildFilesFromGeneration(generatedCode, isReact)
+      const { files, entry, dependencies: generatedDependencies } = buildFilesFromGeneration(generatedCode, isReact, projectPlan)
 
       const dependencySet = new Set<string>(generatedDependencies)
       if (planningResult?.dependencies) {
