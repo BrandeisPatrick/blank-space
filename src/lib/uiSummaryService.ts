@@ -1,6 +1,6 @@
 /**
  * UI Summary Service - Creates user-friendly summaries of backend AI processes
- * This runs parallel to the internal AI pipeline to provide clean UI feedback
+ * This service now operates purely based on real backend events from ChatService
  */
 
 export interface UISummaryEvent {
@@ -9,12 +9,14 @@ export interface UISummaryEvent {
   message: string
   progress?: number // 0-100
   timestamp: number
+  realProgress?: boolean // Indicates if this is based on real backend progress
 }
 
 export class UISummaryService {
   private listeners: ((event: UISummaryEvent) => void)[] = []
   private currentPhase: UISummaryEvent['phase'] | null = null
   private phaseStartTime: number = 0
+  private isRealProgressMode: boolean = false
 
   constructor() {}
 
@@ -35,75 +37,79 @@ export class UISummaryService {
 
   /**
    * Start the UI summary pipeline for code generation
+   * This now only initializes the service and waits for real backend events
    */
   startGeneration(_prompt: string) {
     this.reset()
-    
-    // Phase 1: Analyzing
-    this.startPhase('analyzing', 'Understanding your request...')
-    
-    // Simulate realistic timing for UI feedback
-    setTimeout(() => {
-      this.updatePhase('analyzing', 'Analyzing requirements', 50)
-    }, 800)
-    
-    setTimeout(() => {
-      this.completePhase('analyzing', 'Requirements understood')
-      
-      // Phase 2: Planning  
-      this.startPhase('planning', 'Planning the solution...')
-    }, 1600)
-    
-    setTimeout(() => {
-      this.updatePhase('planning', 'Designing component structure', 60)
-    }, 2400)
-    
-    setTimeout(() => {
-      this.updatePhase('planning', 'Selecting optimal approach', 90)
-    }, 3200)
-    
-    setTimeout(() => {
-      this.completePhase('planning', 'Solution plan ready')
-      
-      // Phase 3: Generating
-      this.startPhase('generating', 'Creating your React component...')
-    }, 4000)
+    this.isRealProgressMode = true
+
+    // The actual progress will be driven by real ChatService events
+    // No more setTimeout or hardcoded delays!
+    console.log('🎯 UI Summary Service ready for real backend events')
   }
 
   /**
-   * Call this when the actual backend generation starts
+   * Handle real progress events from ChatService
    */
-  onBackendGenerationStart() {
-    if (this.currentPhase === 'generating') {
-      this.updatePhase('generating', 'Writing component code', 30)
-      
-      setTimeout(() => {
-        this.updatePhase('generating', 'Adding styling and interactions', 70)
-      }, 1500)
-      
-      setTimeout(() => {
-        this.updatePhase('generating', 'Finalizing file structure', 90)
-      }, 2500)
+  onChatServicePhaseEvent(chatEvent: any) {
+    if (!this.isRealProgressMode) return
+
+    // Map ChatService phases to UI phases
+    const phaseMap: Record<string, UISummaryEvent['phase']> = {
+      thinking: 'analyzing',
+      generation: 'generating'
+    }
+
+    switch (chatEvent.type) {
+      case 'phase_start':
+        const startPhase = phaseMap[chatEvent.phase]
+        if (startPhase) {
+          this.startPhase(startPhase, this.getPhaseStartMessage(startPhase))
+        }
+        break
+
+      case 'phase_progress':
+        const progressPhase = phaseMap[chatEvent.phase]
+        if (progressPhase && this.currentPhase === progressPhase) {
+          this.updatePhase(
+            progressPhase,
+            chatEvent.message || this.getProgressMessage(progressPhase, chatEvent.progress),
+            chatEvent.progress
+          )
+        }
+        break
+
+      case 'phase_complete':
+        const completePhase = phaseMap[chatEvent.phase]
+        if (completePhase && this.currentPhase === completePhase) {
+          this.completePhase(completePhase, this.getPhaseCompleteMessage(completePhase))
+        }
+        break
+
+      case 'phase_step':
+        // Handle individual step updates
+        if (chatEvent.status === 'active' && chatEvent.label) {
+          const stepPhase = phaseMap[chatEvent.phase] || this.currentPhase
+          if (stepPhase) {
+            this.updatePhase(stepPhase, chatEvent.label, chatEvent.progress)
+          }
+        }
+        break
     }
   }
 
   /**
-   * Call this when backend generation completes successfully
+   * Legacy methods - now deprecated but kept for backward compatibility
    */
-  onBackendGenerationComplete(fileCount: number) {
-    this.completePhase('generating', `Generated ${fileCount} files`)
-    
-    // Phase 4: Finalizing
-    this.startPhase('finalizing', 'Preparing your project...')
-    
-    setTimeout(() => {
-      this.completePhase('finalizing', 'Your React component is ready!')
-    }, 800)
+  onBackendGenerationStart() {
+    console.warn('⚠️ onBackendGenerationStart is deprecated - use onChatServicePhaseEvent')
   }
 
-  /**
-   * Call this when backend generation fails
-   */
+  onBackendGenerationComplete(fileCount: number) {
+    if (this.isRealProgressMode) return
+    this.completePhase('generating', `Generated ${fileCount} files`)
+  }
+
   onBackendGenerationError(error: string) {
     this.errorPhase(this.currentPhase || 'generating', error)
   }
@@ -121,15 +127,16 @@ export class UISummaryService {
     })
   }
 
-  private updatePhase(phase: UISummaryEvent['phase'], message: string, progress: number) {
+  private updatePhase(phase: UISummaryEvent['phase'], message: string, progress?: number) {
     if (this.currentPhase !== phase) return
-    
+
     this.emit({
-      type: 'phase_progress', 
+      type: 'phase_progress',
       phase,
       message,
-      progress,
-      timestamp: Date.now()
+      progress: progress || 0,
+      timestamp: Date.now(),
+      realProgress: this.isRealProgressMode
     })
   }
 
@@ -162,6 +169,40 @@ export class UISummaryService {
   private reset() {
     this.currentPhase = null
     this.phaseStartTime = 0
+    this.isRealProgressMode = false
+  }
+
+  /**
+   * Helper methods for generating contextual messages
+   */
+  private getPhaseStartMessage(phase: UISummaryEvent['phase']): string {
+    const messages = {
+      analyzing: 'Understanding your request...',
+      planning: 'Planning the solution...',
+      generating: 'Creating your React component...',
+      finalizing: 'Preparing your project...'
+    }
+    return messages[phase] || 'Processing...'
+  }
+
+  private getProgressMessage(phase: UISummaryEvent['phase'], progress: number): string {
+    const progressMessages = {
+      analyzing: progress < 50 ? 'Analyzing requirements' : 'Understanding context',
+      planning: progress < 70 ? 'Designing component structure' : 'Selecting optimal approach',
+      generating: progress < 30 ? 'Writing component code' : progress < 70 ? 'Adding styling and interactions' : 'Finalizing file structure',
+      finalizing: 'Optimizing generated code'
+    }
+    return progressMessages[phase] || 'Processing...'
+  }
+
+  private getPhaseCompleteMessage(phase: UISummaryEvent['phase']): string {
+    const messages = {
+      analyzing: 'Requirements understood',
+      planning: 'Solution plan ready',
+      generating: 'React component generated',
+      finalizing: 'Your project is ready!'
+    }
+    return messages[phase] || 'Phase complete'
   }
 
   /**

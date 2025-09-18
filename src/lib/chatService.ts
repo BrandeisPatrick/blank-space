@@ -2,10 +2,13 @@ import { Artifact, ChatMessage, ReasoningStep } from '../types'
 import { ThinkingStep } from '../components/Chat/CompactThinkingPanel'
 
 // Phase events for the compact thinking panel
-export type PhaseEvent = 
-  | { type: 'phase_start'; phase: 'thinking' | 'generation' }
-  | { type: 'phase_step'; stepId: string; label: string; status: ThinkingStep['status'] }
+export type PhaseEvent =
+  | { type: 'phase_start'; phase: 'thinking' | 'generation'; totalSteps?: number }
+  | { type: 'phase_step'; stepId: string; label: string; status: ThinkingStep['status']; progress?: number }
+  | { type: 'phase_progress'; phase: 'thinking' | 'generation'; progress: number; message?: string }
   | { type: 'phase_complete'; phase: 'thinking' | 'generation' }
+  | { type: 'stream_start'; phase: 'thinking' | 'generation' }
+  | { type: 'stream_progress'; bytesReceived: number; estimatedTotal?: number }
   | { type: 'answer_chunk'; text: string }
   | { type: 'answer_complete'; fullAnswer: string }
 
@@ -48,10 +51,14 @@ export class ChatService {
     let artifact: Artifact | null = null
     let currentStepId: string | null = null
     let inReasoningPhase = true
+    let bytesReceived = 0
+    let reasoningStepCount = 0
+    let estimatedReasoningSteps = 5 // Default estimate, can be updated
 
     try {
       // Emit thinking phase start
-      onPhaseEvent?.({ type: 'phase_start', phase: 'thinking' })
+      onPhaseEvent?.({ type: 'phase_start', phase: 'thinking', totalSteps: estimatedReasoningSteps })
+      onPhaseEvent?.({ type: 'stream_start', phase: 'thinking' })
 
       console.log('🧠 Starting integrated reasoning and generation...')
 
@@ -79,6 +86,10 @@ export class ChatService {
           const { done, value } = await reader.read()
           if (done) break
 
+          // Track bytes received for progress
+          bytesReceived += value.length
+          onPhaseEvent?.({ type: 'stream_progress', bytesReceived })
+
           const chunk = decoder.decode(value)
           const lines = chunk.split('\n\n')
 
@@ -96,6 +107,7 @@ export class ChatService {
                   }
 
                   reasoningSteps.push(step)
+                  reasoningStepCount++
                   onReasoningStep?.(step)
 
                   // Emit compact thinking panel events
@@ -108,9 +120,21 @@ export class ChatService {
                       type: 'phase_step',
                       stepId: currentStepId,
                       label: '',
-                      status: 'complete'
+                      status: 'complete',
+                      progress: 100
                     })
                   }
+
+                  // Calculate progress (rough estimate)
+                  const progressPercent = Math.min(90, (reasoningStepCount / estimatedReasoningSteps) * 80)
+
+                  // Emit overall phase progress
+                  onPhaseEvent?.({
+                    type: 'phase_progress',
+                    phase: 'thinking',
+                    progress: progressPercent,
+                    message: thinkingLabel
+                  })
 
                   // Start new step
                   currentStepId = stepId
@@ -118,7 +142,8 @@ export class ChatService {
                     type: 'phase_step',
                     stepId,
                     label: thinkingLabel,
-                    status: 'active'
+                    status: 'active',
+                    progress: 0
                   })
                 } else if (data.type === 'reasoning_complete') {
                   // Reasoning phase is complete
@@ -127,9 +152,18 @@ export class ChatService {
                       type: 'phase_step',
                       stepId: currentStepId,
                       label: '',
-                      status: 'complete'
+                      status: 'complete',
+                      progress: 100
                     })
                   }
+
+                  // Final thinking progress
+                  onPhaseEvent?.({
+                    type: 'phase_progress',
+                    phase: 'thinking',
+                    progress: 100,
+                    message: 'Reasoning complete'
+                  })
 
                   onReasoningComplete?.(reasoningSteps)
                   onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
@@ -139,7 +173,8 @@ export class ChatService {
                   inReasoningPhase = false
                   console.log('⚡ Starting code generation...')
                   onGenerationStart?.()
-                  onPhaseEvent?.({ type: 'phase_start', phase: 'generation' })
+                  onPhaseEvent?.({ type: 'phase_start', phase: 'generation', totalSteps: 3 })
+                  onPhaseEvent?.({ type: 'stream_start', phase: 'generation' })
 
                   // Add generation step
                   const genStepId = 'gen_creating_files'
@@ -147,9 +182,18 @@ export class ChatService {
                     type: 'phase_step',
                     stepId: genStepId,
                     label: 'Generating React files',
-                    status: 'active'
+                    status: 'active',
+                    progress: 0
                   })
                   currentStepId = genStepId
+
+                  // Track generation progress
+                  onPhaseEvent?.({
+                    type: 'phase_progress',
+                    phase: 'generation',
+                    progress: 10,
+                    message: 'Starting file generation'
+                  })
                 } else if (data.type === 'generation_complete' && data.artifact) {
                   // Successfully received the artifact
                   artifact = {
@@ -173,9 +217,18 @@ export class ChatService {
                       type: 'phase_step',
                       stepId: currentStepId,
                       label: 'Generating React files',
-                      status: 'complete'
+                      status: 'complete',
+                      progress: 100
                     })
                   }
+
+                  // Final generation progress
+                  onPhaseEvent?.({
+                    type: 'phase_progress',
+                    phase: 'generation',
+                    progress: 100,
+                    message: `Generated ${Object.keys(data.artifact.files || {}).length} files`
+                  })
 
                   if (artifact) {
                     onGenerationComplete?.(artifact)

@@ -51,51 +51,45 @@ function App() {
     collapseDelay: 3000
   })
 
-  // Subscribe to UI summary events for clean user display
+  // Subscribe to UI summary events for clean user display (legacy compatibility)
   useEffect(() => {
     const unsubscribe = uiSummaryService.subscribe((event: UISummaryEvent) => {
-      const phaseMap = {
-        analyzing: 'Understanding requirements',
-        planning: 'Planning solution', 
-        generating: 'Generating code',
-        finalizing: 'Finalizing project'
-      }
-      
-      switch (event.type) {
-        case 'phase_start':
-          // Add or update step in thinking panel
-          thinking.addStep(phaseMap[event.phase], 'active')
-          break
-          
-        case 'phase_progress':
-          // Update existing step with progress
-          const existingSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
-          if (existingSteps.length > 0) {
-            thinking.updateStep(existingSteps[0].id, { 
-              status: 'active',
-              label: event.message
-            })
-          }
-          break
-          
-        case 'phase_complete':
-          // Mark step as complete
-          const completeSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
-          if (completeSteps.length > 0) {
-            thinking.completeStep(completeSteps[0].id)
-          }
-          break
-          
-        case 'phase_error':
-          // Mark step as error
-          const errorSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
-          if (errorSteps.length > 0) {
-            thinking.errorStep(errorSteps[0].id)
-          }
-          break
+      // Only process UI summary events if they're not coming from real backend progress
+      // This maintains backward compatibility for any remaining fake events
+      if (!event.realProgress) {
+        const phaseMap = {
+          analyzing: 'Understanding requirements',
+          planning: 'Planning solution',
+          generating: 'Generating code',
+          finalizing: 'Finalizing project'
+        }
+
+        switch (event.type) {
+          case 'phase_start':
+            // Only add if thinking isn't already active (to avoid conflicts with real events)
+            if (!thinking.isActive) {
+              thinking.addStep(phaseMap[event.phase], 'active')
+            }
+            break
+
+          case 'phase_progress':
+            // Skip - real progress is handled in onPhaseEvent
+            break
+
+          case 'phase_complete':
+            // Skip - real completion is handled in onPhaseEvent
+            break
+
+          case 'phase_error':
+            const errorSteps = thinking.steps.filter(s => s.label.includes(phaseMap[event.phase]))
+            if (errorSteps.length > 0) {
+              thinking.errorStep(errorSteps[0].id)
+            }
+            break
+        }
       }
     })
-    
+
     return unsubscribe
   }, [thinking])
 
@@ -224,7 +218,7 @@ function App() {
           // Start UI summary pipeline (clean user display)
           uiSummaryService.startGeneration(message)
           
-          // Run internal pipeline in parallel (actual AI work)
+          // Run internal pipeline with real progress tracking
           const result = await chatService.generateWithReasoning(message, {
             onReasoningComplete: (steps) => {
               console.log(`✅ Reasoning phase complete with ${steps.length} steps`)
@@ -232,19 +226,14 @@ function App() {
             },
             onGenerationStart: () => {
               console.log('⚡ Starting code generation phase...')
-              // Notify UI summary service that backend generation started
-              uiSummaryService.onBackendGenerationStart()
               thinking.startStreaming()
             },
             onGenerationComplete: (artifact) => {
               console.log('🚀 Code generation complete!')
-              
-              // Notify UI summary service of successful completion
-              const fileCount = Object.keys(artifact.files).length
-              uiSummaryService.onBackendGenerationComplete(fileCount)
               thinking.complete()
-              
+
               // Add clean success message
+              const fileCount = Object.keys(artifact.files).length
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,
                 type: 'assistant',
@@ -256,11 +245,11 @@ function App() {
             },
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
-              
+
               // Notify UI summary service of error
               uiSummaryService.onBackendGenerationError(error.message)
               thinking.error('Generation failed. Please try again.')
-              
+
               // Add error message to chat
               const errorMessage: ChatMessage = {
                 id: `msg_${Date.now()}_error`,
@@ -269,6 +258,40 @@ function App() {
                 timestamp: Date.now()
               }
               addChatMessage(errorMessage)
+            },
+            // NEW: Connect real ChatService events to both systems
+            onPhaseEvent: (phaseEvent) => {
+              // Route to UI Summary Service for user-friendly display
+              uiSummaryService.onChatServicePhaseEvent(phaseEvent)
+
+              // Also handle thinking panel updates for more technical display
+              switch (phaseEvent.type) {
+                case 'phase_start':
+                  if (phaseEvent.phase === 'thinking') {
+                    thinking.reset()
+                    thinking.startThinking()
+                  } else if (phaseEvent.phase === 'generation') {
+                    thinking.startStreaming()
+                  }
+                  break
+
+                case 'phase_step':
+                  if (phaseEvent.status === 'active') {
+                    thinking.addStep(phaseEvent.label, 'active')
+                  } else if (phaseEvent.status === 'complete') {
+                    const activeSteps = thinking.steps.filter(s => s.status === 'active')
+                    if (activeSteps.length > 0) {
+                      thinking.completeStep(activeSteps[0].id)
+                    }
+                  }
+                  break
+
+                case 'phase_complete':
+                  if (phaseEvent.phase === 'generation') {
+                    thinking.complete()
+                  }
+                  break
+              }
             }
           })
 
