@@ -56,14 +56,14 @@ export const useThinkingState = (options: UseThinkingStateOptions = {}) => {
     setIsVisible(true)
   }, [reset])
 
-  const addStep = useCallback((label: string, status: ThinkingStep['status'] = 'pending') => {
+  const addStep = useCallback((label: string, status: ThinkingStep['status'] = 'pending', customId?: string) => {
     const newStep: ThinkingStep = {
-      id: `step_${++stepCounter.current}`,
+      id: customId || `step_${++stepCounter.current}`,
       label,
       status,
       timestamp: Date.now()
     }
-    
+
     setSteps(prev => [...prev, newStep])
     return newStep.id
   }, [])

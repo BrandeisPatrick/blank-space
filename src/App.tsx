@@ -264,7 +264,7 @@ function App() {
               // Route to UI Summary Service for user-friendly display
               uiSummaryService.onChatServicePhaseEvent(phaseEvent)
 
-              // Also handle thinking panel updates for more technical display
+              // Handle thinking panel updates - use ChatService's step IDs to avoid duplicates
               switch (phaseEvent.type) {
                 case 'phase_start':
                   if (phaseEvent.phase === 'thinking') {
@@ -277,18 +277,35 @@ function App() {
 
                 case 'phase_step':
                   if (phaseEvent.status === 'active') {
-                    thinking.addStep(phaseEvent.label, 'active')
-                  } else if (phaseEvent.status === 'complete') {
-                    const activeSteps = thinking.steps.filter(s => s.status === 'active')
-                    if (activeSteps.length > 0) {
-                      thinking.completeStep(activeSteps[0].id)
+                    // Check if this step already exists to avoid duplicates
+                    const existingStep = thinking.steps.find(s => s.id === phaseEvent.stepId)
+                    if (!existingStep) {
+                      // Complete any currently active steps first
+                      const activeSteps = thinking.steps.filter(s => s.status === 'active')
+                      activeSteps.forEach(step => thinking.completeStep(step.id))
+
+                      // Add new step with the ChatService's step ID
+                      thinking.addStep(phaseEvent.label, 'active', phaseEvent.stepId)
+                    } else {
+                      // Update existing step
+                      thinking.updateStep(phaseEvent.stepId, {
+                        label: phaseEvent.label,
+                        status: 'active'
+                      })
                     }
+                  } else if (phaseEvent.status === 'complete') {
+                    // Complete the specific step
+                    thinking.completeStep(phaseEvent.stepId)
                   }
                   break
 
                 case 'phase_complete':
                   if (phaseEvent.phase === 'generation') {
                     thinking.complete()
+                  } else if (phaseEvent.phase === 'thinking') {
+                    // Complete any remaining active steps
+                    const activeSteps = thinking.steps.filter(s => s.status === 'active')
+                    activeSteps.forEach(step => thinking.completeStep(step.id))
                   }
                   break
               }
