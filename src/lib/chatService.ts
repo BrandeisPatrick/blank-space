@@ -186,13 +186,13 @@ export class ChatService {
 
                   // Start feature planning phase
                   console.log('📋 Starting feature planning...')
-                  onPhaseEvent?.({ type: 'phase_start', phase: 'planning', totalSteps: 3 })
+                  onPhaseEvent?.({ type: 'phase_start', phase: 'planning', totalSteps: 1 })
 
-                  const planningStepId = 'plan_analyzing'
+                  const planningStepId = 'plan_comprehensive'
                   onPhaseEvent?.({
                     type: 'phase_step',
                     stepId: planningStepId,
-                    label: 'Analyzing app requirements',
+                    label: 'Planning v1 features with ChatGPT',
                     status: 'active',
                     progress: 0
                   })
@@ -201,60 +201,21 @@ export class ChatService {
                   onPhaseEvent?.({
                     type: 'phase_progress',
                     phase: 'planning',
-                    progress: 20,
-                    message: 'Analyzing requirements with ChatGPT'
+                    progress: 30,
+                    message: 'Analyzing app requirements with ChatGPT'
                   })
 
                   try {
                     // Use feature planning service to analyze and plan features
                     projectPlan = await featurePlanningService.analyzeAndPlanFeatures(prompt)
 
-                    // Complete planning step
-                    onPhaseEvent?.({
-                      type: 'phase_step',
-                      stepId: planningStepId,
-                      label: 'Analyzing app requirements',
-                      status: 'complete',
-                      progress: 100
-                    })
-
-                    // Add features step
-                    const featuresStepId = 'plan_features'
-                    onPhaseEvent?.({
-                      type: 'phase_step',
-                      stepId: featuresStepId,
-                      label: `Planning ${projectPlan.features.length} v1 features`,
-                      status: 'active',
-                      progress: 0
-                    })
-                    currentStepId = featuresStepId
-
+                    // Update progress as we work through the planning
                     onPhaseEvent?.({
                       type: 'phase_progress',
                       phase: 'planning',
-                      progress: 60,
-                      message: `Identified ${projectPlan.features.length} essential features`
+                      progress: 70,
+                      message: `Identified ${projectPlan.features.length} v1 features`
                     })
-
-                    // Complete features step
-                    onPhaseEvent?.({
-                      type: 'phase_step',
-                      stepId: featuresStepId,
-                      label: `Planning ${projectPlan.features.length} v1 features`,
-                      status: 'complete',
-                      progress: 100
-                    })
-
-                    // Add tech stack step
-                    const techStackStepId = 'plan_techstack'
-                    onPhaseEvent?.({
-                      type: 'phase_step',
-                      stepId: techStackStepId,
-                      label: 'Selecting modern tech stack',
-                      status: 'active',
-                      progress: 0
-                    })
-                    currentStepId = techStackStepId
 
                     onPhaseEvent?.({
                       type: 'phase_progress',
@@ -263,11 +224,11 @@ export class ChatService {
                       message: `Tech stack: ${projectPlan.techStack.frontend.join(', ')}`
                     })
 
-                    // Complete tech stack step
+                    // Complete the single planning step
                     onPhaseEvent?.({
                       type: 'phase_step',
-                      stepId: techStackStepId,
-                      label: 'Selecting modern tech stack',
+                      stepId: planningStepId,
+                      label: 'Planning v1 features with ChatGPT',
                       status: 'complete',
                       progress: 100
                     })
@@ -276,7 +237,7 @@ export class ChatService {
                       type: 'phase_progress',
                       phase: 'planning',
                       progress: 100,
-                      message: 'Project plan complete'
+                      message: 'Project plan ready for review'
                     })
 
                     onPlanningComplete?.(projectPlan)
