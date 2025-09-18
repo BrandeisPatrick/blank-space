@@ -237,7 +237,7 @@ function App() {
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,
                 type: 'assistant',
-                content: `Great! I've created your component successfully.\n\nI made ${fileCount} ${fileCount === 1 ? 'file' : 'files'} for you:\n${Object.keys(artifact.files).map(file => `• ${file}`).join('\n')}\n\nEverything's ready to go - you can check it out in the code editor and see how it looks in the preview on the right.`,
+                content: `Done! Your component is ready.\n\nCheck it out in the editor and preview.`,
                 timestamp: Date.now(),
                 artifactId: artifact.id
               }

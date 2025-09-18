@@ -282,7 +282,7 @@ export const CompactThinkingPanel: React.FC<CompactThinkingPanelProps> = ({
             <div
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: theme.spacing.sm
               }}
             >
