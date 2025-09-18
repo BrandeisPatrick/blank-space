@@ -27,7 +27,9 @@ export const PreviewFrame = () => {
   const [showErrors, setShowErrors] = useState(false)
   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
   const [showConsole, setShowConsole] = useState(false)
-  
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadingPhase, setLoadingPhase] = useState<'transpiling' | 'bundling' | 'rendering'>('transpiling')
+
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
 
 
@@ -35,15 +37,19 @@ export const PreviewFrame = () => {
   useEffect(() => {
     if (!currentArtifact || !iframeRef.current) return
 
+    // Start loading state
+    setIsLoading(true)
+    setLoadingPhase('transpiling')
+
     // Clear errors and console messages when loading new artifact
     setErrors([])
     setConsoleMessages([])
 
     // Check if this is a React artifact or regular HTML
-    const isReactArtifact = currentArtifact.files['App.jsx'] || 
-                           currentArtifact.metadata?.isReact || 
+    const isReactArtifact = currentArtifact.files['App.jsx'] ||
+                           currentArtifact.metadata?.isReact ||
                            currentArtifact.metadata?.framework === 'react'
-    
+
     const generatePreview = async () => {
       let fullHtml: string
 
@@ -59,7 +65,8 @@ export const PreviewFrame = () => {
         if (hasMultipleComponents) {
           // Use bundler for multi-file projects
           console.log('🏗️ Multi-file project detected, using bundler...')
-          
+          setLoadingPhase('bundling')
+
           const vfs = getVFS(currentArtifact.id)
           const bundler = new ModuleBundler()
           
@@ -113,7 +120,8 @@ export const PreviewFrame = () => {
         } else {
           // Single-file React component - use existing transpiler
           console.log('📄 Single-file component detected, using transpiler...')
-          
+          setLoadingPhase('transpiling')
+
           const transpilerService = TranspilerService.getInstance()
           
           // Get the component code from App.jsx
@@ -297,11 +305,28 @@ export const PreviewFrame = () => {
         )
       }
 
+      setLoadingPhase('rendering')
+
       const blob = new Blob([fullHtml], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
-      
+
       if (iframeRef.current) {
         iframeRef.current.src = url
+
+        // Listen for iframe load to end loading state
+        const handleLoad = () => {
+          // Add a small delay to ensure content is fully rendered
+          setTimeout(() => {
+            setIsLoading(false)
+          }, 300)
+        }
+
+        iframeRef.current.addEventListener('load', handleLoad)
+
+        return () => {
+          URL.revokeObjectURL(url)
+          iframeRef.current?.removeEventListener('load', handleLoad)
+        }
       }
 
       return () => {
@@ -474,6 +499,7 @@ export const PreviewFrame = () => {
         border: `2px solid ${theme.colors.border}`,
         borderTop: 'none',
         borderBottom: (errors.length > 0 || consoleMessages.length > 0) ? 'none' : `2px solid ${theme.colors.border}`,
+        position: 'relative',
       }}>
         <iframe
           ref={iframeRef}
@@ -482,10 +508,103 @@ export const PreviewFrame = () => {
             height: '100%',
             border: 'none',
             borderRadius: (errors.length > 0 || consoleMessages.length > 0) ? '0' : `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
+            opacity: isLoading ? 0.3 : 1,
+            transition: 'opacity 0.3s ease',
           }}
           sandbox="allow-scripts allow-forms"
           title="Website Preview"
         />
+
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `linear-gradient(135deg, ${theme.colors.bg.primary}f5, ${theme.colors.bg.secondary}f5)`,
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.lg,
+            zIndex: 10,
+          }}>
+            {/* Animated Spinner */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              border: `3px solid ${theme.colors.border}`,
+              borderTop: `3px solid ${theme.colors.accent.primary}`,
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+
+            {/* Loading Text */}
+            <div style={{
+              textAlign: 'center',
+              color: theme.colors.text.primary,
+            }}>
+              <div style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing.sm,
+                background: theme.colors.gradient.primary,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                {loadingPhase === 'transpiling' && '🔄 Transpiling React code...'}
+                {loadingPhase === 'bundling' && '📦 Bundling components...'}
+                {loadingPhase === 'rendering' && '🎨 Rendering preview...'}
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text.secondary,
+                opacity: 0.8,
+              }}>
+                {loadingPhase === 'transpiling' && 'Converting JSX to JavaScript'}
+                {loadingPhase === 'bundling' && 'Combining all modules'}
+                {loadingPhase === 'rendering' && 'Loading your website'}
+              </div>
+            </div>
+
+            {/* Progress Dots */}
+            <div style={{
+              display: 'flex',
+              gap: theme.spacing.sm,
+            }}>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: theme.colors.accent.primary,
+                    opacity: 0.3,
+                    animation: `pulse 1.5s ease-in-out ${i * 0.2}s infinite alternate`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CSS for animations */}
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+
+          @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.2); }
+          }
+        `}</style>
       </div>
 
       {/* Error Display Section */}
