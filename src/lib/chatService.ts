@@ -378,7 +378,7 @@ export class ChatService {
     const labelMap: Record<ReasoningStep['type'], string[]> = {
       thought: [
         'Analyzing request',
-        'Understanding context', 
+        'Understanding context',
         'Planning approach',
         'Considering options'
       ],
@@ -390,7 +390,7 @@ export class ChatService {
       ],
       observation: [
         'Reviewing findings',
-        'Analyzing results', 
+        'Analyzing results',
         'Evaluating options',
         'Assessing feasibility'
       ],
@@ -404,10 +404,19 @@ export class ChatService {
 
     const labels = labelMap[step.type] || ['Processing']
     const contentWords = step.content.toLowerCase().split(' ')
-    
-    // Try to pick a more specific label based on content
+
+    // Create more specific labels based on both content and step type to avoid duplicates
+    const stepIndex = step.id.slice(-4) // Use last 4 chars of ID for uniqueness
+
     if (contentWords.includes('component') || contentWords.includes('react')) {
-      return 'Planning React component'
+      // Vary the label based on step type to avoid duplicates
+      switch (step.type) {
+        case 'thought': return 'Analyzing React requirements'
+        case 'action': return 'Planning React component'
+        case 'observation': return 'Reviewing component design'
+        case 'final_answer': return 'Finalizing React structure'
+        default: return 'Planning React component'
+      }
     }
     if (contentWords.includes('website') || contentWords.includes('page')) {
       return 'Designing website structure'
@@ -418,9 +427,9 @@ export class ChatService {
     if (contentWords.includes('generate') || contentWords.includes('create')) {
       return 'Preparing to generate'
     }
-    
-    // Return a random label from the type's set for variety
-    return labels[Math.floor(Math.random() * labels.length)]
+
+    // Return a deterministic label based on step type to avoid randomness
+    return labels[0] // Use first label from type for consistency
   }
 }
 
