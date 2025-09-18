@@ -16,6 +16,7 @@ import { useTheme } from './pages/ThemeContext'
 import { generationService } from './lib/generationService'
 import { chatService } from './lib/chatService'
 import { uiSummaryService, UISummaryEvent } from './lib/uiSummaryService'
+import { memoryService } from './lib/memoryService'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 import { CompactThinkingPanel } from './components/Chat/CompactThinkingPanel'
@@ -97,6 +98,14 @@ function App() {
   useEffect(() => {
     initializeUserFromStorage()
   }, [])
+
+  // Initialize memory service with existing chat messages
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      console.log('🧠 Initializing memory service with existing chat messages')
+      memoryService.addMessages(chatMessages)
+    }
+  }, [chatMessages.length])
 
   // Determine initial route based on authentication status
   useEffect(() => {
@@ -200,6 +209,9 @@ function App() {
     }
     addChatMessage(userMessage)
 
+    // Update memory service with new messages
+    memoryService.addMessages([userMessage])
+
     // Analyze user intent with AI classification
     const { intentResult, context } = await analyzeUserIntent(message)
     
@@ -242,6 +254,9 @@ function App() {
                 artifactId: artifact.id
               }
               addChatMessage(successMessage)
+
+              // Update memory service with assistant response
+              memoryService.addMessages([successMessage])
             },
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
@@ -258,6 +273,9 @@ function App() {
                 timestamp: Date.now()
               }
               addChatMessage(errorMessage)
+
+              // Update memory service with error message
+              memoryService.addMessages([errorMessage])
             },
             // NEW: Connect real ChatService events to both systems
             onPhaseEvent: (phaseEvent) => {
@@ -333,6 +351,9 @@ function App() {
             timestamp: Date.now()
           }
           addChatMessage(errorMessage)
+
+          // Update memory service with error message
+          memoryService.addMessages([errorMessage])
         } finally {
           setGenerating(false)
         }
@@ -421,6 +442,9 @@ ENHANCEMENT REQUIREMENTS:
           timestamp: Date.now()
         }
         addChatMessage(expMessage)
+
+        // Update memory service with explanation response
+        memoryService.addMessages([expMessage])
         break
 
       case 'conversation':
@@ -435,6 +459,9 @@ ENHANCEMENT REQUIREMENTS:
           
           // Add LLM-generated conversational response to chat
           addChatMessage(aiMessage)
+
+          // Update memory service with AI response
+          memoryService.addMessages([aiMessage])
           
         } catch (error) {
           console.error('Chat response failed:', error)
@@ -447,6 +474,9 @@ ENHANCEMENT REQUIREMENTS:
             timestamp: Date.now()
           }
           addChatMessage(fallbackMessage)
+
+          // Update memory service with fallback response
+          memoryService.addMessages([fallbackMessage])
         }
         break
     }

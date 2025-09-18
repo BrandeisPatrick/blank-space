@@ -1,5 +1,6 @@
 import { Artifact, ChatMessage, ReasoningStep } from '../types'
 import { ThinkingStep } from '../components/Chat/CompactThinkingPanel'
+import { memoryService } from './memoryService'
 
 // Phase events for the compact thinking panel
 export type PhaseEvent =
@@ -62,15 +63,23 @@ export class ChatService {
 
       console.log('🧠 Starting integrated reasoning and generation...')
 
+      // Get session memory context
+      const sessionContext = memoryService.getSessionContext()
+      const enhancedPrompt = sessionContext
+        ? `${sessionContext}\n\n--- Current Request ---\n${prompt}`
+        : prompt
+
       // Use enhanced generate API with reasoning enabled
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt,
+          prompt: enhancedPrompt,
           framework: 'react',
           device: 'desktop',
-          withReasoning: true
+          withReasoning: true,
+          sessionContext: sessionContext || undefined,
+          userPreferences: memoryService.getUserPreferences()
         })
       })
 
@@ -271,12 +280,20 @@ export class ChatService {
     } = {}
   ): Promise<ChatMessage> {
     try {
+      // Include session memory in chat context
+      const sessionContext = memoryService.getSessionContext()
+      const enhancedContext = {
+        ...context,
+        sessionMemory: sessionContext,
+        userPreferences: memoryService.getUserPreferences()
+      }
+
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message,
-          context 
+          context: enhancedContext
         })
       })
 
