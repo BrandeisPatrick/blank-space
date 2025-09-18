@@ -44,7 +44,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   prompt: '',
   gridModeEnabled: false,
   showChat: true,
-  showCode: true,
+  showCode: false,
   showPreview: true,
   
   // VFS Management
