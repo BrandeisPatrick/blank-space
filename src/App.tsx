@@ -21,16 +21,11 @@ import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 import { CompactThinkingPanel } from './components/Chat/CompactThinkingPanel'
 import { useThinkingState } from './lib/useThinkingState'
-import { PlanningModal } from './components/Planning/PlanningModal'
-import { ProjectPlan } from './lib/featurePlanningService'
 
 type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard' | 'developer'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('landing')
-  const [showPlanningModal, setShowPlanningModal] = useState(false)
-  const [pendingProjectPlan, setPendingProjectPlan] = useState<ProjectPlan | null>(null)
-  const [pendingGenerationMessage, setPendingGenerationMessage] = useState<string>('')
   
   const { 
     setGenerating,
@@ -153,34 +148,6 @@ function App() {
     setCurrentRoute('studio')
   }
 
-  // Planning modal handlers
-  const handlePlanApproved = () => {
-    setShowPlanningModal(false)
-    // Continue with generation using the approved plan
-    if (pendingProjectPlan && pendingGenerationMessage) {
-      continueGenerationWithPlan(pendingGenerationMessage, pendingProjectPlan)
-    }
-    setPendingProjectPlan(null)
-    setPendingGenerationMessage('')
-  }
-
-  const handlePlanRejected = () => {
-    setShowPlanningModal(false)
-    setPendingProjectPlan(null)
-    setPendingGenerationMessage('')
-    setGenerating(false)
-    thinking.error('Generation cancelled by user')
-
-    // Add cancellation message to chat
-    const cancelMessage: ChatMessage = {
-      id: `msg_${Date.now()}_cancel`,
-      type: 'assistant',
-      content: "No problem! Feel free to refine your request and I'll create a new plan for you.",
-      timestamp: Date.now()
-    }
-    addChatMessage(cancelMessage)
-    memoryService.addMessages([cancelMessage])
-  }
 
   // Route rendering
   if (currentRoute === 'landing') {
@@ -219,92 +186,6 @@ function App() {
     )
   }
 
-  // Continue generation with approved project plan
-  const continueGenerationWithPlan = async (message: string, projectPlan: ProjectPlan) => {
-    try {
-      // Continue from where planning left off
-      const result = await chatService.generateWithReasoning(message, {
-        onReasoningComplete: () => {
-          console.log('✅ Reasoning phase complete (skipped - already done)')
-        },
-        onPlanningComplete: () => {
-          console.log('✅ Planning phase complete (already approved)')
-        },
-        onGenerationStart: () => {
-          console.log('⚡ Starting code generation phase...')
-          thinking.startStreaming()
-        },
-        onGenerationComplete: (artifact) => {
-          console.log('🚀 Code generation complete!')
-          thinking.complete()
-
-          // Add clean success message
-          const successMessage: ChatMessage = {
-            id: `msg_${Date.now()}_success`,
-            type: 'assistant',
-            content: `Done! Your ${projectPlan.name} is ready.\n\nCheck it out in the editor and preview. I've included a plan.md file with all the features we discussed.`,
-            timestamp: Date.now(),
-            artifactId: artifact.id
-          }
-          addChatMessage(successMessage)
-          memoryService.addMessages([successMessage])
-
-          // Add the artifact
-          addArtifact(artifact)
-          setCurrentArtifact(artifact.id)
-        },
-        onError: (error) => {
-          console.error('Generation pipeline failed:', error)
-          thinking.error('Generation failed. Please try again.')
-
-          const errorMessage: ChatMessage = {
-            id: `msg_${Date.now()}_error`,
-            type: 'assistant',
-            content: 'Hmm, I ran into a problem generating that code. Could you try again?',
-            timestamp: Date.now()
-          }
-          addChatMessage(errorMessage)
-          memoryService.addMessages([errorMessage])
-        },
-        onPhaseEvent: (phaseEvent) => {
-          // Handle phase events for continued generation
-          uiSummaryService.onChatServicePhaseEvent(phaseEvent)
-
-          switch (phaseEvent.type) {
-            case 'phase_step':
-              if (phaseEvent.status === 'active') {
-                const existingStep = thinking.steps.find(s => s.id === phaseEvent.stepId)
-                if (!existingStep) {
-                  const activeSteps = thinking.steps.filter(s => s.status === 'active')
-                  activeSteps.forEach(step => thinking.completeStep(step.id))
-                  thinking.addStep(phaseEvent.label, 'active', phaseEvent.stepId)
-                } else {
-                  thinking.updateStep(phaseEvent.stepId, {
-                    label: phaseEvent.label,
-                    status: 'active'
-                  })
-                }
-              } else if (phaseEvent.status === 'complete') {
-                thinking.completeStep(phaseEvent.stepId)
-              }
-              break
-
-            case 'phase_complete':
-              if (phaseEvent.phase === 'generation') {
-                thinking.complete()
-              }
-              break
-          }
-        }
-      })
-    } catch (error) {
-      console.error('Continue generation failed:', error)
-      setGenerating(false)
-      thinking.error('Generation failed. Please try again.')
-    } finally {
-      setGenerating(false)
-    }
-  }
 
   // AI-powered intent classification and conversation handling
   const analyzeUserIntent = async (message: string) => {
@@ -367,10 +248,11 @@ function App() {
 
               // Add clean success message
               const fileCount = Object.keys(artifact.files).length
+              const hasPlanFile = artifact.files['plan.md']
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,
                 type: 'assistant',
-                content: `Done! Your component is ready.\n\nCheck it out in the editor and preview.`,
+                content: `Done! Your app is ready with modern v1 features.\n\nCheck it out in the editor and preview${hasPlanFile ? '. I\'ve included a plan.md file with all the features and tech stack details' : ''}.`,
                 timestamp: Date.now(),
                 artifactId: artifact.id
               }
@@ -439,15 +321,11 @@ function App() {
                   break
 
                 case 'planning_complete':
-                  // Show planning modal for user approval
+                  // Automatically proceed with the generated plan
                   if (phaseEvent.projectPlan) {
-                    setPendingProjectPlan(phaseEvent.projectPlan)
-                    setPendingGenerationMessage(message)
-                    setShowPlanningModal(true)
-
-                    // Stop the current generation process
-                    // We'll continue after user approval
-                    return // Exit early to prevent further generation
+                    console.log(`📋 Auto-accepting project plan: ${phaseEvent.projectPlan.name}`)
+                    console.log(`✨ Plan includes ${phaseEvent.projectPlan.features.length} v1 features`)
+                    // Continue automatically - no user intervention needed
                   }
                   break
 
@@ -740,16 +618,6 @@ ENHANCEMENT REQUIREMENTS:
           </div>
         )}
       </div>
-
-      {/* Planning Modal */}
-      {showPlanningModal && pendingProjectPlan && (
-        <PlanningModal
-          isOpen={showPlanningModal}
-          projectPlan={pendingProjectPlan}
-          onApprove={handlePlanApproved}
-          onReject={handlePlanRejected}
-        />
-      )}
     </div>
   )
 }
