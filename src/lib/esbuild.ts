@@ -19,12 +19,16 @@ export async function initializeEsbuild(): Promise<void> {
   // Add required polyfills for esbuild WASM
   addEsbuildPolyfills()
 
+  const ESBUILD_WASM_VERSION = '0.25.9' // keep in sync with package.json
   const wasmSources = [
-    'https://unpkg.com/esbuild-wasm@0.19.12/esbuild.wasm',
-    'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm',
-    // Fallback to latest version if specific version fails
+    // Always try the exact package version first to avoid host/binary mismatch
+    `https://unpkg.com/esbuild-wasm@${ESBUILD_WASM_VERSION}/esbuild.wasm`,
+    `https://cdn.jsdelivr.net/npm/esbuild-wasm@${ESBUILD_WASM_VERSION}/esbuild.wasm`,
+    // Then try pinned minor versions as a fallback
+    'https://unpkg.com/esbuild-wasm@0.25/esbuild.wasm',
+    'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.25/esbuild.wasm',
+    // Finally, try latest
     'https://unpkg.com/esbuild-wasm@latest/esbuild.wasm',
-    // Alternative working CDN sources
     'https://cdn.jsdelivr.net/npm/esbuild-wasm@latest/esbuild.wasm'
   ]
 
@@ -94,8 +98,9 @@ async function tryInitializeEsbuild(sources: string[], index: number): Promise<v
   } catch (error) {
     console.warn(`❌ esbuild WASM source ${index + 1} failed: ${currentSource}`)
     console.warn('Error details:', error)
-    
-    // Try next source
+
+    // If there's a host/binary version mismatch, prefer the host version by
+    // continuing to the next source (which includes the pinned version first).
     return tryInitializeEsbuild(sources, index + 1)
   }
 }
@@ -136,7 +141,7 @@ export async function transformCode(
     })
 
     return {
-      code: result.code,
+      code: sanitizeEsbuildOutput(result.code),
       warnings: result.warnings
     }
   } catch (error) {
@@ -165,7 +170,7 @@ export async function transformReactComponent(code: string): Promise<string> {
     const endTime = performance.now()
     
     console.log(`⚡ esbuild transform completed in ${(endTime - startTime).toFixed(2)}ms`)
-    
+
     // Return the transformed code directly without wrapping
     // This keeps the App function in the global scope
     return result.code
@@ -174,4 +179,46 @@ export async function transformReactComponent(code: string): Promise<string> {
     // Return original code as fallback
     return code
   }
+}
+
+/**
+ * Strip ESM/CJS module syntax from esbuild output so it can run in a plain <script> tag.
+ * Also normalises default exports to ensure an App symbol exists for ReactDOM to render.
+ */
+function sanitizeEsbuildOutput(code: string): string {
+  let sanitized = code
+
+  // Remove top-level import statements – runtime supplies React via globals.
+  sanitized = sanitized.replace(/^\s*import\s+[^;]+;?\s*$/gm, '')
+
+  let defaultExportName: string | null = null
+
+  // Handle "export default Identifier" declarations.
+  sanitized = sanitized.replace(/export\s+default\s+([\w$]+)\s*;?/gm, (_, name: string) => {
+    defaultExportName = name
+    return ''
+  })
+
+  // Handle re-export syntax: export { Identifier as default };
+  sanitized = sanitized.replace(/export\s*\{\s*([\w$]+)\s+as\s+default\s*\};?/gm, (_, name: string) => {
+    defaultExportName = name
+    return ''
+  })
+
+  // Remove any remaining named export blocks.
+  sanitized = sanitized.replace(/^\s*export\s*\{[^}]*\};?\s*$/gm, '')
+
+  // Normalise CommonJS default exports if present.
+  sanitized = sanitized.replace(/module\.exports\s*=\s*([\w$]+)\s*;?/gm, (_, name: string) => {
+    defaultExportName = name
+    return ''
+  })
+
+  // Ensure an App identifier exists for the renderer.
+  const hasAppIdentifier = /\bfunction\s+App\b|\b(const|let|var)\s+App\b/.test(sanitized)
+  if (defaultExportName && (!hasAppIdentifier || defaultExportName !== 'App')) {
+    sanitized += `\nconst App = ${defaultExportName};`
+  }
+
+  return sanitized.trim()
 }

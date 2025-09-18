@@ -64,7 +64,8 @@
       "Bash(for pkg in agent-engine ai-agents codegen-prompts compiler framework-advisor preview-sandbox react-reasoning)",
       "Bash(do echo \"=== $pkg ===\")",
       "Bash(done)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(npx vercel:*)"
     ],
     "deny": [],
     "ask": []

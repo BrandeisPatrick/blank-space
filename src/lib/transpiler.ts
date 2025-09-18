@@ -255,6 +255,11 @@ export class TranspilerService {
       return this.createErrorHTML(transpileResult.error)
     }
 
+    const transpiledCode = transpileResult.code
+    const handlesOwnRender = /ReactDOM\.render\s*\(.*\)/.test(transpiledCode) ||
+      /ReactDOM\.createRoot\s*\(/.test(transpiledCode) ||
+      /\broot\.render\s*\(.*\)/.test(transpiledCode)
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -273,7 +278,7 @@ export class TranspilerService {
     <script>
         try {
           // Transpiled component code
-          ${transpileResult.code}
+          ${transpiledCode}
           
           // Component safety wrapper
           if (typeof App === 'undefined') {
@@ -299,11 +304,15 @@ export class TranspilerService {
 
           // Render with React 18 createRoot API
           const rootElement = document.getElementById('root');
-          if (rootElement) {
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(React.createElement(App));
-          } else {
-            console.error('Root element not found');
+          if (!${handlesOwnRender ? 'true' : 'false'}) {
+            if (rootElement) {
+              const root = ReactDOM.createRoot(rootElement);
+              root.render(React.createElement(App));
+            } else {
+              console.error('Root element not found');
+            }
+          } else if (!rootElement) {
+            console.warn('App handled its own render but #root is missing');
           }
         } catch (error) {
           console.error('React render error:', error);

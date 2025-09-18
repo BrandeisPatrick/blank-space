@@ -10,7 +10,6 @@ interface FileTreeProps {
   onFileSelect?: (filePath: string) => void
   onFileCreate?: (folderPath: string) => void
   onFolderCreate?: (folderPath: string) => void
-  onDelete?: (path: string) => void
   onRename?: (oldPath: string, newName: string) => void
   onToggleExpanded?: (folderPath: string) => void
 }
@@ -23,11 +22,10 @@ interface ContextMenuProps {
   onCreateFile: () => void
   onCreateFolder: () => void
   onRename: () => void
-  onDelete: () => void
   isFolder: boolean
 }
 
-const ContextMenu = ({ x, y, visible, onClose, onCreateFile, onCreateFolder, onRename, onDelete, isFolder }: ContextMenuProps) => {
+const ContextMenu = ({ x, y, visible, onClose, onCreateFile, onCreateFolder, onRename, isFolder }: ContextMenuProps) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
@@ -40,7 +38,6 @@ const ContextMenu = ({ x, y, visible, onClose, onCreateFile, onCreateFolder, onR
       { label: 'separator' },
     ] : []),
     { label: 'Rename', onClick: onRename, icon: '✏️' },
-    { label: 'Delete', onClick: onDelete, icon: '🗑️' },
   ]
 
   return (
@@ -124,7 +121,6 @@ export const FileTree = ({
   onFileSelect, 
   onFileCreate,
   onFolderCreate,
-  onDelete,
   onRename,
   onToggleExpanded
 }: FileTreeProps) => {
@@ -334,7 +330,6 @@ export const FileTree = ({
                   onFileSelect={onFileSelect}
                   onFileCreate={onFileCreate}
                   onFolderCreate={onFolderCreate}
-                  onDelete={onDelete}
                   onRename={onRename}
                   onToggleExpanded={onToggleExpanded}
                 />
@@ -354,7 +349,6 @@ export const FileTree = ({
         onCreateFile={() => onFileCreate?.(contextMenu.targetPath)}
         onCreateFolder={() => onFolderCreate?.(contextMenu.targetPath)}
         onRename={() => startRename(contextMenu.targetPath)}
-        onDelete={() => onDelete?.(contextMenu.targetPath)}
       />
     </>
   )

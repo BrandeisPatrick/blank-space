@@ -10,7 +10,6 @@ interface FileExplorerProps {
   onFileSelect: (filename: string) => void
   onFileChange?: (filename: string, content: string) => void
   onFileCreate?: (filename: string, content: string) => void
-  onFileDelete?: (filename: string) => void
   onFileRename?: (oldFilename: string, newFilename: string) => void
   onClose?: () => void
   onToggle?: () => void
@@ -22,7 +21,6 @@ export const FileExplorer = ({
   onFileSelect, 
   onFileChange,
   onFileCreate,
-  onFileDelete,
   onFileRename,
   onClose, 
   onToggle 
@@ -123,25 +121,6 @@ export const ${createValue.split('.')[0]} = () => {
 
     setFileSystem(new FileSystemManager(fileSystem.toFlatStructure()))
     setShowCreateDialog({ visible: false, type: 'file', parentPath: '' })
-  }
-
-  const handleDelete = (path: string) => {
-    if (!fileSystem) return
-    
-    const confirmed = window.confirm(`Are you sure you want to delete "${path}"?`)
-    if (confirmed) {
-      fileSystem.delete(path)
-      onFileDelete?.(path)
-      setFileSystem(new FileSystemManager(fileSystem.toFlatStructure()))
-      
-      // If deleted file was active, select another file
-      if (activeFile === path) {
-        const allFiles = fileSystem.getAllFiles()
-        if (allFiles.length > 0) {
-          onFileSelect(allFiles[0].path)
-        }
-      }
-    }
   }
 
   const handleRename = (oldPath: string, newName: string) => {
@@ -327,7 +306,6 @@ export const ${createValue.split('.')[0]} = () => {
                 onFileSelect={handleFileSelect}
                 onFileCreate={handleFileCreate}
                 onFolderCreate={handleFolderCreate}
-                onDelete={handleDelete}
                 onRename={handleRename}
                 onToggleExpanded={handleToggleExpanded}
               />

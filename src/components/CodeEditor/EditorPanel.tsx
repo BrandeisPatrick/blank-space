@@ -234,24 +234,6 @@ console.log('Website loaded successfully');
                   updateArtifact(currentArtifactId, newFiles)
                 }
               }}
-              onFileDelete={(filename) => {
-                const newFiles = { ...files }
-                delete newFiles[filename]
-                setFiles(newFiles)
-                
-                // Switch to another file if the deleted file was active
-                if (filename === activeFile) {
-                  const remainingFiles = Object.keys(newFiles)
-                  if (remainingFiles.length > 0) {
-                    setActiveFile(remainingFiles[0])
-                  }
-                }
-                
-                // Update the artifact in the store
-                if (currentArtifactId) {
-                  updateArtifact(currentArtifactId, newFiles)
-                }
-              }}
               onFileRename={(oldFilename, newFilename) => {
                 const newFiles = { ...files }
                 newFiles[newFilename] = newFiles[oldFilename]
