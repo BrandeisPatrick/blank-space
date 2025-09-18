@@ -523,23 +523,25 @@ export const PreviewFrame = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: `linear-gradient(135deg, ${theme.colors.bg.primary}f5, ${theme.colors.bg.secondary}f5)`,
-            backdropFilter: 'blur(8px)',
+            background: `linear-gradient(135deg, ${theme.colors.bg.primary}ee, ${theme.colors.bg.secondary}ee)`,
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: theme.spacing.lg,
             zIndex: 10,
+            border: `1px solid ${theme.colors.border}30`,
           }}>
             {/* Animated Spinner */}
             <div style={{
               width: '48px',
               height: '48px',
-              border: `3px solid ${theme.colors.border}`,
+              border: `3px solid ${theme.colors.border}40`,
               borderTop: `3px solid ${theme.colors.accent.primary}`,
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
+              boxShadow: `0 0 20px ${theme.colors.accent.primary}20`,
             }} />
 
             {/* Loading Text */}
@@ -551,10 +553,8 @@ export const PreviewFrame = () => {
                 fontSize: theme.typography.fontSize.lg,
                 fontWeight: theme.typography.fontWeight.semibold,
                 marginBottom: theme.spacing.sm,
-                background: theme.colors.gradient.primary,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: theme.colors.text.primary,
+                textShadow: `0 1px 3px ${theme.colors.bg.primary}80`,
               }}>
                 {loadingPhase === 'transpiling' && '🔄 Transpiling React code...'}
                 {loadingPhase === 'bundling' && '📦 Bundling components...'}
@@ -563,7 +563,8 @@ export const PreviewFrame = () => {
               <div style={{
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.text.secondary,
-                opacity: 0.8,
+                opacity: 0.9,
+                textShadow: `0 1px 2px ${theme.colors.bg.primary}60`,
               }}>
                 {loadingPhase === 'transpiling' && 'Converting JSX to JavaScript'}
                 {loadingPhase === 'bundling' && 'Combining all modules'}
