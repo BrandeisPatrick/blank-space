@@ -49,8 +49,8 @@ export function PlanningModal({
       <div
         style={{
           backgroundColor: theme.colors.bg.primary,
-          borderRadius: theme.borderRadius.lg,
-          border: `1px solid ${theme.colors.border.primary}`,
+          borderRadius: theme.radius.lg,
+          border: `1px solid ${theme.colors.border}`,
           maxWidth: '600px',
           width: '100%',
           maxHeight: '80vh',
@@ -65,7 +65,7 @@ export function PlanningModal({
         <div
           style={{
             padding: theme.spacing.lg,
-            borderBottom: `1px solid ${theme.colors.border.primary}`,
+            borderBottom: `1px solid ${theme.colors.border}`,
             backgroundColor: theme.colors.bg.secondary
           }}
         >
@@ -128,7 +128,7 @@ export function PlanningModal({
                   backgroundColor: theme.colors.accent.primary + '20',
                   color: theme.colors.accent.primary,
                   padding: '4px 8px',
-                  borderRadius: theme.borderRadius.sm,
+                  borderRadius: theme.radius.sm,
                   textTransform: 'capitalize'
                 }}
               >
@@ -136,10 +136,10 @@ export function PlanningModal({
               </span>
               <span
                 style={{
-                  backgroundColor: theme.colors.border.primary,
+                  backgroundColor: theme.colors.border,
                   color: theme.colors.text.secondary,
                   padding: '4px 8px',
-                  borderRadius: theme.borderRadius.sm
+                  borderRadius: theme.radius.sm
                 }}
               >
                 {projectPlan.features.length} features
@@ -182,7 +182,7 @@ export function PlanningModal({
                     style={{
                       padding: theme.spacing.sm,
                       backgroundColor: theme.colors.bg.secondary,
-                      borderRadius: theme.borderRadius.sm,
+                      borderRadius: theme.radius.sm,
                       marginBottom: theme.spacing.xs,
                       border: feature.priority === 'high' ? `2px solid ${theme.colors.accent.primary}40` : 'none'
                     }}
@@ -201,8 +201,8 @@ export function PlanningModal({
                         style={{
                           fontSize: '10px',
                           padding: '2px 6px',
-                          borderRadius: theme.borderRadius.sm,
-                          backgroundColor: feature.priority === 'high' ? theme.colors.accent.primary + '20' : theme.colors.border.primary,
+                          borderRadius: theme.radius.sm,
+                          backgroundColor: feature.priority === 'high' ? theme.colors.accent.primary + '20' : theme.colors.border,
                           color: feature.priority === 'high' ? theme.colors.accent.primary : theme.colors.text.secondary,
                           textTransform: 'uppercase'
                         }}
@@ -330,7 +330,7 @@ export function PlanningModal({
                     alignItems: 'center',
                     padding: theme.spacing.sm,
                     backgroundColor: theme.colors.bg.secondary,
-                    borderRadius: theme.borderRadius.sm,
+                    borderRadius: theme.radius.sm,
                     fontSize: '12px'
                   }}
                 >
@@ -369,7 +369,7 @@ export function PlanningModal({
         <div
           style={{
             padding: theme.spacing.lg,
-            borderTop: `1px solid ${theme.colors.border.primary}`,
+            borderTop: `1px solid ${theme.colors.border}`,
             backgroundColor: theme.colors.bg.secondary,
             display: 'flex',
             justifyContent: 'space-between',
@@ -385,8 +385,8 @@ export function PlanningModal({
               onClick={onReject}
               style={{
                 padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                border: `1px solid ${theme.colors.border.primary}`,
-                borderRadius: theme.borderRadius.md,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.md,
                 backgroundColor: 'transparent',
                 color: theme.colors.text.secondary,
                 fontSize: '14px',
@@ -409,7 +409,7 @@ export function PlanningModal({
               style={{
                 padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                 border: 'none',
-                borderRadius: theme.borderRadius.md,
+                borderRadius: theme.radius.md,
                 backgroundColor: theme.colors.accent.primary,
                 color: 'white',
                 fontSize: '14px',
