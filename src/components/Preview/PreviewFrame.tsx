@@ -307,11 +307,11 @@ export const PreviewFrame = () => {
 
       setLoadingPhase('rendering')
 
-      const blob = new Blob([fullHtml], { type: 'text/html' })
-      const url = URL.createObjectURL(blob)
-
       if (iframeRef.current) {
-        iframeRef.current.src = url
+        const iframe = iframeRef.current
+        // Reset previous content before injecting new markup
+        iframe.src = 'about:blank'
+        iframe.srcdoc = fullHtml
 
         // Listen for iframe load to end loading state
         const handleLoad = () => {
@@ -321,17 +321,15 @@ export const PreviewFrame = () => {
           }, 300)
         }
 
-        iframeRef.current.addEventListener('load', handleLoad)
+        iframe.addEventListener('load', handleLoad)
 
         return () => {
-          URL.revokeObjectURL(url)
-          iframeRef.current?.removeEventListener('load', handleLoad)
+          iframe.removeEventListener('load', handleLoad)
+          iframe.srcdoc = ''
         }
       }
 
-      return () => {
-        URL.revokeObjectURL(url)
-      }
+      return () => {}
     }
 
     generatePreview()

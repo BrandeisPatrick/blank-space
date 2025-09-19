@@ -1,4 +1,3 @@
-import React from 'react'
 import { useTheme } from '../../pages/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { ProjectPlan } from '../../lib/featurePlanningService'
@@ -8,15 +7,13 @@ interface PlanningModalProps {
   projectPlan: ProjectPlan
   onApprove: () => void
   onReject: () => void
-  onModify?: () => void
 }
 
 export function PlanningModal({
   isOpen,
   projectPlan,
   onApprove,
-  onReject,
-  onModify
+  onReject
 }: PlanningModalProps) {
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -176,7 +173,7 @@ export function PlanningModal({
                 >
                   Core Features
                 </h5>
-                {coreFeatures.map((feature, index) => (
+                {coreFeatures.map((feature) => (
                   <div
                     key={feature.id}
                     style={{

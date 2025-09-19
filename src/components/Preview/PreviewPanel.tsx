@@ -1,40 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppStore } from '../../pages/appStore'
-import { ErrorConsole, ConsoleMessage } from './ErrorConsole'
-import { theme } from '../../styles/theme'
-
-type TabType = 'preview' | 'console'
 
 export const PreviewPanel = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { currentArtifactId, artifacts } = useAppStore()
-  const [activeTab, setActiveTab] = useState<TabType>('preview')
-  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
-  const [errorCount, setErrorCount] = useState(0)
-  const [warningCount, setWarningCount] = useState(0)
   
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
-
-  const addConsoleMessage = useCallback((message: Omit<ConsoleMessage, 'id' | 'timestamp'>) => {
-    const newMessage: ConsoleMessage = {
-      ...message,
-      id: `console_${Date.now()}_${Math.random()}`,
-      timestamp: Date.now()
-    }
-    setConsoleMessages(prev => [...prev, newMessage])
-    
-    if (message.type === 'error') {
-      setErrorCount(prev => prev + 1)
-    } else if (message.type === 'warning') {
-      setWarningCount(prev => prev + 1)
-    }
-  }, [])
-
-  const clearConsole = () => {
-    setConsoleMessages([])
-    setErrorCount(0)
-    setWarningCount(0)
-  }
 
   useEffect(() => {
     if (!currentArtifact || !iframeRef.current) return
@@ -62,14 +33,7 @@ export const PreviewPanel = () => {
 </body>
 </html>`
 
-    const blob = new Blob([fullHtml], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    
-    iframeRef.current.src = url
-
-    return () => {
-      URL.revokeObjectURL(url)
-    }
+    iframeRef.current.srcdoc = fullHtml
   }, [currentArtifact])
 
   if (!currentArtifact) {

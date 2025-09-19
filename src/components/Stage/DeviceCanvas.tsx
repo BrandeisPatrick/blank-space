@@ -1,13 +1,7 @@
-import { useRef, useEffect } from 'react'
-// Mock functions since we don't have grid-engine package  
-const getDevicePreset = (id: string) => ({ id, name: id, width: 1200, height: 800 })
-const GridEngine = { 
-  render: () => null,
-  calculateGridMetrics: () => ({ cellSize: 20, gutter: 2 }),
-  getRegionBounds: () => ({ x: 0, y: 0, width: 100, height: 100 })
-}
+import { useRef, useEffect, useMemo } from 'react'
 import { useAppStore } from '../../pages/appStore'
 import { GridRegion } from '../../types'
+import { getDevicePreset, MockGridEngine } from '../../lib/mockGridEngine'
 
 interface DeviceCanvasProps {
   onRegionSelect: (region: GridRegion | null) => void
@@ -21,7 +15,7 @@ export const DeviceCanvas = ({ onRegionSelect }: DeviceCanvasProps) => {
   const { deviceId, gridVisible, selectedRegion } = useAppStore()
   
   const device = getDevicePreset(deviceId)
-  const gridEngine = device ? new GridEngine(device) : null
+  const gridEngine = useMemo(() => new MockGridEngine(device), [device])
 
   useEffect(() => {
     if (!canvasRef.current || !gridEngine) return
@@ -108,10 +102,6 @@ export const DeviceCanvas = ({ onRegionSelect }: DeviceCanvasProps) => {
   const handleMouseUp = () => {
     isDragging.current = false
     dragStart.current = null
-  }
-
-  if (!device) {
-    return <div>Device not found</div>
   }
 
   return (

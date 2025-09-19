@@ -188,7 +188,16 @@ export async function transformReactComponent(code: string): Promise<string> {
 function sanitizeEsbuildOutput(code: string): string {
   let sanitized = code
 
-  // Remove top-level import statements – runtime supplies React via globals.
+  // Convert internal module imports (module_*) produced by the bundler into runtime require calls.
+  sanitized = sanitized.replace(/import\s+([\w*\s{},]+)\s+from\s+['"](module_[^'"]+)['"];?/g, (_match, clause: string, specifier: string) => {
+    return convertModuleImportClause(clause.trim(), specifier)
+  })
+
+  sanitized = sanitized.replace(/import\s+['"](module_[^'"]+)['"];?/g, (_match, specifier: string) => {
+    return `require('${specifier}');`
+  })
+
+  // Remove remaining top-level import statements – runtime supplies React via globals.
   sanitized = sanitized.replace(/^\s*import\s+[^;]+;?\s*$/gm, '')
 
   let defaultExportName: string | null = null
@@ -221,4 +230,88 @@ function sanitizeEsbuildOutput(code: string): string {
   }
 
   return sanitized.trim()
+}
+
+function convertModuleImportClause(clause: string, specifier: string): string {
+  const tempVar = `__module_${specifier.replace(/[^a-zA-Z0-9_]/g, '_')}`
+  const statements: string[] = [`const ${tempVar} = require('${specifier}');`]
+
+  const { defaultImport, namedImport, namespaceImport } = parseImportClause(clause)
+
+  if (defaultImport) {
+    statements.push(`const ${defaultImport} = ${tempVar}.default ?? ${tempVar};`)
+  }
+
+  if (namespaceImport) {
+    statements.push(`const ${namespaceImport} = ${tempVar};`)
+  }
+
+  if (namedImport) {
+    statements.push(`const ${namedImport} = ${tempVar};`)
+  }
+
+  return statements.join('\n')
+}
+
+function parseImportClause(clause: string): {
+  defaultImport: string | null
+  namedImport: string | null
+  namespaceImport: string | null
+} {
+  let buffer = clause.trim()
+  let defaultImport: string | null = null
+  let namedImport: string | null = null
+  let namespaceImport: string | null = null
+
+  const consume = (input: string): string => {
+    buffer = buffer.slice(input.length).trim()
+    return buffer
+  }
+
+  const parseRemaining = () => {
+    if (!buffer) {
+      return
+    }
+
+    if (buffer.startsWith('{')) {
+      namedImport = buffer
+      buffer = ''
+      return
+    }
+
+    if (buffer.startsWith('*')) {
+      const namespaceMatch = buffer.match(/^\*\s+as\s+([A-Za-z_$][\w$]*)/)
+      if (namespaceMatch) {
+        namespaceImport = namespaceMatch[1]
+        consume(namespaceMatch[0])
+        if (buffer.startsWith(',')) {
+          consume(',')
+          parseRemaining()
+        }
+        return
+      }
+    }
+
+    const commaIndex = buffer.indexOf(',')
+    if (commaIndex === -1) {
+      if (!defaultImport) {
+        const candidate = buffer.trim()
+        if (candidate) {
+          defaultImport = candidate
+        }
+      }
+      buffer = ''
+      return
+    }
+
+    if (!defaultImport) {
+      defaultImport = buffer.slice(0, commaIndex).trim()
+    }
+    buffer = buffer.slice(commaIndex + 1).trim()
+    parseRemaining()
+  }
+
+  parseRemaining()
+
+  return { defaultImport, namedImport, namespaceImport }
 }

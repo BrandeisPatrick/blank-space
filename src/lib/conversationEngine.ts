@@ -10,7 +10,6 @@ export interface ConversationContext {
 export class ConversationEngine {
   generateResponse(message: string, context: ConversationContext): string {
     const lowerMessage = message.toLowerCase()
-    const modeConfig = RESPONSE_MODES[context.responseMode]
     
     // Check for code modification requests first
     if (this.isModificationRequest(lowerMessage) && context.hasActiveCode) {
@@ -142,9 +141,6 @@ export class ConversationEngine {
   }
 
   private getPersonalResponse(message: string, context: ConversationContext): string {
-    const timeOfDay = new Date().getHours()
-    const currentTime = timeOfDay < 12 ? 'morning' : timeOfDay < 17 ? 'afternoon' : 'evening'
-    
     if (message.includes('how is your day') || message.includes('how are you')) {
       const dayResponses = [
         `My day's going great, thanks for asking! 😊 I've been helping people create amazing websites. It's always exciting to see creative ideas come to life in code!`,
@@ -334,7 +330,7 @@ export class ConversationEngine {
     return incrementalPatterns.some(pattern => pattern.test(message))
   }
 
-  private getIncrementalBuildingResponse(message: string, context: ConversationContext): string {
+  private getIncrementalBuildingResponse(_message: string, context: ConversationContext): string {
     const modeConfig = RESPONSE_MODES[context.responseMode]
     
     if (modeConfig.behavior.skipExplanations) {
@@ -344,7 +340,7 @@ export class ConversationEngine {
     return "Great choice! I'll build upon your existing code and add that enhancement. 🚀\n\nI'll:\n• Analyze your current code structure\n• Preserve all working elements and styling\n• Add the enhancement you requested\n• Ensure everything works together seamlessly\n\nGenerating enhanced version now..."
   }
 
-  private getClarificationResponse(message: string, context: ConversationContext): string {
+  private getClarificationResponse(_message: string, context: ConversationContext): string {
     const suggestions = [
       "To create something new:\n• \"Create a portfolio website\"\n• \"Build a landing page for my business\"\n• \"Make a contact form\"",
       

@@ -460,6 +460,10 @@ ${timeline.map(phase => `
     return [...commonFeatures, ...(typeSpecificFeatures[appType] || typeSpecificFeatures['tool'])]
   }
 
+  private createFallbackFeatures(): Feature[] {
+    return this.getDefaultFeatures('tool')
+  }
+
   private createFallbackTechStack(): TechStackSuggestion {
     return {
       frontend: ['React', 'TypeScript'],

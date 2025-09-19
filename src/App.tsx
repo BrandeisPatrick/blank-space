@@ -247,7 +247,6 @@ function App() {
               thinking.complete()
 
               // Add clean success message
-              const fileCount = Object.keys(artifact.files).length
               const hasPlanFile = artifact.files['plan.md']
               const successMessage: ChatMessage = {
                 id: `msg_${Date.now()}_success`,

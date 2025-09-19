@@ -170,6 +170,24 @@ export const TopBar = ({ onNavigateToSignIn, onNavigateToDeveloper, user, isAuth
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
+          {user && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              color: theme.colors.text.secondary,
+              fontSize: theme.typography.fontSize.sm,
+              background: theme.colors.bg.secondary,
+              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+              borderRadius: theme.radius.lg,
+              boxShadow: theme.shadows.outset,
+            }}>
+              <span role="img" aria-label="user">👤</span>
+              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.name}
+              </span>
+            </div>
+          )}
           <ThemeToggle />
           
           {/* Developer Button - Only show in development mode */}

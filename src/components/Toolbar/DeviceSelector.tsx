@@ -1,10 +1,5 @@
-// Mock function since we don't have grid-engine package
-const getDevicePresets = () => [
-  { id: 'desktop', name: 'Desktop', width: 1200, height: 800 },
-  { id: 'tablet', name: 'Tablet', width: 768, height: 1024 },
-  { id: 'mobile', name: 'Mobile', width: 375, height: 667 }
-]
 import { useAppStore } from '../../pages/appStore'
+import { getDevicePresets } from '../../lib/mockGridEngine'
 
 export const DeviceSelector = () => {
   const { deviceId, setDevice } = useAppStore()
@@ -23,11 +18,15 @@ export const DeviceSelector = () => {
           border: '1px solid #d1d5db'
         }}
       >
-        {devices.map((device) => (
-          <option key={device.id} value={device.id}>
-            {device.name} ({device.gridCols}×{device.gridRows})
-          </option>
-        ))}
+        {devices.map((device) => {
+          const cols = device.gridCols ?? 12
+          const rows = device.gridRows ?? 12
+          return (
+            <option key={device.id} value={device.id}>
+              {device.name} ({cols}×{rows})
+            </option>
+          )
+        })}
       </select>
     </div>
   )

@@ -95,7 +95,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const state = get()
     
     // Initialize VFS for this artifact
-    const vfs = state.initializeVFS(artifact.id, artifact.files)
+    state.initializeVFS(artifact.id, artifact.files)
     
     set((state) => ({ 
       artifacts: [...state.artifacts, artifact],

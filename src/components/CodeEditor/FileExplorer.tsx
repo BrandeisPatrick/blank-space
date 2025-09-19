@@ -8,22 +8,16 @@ interface FileExplorerProps {
   files: Record<string, string>
   activeFile: string
   onFileSelect: (filename: string) => void
-  onFileChange?: (filename: string, content: string) => void
   onFileCreate?: (filename: string, content: string) => void
   onFileRename?: (oldFilename: string, newFilename: string) => void
-  onClose?: () => void
-  onToggle?: () => void
 }
 
 export const FileExplorer = ({ 
   files, 
   activeFile, 
   onFileSelect, 
-  onFileChange,
   onFileCreate,
-  onFileRename,
-  onClose, 
-  onToggle 
+  onFileRename
 }: FileExplorerProps) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)

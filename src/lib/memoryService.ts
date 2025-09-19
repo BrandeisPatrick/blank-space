@@ -166,9 +166,6 @@ export class MemoryService {
 
   private summarizeRecentConversation(recentMessages: ChatMessage[]) {
     // Get messages since last summary
-    const lastSummary = this.sessionMemory.summaries[this.sessionMemory.summaries.length - 1]
-    const startIndex = lastSummary ? lastSummary.messageCount : 0
-
     // Extract key information from recent messages
     const keyPoints: string[] = []
     const componentsGenerated: string[] = []

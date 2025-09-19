@@ -504,9 +504,6 @@ export class ChatService {
     const labels = labelMap[step.type] || ['Processing']
     const contentWords = step.content.toLowerCase().split(' ')
 
-    // Create more specific labels based on both content and step type to avoid duplicates
-    const stepIndex = step.id.slice(-4) // Use last 4 chars of ID for uniqueness
-
     if (contentWords.includes('component') || contentWords.includes('react')) {
       // Vary the label based on step type to avoid duplicates
       switch (step.type) {

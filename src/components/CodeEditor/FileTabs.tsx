@@ -23,18 +23,6 @@ export const FileTabs = ({ files, activeFile, onFileSelect, onFileClose, showExp
     return theme.colors.text.secondary // Default gray
   }
   
-  const getFileTypeLabel = (filename: string) => {
-    if (filename.endsWith('.html')) return 'HTML'
-    if (filename.endsWith('.css')) return 'CSS'
-    if (filename.endsWith('.js')) return 'JS'
-    if (filename.endsWith('.jsx')) return 'JSX'
-    if (filename.endsWith('.ts')) return 'TS'
-    if (filename.endsWith('.tsx')) return 'TSX'
-    if (filename.endsWith('.json')) return 'JSON'
-    return 'FILE'
-  }
-
-
   return (
     <div style={{
       display: 'flex',

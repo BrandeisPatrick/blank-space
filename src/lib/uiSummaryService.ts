@@ -15,7 +15,6 @@ export interface UISummaryEvent {
 export class UISummaryService {
   private listeners: ((event: UISummaryEvent) => void)[] = []
   private currentPhase: UISummaryEvent['phase'] | null = null
-  private phaseStartTime: number = 0
   private isRealProgressMode: boolean = false
 
   constructor() {}
@@ -117,7 +116,6 @@ export class UISummaryService {
 
   private startPhase(phase: UISummaryEvent['phase'], message: string) {
     this.currentPhase = phase
-    this.phaseStartTime = Date.now()
     
     this.emit({
       type: 'phase_start',
@@ -169,7 +167,6 @@ export class UISummaryService {
 
   private reset() {
     this.currentPhase = null
-    this.phaseStartTime = 0
     this.isRealProgressMode = false
   }
 

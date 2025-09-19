@@ -39,7 +39,6 @@ export const SystemMonitoringPanel = () => {
       successRate: 0
     }
   })
-  const [loading, setLoading] = useState(true)
   const [serverUrl] = useState('/api')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
@@ -92,7 +91,6 @@ export const SystemMonitoringPanel = () => {
         failedRequests: prev.failedRequests + 1
       }))
     } finally {
-      setLoading(false)
       setLastRefresh(new Date())
     }
   }

@@ -66,6 +66,7 @@ export class GenerationService {
       }
 
       let artifact: Artifact | undefined
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -134,7 +135,6 @@ export class GenerationService {
 
       const steps: ReasoningStep[] = []
       let finalResult: ReActResult | undefined
-      let artifact: Artifact | undefined
 
       while (true) {
         const { done, value } = await reader.read()
@@ -152,7 +152,6 @@ export class GenerationService {
                 steps.push(data.step)
                 options.onStep(data.step)
               } else if (data.type === 'generation_complete') {
-                artifact = data.artifact
                 finalResult = {
                   success: true,
                   steps: data.reasoningSteps || steps,

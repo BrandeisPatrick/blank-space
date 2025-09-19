@@ -94,7 +94,7 @@ const ContextMenu = ({ x, y, visible, onClose, onCreateFile, onCreateFolder, onR
                 transition: `background ${theme.animation.fast}`,
               }}
               onClick={() => {
-                item.onClick()
+                item.onClick?.()
                 onClose()
               }}
               onMouseEnter={(e) => {
@@ -135,37 +135,6 @@ export const FileTree = ({
   }>({ visible: false, x: 0, y: 0, targetPath: '', isFolder: false })
   const [renaming, setRenaming] = useState<string | null>(null)
   const [renamingValue, setRenamingValue] = useState('')
-
-  const getFileIcon = (filename: string, isFolder: boolean) => {
-    if (isFolder) {
-      return node.metadata?.isExpanded ? '📂' : '📁'
-    }
-    
-    // More comprehensive file type icons
-    if (filename.endsWith('.jsx') || filename.endsWith('.tsx')) return '⚛️'
-    if (filename.endsWith('.js') || filename.endsWith('.ts')) return '📜'
-    if (filename.endsWith('.html')) return '🌐'
-    if (filename.endsWith('.css') || filename.endsWith('.scss') || filename.endsWith('.sass')) return '🎨'
-    if (filename.endsWith('.json')) return '📋'
-    if (filename.endsWith('.md')) return '📝'
-    if (filename.endsWith('.png') || filename.endsWith('.jpg') || filename.endsWith('.svg') || filename.endsWith('.gif')) return '🖼️'
-    if (filename.endsWith('.ico')) return '🔮'
-    if (filename === 'package.json') return '📦'
-    if (filename === '.gitignore') return '🙈'
-    if (filename === 'README.md') return '📖'
-    return '📄'
-  }
-
-  const getFolderIcon = (folderName: string, isExpanded: boolean) => {
-    if (folderName === 'src') return isExpanded ? '📂' : '📁'
-    if (folderName === 'public') return isExpanded ? '🌍' : '🌎'
-    if (folderName === 'components') return isExpanded ? '🧩' : '🔧'
-    if (folderName === 'hooks') return isExpanded ? '🪝' : '🎣'
-    if (folderName === 'utils') return isExpanded ? '🛠️' : '⚙️'
-    if (folderName === 'assets') return isExpanded ? '📦' : '📦'
-    if (folderName === 'styles') return isExpanded ? '🎨' : '🖌️'
-    return isExpanded ? '📂' : '📁'
-  }
 
   const handleContextMenu = (e: React.MouseEvent, path: string, isFolder: boolean) => {
     e.preventDefault()

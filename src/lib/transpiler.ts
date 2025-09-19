@@ -137,7 +137,7 @@ export class TranspilerService {
 
     // Transform self-closing JSX elements first
     transformed = transformed
-      .replace(/<(\w+)([^>]*?)\/>/gs, (match, tag, props) => {
+      .replace(/<(\w+)([^>]*?)\/>/gs, (_match, tag, props) => {
         const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
         return `React.createElement('${tag}'${propsStr})`
       })
@@ -151,7 +151,7 @@ export class TranspilerService {
     while (transformed !== lastTransformed && iterations < maxIterations) {
       lastTransformed = transformed
       transformed = transformed
-        .replace(/<(\w+)([^>]*?)>(.*?)<\/\1>/gs, (match, tag, props, children) => {
+        .replace(/<(\w+)([^>]*?)>(.*?)<\/\1>/gs, (_match, tag, props, children) => {
           const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
           const childrenStr = children.trim() ? `, ${this.parseChildren(children)}` : ''
           return `React.createElement('${tag}'${propsStr}${childrenStr})`
@@ -161,7 +161,7 @@ export class TranspilerService {
 
     // Handle React Fragments (after JSX transformation to avoid conflicts)
     transformed = transformed
-      .replace(/<React\.Fragment([^>]*)>/g, (match, props) => {
+      .replace(/<React\.Fragment([^>]*)>/g, (_match, props) => {
         const propsStr = props.trim() ? `, ${this.parseProps(props)}` : ''
         return `React.createElement(React.Fragment${propsStr}`
       })
@@ -301,6 +301,120 @@ export class TranspilerService {
     <!-- React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script>
+      (function initializeBlankSpacePreview() {
+        const global = window
+        const previewShell = global.previewShell || (global.previewShell = {
+          applyHints() {
+            const rootElement = document.getElementById('root')
+            if (!rootElement) return
+
+            const shellTarget = rootElement.firstElementChild
+            if (shellTarget && shellTarget.hasAttribute('data-fullscreen')) {
+              document.body.classList.add('full-screen-app')
+            } else {
+              document.body.classList.remove('full-screen-app')
+            }
+          },
+          hasUserRender() {
+            return global.__BLANKSPACE_HAS_USER_RENDERED__ === true
+          },
+          markUserRender() {
+            global.__BLANKSPACE_HAS_USER_RENDERED__ = true
+          }
+        })
+
+        ;(function ensureStorageAvailability() {
+          const fallbackFactory = () => {
+            let store = {}
+            return {
+              getItem: (key) => (key in store ? store[key] : null),
+              setItem: (key, value) => {
+                store[key] = String(value)
+              },
+              removeItem: (key) => {
+                delete store[key]
+              },
+              clear: () => {
+                store = {}
+              },
+              key: (index) => {
+                const keys = Object.keys(store)
+                return index >= 0 && index < keys.length ? keys[index] : null
+              },
+              get length() {
+                return Object.keys(store).length
+              }
+            }
+          }
+
+          const ensure = (name) => {
+            try {
+              const storage = global[name]
+              if (!storage) throw new Error('missing')
+              storage.setItem('__blankspace-test__', '1')
+              storage.removeItem('__blankspace-test__')
+            } catch (error) {
+              console.warn('Sandbox ' + name + ' unavailable, using in-memory fallback.', error)
+              Object.defineProperty(global, name, {
+                configurable: true,
+                value: fallbackFactory()
+              })
+            }
+          }
+
+          ensure('localStorage')
+          ensure('sessionStorage')
+        })()
+
+        ;(function patchLegacyRender() {
+          if (!global.ReactDOM || !global.ReactDOM.render || global.ReactDOM.__patchedRender) {
+            return
+          }
+
+          const roots = new WeakMap()
+          const originalCreateRoot = global.ReactDOM.createRoot.bind(global.ReactDOM)
+
+          const patchedRender = function renderCompat(element, container, callback) {
+            if (!container) {
+              throw new Error('Cannot render into a null container')
+            }
+
+            let root = roots.get(container)
+            if (!root) {
+              root = originalCreateRoot(container)
+              roots.set(container, root)
+            }
+
+            const result = root.render(element)
+            previewShell.markUserRender()
+            queueMicrotask(() => previewShell.applyHints())
+
+            if (typeof callback === 'function') {
+              callback()
+            }
+
+            return result
+          }
+
+          const wrappedCreateRoot = function wrappedCreateRoot(container, options) {
+            const root = originalCreateRoot(container, options)
+            const originalRootRender = root.render.bind(root)
+            root.render = (...args) => {
+              previewShell.markUserRender()
+              const value = originalRootRender(...args)
+              queueMicrotask(() => previewShell.applyHints())
+              return value
+            }
+            return root
+          }
+
+          global.ReactDOM.render = patchedRender
+          global.ReactDOM.createRoot = wrappedCreateRoot
+          global.ReactDOM.__patchedRender = true
+        })()
+      })()
+    </script>
 
     <!-- Lucide Icons for modern iconography -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -344,12 +458,219 @@ export class TranspilerService {
     </script>
 
     <style>
+      *, *::before, *::after { box-sizing: border-box; }
       * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
       body {
         margin: 0;
-        padding: 0;
+        padding: 56px 32px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
+        color: #f8fafc;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 36px 20px;
+        }
+      }
+
+      #root {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      #root > * {
+        background: rgba(15, 23, 42, 0.55);
+        border-radius: 24px;
+        padding: 36px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.35);
+        backdrop-filter: blur(22px);
+      }
+
+      @media (max-width: 768px) {
+        #root > * {
+          padding: 28px;
+          border-radius: 20px;
+        }
+      }
+
+      body.full-screen-app {
+        padding: 0;
+      }
+
+      body.full-screen-app #root {
+        max-width: none;
+      }
+
+      body.full-screen-app #root > * {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        backdrop-filter: none;
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        margin: 0 0 18px;
+        color: #f8fafc;
+        letter-spacing: 0.02em;
+      }
+
+      p, span, label {
+        color: rgba(248, 250, 252, 0.82);
+        line-height: 1.6;
+      }
+
+      form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      input,
+      textarea,
+      select {
+        flex: 1 1 220px;
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.45);
+        color: #f8fafc;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: rgba(248, 250, 252, 0.55);
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: rgba(244, 114, 182, 0.7);
+        box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.25);
+        transform: translateY(-1px);
+      }
+
+      input[type='checkbox'],
+      input[type='radio'] {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        accent-color: #a855f7;
+        margin-right: 8px;
+      }
+
+      button {
+        flex: 0 0 auto;
+        padding: 14px 20px;
+        border-radius: 14px;
+        border: none;
+        background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        color: #f8fafc;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 12px 25px rgba(168, 85, 247, 0.35);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 30px rgba(168, 85, 247, 0.45);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 24px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 20px;
+        border-radius: 18px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 20px 35px rgba(15, 23, 42, 0.32);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      li:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 28px 40px rgba(15, 23, 42, 0.4);
+      }
+
+      li > span,
+      li > p {
+        flex: 1 1 auto;
+      }
+
+      li button {
+        flex: 0 0 auto;
+        padding: 10px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        box-shadow: none;
+        background: rgba(148, 163, 184, 0.18);
+        border: 1px solid rgba(248, 250, 252, 0.18);
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      li button:hover {
+        background: rgba(248, 250, 252, 0.22);
+        border-color: rgba(248, 250, 252, 0.4);
+      }
+
+      .tag,
+      .pill,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.18);
+        color: rgba(248, 250, 252, 0.85);
+        font-size: 13px;
+        letter-spacing: 0.03em;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.58);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+
+      th, td {
+        padding: 16px 20px;
+        text-align: left;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        color: rgba(248, 250, 252, 0.85);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
       }
 
       /* Modern animation utilities */
@@ -455,8 +776,15 @@ export class TranspilerService {
           const rootElement = document.getElementById('root');
           if (!${handlesOwnRender ? 'true' : 'false'}) {
             if (rootElement) {
-              const root = ReactDOM.createRoot(rootElement);
-              root.render(React.createElement(App));
+              if (window.previewShell?.hasUserRender?.()) {
+                console.log('Skipping auto-render: component mounted itself');
+                queueMicrotask(() => window.previewShell?.applyHints());
+              } else {
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(React.createElement(App));
+
+                queueMicrotask(() => window.previewShell?.applyHints());
+              }
 
               // Initialize Lucide icons after React render
               setTimeout(() => {
