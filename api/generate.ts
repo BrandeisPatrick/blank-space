@@ -547,6 +547,12 @@ Apply modern UI patterns:
 - **Whitespace**: Generous padding and margins for breathing room
 - **Responsive**: Mobile-first with fluid layouts
 
+### Accessibility & Contrast:
+- **Contrast**: Body text must meet at least 4.5:1 contrast ratio and large headings at least 3:1
+- **Color pairing**: Never place light text on light backgrounds or dark text on dark backgrounds—ensure obvious contrast
+- **Backgrounds**: Provide solid background fallbacks behind gradients or imagery so text stays readable
+- **State styling**: Focus and hover states must remain accessible with clear outlines or color shifts
+
 ### Interactive Elements:
 - **Hover states**: Transform scale(1.02), opacity changes, shadow transitions
 - **Transitions**: 0.2s ease-in-out for all interactive elements
@@ -637,6 +643,7 @@ ${projectPlan.features?.slice(0, 6).map(f => `- **${f.name}**: ${f.description}`
 - Use modern gradients, shadows, and glassmorphism effects
 - Include smooth animations and hover states
 - Apply proper spacing, typography, and color schemes
+- Maintain strong color contrast between every text element and its background
 - Ensure mobile responsiveness
 - Add loading states and micro-interactions
 - Create a user interface that looks like a premium ${projectPlan?.analysis?.appType || 'web'} application
@@ -649,7 +656,9 @@ Build something users would immediately want to use and deploy!`
 - **Primary Goal**: ${projectPlan.analysis?.primaryGoal || 'provide information'}
 - **Key Features**: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
 
-Make it look STUNNING and PROFESSIONAL with modern design patterns!` : ''}`
+Make it look STUNNING and PROFESSIONAL with modern design patterns!
+- Maintain high contrast between text and background in every section (no light-on-light or dark-on-dark text)
+- Ensure gradients or imagery always have a solid fallback color behind text for readability` : ''}`
         }
       ],
       temperature: 0.7
