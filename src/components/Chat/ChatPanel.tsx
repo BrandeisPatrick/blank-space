@@ -4,6 +4,7 @@ import { useTheme } from '../../pages/ThemeContext'
 import { ChatMessage } from '../../types'
 import { getTheme } from '../../styles/theme'
 import { ReasoningTab } from './ReasoningTab'
+import { BinaIcon } from '../Icons/BinaIcon'
 
 export const ChatPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -47,13 +48,18 @@ export const ChatPanel = () => {
             fontWeight: theme.typography.fontWeight.semibold,
           }}>
             <div style={{
-              width: '12px',
-              height: '12px',
+              width: '48px',
+              height: '48px',
               borderRadius: theme.radius.full,
-              background: theme.colors.gradient.primary,
-              boxShadow: `0 0 12px ${theme.colors.accent.primary}40`,
-            }}></div>
-            AI Assistant
+              background: theme.colors.bg.primary,
+              boxShadow: theme.shadows.glow,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <BinaIcon size={36} />
+            </div>
+            Bina
           </div>
         </div>
         <div style={{
@@ -161,20 +167,21 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
         order: isUser ? 1 : 0,
       }}>
         <div style={{
-          width: '24px',
-          height: '24px',
+          width: isUser ? '24px' : '36px',
+          height: isUser ? '24px' : '36px',
           borderRadius: theme.radius.full,
-          background: isUser ? theme.colors.gradient.primary : theme.colors.accent.success,
+          background: isUser ? theme.colors.gradient.primary : theme.colors.bg.secondary,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '12px',
-          boxShadow: isUser ? theme.shadows.glow : `0 0 12px ${theme.colors.accent.success}40`,
+          boxShadow: isUser ? theme.shadows.glow : theme.shadows.outset,
+          padding: isUser ? 0 : theme.spacing.xs,
         }}>
-          {isUser ? '👤' : '🤖'}
+          {isUser ? '👤' : <BinaIcon size={24} />}
         </div>
         <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
-          {isUser ? 'You' : 'AI Assistant'}
+          {isUser ? 'You' : 'Bina'}
         </span>
         <span style={{ opacity: 0.7 }}>{formatTime(message.timestamp)}</span>
       </div>
@@ -259,3 +266,4 @@ const ChatMessageComponent = ({ message }: ChatMessageComponentProps) => {
     </div>
   )
 }
+
