@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useAppStore } from '../../pages/appStore'
 import { useTheme } from '../../pages/ThemeContext'
 import { getTheme } from '../../styles/theme'
@@ -7,7 +7,7 @@ interface ChatInputProps {
   onSend: (message: string) => void
 }
 
-export const ChatInput = ({ onSend }: ChatInputProps) => {
+export const ChatInput = React.memo(({ onSend }: ChatInputProps) => {
   const { isGenerating } = useAppStore()
   const [message, setMessage] = useState('')
   const { mode } = useTheme()
@@ -145,4 +145,4 @@ export const ChatInput = ({ onSend }: ChatInputProps) => {
       `}</style>
     </div>
   )
-}
+})

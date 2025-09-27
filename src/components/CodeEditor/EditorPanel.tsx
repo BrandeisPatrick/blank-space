@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CodeEditor } from './CodeEditor'
 import { FileTabs } from './FileTabs'
-import { FileExplorer } from './FileExplorer'
 import { useAppStore } from '../../pages/appStore'
 import { useTheme } from '../../pages/ThemeContext'
 import { getTheme } from '../../styles/theme'
@@ -209,48 +208,54 @@ console.log('Website loaded successfully');
         overflow: 'hidden',
         position: 'relative',
       }}>
-        {/* File Explorer */}
+        {/* Simple File List */}
         <div style={{
           width: showExplorer ? '280px' : '0px',
           transition: `width ${theme.animation.normal}`,
           overflow: 'hidden',
           position: 'relative',
+          background: theme.colors.bg.secondary,
+          borderRight: `1px solid ${theme.colors.border}`,
         }}>
           {showExplorer && (
-            <FileExplorer
-              files={files}
-              activeFile={activeFile}
-              onFileSelect={setActiveFile}
-              onFileCreate={(filename, content) => {
-                const newFiles = {
-                  ...files,
-                  [filename]: content
-                }
-                setFiles(newFiles)
-                setActiveFile(filename)
-                
-                // Update the artifact in the store
-                if (currentArtifactId) {
-                  updateArtifact(currentArtifactId, newFiles)
-                }
-              }}
-              onFileRename={(oldFilename, newFilename) => {
-                const newFiles = { ...files }
-                newFiles[newFilename] = newFiles[oldFilename]
-                delete newFiles[oldFilename]
-                setFiles(newFiles)
-                
-                // Update active file if it was renamed
-                if (activeFile === oldFilename) {
-                  setActiveFile(newFilename)
-                }
-                
-                // Update the artifact in the store
-                if (currentArtifactId) {
-                  updateArtifact(currentArtifactId, newFiles)
-                }
-              }}
-            />
+            <div style={{ padding: theme.spacing.md }}>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.text.secondary,
+                marginBottom: theme.spacing.md,
+              }}>
+                Files
+              </div>
+              {Object.keys(files).map(filename => (
+                <div
+                  key={filename}
+                  onClick={() => setActiveFile(filename)}
+                  style={{
+                    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                    cursor: 'pointer',
+                    borderRadius: theme.radius.md,
+                    background: activeFile === filename ? theme.colors.bg.hover : 'transparent',
+                    color: activeFile === filename ? theme.colors.text.primary : theme.colors.text.secondary,
+                    fontSize: theme.typography.fontSize.sm,
+                    marginBottom: theme.spacing.xs,
+                    transition: `all ${theme.animation.fast}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeFile !== filename) {
+                      e.currentTarget.style.background = theme.colors.bg.tertiary
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeFile !== filename) {
+                      e.currentTarget.style.background = 'transparent'
+                    }
+                  }}
+                >
+                  {filename}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

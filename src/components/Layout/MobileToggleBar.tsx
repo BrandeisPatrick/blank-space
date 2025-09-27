@@ -1,8 +1,9 @@
+import React from 'react'
 import { useAppStore } from '../../pages/appStore'
 import { useTheme } from '../../pages/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
-export function MobileToggleBar() {
+export const MobileToggleBar = React.memo(() => {
   const { showChat, showCode, showPreview, togglePanel } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -45,4 +46,4 @@ export function MobileToggleBar() {
       ))}
     </div>
   )
-}
+})

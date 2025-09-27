@@ -1,7 +1,8 @@
+import React from 'react'
 import { useTheme } from '../../pages/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
-export const ThemeToggle = () => {
+export const ThemeToggle = React.memo(() => {
   const { mode, toggleMode } = useTheme()
   const currentTheme = getTheme(mode)
 
@@ -43,4 +44,4 @@ export const ThemeToggle = () => {
       </span>
     </button>
   )
-}
+})

@@ -375,21 +375,18 @@ function App() {
         break
 
       case 'modification':
-        // Handle code modifications using conversation engine
-        const { conversationEngine } = await import('./lib/conversationEngine')
-        
-        // Check if this is an incremental building request
-        if (conversationEngine.isIncrementalRequest && conversationEngine.isIncrementalRequest(message) && currentArtifactId) {
+        // Handle code modifications with incremental building
+        if (currentArtifactId) {
           // Handle incremental building - enhance existing code
           try {
             setGenerating(true)
-            
+
             // Get current artifact
             const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
             if (!currentArtifact) {
               throw new Error('No current artifact found')
             }
-            
+
             // Create enhancement prompt with existing code context
             const enhancementPrompt = `Enhance the existing website by: ${message}
 
@@ -404,11 +401,11 @@ ENHANCEMENT REQUIREMENTS:
 - Maintain the current design aesthetic while improving it
 - Ensure all code works together seamlessly
 - Keep the same overall structure and layout principles`
-            
+
             // Generate enhanced version
             const enhancedArtifact = await generationService.generateWebsite(enhancementPrompt)
             addArtifact(enhancedArtifact)
-            
+
             // Add success message
             const successMessage: ChatMessage = {
               id: `msg_${Date.now()}_ai`,
@@ -418,10 +415,10 @@ ENHANCEMENT REQUIREMENTS:
               artifactId: enhancedArtifact.id
             }
             addChatMessage(successMessage)
-            
+
           } catch (error) {
             console.error('Enhancement failed:', error)
-            
+
             const errorMessage: ChatMessage = {
               id: `msg_${Date.now()}_error`,
               type: 'assistant',
@@ -433,13 +430,11 @@ ENHANCEMENT REQUIREMENTS:
             setGenerating(false)
           }
         } else {
-          // Regular modification response
-          const modificationResponse = conversationEngine.generateResponse(message, context)
-          
+          // No active code to modify
           const modMessage: ChatMessage = {
             id: `msg_${Date.now()}_ai`,
             type: 'assistant',
-            content: modificationResponse,
+            content: "I'd love to help you modify code! To get started, create a website first by describing what you want to build. Once you have an active project, I can help you make changes and improvements to it.",
             timestamp: Date.now()
           }
           addChatMessage(modMessage)

@@ -1,22 +1,35 @@
 import { create } from 'zustand'
-import { AppState, StoreActions, GridRegion, Artifact, ChatMessage, ResponseMode } from '../types'
-import { VirtualFileSystem } from '../lib/vfs'
+import { Artifact, ChatMessage, ResponseMode } from '../types'
 
-interface AppStore extends AppState, StoreActions {
-  prompt: string
-  setPrompt: (prompt: string) => void
-  gridModeEnabled: boolean
-  setGridMode: (enabled: boolean) => void
+interface AppStore {
+  // Core app state
+  isGenerating: boolean
+  artifacts: Artifact[]
+  currentArtifactId: string | null
+  chatMessages: ChatMessage[]
+  responseMode: ResponseMode
+
+  // UI state for mobile/desktop
   showChat: boolean
   showCode: boolean
   showPreview: boolean
+
+  // Actions
+  setGenerating: (generating: boolean) => void
+  addArtifact: (artifact: Artifact) => void
+  updateArtifact: (id: string, files: Record<string, string>) => void
+  setCurrentArtifact: (id: string | null) => void
+  addChatMessage: (message: ChatMessage) => void
+  clearChat: () => void
+  setResponseMode: (mode: ResponseMode) => void
   togglePanel: (panel: 'chat' | 'code' | 'preview') => void
-  
-  // VFS Management
-  vfsMap: Map<string, VirtualFileSystem>
-  getVFS: (artifactId: string) => VirtualFileSystem
-  initializeVFS: (artifactId: string, files?: Record<string, string>) => VirtualFileSystem
-  destroyVFS: (artifactId: string) => void
+
+  // File operations
+  createFile: (artifactId: string, filePath: string, content?: string) => void
+  createFolder: (artifactId: string, folderPath: string) => void
+  deleteFile: (artifactId: string, filePath: string) => void
+  renameFile: (artifactId: string, oldPath: string, newName: string) => void
+  updateFileContent: (artifactId: string, filePath: string, content: string) => void
 }
 
 // Load response mode from localStorage with fallback
@@ -32,76 +45,27 @@ const getStoredResponseMode = (): ResponseMode => {
   return 'show-options' // Default for new users
 }
 
-export const useAppStore = create<AppStore>((set, get) => ({
-  deviceId: 'desktop_1080p',
-  gridVisible: false,
-  selectedRegion: null,
+export const useAppStore = create<AppStore>((set) => ({
+  // Core app state
   isGenerating: false,
   artifacts: [],
   currentArtifactId: null,
   chatMessages: [],
   responseMode: getStoredResponseMode(),
-  prompt: '',
-  gridModeEnabled: false,
+
+  // UI state for mobile/desktop
   showChat: true,
   showCode: false,
   showPreview: true,
-  
-  // VFS Management
-  vfsMap: new Map<string, VirtualFileSystem>(),
-
-  getVFS: (artifactId: string) => {
-    const state = get()
-    let vfs = state.vfsMap.get(artifactId)
-    
-    if (!vfs) {
-      vfs = new VirtualFileSystem()
-      state.vfsMap.set(artifactId, vfs)
-    }
-    
-    return vfs
-  },
-
-  initializeVFS: (artifactId: string, files?: Record<string, string>) => {
-    const state = get()
-    const vfs = new VirtualFileSystem()
-    
-    if (files) {
-      vfs.import(files)
-    }
-    
-    state.vfsMap.set(artifactId, vfs)
-    return vfs
-  },
-
-  destroyVFS: (artifactId: string) => {
-    const state = get()
-    state.vfsMap.delete(artifactId)
-  },
-
-  setDevice: (deviceId: string) => 
-    set({ deviceId, selectedRegion: null }),
-
-  toggleGrid: () => 
-    set((state) => ({ gridVisible: !state.gridVisible })),
-
-  setSelectedRegion: (region: GridRegion | null) => 
-    set({ selectedRegion: region }),
 
   setGenerating: (generating: boolean) => 
     set({ isGenerating: generating }),
 
-  addArtifact: (artifact: Artifact) => {
-    const state = get()
-    
-    // Initialize VFS for this artifact
-    state.initializeVFS(artifact.id, artifact.files)
-    
-    set((state) => ({ 
+  addArtifact: (artifact: Artifact) =>
+    set((state) => ({
       artifacts: [...state.artifacts, artifact],
-      currentArtifactId: artifact.id 
-    }))
-  },
+      currentArtifactId: artifact.id
+    })),
 
   updateArtifact: (id: string, files: Record<string, string>) =>
     set((state) => ({
@@ -131,26 +95,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ responseMode: mode })
   },
 
-  setPrompt: (prompt: string) => 
-    set({ prompt }),
-
-  setGridMode: (enabled: boolean) => 
-    set({ gridModeEnabled: enabled, gridVisible: enabled }),
-
-  togglePanel: (panel: 'chat' | 'code' | 'preview') => 
+  togglePanel: (panel: 'chat' | 'code' | 'preview') =>
     set((state) => {
-      // For mobile, ensure at least one panel is always visible
+      // Use consistent mobile breakpoint with useResponsive hook
       const isMobile = window.innerWidth < 768
-      
+
       if (isMobile) {
-        // Turn off all panels, then turn on the selected one
+        // Mobile: Show only one panel at a time
         return {
           showChat: panel === 'chat',
           showCode: panel === 'code',
           showPreview: panel === 'preview'
         }
       } else {
-        // Desktop behavior - toggle normally
+        // Desktop: Toggle panels independently
         switch (panel) {
           case 'chat':
             return { showChat: !state.showChat }
@@ -164,95 +122,61 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     }),
 
-  // Enhanced file operations using VFS
-  createFile: (artifactId: string, filePath: string, content: string = '') => {
-    const state = get()
-    const vfs = state.getVFS(artifactId)
-    
-    vfs.writeFile(filePath, content)
-    
-    // Update artifact files from VFS
+  // File operations
+  createFile: (artifactId: string, filePath: string, content: string = '') =>
     set((state) => ({
       artifacts: state.artifacts.map(artifact =>
         artifact.id === artifactId
-          ? { ...artifact, files: vfs.export() }
+          ? { ...artifact, files: { ...artifact.files, [filePath]: content } }
           : artifact
       )
-    }))
-  },
+    })),
 
-  createFolder: (artifactId: string, folderPath: string) => {
-    const state = get()
-    const vfs = state.getVFS(artifactId)
-    
-    // Create a .gitkeep file to represent the folder
-    vfs.writeFile(`${folderPath}/.gitkeep`, '# This file keeps the folder in version control')
-    
-    // Update artifact files from VFS
+  createFolder: (artifactId: string, folderPath: string) =>
     set((state) => ({
       artifacts: state.artifacts.map(artifact =>
         artifact.id === artifactId
-          ? { ...artifact, files: vfs.export() }
+          ? { ...artifact, files: { ...artifact.files, [`${folderPath}/.gitkeep`]: '# This file keeps the folder in version control' } }
           : artifact
       )
-    }))
-  },
+    })),
 
-  deleteFile: (artifactId: string, filePath: string) => {
-    const state = get()
-    const vfs = state.getVFS(artifactId)
-    
-    vfs.unlink(filePath)
-    
-    // Update artifact files from VFS
+  deleteFile: (artifactId: string, filePath: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact => {
+        if (artifact.id === artifactId) {
+          const newFiles = { ...artifact.files }
+          delete newFiles[filePath]
+          return { ...artifact, files: newFiles }
+        }
+        return artifact
+      })
+    })),
+
+  renameFile: (artifactId: string, oldPath: string, newName: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact => {
+        if (artifact.id === artifactId) {
+          const content = artifact.files[oldPath]
+          if (content !== undefined) {
+            const pathParts = oldPath.split('/')
+            const newPath = [...pathParts.slice(0, -1), newName].join('/')
+            const newFiles = { ...artifact.files }
+            newFiles[newPath] = content
+            delete newFiles[oldPath]
+            return { ...artifact, files: newFiles }
+          }
+        }
+        return artifact
+      })
+    })),
+
+  updateFileContent: (artifactId: string, filePath: string, content: string) =>
     set((state) => ({
       artifacts: state.artifacts.map(artifact =>
         artifact.id === artifactId
-          ? { ...artifact, files: vfs.export() }
+          ? { ...artifact, files: { ...artifact.files, [filePath]: content } }
           : artifact
       )
     }))
-  },
-
-  renameFile: (artifactId: string, oldPath: string, newName: string) => {
-    const state = get()
-    const vfs = state.getVFS(artifactId)
-    
-    // Get the old file content
-    const oldFile = vfs.readFile(oldPath)
-    if (oldFile) {
-      // Create new path
-      const pathParts = oldPath.split('/')
-      const newPath = [...pathParts.slice(0, -1), newName].join('/')
-      
-      // Write to new location and delete old
-      vfs.writeFile(newPath, oldFile.content)
-      vfs.unlink(oldPath)
-      
-      // Update artifact files from VFS
-      set((state) => ({
-        artifacts: state.artifacts.map(artifact =>
-          artifact.id === artifactId
-            ? { ...artifact, files: vfs.export() }
-            : artifact
-        )
-      }))
-    }
-  },
-
-  updateFileContent: (artifactId: string, filePath: string, content: string) => {
-    const state = get()
-    const vfs = state.getVFS(artifactId)
-    
-    vfs.writeFile(filePath, content)
-    
-    // Update artifact files from VFS
-    set((state) => ({
-      artifacts: state.artifacts.map(artifact =>
-        artifact.id === artifactId
-          ? { ...artifact, files: vfs.export() }
-          : artifact
-      )
-    }))
-  }
 }))

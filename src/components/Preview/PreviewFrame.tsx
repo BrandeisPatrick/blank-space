@@ -20,7 +20,7 @@ interface ConsoleMessage {
 
 export const PreviewFrame = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const { currentArtifactId, artifacts, getVFS } = useAppStore()
+  const { currentArtifactId, artifacts } = useAppStore()
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const [errors, setErrors] = useState<PreviewError[]>([])
@@ -67,22 +67,21 @@ export const PreviewFrame = () => {
           console.log('🏗️ Multi-file project detected, using bundler...')
           setLoadingPhase('bundling')
 
-          const vfs = getVFS(currentArtifact.id)
           const bundler = new ModuleBundler()
-          
+
           // Find entry point (prefer App.tsx > App.jsx > index.tsx > index.jsx)
-          let entryPoint = '/App.jsx'
-          const entryOptions = ['/App.tsx', '/App.jsx', '/index.tsx', '/index.jsx', '/src/App.tsx', '/src/App.jsx']
-          
+          let entryPoint = 'App.jsx'
+          const entryOptions = ['App.tsx', 'App.jsx', 'index.tsx', 'index.jsx', 'src/App.tsx', 'src/App.jsx']
+
           for (const option of entryOptions) {
-            if (vfs.exists(option)) {
+            if (currentArtifact.files[option]) {
               entryPoint = option
               break
             }
           }
 
           try {
-            const bundleResult = await bundler.bundle(vfs, {
+            const bundleResult = await bundler.bundle(currentArtifact.files, {
               entryPoint,
               format: 'iife',
               target: 'es2020'
