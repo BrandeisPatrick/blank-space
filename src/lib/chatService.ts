@@ -4,7 +4,7 @@ import { memoryService } from './memoryService'
 import { featurePlanningService, ProjectPlan } from './featurePlanningService'
 
 // Phase events for the compact thinking panel
-export type PhaseEvent =
+export type GenerationPhaseEvent =
   | { type: 'phase_start'; phase: 'thinking' | 'planning' | 'generation'; totalSteps?: number }
   | { type: 'phase_step'; stepId: string; label: string; status: ThinkingStep['status']; progress?: number }
   | { type: 'phase_progress'; phase: 'thinking' | 'planning' | 'generation'; progress: number; message?: string }
@@ -15,7 +15,7 @@ export type PhaseEvent =
   | { type: 'answer_complete'; fullAnswer: string }
   | { type: 'planning_complete'; projectPlan: ProjectPlan }
 
-interface ChatServiceOptions {
+interface ChatServiceConfiguration {
   onReasoningStep?: (step: ReasoningStep) => void
   onReasoningComplete?: (steps: ReasoningStep[]) => void
   onPlanningComplete?: (projectPlan: ProjectPlan) => void
@@ -24,7 +24,7 @@ interface ChatServiceOptions {
   onError?: (error: Error) => void
 
   // New compact thinking panel events
-  onPhaseEvent?: (event: PhaseEvent) => void
+  onPhaseEvent?: (event: GenerationPhaseEvent) => void
 }
 
 export class ChatService {
@@ -40,7 +40,7 @@ export class ChatService {
    */
   async generateWithReasoning(
     prompt: string,
-    options: ChatServiceOptions = {}
+    options: ChatServiceConfiguration = {}
   ): Promise<{ reasoningSteps: ReasoningStep[]; projectPlan?: ProjectPlan; artifact: Artifact | null }> {
     const {
       onReasoningStep,
@@ -66,7 +66,6 @@ export class ChatService {
       onPhaseEvent?.({ type: 'phase_start', phase: 'thinking', totalSteps: estimatedReasoningSteps })
       onPhaseEvent?.({ type: 'stream_start', phase: 'thinking' })
 
-      console.log('🧠 Starting integrated reasoning and generation...')
 
       // Get session memory context
       const sessionContext = memoryService.getSessionContext()
@@ -182,10 +181,8 @@ export class ChatService {
 
                   onReasoningComplete?.(reasoningSteps)
                   onPhaseEvent?.({ type: 'phase_complete', phase: 'thinking' })
-                  console.log(`✅ Reasoning complete with ${reasoningSteps.length} steps`)
 
                   // Start feature planning phase
-                  console.log('📋 Starting feature planning...')
                   onPhaseEvent?.({ type: 'phase_start', phase: 'planning', totalSteps: 1 })
 
                   const planningStepId = 'plan_comprehensive'
@@ -243,10 +240,8 @@ export class ChatService {
                     onPlanningComplete?.(projectPlan)
                     onPhaseEvent?.({ type: 'planning_complete', projectPlan })
                     onPhaseEvent?.({ type: 'phase_complete', phase: 'planning' })
-                    console.log(`📋 Feature planning complete: ${projectPlan.name}`)
 
                   } catch (planningError) {
-                    console.warn('Feature planning failed, continuing with generation:', planningError)
                     // If planning fails, continue with generation anyway
                     if (currentStepId) {
                       onPhaseEvent?.({
@@ -262,7 +257,6 @@ export class ChatService {
 
                   // Switch to generation phase
                   inReasoningPhase = false
-                  console.log('⚡ Starting code generation...')
                   onGenerationStart?.()
                   onPhaseEvent?.({ type: 'phase_start', phase: 'generation', totalSteps: 3 })
                   onPhaseEvent?.({ type: 'stream_start', phase: 'generation' })
@@ -325,12 +319,10 @@ export class ChatService {
                     onGenerationComplete?.(artifact)
                   }
                   onPhaseEvent?.({ type: 'phase_complete', phase: 'generation' })
-                  console.log('🚀 Code generation complete!')
                 } else if (data.type === 'error') {
                   throw new Error(data.error || 'Unknown generation error')
                 }
               } catch (e) {
-                console.warn('Failed to parse response:', e)
               }
             }
           }

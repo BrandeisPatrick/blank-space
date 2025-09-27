@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ThinkingPhase, ThinkingStep } from '../components/Chat/CompactThinkingPanel'
 
-interface UseThinkingStateOptions {
+interface ThinkingStateConfiguration {
   autoCollapse?: boolean
   collapseDelay?: number
 }
 
-export const useThinkingState = (options: UseThinkingStateOptions = {}) => {
+export const useThinkingState = (options: ThinkingStateConfiguration = {}) => {
   const { autoCollapse = true, collapseDelay = 3000 } = options
   
   const [phase, setPhase] = useState<ThinkingPhase>('idle')

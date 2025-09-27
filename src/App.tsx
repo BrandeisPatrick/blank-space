@@ -8,21 +8,20 @@ import { MobileToggleBar } from './components/Layout/MobileToggleBar'
 import { SignInPage } from './components/Auth/SignInPage'
 import { LandingPage } from './components/Landing/LandingPage'
 import { Dashboard } from './components/Dashboard/Dashboard'
-import { DeveloperDashboard } from './components/Developer/DeveloperDashboard'
-import { useAppStore } from './pages/appStore'
-import { useUserStore, initializeUserFromStorage } from './pages/userStore'
+import { useAppStore } from './stores/appStore'
+import { useUserStore, loadUserFromLocalStorage } from './stores/userStore'
 import { useResponsive } from './lib/useResponsive'
-import { useTheme } from './pages/ThemeContext'
+import { useTheme } from './contexts/ThemeContext'
 import { generationService } from './lib/generationService'
 import { chatService } from './lib/chatService'
-import { uiSummaryService, UISummaryEvent } from './lib/uiSummaryService'
+import { uiSummaryService, UserInterfaceProgressEvent } from './lib/uiSummaryService'
 import { memoryService } from './lib/memoryService'
 import { ChatMessage } from './types'
 import { getTheme } from './styles/theme'
 import { CompactThinkingPanel } from './components/Chat/CompactThinkingPanel'
 import { useThinkingState } from './lib/useThinkingState'
 
-type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard' | 'developer'
+type AppRoute = 'landing' | 'studio' | 'signin' | 'dashboard'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('landing')
@@ -54,7 +53,7 @@ function App() {
 
   // Subscribe to UI summary events for clean user display (legacy compatibility)
   useEffect(() => {
-    const unsubscribe = uiSummaryService.subscribe((event: UISummaryEvent) => {
+    const unsubscribe = uiSummaryService.subscribe((event: UserInterfaceProgressEvent) => {
       // Only process UI summary events if they're not coming from real backend progress
       // This maintains backward compatibility for any remaining fake events
       if (!event.realProgress) {
@@ -96,13 +95,12 @@ function App() {
 
   // Initialize user from storage on app start
   useEffect(() => {
-    initializeUserFromStorage()
+    loadUserFromLocalStorage()
   }, [])
 
   // Initialize memory service with existing chat messages
   useEffect(() => {
     if (chatMessages.length > 0) {
-      console.log('🧠 Initializing memory service with existing chat messages')
       memoryService.addMessages(chatMessages)
     }
   }, [chatMessages.length])
@@ -141,7 +139,6 @@ function App() {
   const handleNavigateToLanding = () => setCurrentRoute('landing')
   const handleNavigateToDashboard = () => setCurrentRoute('dashboard')
   const handleCreateNew = () => setCurrentRoute('studio')
-  const handleNavigateToDeveloper = () => setCurrentRoute('developer')
   
   const handleOpenArtifact = (artifactId: string) => {
     setCurrentArtifact(artifactId)
@@ -178,15 +175,6 @@ function App() {
     )
   }
 
-  if (currentRoute === 'developer') {
-    return (
-      <DeveloperDashboard
-        onNavigateBack={() => setCurrentRoute(isAuthenticated ? 'dashboard' : 'landing')}
-      />
-    )
-  }
-
-
   // AI-powered intent classification and conversation handling
   const analyzeUserIntent = async (message: string) => {
     const hasActiveCode = Boolean(currentArtifactId)
@@ -217,7 +205,6 @@ function App() {
     // Analyze user intent with AI classification
     const { intentResult, context } = await analyzeUserIntent(message)
     
-    console.log(`Intent: ${intentResult.intent} (${(intentResult.confidence * 100).toFixed(1)}% confidence) - ${intentResult.reasoning}`)
     
     switch (intentResult.intent) {
       case 'generation':
@@ -234,16 +221,13 @@ function App() {
           
           // Run internal pipeline with real progress tracking
           const result = await chatService.generateWithReasoning(message, {
-            onReasoningComplete: (steps) => {
-              console.log(`✅ Reasoning phase complete with ${steps.length} steps`)
+            onReasoningComplete: (_steps) => {
               // Internal reasoning is complete, but UI summary continues independently
             },
             onGenerationStart: () => {
-              console.log('⚡ Starting code generation phase...')
               thinking.startStreaming()
             },
             onGenerationComplete: (artifact) => {
-              console.log('🚀 Code generation complete!')
               thinking.complete()
 
               // Add clean success message
@@ -322,8 +306,6 @@ function App() {
                 case 'planning_complete':
                   // Automatically proceed with the generated plan
                   if (phaseEvent.projectPlan) {
-                    console.log(`📋 Auto-accepting project plan: ${phaseEvent.projectPlan.name}`)
-                    console.log(`✨ Plan includes ${phaseEvent.projectPlan.features.length} v1 features`)
                     // Continue automatically - no user intervention needed
                   }
                   break
@@ -518,9 +500,8 @@ ENHANCEMENT REQUIREMENTS:
       overflow: 'hidden',
     }}>
       {/* Top Bar */}
-      <TopBar 
+      <TopBar
         onNavigateToSignIn={isAuthenticated ? handleNavigateToDashboard : handleNavigateToSignIn}
-        onNavigateToDeveloper={handleNavigateToDeveloper}
         user={user}
         isAuthenticated={isAuthenticated}
       />

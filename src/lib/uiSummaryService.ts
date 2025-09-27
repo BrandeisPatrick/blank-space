@@ -3,7 +3,7 @@
  * This service now operates purely based on real backend events from ChatService
  */
 
-export interface UISummaryEvent {
+export interface UserInterfaceProgressEvent {
   type: 'phase_start' | 'phase_progress' | 'phase_complete' | 'phase_error'
   phase: 'analyzing' | 'planning' | 'generating' | 'finalizing'
   message: string
@@ -13,8 +13,8 @@ export interface UISummaryEvent {
 }
 
 export class UISummaryService {
-  private listeners: ((event: UISummaryEvent) => void)[] = []
-  private currentPhase: UISummaryEvent['phase'] | null = null
+  private listeners: ((event: UserInterfaceProgressEvent) => void)[] = []
+  private currentPhase: UserInterfaceProgressEvent['phase'] | null = null
   private isRealProgressMode: boolean = false
 
   constructor() {}
@@ -22,7 +22,7 @@ export class UISummaryService {
   /**
    * Subscribe to UI summary events
    */
-  subscribe(callback: (event: UISummaryEvent) => void): () => void {
+  subscribe(callback: (event: UserInterfaceProgressEvent) => void): () => void {
     this.listeners.push(callback)
     return () => {
       const index = this.listeners.indexOf(callback)
@@ -30,7 +30,7 @@ export class UISummaryService {
     }
   }
 
-  private emit(event: UISummaryEvent) {
+  private emit(event: UserInterfaceProgressEvent) {
     this.listeners.forEach(callback => callback(event))
   }
 
@@ -44,7 +44,6 @@ export class UISummaryService {
 
     // The actual progress will be driven by real ChatService events
     // No more setTimeout or hardcoded delays!
-    console.log('🎯 UI Summary Service ready for real backend events')
   }
 
   /**
@@ -54,7 +53,7 @@ export class UISummaryService {
     if (!this.isRealProgressMode) return
 
     // Map ChatService phases to UI phases
-    const phaseMap: Record<string, UISummaryEvent['phase']> = {
+    const phaseMap: Record<string, UserInterfaceProgressEvent['phase']> = {
       thinking: 'analyzing',
       planning: 'planning',
       generation: 'generating'
@@ -98,23 +97,12 @@ export class UISummaryService {
     }
   }
 
-  /**
-   * Legacy methods - now deprecated but kept for backward compatibility
-   */
-  onBackendGenerationStart() {
-    console.warn('⚠️ onBackendGenerationStart is deprecated - use onChatServicePhaseEvent')
-  }
-
-  onBackendGenerationComplete(fileCount: number) {
-    if (this.isRealProgressMode) return
-    this.completePhase('generating', `Generated ${fileCount} files`)
-  }
 
   onBackendGenerationError(error: string) {
     this.errorPhase(this.currentPhase || 'generating', error)
   }
 
-  private startPhase(phase: UISummaryEvent['phase'], message: string) {
+  private startPhase(phase: UserInterfaceProgressEvent['phase'], message: string) {
     this.currentPhase = phase
     
     this.emit({
@@ -126,7 +114,7 @@ export class UISummaryService {
     })
   }
 
-  private updatePhase(phase: UISummaryEvent['phase'], message: string, progress?: number) {
+  private updatePhase(phase: UserInterfaceProgressEvent['phase'], message: string, progress?: number) {
     if (this.currentPhase !== phase) return
 
     this.emit({
@@ -139,7 +127,7 @@ export class UISummaryService {
     })
   }
 
-  private completePhase(phase: UISummaryEvent['phase'], message: string) {
+  private completePhase(phase: UserInterfaceProgressEvent['phase'], message: string) {
     if (this.currentPhase !== phase) return
     
     this.emit({
@@ -153,7 +141,7 @@ export class UISummaryService {
     this.currentPhase = null
   }
 
-  private errorPhase(phase: UISummaryEvent['phase'], message: string) {
+  private errorPhase(phase: UserInterfaceProgressEvent['phase'], message: string) {
     this.emit({
       type: 'phase_error',
       phase,
@@ -173,7 +161,7 @@ export class UISummaryService {
   /**
    * Helper methods for generating contextual messages
    */
-  private getPhaseStartMessage(phase: UISummaryEvent['phase']): string {
+  private getPhaseStartMessage(phase: UserInterfaceProgressEvent['phase']): string {
     const messages = {
       analyzing: 'Understanding your request...',
       planning: 'Planning v1 features with ChatGPT...',
@@ -183,7 +171,7 @@ export class UISummaryService {
     return messages[phase] || 'Processing...'
   }
 
-  private getProgressMessage(phase: UISummaryEvent['phase'], progress: number): string {
+  private getProgressMessage(phase: UserInterfaceProgressEvent['phase'], progress: number): string {
     const progressMessages = {
       analyzing: progress < 50 ? 'Analyzing requirements' : 'Understanding context',
       planning: progress < 40 ? 'Analyzing app requirements' : progress < 80 ? 'Identifying v1 features' : 'Selecting modern tech stack',
@@ -193,7 +181,7 @@ export class UISummaryService {
     return progressMessages[phase] || 'Processing...'
   }
 
-  private getPhaseCompleteMessage(phase: UISummaryEvent['phase']): string {
+  private getPhaseCompleteMessage(phase: UserInterfaceProgressEvent['phase']): string {
     const messages = {
       analyzing: 'Requirements understood',
       planning: 'V1 features planned',

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { ReasoningStep } from '../../types'
 

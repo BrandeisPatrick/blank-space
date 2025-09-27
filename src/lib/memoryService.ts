@@ -205,7 +205,6 @@ export class MemoryService {
       this.sessionMemory.summaries.shift()
     }
 
-    console.log('📝 Created conversation summary:', summary)
   }
 
   private extractPatterns(messages: ChatMessage[]) {

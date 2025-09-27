@@ -73,7 +73,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 }))
 
 // Initialize user from localStorage on app start
-export const initializeUserFromStorage = () => {
+export const loadUserFromLocalStorage = () => {
   try {
     const storedUser = localStorage.getItem('blank_space_user')
     if (storedUser) {

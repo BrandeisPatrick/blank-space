@@ -1,5 +1,5 @@
 import { Editor } from '@monaco-editor/react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 
 interface CodeEditorProps {
   content: string

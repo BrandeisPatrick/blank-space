@@ -1,24 +1,16 @@
-import { Artifact, ResponseMode } from '../types'
+import { Artifact, ResponseMode, ReasoningStep } from '../types'
 import { parseAIResponseWithReasoning } from '../lib/aiResponseParser'
 
 // Always use relative API routes for Vercel deployment
-const API_BASE_URL = '/api'
+const CODE_GENERATION_API_BASE_URL = '/api'
 
-export interface GenerationOptions {
+export interface CodeGenerationOptions {
   device?: string
   framework?: string
 }
 
-// ReAct reasoning step types
-export interface ReasoningStep {
-  id: string
-  type: 'thought' | 'action' | 'observation' | 'final_answer'
-  content: string
-  timestamp: string
-  metadata: any
-}
 
-export interface ReActResult {
+export interface ReasoningResult {
   success: boolean
   steps: ReasoningStep[]
   finalAnswer: string
@@ -37,9 +29,9 @@ export class GenerationService {
     return GenerationService.instance
   }
 
-  private async generateWithSecureAPI(prompt: string, options: GenerationOptions & { withReasoning?: boolean } = {}): Promise<Artifact> {
+  private async generateWithSecureAPI(prompt: string, options: CodeGenerationOptions & { withReasoning?: boolean } = {}): Promise<Artifact> {
     // Secure API generation using server-side AI calls
-    const apiUrl = `${API_BASE_URL}/generate`
+    const apiUrl = `${CODE_GENERATION_API_BASE_URL}/generate`
 
     try {
       const response = await fetch(apiUrl, {
@@ -101,13 +93,13 @@ export class GenerationService {
 
   async generateWithReActReasoning(
     goal: string,
-    options: GenerationOptions & {
+    options: CodeGenerationOptions & {
       onStep?: (step: ReasoningStep) => void,
       stream?: boolean
     } = {}
-  ): Promise<ReActResult> {
+  ): Promise<ReasoningResult> {
     // Use enhanced generate API with reasoning enabled
-    const apiUrl = `${API_BASE_URL}/generate`
+    const apiUrl = `${CODE_GENERATION_API_BASE_URL}/generate`
 
     try {
       const response = await fetch(apiUrl, {
@@ -134,7 +126,7 @@ export class GenerationService {
       }
 
       const steps: ReasoningStep[] = []
-      let finalResult: ReActResult | undefined
+      let finalResult: ReasoningResult | undefined
 
       while (true) {
         const { done, value } = await reader.read()
@@ -187,7 +179,7 @@ export class GenerationService {
     }
   }
 
-  async generateWebsite(prompt: string, options: GenerationOptions = {}): Promise<Artifact> {
+  async generateWebsite(prompt: string, options: CodeGenerationOptions = {}): Promise<Artifact> {
     // Use secure API routes for Vercel deployment
     return await this.generateWithSecureAPI(prompt, options)
   }
@@ -199,10 +191,7 @@ export class GenerationService {
     responseMode?: ResponseMode
   }): Promise<{ content: string; thinking?: string; reasoningSteps?: any[] }> {
     try {
-      console.log('Making chat request to:', `${API_BASE_URL}/chat`)
-      console.log('Request payload:', { message, context })
-      
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      const response = await fetch(`${CODE_GENERATION_API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,9 +202,6 @@ export class GenerationService {
         })
       })
 
-      console.log('Response status:', response.status)
-      console.log('Response ok:', response.ok)
-
       if (!response.ok) {
         const error = await response.json()
         console.error('Response error:', error)
@@ -223,7 +209,6 @@ export class GenerationService {
       }
 
       const data = await response.json()
-      console.log('Response data:', data)
       
       if (!data.success) {
         throw new Error(data.error || 'Chat response failed')
@@ -237,9 +222,7 @@ export class GenerationService {
         reasoningSteps: parsed.reasoningSteps
       }
     } catch (error) {
-      console.error('Chat error details:', error)
-      console.error('Error type:', typeof error)
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('Chat error:', error)
       throw error instanceof Error ? error : new Error('Unknown error')
     }
   }
@@ -252,7 +235,7 @@ export class GenerationService {
     shouldShowOptions?: boolean
   }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/intent`, {
+      const response = await fetch(`${CODE_GENERATION_API_BASE_URL}/intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,7 +293,7 @@ export class GenerationService {
 
   async checkHealth(): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`)
+      const response = await fetch(`${CODE_GENERATION_API_BASE_URL}/health`)
       const data = await response.json()
       return data.status === 'ok'
     } catch {

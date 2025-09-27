@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAppStore } from '../../pages/appStore'
-import { useTheme } from '../../pages/ThemeContext'
+import { useAppStore } from '../../stores/appStore'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { TranspilerService } from '../../lib/transpiler'
 import { ModuleBundler } from '../../lib/bundler'
@@ -64,7 +64,6 @@ export const PreviewFrame = () => {
 
         if (hasMultipleComponents) {
           // Use bundler for multi-file projects
-          console.log('🏗️ Multi-file project detected, using bundler...')
           setLoadingPhase('bundling')
 
           const bundler = new ModuleBundler()
@@ -100,7 +99,6 @@ export const PreviewFrame = () => {
                 </html>
               `
             } else {
-              console.log('✅ Bundle created successfully')
               fullHtml = bundleResult.html
             }
           } catch (error) {
@@ -118,7 +116,6 @@ export const PreviewFrame = () => {
           }
         } else {
           // Single-file React component - use existing transpiler
-          console.log('📄 Single-file component detected, using transpiler...')
           setLoadingPhase('transpiling')
 
           const transpilerService = TranspilerService.getInstance()

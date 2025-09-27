@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
-import { useAppStore } from '../../pages/appStore'
-import { useTheme } from '../../pages/ThemeContext'
+import { useAppStore } from '../../stores/appStore'
+import { useTheme } from '../../contexts/ThemeContext'
 import { ChatMessage } from '../../types'
 import { getTheme } from '../../styles/theme'
 import { ReasoningTab } from './ReasoningTab'

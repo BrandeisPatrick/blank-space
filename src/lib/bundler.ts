@@ -1,4 +1,4 @@
-export interface BundleResult {
+export interface ModuleBundleResult {
   code: string
   css: string
   html: string
@@ -7,7 +7,7 @@ export interface BundleResult {
   dependencies: string[]
 }
 
-export interface BundleOptions {
+export interface ModuleBundleOptions {
   entryPoint: string
   target?: 'es2020' | 'es2022'
   format?: 'iife' | 'esm' | 'cjs'
@@ -18,8 +18,8 @@ export class ModuleBundler {
 
   async bundle(
     files: Record<string, string>,
-    options: BundleOptions
-  ): Promise<BundleResult> {
+    options: ModuleBundleOptions
+  ): Promise<ModuleBundleResult> {
     // Simplified bundler that just returns the entry file content
     const entryContent = files[options.entryPoint]
 

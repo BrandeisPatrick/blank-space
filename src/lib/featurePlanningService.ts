@@ -104,33 +104,6 @@ export class FeaturePlanningService {
     }
   }
 
-  /**
-   * Quick feature suggestions without full analysis
-   */
-  async suggestQuickFeatures(appType: string, prompt: string): Promise<Feature[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/suggest-features`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appType,
-          prompt,
-          maxFeatures: 8
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Quick feature suggestion failed: ${response.status}`)
-      }
-
-      const result = await response.json()
-      return result.features || this.getDefaultFeatures(appType)
-
-    } catch (error) {
-      console.error('Quick feature suggestion failed:', error)
-      return this.getDefaultFeatures(appType)
-    }
-  }
 
   /**
    * Get modern UI framework recommendations based on app type

@@ -7,7 +7,7 @@ export interface ResponsiveBreakpoints {
   screenWidth: number
 }
 
-const BREAKPOINTS = {
+const RESPONSIVE_DESIGN_BREAKPOINTS = {
   mobile: 768,
   tablet: 1024,
 } as const
@@ -26,9 +26,9 @@ export function useResponsive(): ResponsiveBreakpoints {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  const isMobile = screenWidth < BREAKPOINTS.mobile
-  const isTablet = screenWidth >= BREAKPOINTS.mobile && screenWidth < BREAKPOINTS.tablet
-  const isDesktop = screenWidth >= BREAKPOINTS.tablet
+  const isMobile = screenWidth < RESPONSIVE_DESIGN_BREAKPOINTS.mobile
+  const isTablet = screenWidth >= RESPONSIVE_DESIGN_BREAKPOINTS.mobile && screenWidth < RESPONSIVE_DESIGN_BREAKPOINTS.tablet
+  const isDesktop = screenWidth >= RESPONSIVE_DESIGN_BREAKPOINTS.tablet
 
   return {
     isMobile,

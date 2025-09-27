@@ -15,9 +15,9 @@
     "@ai-sdk/xai": "^2.0.16",
     "@monaco-editor/react": "^4.7.0",
     "ai": "^5.0.33",
-    "esbuild-wasm": "^0.25.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

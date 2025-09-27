@@ -163,5 +163,3 @@ export const getTheme = (mode: ThemeMode) => {
   }
 }
 
-// Backward compatibility - default to light theme
-export const theme = getTheme('light')

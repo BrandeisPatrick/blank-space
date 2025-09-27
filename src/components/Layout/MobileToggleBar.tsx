@@ -1,6 +1,6 @@
 import React from 'react'
-import { useAppStore } from '../../pages/appStore'
-import { useTheme } from '../../pages/ThemeContext'
+import { useAppStore } from '../../stores/appStore'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 export const MobileToggleBar = React.memo(() => {

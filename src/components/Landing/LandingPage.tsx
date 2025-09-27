@@ -1,5 +1,4 @@
-import { } from 'react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 interface LandingPageProps {

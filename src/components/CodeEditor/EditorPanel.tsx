@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { CodeEditor } from './CodeEditor'
 import { FileTabs } from './FileTabs'
-import { useAppStore } from '../../pages/appStore'
-import { useTheme } from '../../pages/ThemeContext'
+import { useAppStore } from '../../stores/appStore'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 export const EditorPanel = () => {
@@ -62,7 +62,6 @@ p {
     font-size: 18px;
 }`,
         'script.js': `// Generated JavaScript will appear here
-console.log('Website loaded successfully');
 
 // Add interactivity here`
       })

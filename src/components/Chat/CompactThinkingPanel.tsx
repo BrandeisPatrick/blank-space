@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 export type ThinkingPhase = 'idle' | 'thinking' | 'streaming' | 'done' | 'error'

@@ -1,4 +1,4 @@
-export interface TranspilerResult {
+export interface CodeTranspilerResult {
   code: string
   map?: string
   error?: string
@@ -24,7 +24,7 @@ export class TranspilerService {
   async transpile(
     code: string,
     _filename: string
-  ): Promise<TranspilerResult> {
+  ): Promise<CodeTranspilerResult> {
     // Simplified transpiler that just returns the code as-is
     return {
       code,

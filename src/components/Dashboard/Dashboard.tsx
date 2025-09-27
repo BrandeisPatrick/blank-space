@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
-import { useAppStore } from '../../pages/appStore'
+import { useAppStore } from '../../stores/appStore'
 
 interface DashboardProps {
   onCreateNew: () => void

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useTheme } from '../../pages/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 interface SignInPageProps {
@@ -37,7 +37,6 @@ export const SignInPage = ({ onNavigateToMain, onSignIn }: SignInPageProps) => {
       } else {
         // Fallback - simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log('Sign in attempted with:', formData)
       }
     } catch (error) {
       console.error('Sign in error:', error)
@@ -396,7 +395,7 @@ export const SignInPage = ({ onNavigateToMain, onSignIn }: SignInPageProps) => {
                 cursor: 'pointer',
                 fontFamily: theme.typography.fontFamily.sans,
               }}
-              onClick={() => console.log('Navigate to sign up')}
+              onClick={() => {}}
             >
               Sign up
             </button>
@@ -419,7 +418,7 @@ export const SignInPage = ({ onNavigateToMain, onSignIn }: SignInPageProps) => {
                 cursor: 'pointer',
                 fontFamily: theme.typography.fontFamily.sans,
               }}
-              onClick={() => console.log('Navigate to forgot password')}
+              onClick={() => {}}
             >
               Forgot your password?
             </button>
