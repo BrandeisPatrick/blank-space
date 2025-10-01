@@ -87,7 +87,6 @@ IMPORTANT:
 - ALWAYS organize code into proper folders (components/, hooks/, lib/)
 - Each component gets its own file in components/
 - Each custom hook gets its own file in hooks/
-- DO NOT create .bina.json (system auto-detects entry points)
 - Create 5-10 files for a proper React application structure
 
 Analyze the user's request and generate a comprehensive project plan with proper folder organization.
@@ -199,8 +198,7 @@ Guidelines:
 - Each component in its own file in components/
 - Each custom hook in its own file in hooks/
 - List dependencies to ensure correct generation order
-- Be specific about props, state, and methods
-- DO NOT include .bina.json in the file list`
+- Be specific about props, state, and methods`
 
     const result = await generateText({
       model,

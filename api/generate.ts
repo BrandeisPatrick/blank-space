@@ -75,14 +75,10 @@ FILE STRUCTURE REQUIREMENTS (MANDATORY - VIOLATIONS WILL BE REJECTED):
 - Creating TodoList.tsx at root instead of components/TodoList.tsx
 - Flat file structures without proper folders
 - Components outside the components/ folder
-- Generating .bina.json (system auto-detects entry points)
 - Generating index.html, index.js, or package.json (handled by host)
 
 ❌ REJECTED EXAMPLE (DO NOT FOLLOW THIS):
 <binaArtifact id="bad-counter" title="Counter App">
-  <binaAction type="file" filePath=".bina.json">
-  ❌ WRONG - Do NOT generate .bina.json
-  </binaAction>
   <binaAction type="file" filePath="types.ts">
   ❌ WRONG - Flat structure without folders
   </binaAction>
@@ -270,7 +266,6 @@ VALIDATION CHECKLIST (YOU MUST FOLLOW):
 ✓ ALL visual components in components/ folder
 ✓ ALL custom hooks in hooks/ folder
 ✓ Clean import paths with proper folder references
-✓ NO .bina.json file generated
 
 FORMAT REQUIREMENTS:
 - CRITICAL: You MUST return your response wrapped in a single <binaArtifact> tag with nested <binaAction> tags
