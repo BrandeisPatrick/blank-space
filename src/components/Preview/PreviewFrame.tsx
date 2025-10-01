@@ -3,7 +3,7 @@ import { useAppStore } from '../../stores/appStore'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { TranspilerService } from '../../lib/transpiler'
-import { ModuleBundler } from '../../lib/bundler'
+import { EsbuildBundler } from '../../lib/esbuildBundler'
 
 interface PreviewError {
   message: string
@@ -29,7 +29,6 @@ export const PreviewFrame = () => {
   const [showConsole, setShowConsole] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<'transpiling' | 'bundling' | 'rendering'>('transpiling')
-  const previewBlobUrlRef = useRef<string | null>(null)
 
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
 
@@ -88,65 +87,85 @@ export const PreviewFrame = () => {
           name.startsWith('components/') ||
           name.startsWith('hooks/') ||
           name.startsWith('utils/') ||
-          name.startsWith('lib/')
+          name.startsWith('lib/') ||
+          name.startsWith('src/components/') ||
+          name.startsWith('src/hooks/') ||
+          name.startsWith('src/utils/') ||
+          name.startsWith('src/lib/')
         )
 
         const shouldBundle = useBundler || hasMultipleComponents
 
         if (shouldBundle) {
-          // Use bundler for multi-file projects
+          // Use esbuild-wasm for multi-file projects (fast, in-browser bundling)
           setLoadingPhase('bundling')
 
-          const bundler = new ModuleBundler()
-
-          // Find entry point
-          const entryPoint = reactEntryPoint || 'App.jsx'
-
           try {
-            const bundleResult = await bundler.bundle(currentArtifact.files, {
-              entryPoint,
-              format: 'iife',
-              target: 'es2020'
-            })
+            console.log('[esbuild Preview] Bundling multi-file project...')
+
+            const bundler = new EsbuildBundler()
+            const entryPoint = reactEntryPoint || 'App.tsx'
+
+            console.log('[esbuild Preview] Entry point:', entryPoint)
+            console.log('[esbuild Preview] Files:', Object.keys(currentArtifact.files))
+
+            // Bundle all files using esbuild
+            const bundleResult = await bundler.bundle(currentArtifact.files, entryPoint)
 
             if (bundleResult.error) {
-              console.error('Bundle error:', bundleResult.error)
+              console.error('[esbuild Preview] Bundle error:', bundleResult.error)
               fullHtml = `
                 <html>
                   <body>
-                    <div style="color: red; padding: 20px;">
-                      <h3>Bundle Error</h3>
+                    <div style="color: red; padding: 20px; font-family: system-ui;">
+                      <h3>Build Error</h3>
                       <pre>${bundleResult.error}</pre>
+                      <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                        Check the browser console for more details.
+                      </p>
                     </div>
-                  </body>
-                </html>
-              `
-            } else if (!bundleResult.html) {
-              console.error('Bundle returned empty HTML')
-              fullHtml = `
-                <html>
-                  <body>
-                    <div style="color: red; padding: 20px;">
-                      <h3>Bundle Error</h3>
-                      <pre>Bundler returned empty HTML. Entry point: ${entryPoint}</pre>
-                      <pre>Available files: ${Object.keys(currentArtifact.files).join(', ')}</pre>
-                    </div>
+                    <script>
+                      (function notifyParent() {
+                        try {
+                          console.log('[esbuild Preview] Notifying parent after build error');
+                          window.parent.postMessage({ type: 'preview-ready' }, '*');
+                        } catch (postMessageError) {
+                          console.warn('[esbuild Preview] Failed to notify parent after build error:', postMessageError);
+                        }
+                      })();
+                    </script>
                   </body>
                 </html>
               `
             } else {
               fullHtml = bundleResult.html
-              console.log('Bundle successful, rendering HTML')
+              console.log('[esbuild Preview] Bundle complete')
             }
           } catch (error) {
-            console.error('Bundling failed:', error)
+            console.error('[esbuild Preview] Failed:', error)
             fullHtml = `
               <html>
                 <body>
-                  <div style="color: red; padding: 20px;">
-                    <h3>Bundling Failed</h3>
+                  <div style="color: red; padding: 20px; font-family: system-ui;">
+                    <h3>Build Failed</h3>
                     <pre>${error instanceof Error ? error.message : 'Unknown error'}</pre>
+                    <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                      This could be due to:<br>
+                      • Syntax errors in your code<br>
+                      • Import resolution issues<br>
+                      • TypeScript compilation errors
+                    </p>
                   </div>
+                  <script>
+                    (function notifyParent() {
+                      try {
+                        console.log('[esbuild Preview] Notifying parent after build failure');
+                        window.parent.postMessage({ type: 'preview-ready' }, '*');
+                      } catch (postMessageError) {
+                        console.warn('[esbuild Preview] Failed to notify parent after build failure:', postMessageError);
+                      }
+                    })();
+                  </script>
                 </body>
               </html>
             `
@@ -281,7 +300,7 @@ export const PreviewFrame = () => {
       }
 
       // Add console interception to React components
-      if (isReactArtifact && fullHtml) {
+      if (isReactArtifact && fullHtml && !fullHtml.includes('__PREVIEW_CONSOLE_PATCH__')) {
         fullHtml = fullHtml.replace(
           '</body>',
           `<script>
@@ -340,6 +359,11 @@ export const PreviewFrame = () => {
                 }
               }, '*');
             });
+
+            // Signal that preview is ready
+            window.addEventListener('load', function() {
+              window.parent.postMessage({ type: 'preview-ready' }, '*');
+            });
           </script>
           </body>`
         )
@@ -350,38 +374,19 @@ export const PreviewFrame = () => {
         if (iframeRef.current) {
           const iframe = iframeRef.current
 
-          // Clean up any previously created blob URLs
-          if (previewBlobUrlRef.current) {
-            URL.revokeObjectURL(previewBlobUrlRef.current)
-            previewBlobUrlRef.current = null
-          }
+          // Use srcdoc to set HTML content directly (works with COEP/COOP headers)
+          iframe.srcdoc = fullHtml
 
-          // Serve the preview HTML from a Blob-backed URL so relative asset
-          // resolution has a valid origin instead of about:blank.
-          const htmlBlob = new Blob([fullHtml], { type: 'text/html' })
-          const blobUrl = URL.createObjectURL(htmlBlob)
-          previewBlobUrlRef.current = blobUrl
-
-          iframe.src = blobUrl
-
-          // Listen for iframe load to end loading state
-          const handleLoad = () => {
-            // Add a small delay to ensure content is fully rendered
-            setTimeout(() => {
-              setIsLoading(false)
-            }, 300)
-          }
-
-          iframe.addEventListener('load', handleLoad)
+          // Fallback timeout - if preview-ready message doesn't arrive, hide loading after 5s
+          const timeoutId = setTimeout(() => {
+            console.log('[Preview] Timeout reached, hiding loading state')
+            setIsLoading(false)
+          }, 5000)
 
           return () => {
-            iframe.removeEventListener('load', handleLoad)
-            // Reset the iframe to a blank page and revoke the blob URL
-            iframe.src = 'about:blank'
-            if (previewBlobUrlRef.current) {
-              URL.revokeObjectURL(previewBlobUrlRef.current)
-              previewBlobUrlRef.current = null
-            }
+            clearTimeout(timeoutId)
+            // Reset the iframe to a blank page
+            iframe.srcdoc = ''
           }
         }
 
@@ -404,21 +409,15 @@ export const PreviewFrame = () => {
         if (newMessage.type === 'error') {
           setShowConsole(true)
         }
+      } else if (event.data.type === 'preview-ready') {
+        // Iframe is fully loaded and ready
+        console.log('[PreviewFrame] Received preview-ready message')
+        setIsLoading(false)
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
-  // Ensure any allocated blob URLs are released when the component unmounts.
-  useEffect(() => {
-    return () => {
-      if (previewBlobUrlRef.current) {
-        URL.revokeObjectURL(previewBlobUrlRef.current)
-        previewBlobUrlRef.current = null
-      }
-    }
   }, [])
 
   if (!currentArtifact) {
@@ -621,7 +620,7 @@ export const PreviewFrame = () => {
                 textShadow: `0 1px 3px ${theme.colors.bg.primary}80`,
               }}>
                 {loadingPhase === 'transpiling' && 'Transpiling React code...'}
-                {loadingPhase === 'bundling' && 'Bundling components...'}
+                {loadingPhase === 'bundling' && 'Bundling with esbuild...'}
                 {loadingPhase === 'rendering' && 'Rendering preview...'}
               </div>
               <div style={{
@@ -631,7 +630,7 @@ export const PreviewFrame = () => {
                 textShadow: `0 1px 2px ${theme.colors.bg.primary}60`,
               }}>
                 {loadingPhase === 'transpiling' && 'Converting JSX to JavaScript'}
-                {loadingPhase === 'bundling' && 'Combining all modules'}
+                {loadingPhase === 'bundling' && 'Compiling TypeScript and resolving imports'}
                 {loadingPhase === 'rendering' && 'Loading your website'}
               </div>
             </div>

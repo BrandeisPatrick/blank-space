@@ -1,3 +1,5 @@
+import { transform as sucraseTransform } from 'sucrase'
+
 export interface ModuleBundleResult {
   code: string
   css: string
@@ -182,6 +184,20 @@ export class ModuleBundler {
       // Process the entry file and all its imports
       let transformedCode = this.processFile(options.entryPoint)
 
+      // Strip TypeScript type annotations using Sucrase
+      // This removes <generics>, : types, interface, type declarations, etc.
+      try {
+        const stripped = sucraseTransform(transformedCode, {
+          transforms: ['typescript'],
+          // Preserve JSX - Babel will handle it in the browser
+          filePath: options.entryPoint
+        })
+        transformedCode = stripped.code
+      } catch (error) {
+        console.warn('TypeScript stripping failed, continuing with original code:', error)
+        // Continue with original code if stripping fails
+      }
+
       // Transform React imports to work with CDN-loaded React
       transformedCode = transformedCode
         // Remove React imports and replace with global React
@@ -213,7 +229,7 @@ export class ModuleBundler {
     </style>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
     <div id="root"></div>

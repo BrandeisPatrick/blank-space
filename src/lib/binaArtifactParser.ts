@@ -1,6 +1,21 @@
 import { BinaAction, BinaArtifact, BinaParserEvent, ParserState } from '../types/binaArtifact'
 
 /**
+ * Helper to strip markdown code fences from file content
+ */
+function stripMarkdownCodeFences(content: string): string {
+  let cleaned = content
+  // Remove opening fences: ```tsx, ```typescript, ```jsx, ```javascript, etc.
+  cleaned = cleaned.replace(/^```[\w]*\n?/gm, '')
+  // Remove closing fences: ```
+  cleaned = cleaned.replace(/\n?```$/gm, '')
+  // Handle any remaining stray fences
+  cleaned = cleaned.replace(/```[\w]*\n?/g, '')
+  cleaned = cleaned.replace(/```/g, '')
+  return cleaned.trim()
+}
+
+/**
  * BinaArtifactParser - Streaming XML parser for BinaArtifact format
  *
  * Parses LLM output in the format:
@@ -142,7 +157,8 @@ export class BinaArtifactParser {
           // Update files if file action
           if (action.type === 'file' && action.filePath) {
             this.state.currentArtifact.files = this.state.currentArtifact.files || {}
-            this.state.currentArtifact.files[action.filePath] = action.content || ''
+            // Strip markdown code fences before storing
+            this.state.currentArtifact.files[action.filePath] = stripMarkdownCodeFences(action.content || '')
           }
 
           // Update shell history if shell action

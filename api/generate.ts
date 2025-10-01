@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { xai } from '@ai-sdk/xai'
+import { addViteProjectFiles } from '../src/lib/projectTemplates'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -198,7 +199,37 @@ export const useTodos = () => {
   </binaAction>
 
   <!-- Styles can be at root or in styles/ folder -->
+  <!-- CRITICAL: CSS MUST be comprehensive (200+ lines). Include complete styling for all components, buttons, inputs, cards, empty states, responsive design, and animations. NO minimal CSS! -->
   <binaAction type="file" filePath="styles.css">
+/* CSS Reset & Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Design Tokens */
+:root {
+  --color-primary: #007bff;
+  --color-primary-hover: #0056b3;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f5;
+  --color-text: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-border: #ddd;
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --radius: 8px;
+}
+
+/* App Layout */
 .app {
   max-width: 800px;
   margin: 0 auto;
@@ -211,10 +242,12 @@ export const useTodos = () => {
   margin-bottom: 2rem;
 }
 
+/* Todo List Container */
 .todo-list {
-  background: #f5f5f5;
+  background: var(--color-bg-secondary);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
 }
 
 .todo-list form {
@@ -223,38 +256,103 @@ export const useTodos = () => {
   margin-bottom: 20px;
 }
 
+/* Input Styles (ALL states) */
 .todo-list input {
   flex: 1;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
 }
 
+.todo-list input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+/* Button Styles (ALL states) */
 .todo-list button {
   padding: 10px 20px;
-  background: #007bff;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
 }
 
 .todo-list button:hover {
-  background: #0056b3;
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
 }
 
+.todo-list button:active {
+  transform: translateY(0);
+}
+
+.todo-list button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* List Styles */
 .todo-list ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .todo-list li {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
+  align-items: center;
+  padding: 12px;
   background: white;
   margin-bottom: 8px;
   border-radius: 4px;
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.todo-list li:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 1.125rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app {
+    padding: 10px;
+  }
+
+  .todo-list {
+    padding: 15px;
+  }
+
+  .todo-list form {
+    flex-direction: column;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.todo-list li {
+  animation: fadeIn 0.3s ease-out;
 }
   </binaAction>
 </binaArtifact>
@@ -319,6 +417,19 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
       temperature: 0.7
     })
 
+    // Helper to strip markdown code fences from file content
+    function stripMarkdownCodeFences(content: string): string {
+      let cleaned = content
+      // Remove opening fences: ```tsx, ```typescript, ```jsx, ```javascript, etc.
+      cleaned = cleaned.replace(/^```[\w]*\n?/gm, '')
+      // Remove closing fences: ```
+      cleaned = cleaned.replace(/\n?```$/gm, '')
+      // Handle any remaining stray fences
+      cleaned = cleaned.replace(/```[\w]*\n?/g, '')
+      cleaned = cleaned.replace(/```/g, '')
+      return cleaned.trim()
+    }
+
     // Helper function to parse Bina XML artifact
     function parseBinaArtifact(xmlString: string) {
       // Extract artifact
@@ -339,7 +450,8 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
       while ((fileMatch = fileRegex.exec(artifactContent)) !== null) {
         const filePath = fileMatch[1]
         const content = fileMatch[2].trim()
-        files[filePath] = content
+        // Strip any markdown code fences the AI might have added
+        files[filePath] = stripMarkdownCodeFences(content)
       }
 
       // Extract shell commands
@@ -399,12 +511,15 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
     try {
       const parsed = parseBinaArtifact(fullResponse)
 
+      // Enhance files with Vite boilerplate (index.html, main.tsx, package.json, etc.)
+      const enhancedFiles = addViteProjectFiles(parsed.files)
+
       const artifact = {
         id: parsed.id,
         projectId: 'default',
         regionId: 'full-page',
-        files: parsed.files,
-        entry: Object.keys(parsed.files).find(f => f.includes('index.html')) || Object.keys(parsed.files)[0],
+        files: enhancedFiles,
+        entry: Object.keys(enhancedFiles).find(f => f.includes('index.html')) || Object.keys(enhancedFiles)[0],
         metadata: {
           device,
           framework,

@@ -128,10 +128,106 @@ For TypeScript files:
 - Use proper type annotations
 - Avoid 'any' type
 
-For CSS files:
-- Use modern CSS features
-- Include responsive design
-- Add smooth transitions
+For CSS files (CRITICAL - Must be comprehensive, not minimal):
+- Generate 200+ lines of complete, production-ready CSS
+- Include ALL of the following sections (non-negotiable):
+
+  1. CSS Reset & Base Styles:
+     * { box-sizing: border-box; }
+     body, html { margin: 0; padding: 0; min-height: 100vh; }
+     #root { min-height: 100vh; }
+
+  2. Design Tokens (CSS Variables):
+     :root {
+       --color-primary: #3b82f6;
+       --color-primary-hover: #2563eb;
+       --color-secondary: #8b5cf6;
+       --color-bg: #ffffff;
+       --color-bg-secondary: #f3f4f6;
+       --color-text: #1f2937;
+       --color-text-secondary: #6b7280;
+       --color-border: #e5e7eb;
+       --color-error: #ef4444;
+       --color-success: #10b981;
+       --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+       --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+       --radius: 8px;
+       --spacing: 1rem;
+     }
+
+  3. Typography:
+     h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; color: var(--color-text); }
+     h1 { font-size: 2.5rem; }
+     h2 { font-size: 2rem; }
+     p { line-height: 1.6; color: var(--color-text-secondary); }
+
+  4. Buttons (ALL states required):
+     button {
+       padding: 0.75rem 1.5rem;
+       border: none;
+       border-radius: var(--radius);
+       font-size: 1rem;
+       cursor: pointer;
+       transition: all 0.2s;
+       background: var(--color-primary);
+       color: white;
+     }
+     button:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
+     button:active { transform: translateY(0); }
+     button:disabled { opacity: 0.5; cursor: not-allowed; }
+     button:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+  5. Inputs/Forms:
+     input, textarea, select {
+       padding: 0.75rem;
+       border: 1px solid var(--color-border);
+       border-radius: var(--radius);
+       font-size: 1rem;
+       width: 100%;
+       transition: border-color 0.2s;
+     }
+     input:focus, textarea:focus { border-color: var(--color-primary); outline: none; }
+     label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+
+  6. Cards/Containers:
+     .card {
+       background: var(--color-bg);
+       border: 1px solid var(--color-border);
+       border-radius: var(--radius);
+       padding: 1.5rem;
+       box-shadow: var(--shadow-md);
+     }
+
+  7. Lists:
+     ul, ol { padding-left: 1.5rem; }
+     li { margin-bottom: 0.5rem; }
+
+  8. Empty States (MUST style these):
+     .empty-state {
+       text-align: center;
+       padding: 3rem 1rem;
+       color: var(--color-text-secondary);
+       font-size: 1.125rem;
+     }
+
+  9. Responsive Design (required breakpoints):
+     @media (max-width: 768px) { /* mobile styles */ }
+     @media (min-width: 769px) and (max-width: 1024px) { /* tablet */ }
+     @media (min-width: 1025px) { /* desktop */ }
+
+  10. Animations & Transitions:
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .fade-in { animation: fadeIn 0.3s; }
+
+  11. Component-Specific Styles:
+      Style EVERY component mentioned in the app with proper classes
+
+- Generate complete, production-ready CSS (200+ lines minimum)
+- NO placeholders or comments like "/* add more styles */"
+- Include ALL interactive states (hover, focus, active, disabled)
+- Use modern CSS features (flexbox, grid, CSS variables, transitions)
+- Ensure accessibility (focus outlines, contrast ratios)
+- Make it visually appealing with proper colors, spacing, shadows
 
 IMPORTANT: Output ONLY the file content, nothing else. Ensure import paths are relative and correct.`
 
@@ -158,9 +254,20 @@ Dependencies: ${file.dependencies.join(', ') || 'none'}
 Follow the specification exactly and create production-ready code.`
         }
       ],
-      temperature: 0.5, // Lower temperature for more consistent code
-      maxTokens: 4000
+      temperature: 0.5 // Lower temperature for more consistent code
     })
+
+    // Helper to strip markdown code fences
+    const stripMarkdownCodeFences = (content: string): string => {
+      // Remove opening fence: ```typescript, ```tsx, ```javascript, ```jsx, ```css, etc.
+      content = content.replace(/^```(?:typescript|tsx|javascript|jsx|js|ts|css|html|json)?\s*\n/gm, '')
+      // Remove closing fence: ```
+      content = content.replace(/\n```\s*$/gm, '')
+      // Also handle cases where fence appears mid-content
+      content = content.replace(/```(?:typescript|tsx|javascript|jsx|js|ts|css|html|json)?\s*\n/g, '')
+      content = content.replace(/\n```/g, '')
+      return content.trim()
+    }
 
     // Stream the file content
     let fullContent = ''
@@ -175,11 +282,14 @@ Follow the specification exactly and create production-ready code.`
       })}\n\n`)
     }
 
+    // Strip markdown code fences before sending final content
+    const cleanContent = stripMarkdownCodeFences(fullContent)
+
     // Send completion event
     res.write(`data: ${JSON.stringify({
       type: 'complete',
       file: file.path,
-      content: fullContent
+      content: cleanContent
     })}\n\n`)
 
     res.end()

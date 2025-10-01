@@ -5,6 +5,7 @@ import { featurePlanningService, ProjectPlan } from './featurePlanningService'
 import { BinaArtifact, BinaAction } from '../types/binaArtifact'
 import { BinaArtifactParser } from './binaArtifactParser'
 import { webContainerService, ActionExecutionResult } from './webContainerService'
+import { addViteProjectFiles } from './projectTemplates'
 
 // Phase events for the compact thinking panel
 export type GenerationPhaseEvent =
@@ -288,11 +289,14 @@ export class ChatService {
                   })
                 } else if (data.type === 'generation_complete' && data.artifact) {
                   // Successfully received the artifact
+                  // Enhance files with Vite boilerplate (index.html, main.tsx, package.json, etc.)
+                  const enhancedFiles = addViteProjectFiles(data.artifact.files || {})
+
                   artifact = {
                     id: data.artifact.id || `artifact_${Date.now()}`,
                     projectId: data.artifact.projectId || 'default',
                     regionId: data.artifact.regionId || 'full-page',
-                    files: data.artifact.files || {},
+                    files: enhancedFiles,
                     entry: data.artifact.entry || 'index.html',
                     metadata: data.artifact.metadata || {
                       device: 'desktop',
@@ -719,11 +723,14 @@ export class ChatService {
         message: `Generated ${Object.keys(files).length} files`
       })
 
+      // Enhance files with Vite boilerplate (index.html, main.tsx, package.json, etc.)
+      const enhancedFiles = addViteProjectFiles(files)
+
       // Create BinaArtifact from generated files
       artifact = {
         id: `artifact_${Date.now()}`,
         title: projectPlan.name || 'Generated Project',
-        files,
+        files: enhancedFiles,
         actions: [],
         modifiedFiles: {},
         shellHistory: [],
@@ -740,7 +747,9 @@ export class ChatService {
         updatedAt: new Date().toISOString()
       }
 
-      onPhaseEvent?.({ type: 'bina_artifact_complete', artifact })
+      if (artifact) {
+        onPhaseEvent?.({ type: 'bina_artifact_complete', artifact })
+      }
       onPhaseEvent?.({ type: 'phase_complete', phase: 'generation' })
 
       return { projectPlan, files, artifact }

@@ -177,16 +177,30 @@ Return ONLY valid JSON in this exact format:
     },
     {
       "path": "styles.css",
-      "description": "Application styles",
+      "description": "Complete application styles with modern design",
       "category": "style",
       "dependencies": [],
       "specification": {
-        "purpose": "Modern, clean styling",
+        "purpose": "Comprehensive styling for all components with modern design tokens",
         "features": [
-          "Responsive design",
-          "CSS animations",
-          "Component-specific styles"
-        ]
+          "CSS Reset and base styles (body, html, #root)",
+          "Design tokens: colors (primary, secondary, backgrounds, borders, text colors)",
+          "Typography system (headings h1-h6, body text, font weights)",
+          "Layout utilities (containers, flexbox, grid, spacing)",
+          "Button styles (primary, secondary, disabled states, hover/focus/active)",
+          "Input/form styles (text inputs, textareas, selects, labels, validation states)",
+          "Card/container styles (backgrounds, borders, shadows, padding)",
+          "List styles (ul, ol, custom list items, empty states)",
+          "Navigation/header styles",
+          "Responsive breakpoints (mobile: 320px, tablet: 768px, desktop: 1024px+)",
+          "Transitions and animations (hover effects, loading states, smooth transitions)",
+          "Accessibility (focus outlines, high contrast, keyboard navigation)",
+          "Component-specific classes for all UI elements",
+          "Empty state styling (centered messages, icons, helpful text)",
+          "Loading/skeleton states",
+          "Minimum 200+ lines of comprehensive CSS"
+        ],
+        "styling": "Modern, clean, professional design with excellent UX. Include complete visual styling for buttons, inputs, cards, lists, and all interactive elements. Must be production-ready with proper colors, spacing, and responsive design."
       }
     }
   ]
@@ -212,8 +226,7 @@ Guidelines:
           content: `Create a detailed project plan for: ${prompt}`
         }
       ],
-      temperature: 0.7,
-      maxTokens: 4000
+      temperature: 0.7
     })
 
     try {

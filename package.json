@@ -16,8 +16,10 @@
     "@monaco-editor/react": "^4.7.0",
     "@webcontainer/api": "^1.6.1",
     "ai": "^5.0.33",
+    "esbuild-wasm": "^0.25.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sucrase": "^3.35.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
