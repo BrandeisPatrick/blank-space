@@ -294,8 +294,6 @@ MANDATORY RULES:
 - NO placeholders like "// rest of code here"
 - NO markdown code blocks inside <binaAction>
 - Close ALL tags properly
-- DO NOT generate .bina.json (entry points are auto-detected from App.tsx/App.jsx)
-- DO NOT generate index.html, index.js, or package.json (handled by host)
 
 REMINDER: The system automatically detects App.tsx or App.jsx as the entry point and auto-enables bundling when it finds components/, hooks/, or lib/ folders. You do NOT need to specify this - just create the proper folder structure.`
       : `You are Bina, an expert web developer. Generate clean HTML, CSS, and JavaScript using <binaArtifact> and <binaAction> tags.`
