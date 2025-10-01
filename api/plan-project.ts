@@ -76,14 +76,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const systemPrompt = `You are an expert software architect planning a ${framework} application.
 Your task is to create a detailed project structure with file specifications.
 
-IMPORTANT CONSTRAINTS:
-- Generate a MAXIMUM of 3 files (App.tsx/jsx, styles.css, types.ts)
-- NO subdirectories (no components/, hooks/, utils/ folders)
-- Keep ALL code in a single App file
-- Inline helper functions and components within the main App component
-- Use local functions instead of separate component files
+MANDATORY FOLDER STRUCTURE:
+- App.tsx or App.jsx at root level (entry point only)
+- components/ folder - ALL UI components MUST go here
+- hooks/ folder - ALL custom hooks MUST go here
+- lib/ or utils/ folder - helper functions (if needed)
+- styles.css or styles/ folder - styling
 
-Analyze the user's request and generate a comprehensive project plan.
+IMPORTANT:
+- ALWAYS organize code into proper folders (components/, hooks/, lib/)
+- Each component gets its own file in components/
+- Each custom hook gets its own file in hooks/
+- DO NOT create .bina.json (system auto-detects entry points)
+- Create 5-10 files for a proper React application structure
+
+Analyze the user's request and generate a comprehensive project plan with proper folder organization.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -101,7 +108,7 @@ Return ONLY valid JSON in this exact format:
   "files": [
     {
       "path": "types.ts",
-      "description": "TypeScript type definitions (OPTIONAL - only if truly needed)",
+      "description": "TypeScript type definitions",
       "category": "type",
       "dependencies": [],
       "specification": {
@@ -114,39 +121,58 @@ Return ONLY valid JSON in this exact format:
     },
     {
       "path": "App.tsx",
-      "description": "Main application component with ALL logic inline",
+      "description": "Main application entry point",
+      "category": "component",
+      "dependencies": ["types.ts", "components/TodoList.tsx", "hooks/useTodos.ts"],
+      "specification": {
+        "purpose": "Root component that composes the application",
+        "imports": [
+          "import React from 'react'",
+          "import TodoList from './components/TodoList'",
+          "import Header from './components/Header'",
+          "import { useTodos } from './hooks/useTodos'",
+          "import './styles.css'"
+        ],
+        "features": [
+          "Compose child components",
+          "Pass data from hooks to components",
+          "Handle top-level state"
+        ]
+      }
+    },
+    {
+      "path": "components/Header.tsx",
+      "description": "Header component",
+      "category": "component",
+      "dependencies": [],
+      "specification": {
+        "purpose": "Display application header",
+        "exports": ["export default Header"]
+      }
+    },
+    {
+      "path": "components/TodoList.tsx",
+      "description": "Todo list component",
       "category": "component",
       "dependencies": ["types.ts"],
       "specification": {
-        "purpose": "Complete todo app in a single file",
-        "imports": [
-          "import React, { useState, useEffect } from 'react'",
-          "import { Todo, FilterType } from './types'",
-          "import './styles.css'"
-        ],
-        "state": [
-          "const [todos, setTodos] = useState<Todo[]>(() => JSON.parse(localStorage.getItem('todos') || '[]'))",
-          "const [filter, setFilter] = useState<FilterType>('all')",
-          "const [inputText, setInputText] = useState('')"
-        ],
-        "methods": [
-          "addTodo - inline function",
-          "toggleTodo - inline function",
-          "deleteTodo - inline function",
-          "getFilteredTodos - inline function"
-        ],
-        "components": [
-          "Define TodoItem as LOCAL function component inside App",
-          "Header with title",
-          "Input form",
-          "Filter buttons",
-          "TodoItem list (using local function)",
-          "Empty state"
-        ],
+        "purpose": "Display and manage todo items",
+        "props": "{ todos: Todo[]; onToggle: (id: string) => void; onDelete: (id: string) => void; }",
+        "exports": ["export default TodoList"]
+      }
+    },
+    {
+      "path": "hooks/useTodos.ts",
+      "description": "Custom hook for todo management",
+      "category": "hook",
+      "dependencies": ["types.ts"],
+      "specification": {
+        "purpose": "Manage todo state and localStorage persistence",
+        "exports": ["export const useTodos"],
         "features": [
-          "useEffect to persist todos to localStorage",
-          "All helper functions defined inside App component",
-          "NO imports from other components - everything inline"
+          "useState for todos",
+          "useEffect for localStorage sync",
+          "addTodo, toggleTodo, deleteTodo methods"
         ]
       }
     },
@@ -160,8 +186,7 @@ Return ONLY valid JSON in this exact format:
         "features": [
           "Responsive design",
           "CSS animations",
-          "Button hover effects",
-          "Input styling"
+          "Component-specific styles"
         ]
       }
     }
@@ -169,12 +194,13 @@ Return ONLY valid JSON in this exact format:
 }
 
 Guidelines:
-- MAXIMUM 3 files TOTAL
-- NO subdirectories (all files in root)
-- Keep ALL logic in App.tsx - use local functions for "components"
-- Only create types.ts if TypeScript types are complex
+- Create 5-10 files for proper React architecture
+- ALWAYS use folder structure (components/, hooks/, lib/)
+- Each component in its own file in components/
+- Each custom hook in its own file in hooks/
 - List dependencies to ensure correct generation order
-- Be specific about props, state, and methods`
+- Be specific about props, state, and methods
+- DO NOT include .bina.json in the file list`
 
     const result = await generateText({
       model,
@@ -199,25 +225,20 @@ Guidelines:
 
       const plan: ProjectPlan = JSON.parse(jsonText)
 
-      // Enforce constraints: max 3 files, no folders
-      if (plan.files.length > 3) {
-        plan.files = plan.files.slice(0, 3)
+      // Validate folder structure - ensure files are in proper folders
+      const hasProperStructure = plan.files.some(f =>
+        f.path.startsWith('components/') ||
+        f.path.startsWith('hooks/') ||
+        f.path.startsWith('lib/') ||
+        f.path.startsWith('utils/')
+      )
+
+      if (!hasProperStructure) {
+        console.warn('Warning: Plan does not include folder structure. AI may have ignored instructions.')
       }
 
-      // Remove any files with folder paths
-      plan.files = plan.files.filter(f => !f.path.includes('/'))
-
-      // Add .bina.json manifest as first file
-      plan.files.unshift({
-        path: '.bina.json',
-        description: 'Bina project manifest',
-        category: 'config',
-        dependencies: [],
-        specification: {
-          purpose: 'Configure preview mode and project metadata',
-          exports: []
-        }
-      })
+      // Remove .bina.json if AI generated it
+      plan.files = plan.files.filter(f => f.path !== '.bina.json')
 
       // Sort files by dependencies (files with no dependencies first)
       plan.files.sort((a, b) => {

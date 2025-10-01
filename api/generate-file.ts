@@ -37,32 +37,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'File specification is required' })
     }
 
-    // Handle .bina.json specially - generate manifest directly
+    // Reject .bina.json generation - system handles entry point detection
     if (file.path === '.bina.json') {
-      const manifest = {
-        previewMode: 'single-file',
-        entry: 'App.tsx',
-        framework: framework,
-        typescript: typescript,
-        bundlerReady: false,
-        version: '1.0.0'
-      }
-
-      const manifestContent = JSON.stringify(manifest, null, 2)
-
-      // Set up SSE headers
-      res.setHeader('Content-Type', 'text/event-stream')
-      res.setHeader('Cache-Control', 'no-cache')
-      res.setHeader('Connection', 'keep-alive')
-
-      res.write(`data: ${JSON.stringify({
-        type: 'complete',
-        file: '.bina.json',
-        content: manifestContent
-      })}\n\n`)
-
-      res.end()
-      return
+      return res.status(400).json({
+        error: '.bina.json generation is not allowed. System auto-detects entry points from App.tsx/App.jsx.'
+      })
     }
 
     // Select AI model
@@ -105,22 +84,44 @@ ${contextSummary || 'No previous files'}
 FILE SPECIFICATION:
 ${JSON.stringify(file.specification, null, 2)}
 
+IMPORT PATH RULES (CRITICAL):
+- If generating a file in components/ folder (e.g., components/Header.tsx):
+  - Import from hooks/ as: import { useHook } from '../hooks/useHook'
+  - Import from lib/ as: import { helper } from '../lib/helper'
+  - Import other components: import Other from './Other' (same folder)
+  - Import types from root: import { Type } from '../types'
+
+- If generating a file in hooks/ folder (e.g., hooks/useTodos.ts):
+  - Import types from root: import { Type } from '../types'
+  - Import from lib/ as: import { helper } from '../lib/helper'
+
+- If generating App.tsx (at root):
+  - Import components: import Header from './components/Header'
+  - Import hooks: import { useHook } from './hooks/useHook'
+  - Import types: import { Type } from './types'
+
 GENERATION RULES:
 1. Generate ONLY the file content - no explanations, no markdown code blocks
 2. Follow the specification exactly
-3. Import from previous files using correct relative paths
+3. Use CORRECT relative import paths based on file location
 4. Use modern ${framework} best practices
 5. Include all specified features and methods
 6. ${typescript ? 'Use proper TypeScript types' : 'Use JSDoc comments for type hints'}
 7. Make the code production-ready and complete
 8. NO placeholders like "// rest of code" - implement everything
-9. Ensure all imports reference files that actually exist
+9. Ensure all imports use proper relative paths
 
 For React components:
 - Use functional components with hooks
-- Include proper prop types
+- Include proper prop types with TypeScript interfaces
 - Handle all edge cases
 - Add accessibility attributes
+- Export as default: export default ComponentName
+
+For React hooks:
+- Follow hooks naming convention (useXxx)
+- Export as named export: export const useXxx
+- Return object with methods and state
 
 For TypeScript files:
 - Export all specified interfaces/types
@@ -132,7 +133,7 @@ For CSS files:
 - Include responsive design
 - Add smooth transitions
 
-IMPORTANT: Output ONLY the file content, nothing else.`
+IMPORTANT: Output ONLY the file content, nothing else. Ensure import paths are relative and correct.`
 
     // Set up SSE headers for streaming
     res.setHeader('Content-Type', 'text/event-stream')
