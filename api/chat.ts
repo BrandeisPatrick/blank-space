@@ -1,12 +1,24 @@
-import { streamText } from 'ai'
-import { xai } from '@ai-sdk/xai'
-import { openai } from '@ai-sdk/openai'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { xai } from '@ai-sdk/xai'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version')
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+
   try {
     const { message, context } = req.body
 
@@ -14,15 +26,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Message is required' })
     }
 
-    // Use OpenAI GPT-5-nano for quick chat responses
+    // Select AI model - use faster model for chat
     let model
     if (process.env.OPENAI_API_KEY) {
-      model = openai('gpt-5-nano')
+      model = openai('gpt-4o-mini') // Faster, cheaper for chat
     } else if (process.env.XAI_API_KEY) {
-      model = xai('grok-code-fast-1')
+      model = xai('grok-beta')
     } else {
-      return res.status(500).json({ 
-        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' 
+      return res.status(500).json({
+        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY'
       })
     }
 
@@ -30,72 +42,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const hasActiveCode = context?.hasActiveCode || false
     const recentMessages = context?.recentMessages || []
     const currentArtifacts = context?.currentArtifacts || 0
-    const responseMode = context?.responseMode || 'show-options'
+    const sessionMemory = context?.sessionMemory || ''
+    const userPreferences = context?.userPreferences || []
 
-    const systemPrompt = `You are a helpful AI assistant in a code generation interface.
+    const systemPrompt = `You are Bina, a helpful AI assistant in a web development tool called Blank Space.
 
 Current context:
 - Active code components: ${hasActiveCode ? 'Yes' : 'No'}
-- Recent messages: ${recentMessages.length}
-- Current artifacts: ${currentArtifacts}
-- Response mode: ${responseMode}
+- Recent messages in conversation: ${recentMessages.length}
+- Generated artifacts: ${currentArtifacts}
+${sessionMemory ? `\nSession context:\n${sessionMemory}` : ''}
+${userPreferences.length > 0 ? `\nUser preferences:\n${userPreferences.map((p: any) => `- ${p.type}: ${p.preference}`).join('\n')}` : ''}
+
+Your role:
+- Answer questions about web development, React, HTML, CSS, JavaScript
+- Help users understand their code and suggest improvements
+- Guide users on what to build or how to modify their projects
+- Be concise, friendly, and helpful
+- If user wants to build something, encourage them but explain they should describe their idea clearly
+- Don't generate code in chat - that's handled by the generate feature
 
 Guidelines:
-- Be concise and helpful
-- If user asks about code generation, acknowledge their request and suggest using the generation features
-- If user asks about existing code, provide relevant guidance
-- For general questions, provide brief, informative answers
-- Always be encouraging and supportive
+- Be conversational and natural
+- Keep responses under 3-4 sentences unless more detail is needed
+- If user asks to build/create something, acknowledge and suggest they describe it in detail
+- Help clarify requirements before generation
+- Reference their existing artifacts if relevant`
 
-Respond naturally and conversationally. You can include thinking/reasoning in your response by wrapping it in <thinking> tags.`
-
-    const result = await streamText({
+    const result = await generateText({
       model,
       messages: [
         {
           role: 'system',
           content: systemPrompt
         },
-        ...recentMessages.map((msg: any) => ({
-          role: msg.role || 'user',
-          content: msg.content || msg.message || String(msg)
-        })),
         {
           role: 'user',
           content: message
         }
       ],
-      temperature: 0.7,
+      temperature: 0.8
     })
 
-    let fullResponse = ''
-    for await (const chunk of result.textStream) {
-      fullResponse += chunk
-    }
-
-    // Parse thinking/reasoning sections
-    const thinkingMatch = fullResponse.match(/<thinking>([\s\S]*?)<\/thinking>/)
-    const thinking = thinkingMatch ? thinkingMatch[1].trim() : null
-    const content = fullResponse.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim()
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      response: content,
-      thinking: thinking,
-      metadata: {
-        model: process.env.OPENAI_API_KEY ? 'gpt-5-nano' : 'grok-code-fast-1',
-        provider: process.env.OPENAI_API_KEY ? 'openai' : 'xai',
-        hasThinking: !!thinking,
-        responseLength: content.length
-      }
+      response: result.text,
+      thinking: result.text.includes('thinking') ? 'Processing your request...' : undefined
     })
-
   } catch (error) {
-    console.error('Chat API Error:', error)
-    return res.status(500).json({ 
+    console.error('Chat error:', error)
+    return res.status(500).json({
       success: false,
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      response: "I'm having trouble connecting right now, but I'm here to help you build websites! What would you like to create?"
     })
   }
 }

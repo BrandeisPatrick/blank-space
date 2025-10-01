@@ -219,31 +219,8 @@ function App() {
           // Start UI summary pipeline (clean user display)
           uiSummaryService.startGeneration(message)
           
-          // Run internal pipeline with real progress tracking
-          const result = await chatService.generateWithReasoning(message, {
-            onReasoningComplete: (_steps) => {
-              // Internal reasoning is complete, but UI summary continues independently
-            },
-            onGenerationStart: () => {
-              thinking.startStreaming()
-            },
-            onGenerationComplete: (artifact) => {
-              thinking.complete()
-
-              // Add clean success message
-              const hasPlanFile = artifact.files['plan.md']
-              const successMessage: ChatMessage = {
-                id: `msg_${Date.now()}_success`,
-                type: 'assistant',
-                content: `Done! Your app is ready with modern v1 features.\n\nCheck it out in the editor and preview${hasPlanFile ? '. I\'ve included a plan.md file with all the features and tech stack details' : ''}.`,
-                timestamp: Date.now(),
-                artifactId: artifact.id
-              }
-              addChatMessage(successMessage)
-
-              // Update memory service with assistant response
-              memoryService.addMessages([successMessage])
-            },
+          // Run internal pipeline with multi-stage generation
+          const result = await chatService.generateWithMultiStage(message, {
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
 
@@ -321,6 +298,24 @@ function App() {
                     // Planning phase is complete, but we're waiting for user approval
                     const activeSteps = thinking.steps.filter(s => s.status === 'active')
                     activeSteps.forEach(step => thinking.completeStep(step.id))
+                  }
+                  break
+
+                case 'bina_artifact_complete':
+                  // Multi-stage generation complete - add success message
+                  if (phaseEvent.artifact) {
+                    const fileCount = Object.keys(phaseEvent.artifact.files).length
+                    const successMessage: ChatMessage = {
+                      id: `msg_${Date.now()}_success`,
+                      type: 'assistant',
+                      content: `Done! Your app is ready with ${fileCount} files.\n\nCheck it out in the editor and preview.`,
+                      timestamp: Date.now(),
+                      artifactId: phaseEvent.artifact.id
+                    }
+                    addChatMessage(successMessage)
+
+                    // Update memory service with assistant response
+                    memoryService.addMessages([successMessage])
                   }
                   break
               }

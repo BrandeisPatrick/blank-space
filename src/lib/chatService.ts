@@ -2,6 +2,9 @@ import { Artifact, ChatMessage, ReasoningStep } from '../types'
 import { ThinkingStep } from '../components/Chat/CompactThinkingPanel'
 import { memoryService } from './memoryService'
 import { featurePlanningService, ProjectPlan } from './featurePlanningService'
+import { BinaArtifact, BinaAction } from '../types/binaArtifact'
+import { BinaArtifactParser } from './binaArtifactParser'
+import { webContainerService, ActionExecutionResult } from './webContainerService'
 
 // Phase events for the compact thinking panel
 export type GenerationPhaseEvent =
@@ -14,6 +17,10 @@ export type GenerationPhaseEvent =
   | { type: 'answer_chunk'; text: string }
   | { type: 'answer_complete'; fullAnswer: string }
   | { type: 'planning_complete'; projectPlan: ProjectPlan }
+  | { type: 'bina_action_start'; action: BinaAction }
+  | { type: 'bina_action_progress'; action: BinaAction; message: string }
+  | { type: 'bina_action_complete'; action: BinaAction; result: ActionExecutionResult }
+  | { type: 'bina_artifact_complete'; artifact: BinaArtifact }
 
 interface ChatServiceConfiguration {
   onReasoningStep?: (step: ReasoningStep) => void
@@ -343,6 +350,126 @@ export class ChatService {
   }
 
   /**
+   * Generate with BinaArtifact streaming and action execution
+   */
+  async generateWithBinaArtifacts(
+    prompt: string,
+    options: ChatServiceConfiguration & {
+      existingArtifactId?: string
+      existingFiles?: Record<string, string>
+      modifiedFiles?: Record<string, any>
+    } = {}
+  ): Promise<{ artifact: BinaArtifact | null }> {
+    const { onPhaseEvent, existingArtifactId, existingFiles, modifiedFiles } = options
+
+    let finalArtifact: BinaArtifact | null = null
+
+    try {
+      // Start generation phase
+      onPhaseEvent?.({ type: 'phase_start', phase: 'generation' })
+      onPhaseEvent?.({ type: 'stream_start', phase: 'generation' })
+
+      // Prepare context with existing files and modifications
+      const context = {
+        existingArtifactId,
+        existingFiles,
+        modifiedFiles
+      }
+
+      const response = await fetch(`${this.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          framework: 'react',
+          device: 'desktop',
+          useBinaFormat: true,  // Request BinaArtifact format
+          context
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Generation failed: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response stream available')
+      }
+
+      // Initialize BinaArtifact parser with event callbacks
+      const parser = new BinaArtifactParser((event) => {
+        if (event.type === 'action_start') {
+          onPhaseEvent?.({ type: 'bina_action_start', action: event.action })
+
+          // Execute action immediately
+          webContainerService.executeAction(
+            event.action,
+            (message) => {
+              onPhaseEvent?.({
+                type: 'bina_action_progress',
+                action: event.action,
+                message
+              })
+            }
+          ).then((result) => {
+            onPhaseEvent?.({
+              type: 'bina_action_complete',
+              action: event.action,
+              result
+            })
+          }).catch((error) => {
+            console.error('Action execution failed:', error)
+          })
+        } else if (event.type === 'artifact_complete') {
+          finalArtifact = event.artifact
+          onPhaseEvent?.({ type: 'bina_artifact_complete', artifact: event.artifact })
+        }
+      })
+
+      // Stream and parse response
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              // Handle generation chunks - parse BinaArtifact XML incrementally
+              if (data.type === 'generation_chunk' && data.chunk) {
+                parser.parseChunk(data.chunk)
+              }
+            } catch (e) {
+              // Continue if parsing fails
+            }
+          }
+        }
+      }
+
+      // Finalize parsing
+      const artifact = parser.finalize()
+      if (artifact) {
+        finalArtifact = artifact
+      }
+
+      onPhaseEvent?.({ type: 'phase_complete', phase: 'generation' })
+
+    } catch (error) {
+      console.error('BinaArtifact generation error:', error)
+      options.onError?.(error instanceof Error ? error : new Error(String(error)))
+    }
+
+    return { artifact: finalArtifact }
+  }
+
+  /**
    * Simple chat response without code generation
    */
   async generateChatResponse(
@@ -459,6 +586,169 @@ export class ChatService {
         confidence: 0.6,
         reasoning: 'General conversation or unclear intent'
       }
+    }
+  }
+
+  /**
+   * Multi-stage generation: Plan -> Generate files one by one
+   */
+  async generateWithMultiStage(
+    prompt: string,
+    options: ChatServiceConfiguration = {}
+  ): Promise<{ projectPlan: any; files: Record<string, string>; artifact: BinaArtifact | null }> {
+    const { onPhaseEvent, onError } = options
+    let files: Record<string, string> = {}
+    let artifact: BinaArtifact | null = null
+
+    try {
+      // Phase 1: Project Planning
+      onPhaseEvent?.({ type: 'phase_start', phase: 'planning' })
+      onPhaseEvent?.({
+        type: 'phase_progress',
+        phase: 'planning',
+        progress: 10,
+        message: 'Analyzing project requirements'
+      })
+
+      const planResponse = await fetch(`${this.baseUrl}/api/plan-project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, framework: 'react' })
+      })
+
+      if (!planResponse.ok) {
+        throw new Error(`Project planning failed: ${planResponse.status}`)
+      }
+
+      const { plan: projectPlan } = await planResponse.json()
+
+      onPhaseEvent?.({
+        type: 'phase_progress',
+        phase: 'planning',
+        progress: 100,
+        message: `Planned ${projectPlan.files.length} files`
+      })
+      onPhaseEvent?.({ type: 'phase_complete', phase: 'planning' })
+
+      // Phase 2: File Generation
+      onPhaseEvent?.({ type: 'phase_start', phase: 'generation', totalSteps: projectPlan.files.length })
+
+      const previousFiles: Array<{ path: string; content: string }> = []
+
+      for (let i = 0; i < projectPlan.files.length; i++) {
+        const file = projectPlan.files[i]
+        const progress = ((i + 1) / projectPlan.files.length) * 100
+
+        onPhaseEvent?.({
+          type: 'phase_step',
+          stepId: `gen_${file.path}`,
+          label: `Generating ${file.path}`,
+          status: 'active',
+          progress: 0
+        })
+
+        onPhaseEvent?.({
+          type: 'phase_progress',
+          phase: 'generation',
+          progress: progress * 0.8, // 80% for generation
+          message: `Generating ${file.path}`
+        })
+
+        // Generate individual file
+        const fileResponse = await fetch(`${this.baseUrl}/api/generate-file`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file,
+            previousFiles,
+            framework: projectPlan.framework || 'react',
+            typescript: projectPlan.typescript !== false
+          })
+        })
+
+        if (!fileResponse.ok) {
+          throw new Error(`File generation failed for ${file.path}`)
+        }
+
+        // Read SSE stream
+        const reader = fileResponse.body?.getReader()
+        const decoder = new TextDecoder()
+        let fileContent = ''
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value)
+            const lines = chunk.split('\n\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.type === 'chunk') {
+                    fileContent += data.content
+                  } else if (data.type === 'complete') {
+                    fileContent = data.content
+                  }
+                } catch (e) {
+                  // Continue on parse error
+                }
+              }
+            }
+          }
+        }
+
+        files[file.path] = fileContent
+        previousFiles.push({ path: file.path, content: fileContent })
+
+        onPhaseEvent?.({
+          type: 'phase_step',
+          stepId: `gen_${file.path}`,
+          label: `Generated ${file.path}`,
+          status: 'complete',
+          progress: 100
+        })
+      }
+
+      onPhaseEvent?.({
+        type: 'phase_progress',
+        phase: 'generation',
+        progress: 100,
+        message: `Generated ${Object.keys(files).length} files`
+      })
+
+      // Create BinaArtifact from generated files
+      artifact = {
+        id: `artifact_${Date.now()}`,
+        title: projectPlan.name || 'Generated Project',
+        files,
+        actions: [],
+        modifiedFiles: {},
+        shellHistory: [],
+        serverProcess: null,
+        projectId: 'default',
+        regionId: 'full-page',
+        entry: 'index.html',
+        metadata: {
+          framework: projectPlan.framework,
+          typescript: projectPlan.typescript,
+          device: 'desktop'
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      onPhaseEvent?.({ type: 'bina_artifact_complete', artifact })
+      onPhaseEvent?.({ type: 'phase_complete', phase: 'generation' })
+
+      return { projectPlan, files, artifact }
+
+    } catch (error) {
+      console.error('Multi-stage generation error:', error)
+      onError?.(error instanceof Error ? error : new Error(String(error)))
+      return { projectPlan: null, files, artifact: null }
     }
   }
 

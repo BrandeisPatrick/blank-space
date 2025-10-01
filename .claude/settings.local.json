@@ -65,7 +65,8 @@
       "Bash(do echo \"=== $pkg ===\")",
       "Bash(done)",
       "Bash(xargs sed:*)",
-      "Bash(npx vercel:*)"
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:blank-space-f2qq0t03g-patricks-projects-1e98187f.vercel.app)"
     ],
     "deny": [],
     "ask": []

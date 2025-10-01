@@ -6,9 +6,10 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
 export const EditorPanel = () => {
-  const { currentArtifactId, artifacts, updateArtifact } = useAppStore()
+  const { currentArtifactId, artifacts, updateArtifact, trackFileModification } = useAppStore()
   const [activeFile, setActiveFile] = useState('index.html')
   const [files, setFiles] = useState<Record<string, string>>({})
+  const [originalFiles, setOriginalFiles] = useState<Record<string, string>>({}) // Track original content
   const [showExplorer, setShowExplorer] = useState(true)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -18,6 +19,8 @@ export const EditorPanel = () => {
   useEffect(() => {
     if (currentArtifact) {
       setFiles(currentArtifact.files)
+      // Store original files for tracking modifications
+      setOriginalFiles({ ...currentArtifact.files })
       // Set active file to the first available file
       const fileNames = Object.keys(currentArtifact.files)
       if (fileNames.length > 0 && !fileNames.includes(activeFile)) {
@@ -84,10 +87,16 @@ p {
         [filename]: value
       }
       setFiles(newFiles)
-      
+
       // Update the artifact in the store to trigger preview update
       if (currentArtifactId) {
         updateArtifact(currentArtifactId, newFiles)
+
+        // Track modification if content changed from original
+        const originalContent = originalFiles[filename]
+        if (originalContent && originalContent !== value) {
+          trackFileModification(currentArtifactId, filename, originalContent, value)
+        }
       }
     }
   }
@@ -226,34 +235,49 @@ p {
               }}>
                 Files
               </div>
-              {Object.keys(files).map(filename => (
-                <div
-                  key={filename}
-                  onClick={() => setActiveFile(filename)}
-                  style={{
-                    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                    cursor: 'pointer',
-                    borderRadius: theme.radius.md,
-                    background: activeFile === filename ? theme.colors.bg.hover : 'transparent',
-                    color: activeFile === filename ? theme.colors.text.primary : theme.colors.text.secondary,
-                    fontSize: theme.typography.fontSize.sm,
-                    marginBottom: theme.spacing.xs,
-                    transition: `all ${theme.animation.fast}`,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeFile !== filename) {
-                      e.currentTarget.style.background = theme.colors.bg.tertiary
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeFile !== filename) {
-                      e.currentTarget.style.background = 'transparent'
-                    }
-                  }}
-                >
-                  {filename}
-                </div>
-              ))}
+              {Object.keys(files).map(filename => {
+                const isModified = currentArtifact?.modifiedFiles?.[filename]
+                return (
+                  <div
+                    key={filename}
+                    onClick={() => setActiveFile(filename)}
+                    style={{
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      cursor: 'pointer',
+                      borderRadius: theme.radius.md,
+                      background: activeFile === filename ? theme.colors.bg.hover : 'transparent',
+                      color: activeFile === filename ? theme.colors.text.primary : theme.colors.text.secondary,
+                      fontSize: theme.typography.fontSize.sm,
+                      marginBottom: theme.spacing.xs,
+                      transition: `all ${theme.animation.fast}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeFile !== filename) {
+                        e.currentTarget.style.background = theme.colors.bg.tertiary
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeFile !== filename) {
+                        e.currentTarget.style.background = 'transparent'
+                      }
+                    }}
+                  >
+                    <span style={{ flex: 1 }}>{filename}</span>
+                    {isModified && (
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: '#f59e0b',
+                        flexShrink: 0
+                      }} title="Modified" />
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

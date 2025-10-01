@@ -1,253 +1,213 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
-import { z } from 'zod'
-
-// Define schemas for structured output
-const FeatureSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  priority: z.enum(['high', 'medium', 'low']),
-  complexity: z.enum(['simple', 'moderate', 'complex']),
-  category: z.enum(['core', 'user-management', 'ui-ux', 'data', 'integration']),
-  estimatedHours: z.number().optional(),
-  userStory: z.string().optional()
-})
-
-const AppAnalysisSchema = z.object({
-  appType: z.enum(['saas', 'dashboard', 'landing-page', 'e-commerce', 'blog', 'portfolio', 'tool', 'game', 'other']),
-  targetAudience: z.string(),
-  primaryGoal: z.string(),
-  keyFunctionalities: z.array(z.string()),
-  businessModel: z.string().optional(),
-  scalabilityNeeds: z.enum(['low', 'medium', 'high'])
-})
-
-const TechStackSchema = z.object({
-  frontend: z.array(z.string()),
-  styling: z.array(z.string()),
-  stateManagement: z.array(z.string()),
-  backend: z.array(z.string()).optional(),
-  database: z.array(z.string()).optional(),
-  authentication: z.array(z.string()).optional(),
-  deployment: z.array(z.string()).optional()
-})
-
-const TimelinePhaseSchema = z.object({
-  phase: z.string(),
-  features: z.array(z.string()),
-  estimatedDays: z.number()
-})
-
-const ProjectPlanSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  analysis: AppAnalysisSchema,
-  features: z.array(FeatureSchema),
-  techStack: TechStackSchema,
-  timeline: z.array(TimelinePhaseSchema),
-  planMarkdown: z.string().optional()
-})
+import { xai } from '@ai-sdk/xai'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version')
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    const { prompt } = req.body
+    const {
+      prompt
+    } = req.body
 
-    if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'Valid prompt is required' })
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' })
     }
 
-    // Use OpenAI to generate structured project plan
-    const result = await generateObject({
-      model: openai('gpt-4o-mini'),
-      schema: ProjectPlanSchema,
-      prompt: `
-You are an expert product manager and software architect. Analyze the following user request and create a comprehensive v1 project plan for a modern web application.
-
-User Request: "${prompt}"
-
-Generate a complete project plan including:
-
-1. **App Analysis**: Determine the app type, target audience, and primary goals
-2. **V1 Features**: List 6-12 essential features for a minimum viable product, categorized by:
-   - core: Main functionality
-   - user-management: Authentication, profiles, etc.
-   - ui-ux: Interface and experience features
-   - data: Storage, CRUD operations, etc.
-   - integration: Third-party services, APIs, etc.
-
-3. **Modern Tech Stack**: Select contemporary, production-ready technologies:
-   - For SaaS apps: React, Next.js, TypeScript, Tailwind CSS, shadcn/ui, Supabase
-   - For dashboards: React, TypeScript, Ant Design or Material-UI, Chart.js, PostgreSQL
-   - For landing pages: Next.js, Tailwind CSS, Framer Motion, Vercel
-   - For e-commerce: Next.js, TypeScript, Tailwind CSS, Stripe, Shopify
-   - For tools: React, TypeScript, Tailwind CSS, Zustand, LocalStorage
-
-4. **Development Timeline**: Break into 2-4 phases with realistic time estimates
-
-**Important Requirements:**
-- Every app MUST include: responsive design, loading states, error handling, accessibility
-- Use modern UI frameworks (Tailwind CSS + component library)
-- Include proper state management
-- Consider user authentication if relevant
-- Prioritize features by user value
-- Estimate development time realistically
-- Write clear user stories
-
-**CRITICAL DESIGN REQUIREMENTS:**
-- Apps must look STUNNING and PROFESSIONAL (2024 design standards)
-- Include modern gradients, glassmorphism effects, and smooth animations
-- Use proper spacing scales (8px system), professional typography
-- Implement hover states, transitions, and micro-interactions
-- Apply contemporary color schemes (not just black/white/grey)
-- Ensure components have depth with shadows and layering
-- Include loading skeletons and empty states
-- Make interfaces that users would be proud to deploy in production
-
-Make the app production-ready with modern UX patterns and beautiful visual design.
-      `,
-      temperature: 0.7,
-    })
-
-    // Generate plan.md content
-    const planMarkdown = generatePlanMarkdown(result.object)
-
-    const response = {
-      ...result.object,
-      planMarkdown
+    // Use GPT-4 for comprehensive planning
+    let model
+    if (process.env.OPENAI_API_KEY) {
+      model = openai('gpt-4o') // Use GPT-4 for better planning
+    } else if (process.env.XAI_API_KEY) {
+      model = xai('grok-beta')
+    } else {
+      return res.status(500).json({
+        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY'
+      })
     }
 
-    res.status(200).json(response)
+    const systemPrompt = `You are an expert product manager and software architect. Analyze the user's app idea and create a comprehensive v1 feature plan.
 
-  } catch (error) {
-    console.error('Feature planning error:', error)
+Your task:
+1. Understand the app type (SaaS, dashboard, landing page, e-commerce, blog, portfolio, tool, game, other)
+2. Identify the target audience and primary goal
+3. Suggest essential v1 features (prioritized by importance)
+4. Recommend modern tech stack
+5. Create a development timeline
 
-    // Provide fallback response
-    const fallbackPlan = {
-      name: extractAppName(req.body.prompt || ''),
-      description: req.body.prompt || 'A modern web application',
-      analysis: {
-        appType: 'tool' as const,
-        targetAudience: 'General users',
-        primaryGoal: 'Provide useful functionality',
-        keyFunctionalities: ['Core functionality', 'User interface'],
-        scalabilityNeeds: 'medium' as const
-      },
-      features: getDefaultFeatures(),
-      techStack: {
-        frontend: ['React', 'TypeScript'],
-        styling: ['Tailwind CSS', 'Lucide Icons'],
-        stateManagement: ['Zustand']
-      },
-      timeline: [
-        {
-          phase: 'Phase 1: Foundation',
-          features: ['Setup', 'Basic UI'],
-          estimatedDays: 3
-        },
-        {
-          phase: 'Phase 2: Core Features',
-          features: ['Main functionality'],
-          estimatedDays: 5
-        }
-      ]
+Return ONLY valid JSON in this exact format (no markdown, no extra text):
+{
+  "name": "App Name (3-4 words)",
+  "description": "Brief description of the app",
+  "analysis": {
+    "appType": "saas|dashboard|landing-page|e-commerce|blog|portfolio|tool|game|other",
+    "targetAudience": "Who will use this app",
+    "primaryGoal": "Main purpose of the app",
+    "keyFunctionalities": ["func1", "func2", "func3"],
+    "scalabilityNeeds": "low|medium|high"
+  },
+  "features": [
+    {
+      "id": "unique-id",
+      "name": "Feature Name",
+      "description": "What this feature does",
+      "priority": "high|medium|low",
+      "complexity": "simple|moderate|complex",
+      "category": "core|user-management|ui-ux|data|integration",
+      "estimatedHours": 4,
+      "userStory": "As a user, I want..."
     }
-
-    fallbackPlan.planMarkdown = generatePlanMarkdown(fallbackPlan)
-
-    res.status(200).json(fallbackPlan)
-  }
+  ],
+  "techStack": {
+    "frontend": ["React", "TypeScript"],
+    "styling": ["Tailwind CSS"],
+    "stateManagement": ["Zustand"],
+    "backend": ["Supabase"],
+    "database": ["PostgreSQL"],
+    "authentication": ["NextAuth.js"],
+    "deployment": ["Vercel"]
+  },
+  "timeline": [
+    {
+      "phase": "Phase 1: Foundation",
+      "features": ["Setup", "Basic UI"],
+      "estimatedDays": 3
+    }
+  ],
+  "planMarkdown": "# Full markdown plan with all details above formatted nicely"
 }
 
-function generatePlanMarkdown(plan: any): string {
-  return `# ${plan.name} - Project Plan
+Guidelines:
+- Focus on v1 MVP features only (keep it lean)
+- Prioritize features by business value
+- Consider development complexity realistically
+- Suggest modern, production-ready tech stack
+- Break down into 2-4 development phases
+- Be specific and actionable`
 
-## Overview
-${plan.description}
+    const result = await generateText({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: `Analyze this app idea and create a comprehensive v1 feature plan:\n\n${prompt}`
+        }
+      ],
+      temperature: 0.7
+    })
 
-## App Analysis
-- **Type**: ${plan.analysis.appType}
-- **Target Audience**: ${plan.analysis.targetAudience}
-- **Primary Goal**: ${plan.analysis.primaryGoal}
+    // Parse the AI response
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = result.text.trim()
+      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
 
-## V1 Features
+      const plan = JSON.parse(jsonText)
 
-### Core Features
-${plan.features.filter((f: any) => f.category === 'core').map((f: any) => `- **${f.name}**: ${f.description}`).join('\n')}
+      // Validate the plan structure
+      if (!plan.name || !plan.features || !plan.techStack) {
+        throw new Error('Invalid plan structure')
+      }
 
-### User Management
-${plan.features.filter((f: any) => f.category === 'user-management').map((f: any) => `- **${f.name}**: ${f.description}`).join('\n')}
+      return res.status(200).json({
+        success: true,
+        ...plan
+      })
+    } catch (parseError) {
+      console.error('Failed to parse feature plan:', parseError)
+      console.error('AI Response:', result.text)
 
-### UI/UX Features
-${plan.features.filter((f: any) => f.category === 'ui-ux').map((f: any) => `- **${f.name}**: ${f.description}`).join('\n')}
-
-### Data Management
-${plan.features.filter((f: any) => f.category === 'data').map((f: any) => `- **${f.name}**: ${f.description}`).join('\n')}
-
-## Technical Stack
-
-### Frontend
-${plan.techStack.frontend?.map((tech: string) => `- ${tech}`).join('\n')}
-
-### Styling & UI
-${plan.techStack.styling?.map((tech: string) => `- ${tech}`).join('\n')}
-
-### State Management
-${plan.techStack.stateManagement?.map((tech: string) => `- ${tech}`).join('\n')}
-
-## Development Timeline
-${plan.timeline.map((phase: any) => `
-### ${phase.phase}
-- **Features**: ${phase.features.join(', ')}
-- **Estimated Time**: ${phase.estimatedDays} days
-`).join('\n')}
-
----
-*Generated by Blank Space Feature Planning*
-`
+      // Return fallback plan
+      return res.status(200).json({
+        success: true,
+        name: extractAppName(prompt),
+        description: prompt.slice(0, 200),
+        analysis: {
+          appType: 'tool',
+          targetAudience: 'General users',
+          primaryGoal: 'Provide useful functionality',
+          keyFunctionalities: ['Core functionality', 'User interface', 'Data management'],
+          scalabilityNeeds: 'medium'
+        },
+        features: [
+          {
+            id: 'responsive-design',
+            name: 'Responsive Design',
+            description: 'Mobile-first responsive layout',
+            priority: 'high',
+            complexity: 'simple',
+            category: 'ui-ux',
+            estimatedHours: 4,
+            userStory: 'As a user, I want the app to work on all devices'
+          },
+          {
+            id: 'core-functionality',
+            name: 'Core Functionality',
+            description: 'Main features and user workflows',
+            priority: 'high',
+            complexity: 'moderate',
+            category: 'core',
+            estimatedHours: 12,
+            userStory: 'As a user, I want to accomplish my primary goals'
+          }
+        ],
+        techStack: {
+          frontend: ['React', 'TypeScript'],
+          styling: ['Tailwind CSS'],
+          stateManagement: ['Zustand'],
+          backend: ['Serverless Functions'],
+          database: ['LocalStorage'],
+          authentication: ['Optional'],
+          deployment: ['Vercel']
+        },
+        timeline: [
+          {
+            phase: 'Phase 1: Foundation',
+            features: ['Setup', 'Basic UI', 'Core Components'],
+            estimatedDays: 3
+          },
+          {
+            phase: 'Phase 2: Core Features',
+            features: ['Main Functionality', 'Data Management'],
+            estimatedDays: 5
+          },
+          {
+            phase: 'Phase 3: Polish',
+            features: ['User Experience', 'Testing', 'Deployment'],
+            estimatedDays: 2
+          }
+        ],
+        planMarkdown: `# ${extractAppName(prompt)}\n\n## Overview\n${prompt}\n\n## Features\n- Responsive Design\n- Core Functionality\n\n## Tech Stack\n- React + TypeScript\n- Tailwind CSS\n- Vercel Deployment`
+      })
+    }
+  } catch (error) {
+    console.error('Feature planning error:', error)
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    })
+  }
 }
 
 function extractAppName(prompt: string): string {
   const words = prompt.split(' ').slice(0, 3)
-  return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' App'
-}
-
-function getDefaultFeatures() {
-  return [
-    {
-      id: 'responsive-design',
-      name: 'Responsive Design',
-      description: 'Mobile-first responsive layout that works on all devices',
-      priority: 'high' as const,
-      complexity: 'simple' as const,
-      category: 'ui-ux' as const,
-      estimatedHours: 4,
-      userStory: 'As a user, I want the app to work seamlessly on my phone, tablet, and desktop'
-    },
-    {
-      id: 'core-functionality',
-      name: 'Core Functionality',
-      description: 'Main application features and user interactions',
-      priority: 'high' as const,
-      complexity: 'moderate' as const,
-      category: 'core' as const,
-      estimatedHours: 12,
-      userStory: 'As a user, I want to access the main features of the application'
-    },
-    {
-      id: 'modern-ui',
-      name: 'Modern UI Components',
-      description: 'Clean, accessible UI components with consistent styling',
-      priority: 'high' as const,
-      complexity: 'moderate' as const,
-      category: 'ui-ux' as const,
-      estimatedHours: 8,
-      userStory: 'As a user, I want an intuitive and visually appealing interface'
-    }
-  ]
+  return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') + ' App'
 }

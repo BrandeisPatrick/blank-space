@@ -1,370 +1,20 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { streamText } from 'ai'
-import { xai } from '@ai-sdk/xai'
 import { openai } from '@ai-sdk/openai'
-
-interface ReasoningStep {
-  id: string
-  type: 'thought' | 'action' | 'observation' | 'final_answer'
-  content: string
-  timestamp: string
-  metadata: any
-}
-
-interface PlanningComponent {
-  name: string
-  purpose?: string
-  details?: string[]
-}
-
-interface PlanningResult {
-  analysis?: string
-  intent?: 'generation' | 'modification' | 'explanation' | 'conversation'
-  confidence?: number
-  reasoning?: string
-  componentPlan?: PlanningComponent[]
-  keyComponents?: PlanningComponent[]
-  sections?: PlanningComponent[]
-  dataPoints?: string[]
-  data?: string[]
-  dataRequirements?: string[]
-  styleGuide?: string[]
-  styling?: string[]
-  style?: string[]
-  dependencies?: string[]
-}
-
-const FALLBACK_REACT_COMPONENT = `function App() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0f172a',
-        color: '#f8fafc',
-        fontFamily: 'system-ui, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          textAlign: 'center',
-          maxWidth: '420px',
-          padding: '32px',
-          borderRadius: '20px',
-          backgroundColor: '#111c3a',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.4)',
-        }}
-      >
-        <h1 style={{ fontSize: '28px', marginBottom: '12px' }}>🚀 Modern App Ready</h1>
-        <p style={{ fontSize: '16px', lineHeight: 1.6, opacity: 0.8 }}>
-          Your AI-generated component is loading with modern design patterns and contemporary styling.
-        </p>
-      </div>
-    </div>
-  );
-}
-`
-
-const FALLBACK_REACT_CSS = `:root {
-  color-scheme: dark;
-}
-
-body {
-  margin: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-`
-
-const FALLBACK_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated Preview</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <main class="empty-state">
-    <h1>AI preview unavailable</h1>
-    <p>Try asking again with a bit more detail so I can build it for you.</p>
-  </main>
-  <script src="script.js"></script>
-</body>
-</html>`
-
-const FALLBACK_HTML_CSS = `:root {
-  color-scheme: dark;
-}
-
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3), transparent 55%),
-              radial-gradient(circle at 80% 0%, rgba(147, 51, 234, 0.25), transparent 55%),
-              #020617;
-  color: #f1f5f9;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 48px;
-  border-radius: 28px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(24px);
-  box-shadow: 0 40px 100px rgba(15, 23, 42, 0.45);
-  max-width: 420px;
-}
-
-.empty-state h1 {
-  margin: 0 0 12px;
-  font-size: 32px;
-  letter-spacing: -0.03em;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.7;
-  opacity: 0.75;
-}
-`
-
-const FALLBACK_HTML_JS = `console.log('Waiting for a new preview...');`
-
-function sanitizeReactModule(code: string): string {
-  return code
-    .replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '')
-    .replace(/export\s+(default\s+)?/g, '')
-    .replace(/module\.exports\s*=\s*.*?;?\s*/g, '')
-    .replace(/export\s*\{[^}]+\}\s*;?\s*/g, '')
-    .trim()
-}
-
-function normalizeFilename(filename: string): string {
-  return filename.replace(/^\.\/?/, '').replace(/^\/+/, '')
-}
-
-function parseJsonResponse(raw: string): any | null {
-  try {
-    return JSON.parse(raw)
-  } catch (error) {
-    const firstBrace = raw.indexOf('{')
-    const lastBrace = raw.lastIndexOf('}')
-
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      const possibleJson = raw.slice(firstBrace, lastBrace + 1)
-      try {
-        return JSON.parse(possibleJson)
-      } catch (nestedError) {
-        console.warn('Failed to parse JSON from streamed text:', nestedError)
-      }
-    }
-  }
-
-  return null
-}
-
-function extractPlanComponents(plan: PlanningResult | null): PlanningComponent[] {
-  if (!plan) return []
-  return (
-    plan.componentPlan ||
-    plan.keyComponents ||
-    plan.sections ||
-    []
-  )
-}
-
-function extractPlanDataPoints(plan: PlanningResult | null): string[] {
-  if (!plan) return []
-  return (
-    plan.dataPoints ||
-    plan.data ||
-    plan.dataRequirements ||
-    []
-  )
-}
-
-function extractPlanStyleNotes(plan: PlanningResult | null): string[] {
-  if (!plan) return []
-  return (
-    plan.styleGuide ||
-    plan.styling ||
-    plan.style ||
-    []
-  )
-}
-
-function summarizePlan(plan: PlanningResult | null): string {
-  if (!plan) {
-    return 'Planning outcome unavailable. Proceeding with a safe default layout and component structure.'
-  }
-
-  const lines: string[] = []
-  const components = extractPlanComponents(plan)
-
-  if (components.length > 0) {
-    lines.push('Component outline:')
-    components.slice(0, 4).forEach(component => {
-      const detail = component.details && component.details.length > 0
-        ? ` — ${component.details.slice(0, 2).join('; ')}`
-        : ''
-      lines.push(`• ${component.name}${component.purpose ? `: ${component.purpose}` : ''}${detail}`)
-    })
-  }
-
-  const dataPoints = extractPlanDataPoints(plan)
-  if (dataPoints.length > 0) {
-    lines.push('Key state & data: ' + dataPoints.slice(0, 4).join(', '))
-  }
-
-  const styleNotes = extractPlanStyleNotes(plan)
-  if (styleNotes.length > 0) {
-    lines.push('Styling focus: ' + styleNotes.slice(0, 4).join(', '))
-  }
-
-  if (lines.length === 0) {
-    lines.push('Applying a balanced layout with accessible styling and responsive spacing.')
-  }
-
-  return lines.join('\n')
-}
-
-function ensureReactDefaults(files: Record<string, string>): string {
-  const hasRootApp = Boolean(files['App.jsx']?.trim() || files['App.tsx']?.trim())
-  const hasSrcApp = Boolean(files['src/App.jsx']?.trim() || files['src/App.tsx']?.trim())
-
-  if (!hasRootApp && !hasSrcApp) {
-    files['App.jsx'] = FALLBACK_REACT_COMPONENT
-    return 'App.jsx'
-  }
-
-  if (!files['App.module.css'] || files['App.module.css'].trim().length === 0) {
-    files['App.module.css'] = FALLBACK_REACT_CSS
-  }
-
-  if (files['App.jsx']?.trim()) return 'App.jsx'
-  if (files['App.tsx']?.trim()) return 'App.tsx'
-  if (files['src/App.tsx']?.trim()) return 'src/App.tsx'
-  if (files['src/App.jsx']?.trim()) return 'src/App.jsx'
-  if (files['index.jsx']?.trim()) return 'index.jsx'
-  if (files['index.tsx']?.trim()) return 'index.tsx'
-
-  return 'App.jsx'
-}
-
-function ensureVanillaDefaults(files: Record<string, string>): string {
-  if (!files['index.html'] || files['index.html'].trim().length === 0) {
-    files['index.html'] = FALLBACK_HTML
-  }
-
-  if (!files['styles.css'] || files['styles.css'].trim().length === 0) {
-    files['styles.css'] = FALLBACK_HTML_CSS
-  }
-
-  if (!files['script.js'] || files['script.js'].trim().length === 0) {
-    files['script.js'] = FALLBACK_HTML_JS
-  }
-
-  return 'index.html'
-}
-
-function buildFilesFromGeneration(
-  generatedCode: any,
-  isReact: boolean,
-  projectPlan?: any
-): { files: Record<string, string>; entry: string; dependencies: string[] } {
-  const files: Record<string, string> = {}
-  const dependencySet = new Set<string>()
-  let entry = isReact ? 'App.jsx' : 'index.html'
-
-  if (generatedCode) {
-    const dependencyField = generatedCode.dependencies
-    if (Array.isArray(dependencyField)) {
-      dependencyField.forEach(dep => {
-        if (typeof dep === 'string' && dep.trim().length > 0) {
-          dependencySet.add(dep.trim())
-        }
-      })
-    } else if (typeof dependencyField === 'string') {
-      dependencyField
-        .split(/[,\n]/)
-        .map(dep => dep.trim())
-        .filter(dep => dep.length > 0)
-        .forEach(dep => dependencySet.add(dep))
-    }
-
-    if (generatedCode.files && typeof generatedCode.files === 'object') {
-      for (const [rawName, rawContent] of Object.entries(generatedCode.files)) {
-        if (!rawName) continue
-        const normalizedName = normalizeFilename(rawName)
-        if (!normalizedName) continue
-
-        const content = typeof rawContent === 'string'
-          ? rawContent
-          : JSON.stringify(rawContent, null, 2)
-
-        const sanitized =
-          isReact && /\.(t|j)sx?$/.test(normalizedName)
-            ? sanitizeReactModule(content)
-            : content.trim()
-
-        files[normalizedName] = sanitized
-      }
-    } else if (isReact) {
-      const componentCode = generatedCode.html || generatedCode.jsx || generatedCode.code
-      if (componentCode) {
-        files['App.jsx'] = sanitizeReactModule(String(componentCode))
-      }
-
-      const cssCode = generatedCode.css || generatedCode.styles
-      if (cssCode) {
-        files['App.module.css'] = String(cssCode).trim()
-      }
-
-      const jsHelpers = generatedCode.js || generatedCode.script || generatedCode.utility
-      if (jsHelpers) {
-        files['helpers.js'] = String(jsHelpers).trim()
-      }
-    } else {
-      const html = generatedCode.html || generatedCode.markup
-      if (html) {
-        files['index.html'] = String(html).trim()
-      }
-
-      const css = generatedCode.css || generatedCode.styles
-      if (css) {
-        files['styles.css'] = String(css).trim()
-      }
-
-      const js = generatedCode.js || generatedCode.script
-      if (js) {
-        files['script.js'] = String(js).trim()
-      }
-    }
-  }
-
-  entry = isReact ? ensureReactDefaults(files) : ensureVanillaDefaults(files)
-
-  // Add plan.md if projectPlan is available
-  if (projectPlan && projectPlan.planMarkdown) {
-    files['plan.md'] = projectPlan.planMarkdown
-  }
-
-  return {
-    files,
-    entry,
-    dependencies: Array.from(dependencySet)
-  }
-}
+import { xai } from '@ai-sdk/xai'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version')
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -375,251 +25,123 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       device = 'desktop',
       framework = 'react',
       withReasoning = false,
-      projectPlan = null
+      sessionContext
     } = req.body
 
-    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' })
     }
 
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    // Select AI model - OpenAI primary, XAI fallback
+    let model
+    if (process.env.OPENAI_API_KEY) {
+      model = openai('gpt-4o')
+    } else if (process.env.XAI_API_KEY) {
+      model = xai('grok-beta')
+    } else {
+      return res.status(500).json({
+        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY'
+      })
+    }
 
     const isReact = framework.toLowerCase().includes('react')
 
-    let codeModel
-    if (process.env.XAI_API_KEY) {
-      codeModel = xai('grok-code-fast-1')
-    } else if (process.env.OPENAI_API_KEY) {
-      codeModel = openai('gpt-5-nano')
-    } else {
-      res.write(`data: ${JSON.stringify({
-        type: 'error',
-        error: 'No AI provider configured. Please set XAI_API_KEY or OPENAI_API_KEY'
-      })}\n\n`)
-      res.end()
-      return
-    }
-
-    let reasoningModel
-    if (process.env.OPENAI_API_KEY) {
-      reasoningModel = openai('gpt-5-mini')
-    } else if (process.env.XAI_API_KEY) {
-      reasoningModel = xai('grok-code-fast-1')
-    } else {
-      reasoningModel = codeModel
-    }
-
-    const reasoningSteps: ReasoningStep[] = []
-    let stepId = 1
-    let planningResult: PlanningResult | null = null
-
-    if (withReasoning) {
-      res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
-
-      try {
-        const planningResponse = await streamText({
-          model: reasoningModel,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a senior front-end engineer who must plan before coding.
-Respond only with valid JSON that matches this schema:
-{
-  "analysis": "Concise summary of the request",
-  "intent": "generation|modification|explanation|conversation",
-  "confidence": 0.95,
-  "reasoning": "Why this classification makes sense",
-  "componentPlan": [
-    { "name": "Component or section", "purpose": "Role in the UI", "details": ["Key behaviour or elements"] }
-  ],
-  "dataPoints": ["Important pieces of state or data"],
-  "styleGuide": ["Essential styling or layout considerations"],
-  "dependencies": ["Libraries or assets required"]
-}`
-            },
-            {
-              role: 'user',
-              content: `Create a plan for this request: "${prompt}"`
-            }
-          ],
-          temperature: 0.2
-        })
-
-        let planningText = ''
-        for await (const chunk of planningResponse.textStream) {
-          planningText += chunk
-        }
-
-        planningResult = parseJsonResponse(planningText)
-      } catch (error) {
-        console.warn('Planning stage failed:', error)
-      }
-
-      const now = new Date().toISOString()
-      const planAnalysis = planningResult?.analysis
-        ? planningResult.analysis
-        : `Analyzing request: "${prompt}" to determine the right implementation approach.`
-
-      const analysisStep: ReasoningStep = {
-        id: `step-${stepId++}`,
-        type: 'thought',
-        content: planAnalysis,
-        timestamp: now,
-        metadata: { plan: planningResult }
-      }
-      reasoningSteps.push(analysisStep)
-      res.write(`data: ${JSON.stringify({ type: 'reasoning_step', step: analysisStep })}\n\n`)
-
-      const planSummary = summarizePlan(planningResult)
-      const planningStep: ReasoningStep = {
-        id: `step-${stepId++}`,
-        type: 'action',
-        content: planSummary,
-        timestamp: new Date().toISOString(),
-        metadata: { plan: planningResult }
-      }
-      reasoningSteps.push(planningStep)
-      res.write(`data: ${JSON.stringify({ type: 'reasoning_step', step: planningStep })}\n\n`)
-
-      const dependencyNotes = planningResult?.dependencies && planningResult.dependencies.length > 0
-        ? `Planning to include dependencies: ${planningResult.dependencies.join(', ')}.`
-        : 'No external dependencies required beyond React runtime.'
-
-      const observationStep: ReasoningStep = {
-        id: `step-${stepId++}`,
-        type: 'observation',
-        content: `${planningResult?.intent ? `Classified as a ${planningResult.intent} task.` : 'Treating this as a generation task.'} ${dependencyNotes} Preparing to hand off implementation to Grok for code generation.`,
-        timestamp: new Date().toISOString(),
-        metadata: {
-          intent: planningResult?.intent || 'generation',
-          confidence: planningResult?.confidence,
-          dependencies: planningResult?.dependencies || []
-        }
-      }
-      reasoningSteps.push(observationStep)
-      res.write(`data: ${JSON.stringify({ type: 'reasoning_step', step: observationStep })}\n\n`)
-
-      res.write(`data: ${JSON.stringify({ type: 'reasoning_complete', steps: reasoningSteps })}\n\n`)
-    }
-
-    res.write(`data: ${JSON.stringify({ type: 'generation_start' })}\n\n`)
-
-    // Build tech stack instructions from project plan
-    let techStackInstructions = ''
-    if (projectPlan?.techStack) {
-      const techStack = projectPlan.techStack
-      techStackInstructions = `
-
-IMPORTANT - Use this modern tech stack based on project analysis:
-- Frontend: ${techStack.frontend?.join(', ') || 'React, TypeScript'}
-- Styling: ${techStack.styling?.join(', ') || 'Tailwind CSS, modern CSS'}
-- State Management: ${techStack.stateManagement?.join(', ') || 'React hooks'}
-${techStack.backend?.length ? `- Backend considerations: ${techStack.backend.join(', ')}` : ''}
-
-Apply modern UI patterns:
-- Use ${techStack.styling?.includes('Tailwind') ? 'Tailwind CSS utility classes' : 'CSS-in-JS or CSS modules'}
-- Implement responsive design with mobile-first approach
-- Use modern color schemes and typography
-- Add proper accessibility attributes
-- Include loading states and error handling
-`
-    }
-
     const systemPrompt = isReact
-      ? `You are an expert React developer specializing in modern, production-ready web applications. Generate stunning, professional React components that look like they belong in 2024.${techStackInstructions}
+      ? `You are Bina, an expert React developer. Generate clean, modern React components.
 
-## 🎨 MODERN UI REQUIREMENTS:
+${withReasoning ? `REASONING MODE: Think step-by-step before generating code.
+1. First emit reasoning steps as you analyze the request
+2. Then generate the final code
 
-### Visual Design:
-- **Gradients**: Use subtle gradients for backgrounds, buttons, and cards
-- **Glassmorphism**: Semi-transparent backgrounds with backdrop-filter: blur()
-- **Shadows**: Layered box-shadows for depth (0 4px 12px rgba(0,0,0,0.15))
-- **Rounded corners**: 8px-16px border-radius for modern feel
-- **Color palette**: Use professional color schemes (blues, purples, greens)
-- **Typography**: Clean, readable fonts with proper hierarchy (24px+ headers, 16px body)
+Emit reasoning steps in this format:
+data: {"type":"reasoning_step","step":{"id":"step_1","type":"thought","content":"...","timestamp":"..."}}
 
-### Layout & Spacing:
-- **Grid layouts**: CSS Grid for complex layouts, Flexbox for components
-- **Consistent spacing**: 8px spacing scale (8px, 16px, 24px, 32px, 48px)
-- **Whitespace**: Generous padding and margins for breathing room
-- **Responsive**: Mobile-first with fluid layouts
+After reasoning is complete, emit:
+data: {"type":"reasoning_complete"}
 
-### Accessibility & Contrast:
-- **Contrast**: Body text must meet at least 4.5:1 contrast ratio and large headings at least 3:1
-- **Color pairing**: Never place light text on light backgrounds or dark text on dark backgrounds—ensure obvious contrast
-- **Backgrounds**: Provide solid background fallbacks behind gradients or imagery so text stays readable
-- **State styling**: Focus and hover states must remain accessible with clear outlines or color shifts
+Then generate code.` : ''}
 
-### Interactive Elements:
-- **Hover states**: Transform scale(1.02), opacity changes, shadow transitions
-- **Transitions**: 0.2s ease-in-out for all interactive elements
-- **Buttons**: Gradient backgrounds, rounded corners, hover animations
-- **Forms**: Floating labels, focus states, validation feedback
-- **Loading states**: Skeleton screens, pulse animations
+CRITICAL: You MUST return your response wrapped in a single <binaArtifact> tag with nested <binaAction> tags.
 
-### Component Patterns:
-- **Hero sections**: Large headings, gradient backgrounds, CTAs
-- **Cards**: Elevated surfaces with shadows, hover effects
-- **Navigation**: Clean, minimal with proper spacing
-- **Data display**: Clean tables, progress bars, badges
-- **Modals/overlays**: Blurred backgrounds, centered content
+FORMAT REQUIREMENTS:
+- Wrap everything in: <binaArtifact id="unique-id" title="Project Name">
+- Each file must be a <binaAction type="file" filePath="path/to/file">
+- Include FULL file contents (no partial edits or "rest remains same")
+- Add shell commands as <binaAction type="shell">
+- Close all tags properly
 
-### App-Type Specific Styling:
-- **SaaS**: Clean, professional, blue/purple gradients, dashboard-style
-- **Landing Page**: Bold, engaging, colorful gradients, hero sections
-- **Dashboard**: Data-focused, clean hierarchy, charts and metrics
-- **E-commerce**: Product-focused, trust signals, clear CTAs
-- **Tool**: Functional, efficient, accessible, minimal but polished
+EXAMPLE:
+<binaArtifact id="app-${Date.now()}" title="React Application">
+  <binaAction type="file" filePath="App.jsx">
+import React, { useState } from 'react';
 
-Return ONLY valid JSON.
+function App() {
+  const [count, setCount] = useState(0);
 
-Single-file format:
-{
-  "html": "React JSX component code with modern styling",
-  "css": "Modern CSS with gradients, animations, and professional styling",
-  "js": "Additional JavaScript if needed"
+  return (
+    <div className="app">
+      <h1>Counter: {count}</h1>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
 }
 
-Multi-file format:
-{
-  "files": {
-    "App.jsx": "Main component with modern UI patterns",
-    "components/Header.jsx": "Child component",
-    "styles/App.css": "Modern CSS styles"
-  },
-  "dependencies": ["package"]
+export default App;
+  </binaAction>
+
+  <binaAction type="file" filePath="styles.css">
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: system-ui, sans-serif;
 }
 
-## 📋 TECHNICAL RULES:
-- Use double quotes in JSON; escape quotes and newlines properly
-- No ES module syntax (no import/export statements)
-- App component must be named App
-- Avoid template literals in JSX; use string concatenation instead
-- Prefer functional components and hooks
-- Code must run in a browser environment with React 18 UMD builds
-- Every component must look MODERN and PROFESSIONAL
-- Include hover states, transitions, and micro-interactions
-- Use semantic HTML and proper accessibility
-${projectPlan?.techStack?.styling?.includes('Tailwind') ? '- Use Tailwind CSS classes for rapid modern styling' : ''}
-${projectPlan?.techStack?.styling?.includes('shadcn') ? '- Create components inspired by shadcn/ui design system patterns' : ''}
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+  </binaAction>
+</binaArtifact>
 
-## 🚀 MUST INCLUDE:
-- Beautiful color schemes (not just grey/black/white)
-- Smooth animations and transitions
-- Professional spacing and typography
-- Interactive hover effects
-- Mobile-responsive design
-- Loading and empty states where appropriate
+GENERATION GUIDELINES:
+- Modern functional components with hooks
+- Responsive design with modern CSS or Tailwind
+- Proper state management with useState/useReducer
+- Event handlers and side effects with useEffect
+- Accessible components (ARIA labels, semantic HTML)
+- Clean, well-structured code
 
-Generate components that users would be proud to deploy in production!`
-      : `You are an expert web developer. Generate modern, responsive HTML, CSS, and JavaScript for the browser.${techStackInstructions}
-Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": { ... }} structure.`
+IMPORTANT FOR REACT APPS:
+- Always generate an App entry point (App.jsx/App.tsx) that imports its child views from `./components`
+- Always create a `components/` folder and place every visual subcomponent inside it (e.g., `components/TodoList.tsx`)
+- Always extract custom hook logic into a `hooks/` folder (e.g., `hooks/useTodos.ts`), even for simple stateful helpers
+- Keep utilities/helpers in `lib/` or `utils/` if needed; never co-locate extras beside App
+- Update imports to point at these folders (e.g., `import TodoList from './components/TodoList'`)
+- Styles belong in dedicated CSS/SCSS files referenced from App or components
+- DO NOT generate index.html, index.js, or package.json - those are handled by the host app
 
-    const generation = await streamText({
-      model: codeModel,
+RULES:
+- ALWAYS include FULL file contents
+- NO placeholders like "// rest of code here"
+- NO markdown code blocks inside <binaAction>
+- Close ALL tags properly`
+      : `You are Bina, an expert web developer. Generate clean HTML, CSS, and JavaScript using <binaArtifact> and <binaAction> tags.`
+
+    // Build context-aware prompt
+    let enhancedPrompt = prompt
+    if (sessionContext) {
+      enhancedPrompt = `${sessionContext}\n\n--- Current Request ---\n${prompt}`
+    }
+
+    // Set up SSE headers for streaming
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+
+    const result = await streamText({
+      model,
       messages: [
         {
           role: 'system',
@@ -627,143 +149,142 @@ Return ONLY valid JSON with either {"html", "css", "js"} fields or a {"files": {
         },
         {
           role: 'user',
-          content: isReact
-            ? `Build a MODERN, PRODUCTION-READY React application based on this request: ${prompt}${projectPlan ? `
-
-## 📋 Project Plan Context:
-- **App Type**: ${projectPlan.analysis?.appType || 'web application'}
-- **Primary Goal**: ${projectPlan.analysis?.primaryGoal || 'provide functionality'}
-- **Key Features**: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
-
-## ✨ Essential V1 Features to Implement:
-${projectPlan.features?.slice(0, 6).map(f => `- **${f.name}**: ${f.description}`).join('\n') || '- Core functionality'}` : ''}
-
-## 🎯 CRITICAL REQUIREMENTS:
-- Make it look STUNNING and PROFESSIONAL (2024 design standards)
-- Use modern gradients, shadows, and glassmorphism effects
-- Include smooth animations and hover states
-- Apply proper spacing, typography, and color schemes
-- Maintain strong color contrast between every text element and its background
-- Ensure mobile responsiveness
-- Add loading states and micro-interactions
-- Create a user interface that looks like a premium ${projectPlan?.analysis?.appType || 'web'} application
-
-Build something users would immediately want to use and deploy!`
-            : `Build a MODERN, RESPONSIVE website based on this request: ${prompt}${projectPlan ? `
-
-## 📋 Project Plan Context:
-- **App Type**: ${projectPlan.analysis?.appType || 'website'}
-- **Primary Goal**: ${projectPlan.analysis?.primaryGoal || 'provide information'}
-- **Key Features**: ${projectPlan.features?.slice(0, 5).map(f => f.name).join(', ') || 'core functionality'}
-
-Make it look STUNNING and PROFESSIONAL with modern design patterns!
-- Maintain high contrast between text and background in every section (no light-on-light or dark-on-dark text)
-- Ensure gradients or imagery always have a solid fallback color behind text for readability` : ''}`
+          content: enhancedPrompt
         }
       ],
       temperature: 0.7
     })
 
-    let fullResponse = ''
-
-    try {
-      for await (const chunk of generation.textStream) {
-        fullResponse += chunk
-        res.write(`data: ${JSON.stringify({ type: 'generation_chunk', chunk })}\n\n`)
+    // Helper function to parse Bina XML artifact
+    function parseBinaArtifact(xmlString: string) {
+      // Extract artifact
+      const artifactMatch = xmlString.match(/<binaArtifact[^>]*>([\s\S]*?)<\/binaArtifact>/)
+      if (!artifactMatch) {
+        throw new Error('No binaArtifact found in response')
       }
 
-      const generatedCode = parseJsonResponse(fullResponse)
+      const artifactContent = artifactMatch[1]
+      const idMatch = artifactMatch[0].match(/id="([^"]*)"/)
+      const titleMatch = artifactMatch[0].match(/title="([^"]*)"/)
 
-      if (!generatedCode) {
-        res.write(`data: ${JSON.stringify({
-          type: 'error',
-          error: 'Failed to parse generated code. Please try again.'
-        })}\n\n`)
-        res.end()
-        return
+      // Extract all file actions
+      const fileRegex = /<binaAction\s+type="file"\s+filePath="([^"]*)"\s*>([\s\S]*?)<\/binaAction>/g
+      const files: Record<string, string> = {}
+
+      let fileMatch
+      while ((fileMatch = fileRegex.exec(artifactContent)) !== null) {
+        const filePath = fileMatch[1]
+        const content = fileMatch[2].trim()
+        files[filePath] = content
       }
 
-      if (isReact && generatedCode.html) {
-        generatedCode.html = sanitizeReactModule(String(generatedCode.html))
+      // Extract shell commands
+      const shellRegex = /<binaAction\s+type="shell"\s*>([\s\S]*?)<\/binaAction>/g
+      const shellCommands: string[] = []
+
+      let shellMatch
+      while ((shellMatch = shellRegex.exec(artifactContent)) !== null) {
+        shellCommands.push(shellMatch[1].trim())
       }
 
-      if (isReact && generatedCode.files && typeof generatedCode.files === 'object') {
-        Object.keys(generatedCode.files).forEach(filename => {
-          if (/\.(t|j)sx?$/.test(filename)) {
-            generatedCode.files[filename] = sanitizeReactModule(String(generatedCode.files[filename]))
-          }
-        })
-      }
-
-      const { files, entry, dependencies: generatedDependencies } = buildFilesFromGeneration(generatedCode, isReact, projectPlan)
-
-      const dependencySet = new Set<string>(generatedDependencies)
-      if (planningResult?.dependencies) {
-        planningResult.dependencies
-          .filter(dep => typeof dep === 'string' && dep.trim().length > 0)
-          .forEach(dep => dependencySet.add(dep.trim()))
-      }
-
-      const timestamp = Date.now()
-      const artifactId = `artifact_${timestamp}`
-      const artifact = {
-        id: artifactId,
-        projectId: `project_${timestamp}`,
-        regionId: 'full-page',
+      return {
+        id: idMatch?.[1] || `artifact_${Date.now()}`,
+        title: titleMatch?.[1] || 'Generated Project',
         files,
-        entry,
+        shellCommands
+      }
+    }
+
+    // Stream the response
+    let fullResponse = ''
+    let reasoningSteps: any[] = []
+    let inReasoningPhase = withReasoning
+
+    for await (const chunk of result.textStream) {
+      fullResponse += chunk
+
+      // Try to parse reasoning steps
+      if (inReasoningPhase && chunk.includes('reasoning_step')) {
+        try {
+          const stepMatch = chunk.match(/\{[^}]*"type":\s*"reasoning_step"[^}]*\}/)
+          if (stepMatch) {
+            const step = JSON.parse(stepMatch[0])
+            reasoningSteps.push(step.step)
+            res.write(`data: ${JSON.stringify(step)}\n\n`)
+          }
+        } catch (e) {
+          // Continue if parsing fails
+        }
+      }
+
+      // Check if reasoning is complete
+      if (chunk.includes('reasoning_complete')) {
+        inReasoningPhase = false
+        res.write(`data: ${JSON.stringify({ type: 'reasoning_complete' })}\n\n`)
+      }
+
+      // Stream the raw chunk for client-side BinaArtifact parsing
+      // This allows the client to parse and execute actions incrementally
+      res.write(`data: ${JSON.stringify({
+        type: 'generation_chunk',
+        chunk: chunk
+      })}\n\n`)
+    }
+
+    // Parse the Bina XML artifact from the response
+    try {
+      const parsed = parseBinaArtifact(fullResponse)
+
+      const artifact = {
+        id: parsed.id,
+        projectId: 'default',
+        regionId: 'full-page',
+        files: parsed.files,
+        entry: Object.keys(parsed.files).find(f => f.includes('index.html')) || Object.keys(parsed.files)[0],
         metadata: {
           device,
-          region: {
-            start: { x: 0, y: 0 },
-            end: { x: 23, y: 19 }
-          },
           framework,
-          isReact,
-          projectType: isReact ? 'react' : 'vanilla',
-          dependencies: Array.from(dependencySet)
+          title: parsed.title,
+          shellCommands: parsed.shellCommands
         },
-        createdAt: new Date(timestamp).toISOString(),
-        author: 'ai-generator'
-      }
-
-      if (withReasoning) {
-        const finalStep: ReasoningStep = {
-          id: `step-${stepId++}`,
-          type: 'final_answer',
-          content: `Successfully generated ${isReact ? 'React component' : 'website'} with ${Object.keys(files).length} file(s). The preview is ready to inspect in the editor and live canvas.`,
-          timestamp: new Date().toISOString(),
-          metadata: {
-            artifactId,
-            dependencies: Array.from(dependencySet)
-          }
-        }
-        reasoningSteps.push(finalStep)
-        res.write(`data: ${JSON.stringify({ type: 'reasoning_step', step: finalStep })}\n\n`)
+        createdAt: new Date().toISOString(),
+        author: 'bina-ai-generator'
       }
 
       res.write(`data: ${JSON.stringify({
         type: 'generation_complete',
         artifact,
-        reasoningSteps: withReasoning ? reasoningSteps : undefined
+        reasoningSteps
       })}\n\n`)
-    } catch (streamError) {
-      console.error('Streaming failed:', streamError)
+
+    } catch (e) {
+      console.error('Failed to parse Bina artifact:', e)
+      console.error('Full response:', fullResponse.slice(0, 500))
+
+      // Send error as SSE event (headers already sent)
       res.write(`data: ${JSON.stringify({
         type: 'error',
-        error: 'Code generation failed. Please try again.'
+        error: 'Failed to parse artifact. Please ensure response follows Bina XML format.'
       })}\n\n`)
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
     res.end()
   } catch (error) {
     console.error('Generation error:', error)
+
+    // Check if headers were already sent as SSE
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' })
-    } else {
-      res.write(`data: ${JSON.stringify({ type: 'error', error: 'Internal server error' })}\n\n`)
-      res.end()
+      // Headers not sent yet - can still send JSON error
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      })
     }
+
+    // Headers already sent as SSE - send error as SSE event
+    res.write(`data: ${JSON.stringify({
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    })}\n\n`)
+    res.end()
   }
 }

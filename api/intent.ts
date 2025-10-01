@@ -1,9 +1,20 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
-import { streamText } from 'ai'
-import { xai } from '@ai-sdk/xai'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
+import { xai } from '@ai-sdk/xai'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version')
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -15,107 +26,133 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Message is required' })
     }
 
-    // Use OpenAI GPT-5-mini for intent classification (better at analysis)
+    // Use fast model for quick intent classification
     let model
     if (process.env.OPENAI_API_KEY) {
-      model = openai('gpt-5-mini')
+      model = openai('gpt-4o-mini')
     } else if (process.env.XAI_API_KEY) {
-      model = xai('grok-code-fast-1')
+      model = xai('grok-beta')
     } else {
-      return res.status(500).json({ 
-        error: 'No AI provider configured. Please set OPENAI_API_KEY or XAI_API_KEY' 
-      })
+      // Fallback to simple classification
+      return fallbackIntentClassification(message, hasActiveCode, responseMode, res)
     }
 
-    const result = await streamText({
+    const systemPrompt = `You are an intent classifier for a web development tool. Analyze the user's message and classify their intent.
+
+Context:
+- Has active code: ${hasActiveCode ? 'Yes' : 'No'}
+- Response mode: ${responseMode}
+
+Intent types:
+1. "generation" - User wants to create/build/make something NEW (e.g., "build a todo app", "create a landing page")
+2. "modification" - User wants to change/update/modify EXISTING code (e.g., "change the color to blue", "add a button")
+3. "explanation" - User wants to understand/learn about something (e.g., "how does this work?", "explain React hooks")
+4. "conversation" - General chat, greetings, unclear intent (e.g., "hi", "thanks", "what can you do?")
+
+Response mode behavior:
+- "just-build": If intent is "generation", should execute directly (shouldExecuteDirectly: true)
+- "show-options": If intent is "generation", should show options first (shouldShowOptions: true)
+- "explain-first": If intent is "generation", should explain before building (shouldExecuteDirectly: false)
+
+Return ONLY valid JSON in this exact format (no markdown, no extra text):
+{
+  "intent": "generation" | "modification" | "explanation" | "conversation",
+  "confidence": 0.0 to 1.0,
+  "reasoning": "brief explanation",
+  "shouldExecuteDirectly": boolean,
+  "shouldShowOptions": boolean
+}`
+
+    const result = await generateText({
       model,
       messages: [
         {
           role: 'system',
-          content: `Classify user intent for coding requests. Return JSON only.
-
-Available intents:
-- "generation": User wants to create/build/generate new code/components
-- "modification": User wants to modify/update existing code  
-- "explanation": User wants explanation/understanding of code
-- "conversation": General chat/questions not code-related
-
-Context:
-- hasActiveCode: ${hasActiveCode}
-- responseMode: ${responseMode}
-
-Return this exact JSON format:
-{
-  "intent": "generation|modification|explanation|conversation",
-  "confidence": 0.95,
-  "reasoning": "Brief explanation of classification",
-  "shouldExecuteDirectly": ${responseMode === 'just-build'},
-  "shouldShowOptions": ${responseMode === 'show-options'}
-}`
+          content: systemPrompt
         },
         {
           role: 'user',
-          content: `Classify this request: "${message}"`
+          content: `Classify this message: "${message}"`
         }
       ],
-      temperature: 0.1,
+      temperature: 0.3 // Low temperature for consistent classification
     })
 
-    let intentText = ''
-    for await (const chunk of result.textStream) {
-      intentText += chunk
-    }
-    
-    let intentResult
+    // Parse the AI response
     try {
-      intentResult = JSON.parse(intentText)
+      // Remove markdown code blocks if present
+      let jsonText = result.text.trim()
+      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+
+      const classification = JSON.parse(jsonText)
+
+      return res.status(200).json({
+        success: true,
+        intent: classification.intent || 'conversation',
+        confidence: classification.confidence || 0.5,
+        reasoning: classification.reasoning || 'AI classification',
+        shouldExecuteDirectly: classification.shouldExecuteDirectly || false,
+        shouldShowOptions: classification.shouldShowOptions || false
+      })
     } catch (parseError) {
-      console.warn('Failed to parse intent classification:', parseError)
-      // Fallback classification based on keywords
-      const message_lower = message.toLowerCase()
-      const isJustBuildMode = responseMode === 'just-build'
-      const shouldShowOptions = responseMode === 'show-options'
-      
-      if (message_lower.includes('build') || message_lower.includes('create') || 
-          message_lower.includes('make') || message_lower.includes('generate')) {
-        intentResult = { 
-          intent: 'generation', 
-          confidence: 0.7, 
-          reasoning: 'Fallback: contains generation keywords',
-          shouldExecuteDirectly: isJustBuildMode,
-          shouldShowOptions: shouldShowOptions
-        }
-      } else if (message_lower.includes('modify') || message_lower.includes('change') || 
-                 message_lower.includes('update') || message_lower.includes('fix')) {
-        intentResult = { 
-          intent: 'modification', 
-          confidence: 0.6, 
-          reasoning: 'Fallback: contains modification keywords',
-          shouldExecuteDirectly: isJustBuildMode,
-          shouldShowOptions: shouldShowOptions
-        }
-      } else {
-        intentResult = { 
-          intent: 'conversation', 
-          confidence: 0.5, 
-          reasoning: 'Fallback: default to conversation',
-          shouldExecuteDirectly: true,
-          shouldShowOptions: false
-        }
-      }
+      console.error('Failed to parse AI classification:', parseError)
+      // Fallback to keyword-based classification
+      return fallbackIntentClassification(message, hasActiveCode, responseMode, res)
     }
-
-    return res.status(200).json({ 
-      success: true,
-      ...intentResult
-    })
-
   } catch (error) {
     console.error('Intent classification error:', error)
-    return res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    })
+    // Fallback to keyword-based classification
+    return fallbackIntentClassification(req.body.message, req.body.hasActiveCode, req.body.responseMode, res)
   }
+}
+
+function fallbackIntentClassification(
+  message: string,
+  hasActiveCode: boolean,
+  responseMode: string,
+  res: VercelResponse
+) {
+  const lowerMessage = message.toLowerCase()
+
+  // Generation keywords
+  const generationKeywords = ['build', 'create', 'make', 'generate', 'new', 'develop', 'design']
+  const hasGenerationKeyword = generationKeywords.some(kw => lowerMessage.includes(kw))
+
+  // Modification keywords
+  const modificationKeywords = ['change', 'modify', 'update', 'edit', 'add', 'remove', 'fix', 'adjust']
+  const hasModificationKeyword = modificationKeywords.some(kw => lowerMessage.includes(kw))
+
+  // Explanation keywords
+  const explanationKeywords = ['how', 'why', 'what', 'explain', 'tell me', 'show me', 'teach']
+  const hasExplanationKeyword = explanationKeywords.some(kw => lowerMessage.includes(kw))
+
+  let intent: 'generation' | 'modification' | 'explanation' | 'conversation' = 'conversation'
+  let confidence = 0.5
+  let reasoning = 'Fallback keyword-based classification'
+
+  if (hasGenerationKeyword) {
+    intent = 'generation'
+    confidence = 0.75
+    reasoning = 'Contains generation keywords'
+  } else if (hasActiveCode && hasModificationKeyword) {
+    intent = 'modification'
+    confidence = 0.7
+    reasoning = 'Contains modification keywords with active code'
+  } else if (hasExplanationKeyword) {
+    intent = 'explanation'
+    confidence = 0.65
+    reasoning = 'Contains question/explanation keywords'
+  }
+
+  const shouldExecuteDirectly = responseMode === 'just-build' && intent === 'generation'
+  const shouldShowOptions = responseMode === 'show-options' && intent === 'generation'
+
+  return res.status(200).json({
+    success: true,
+    intent,
+    confidence,
+    reasoning,
+    shouldExecuteDirectly,
+    shouldShowOptions
+  })
 }

@@ -29,10 +29,20 @@ export const PreviewFrame = () => {
   const [showConsole, setShowConsole] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<'transpiling' | 'bundling' | 'rendering'>('transpiling')
+  const previewBlobUrlRef = useRef<string | null>(null)
 
   const currentArtifact = artifacts.find(a => a.id === currentArtifactId)
 
-
+  // Helper function to find React entry point
+  const findReactEntryPoint = (files: Record<string, string>): string | null => {
+    const entryOptions = ['App.tsx', 'App.jsx', 'src/App.tsx', 'src/App.jsx', 'index.tsx', 'index.jsx']
+    for (const option of entryOptions) {
+      if (files[option]) {
+        return option
+      }
+    }
+    return null
+  }
 
   useEffect(() => {
     if (!currentArtifact || !iframeRef.current) return
@@ -45,8 +55,23 @@ export const PreviewFrame = () => {
     setErrors([])
     setConsoleMessages([])
 
+    // Check for .bina.json manifest to determine preview mode
+    let previewMode = 'auto' // auto, single-file, bundled
+    let manifestEntry = 'App.tsx'
+
+    if (currentArtifact.files['.bina.json']) {
+      try {
+        const manifest = JSON.parse(currentArtifact.files['.bina.json'])
+        previewMode = manifest.previewMode || 'single-file'
+        manifestEntry = manifest.entry || 'App.tsx'
+      } catch (e) {
+        console.warn('Failed to parse .bina.json, using auto mode')
+      }
+    }
+
     // Check if this is a React artifact or regular HTML
-    const isReactArtifact = currentArtifact.files['App.jsx'] ||
+    const reactEntryPoint = findReactEntryPoint(currentArtifact.files)
+    const isReactArtifact = reactEntryPoint !== null ||
                            currentArtifact.metadata?.isReact ||
                            currentArtifact.metadata?.framework === 'react'
 
@@ -54,30 +79,28 @@ export const PreviewFrame = () => {
       let fullHtml: string
 
       if (isReactArtifact) {
-        // Check if this is a multi-file project
+        // Use manifest-based routing if available
+        const useBundler = previewMode === 'bundled' && currentArtifact.files['.bina.json']
+
+        // Fallback to folder detection if no manifest
         const fileNames = Object.keys(currentArtifact.files)
-        const hasMultipleComponents = fileNames.some(name => 
-          name.startsWith('components/') || 
-          name.includes('import') ||
-          fileNames.length > 3 // More than App.jsx, styles.css, and index.html
+        const hasMultipleComponents = previewMode === 'auto' && fileNames.some(name =>
+          name.startsWith('components/') ||
+          name.startsWith('hooks/') ||
+          name.startsWith('utils/') ||
+          name.startsWith('lib/')
         )
 
-        if (hasMultipleComponents) {
+        const shouldBundle = useBundler || hasMultipleComponents
+
+        if (shouldBundle) {
           // Use bundler for multi-file projects
           setLoadingPhase('bundling')
 
           const bundler = new ModuleBundler()
 
-          // Find entry point (prefer App.tsx > App.jsx > index.tsx > index.jsx)
-          let entryPoint = 'App.jsx'
-          const entryOptions = ['App.tsx', 'App.jsx', 'index.tsx', 'index.jsx', 'src/App.tsx', 'src/App.jsx']
-
-          for (const option of entryOptions) {
-            if (currentArtifact.files[option]) {
-              entryPoint = option
-              break
-            }
-          }
+          // Find entry point
+          const entryPoint = reactEntryPoint || 'App.jsx'
 
           try {
             const bundleResult = await bundler.bundle(currentArtifact.files, {
@@ -98,8 +121,22 @@ export const PreviewFrame = () => {
                   </body>
                 </html>
               `
+            } else if (!bundleResult.html) {
+              console.error('Bundle returned empty HTML')
+              fullHtml = `
+                <html>
+                  <body>
+                    <div style="color: red; padding: 20px;">
+                      <h3>Bundle Error</h3>
+                      <pre>Bundler returned empty HTML. Entry point: ${entryPoint}</pre>
+                      <pre>Available files: ${Object.keys(currentArtifact.files).join(', ')}</pre>
+                    </div>
+                  </body>
+                </html>
+              `
             } else {
               fullHtml = bundleResult.html
+              console.log('Bundle successful, rendering HTML')
             }
           } catch (error) {
             console.error('Bundling failed:', error)
@@ -119,22 +156,29 @@ export const PreviewFrame = () => {
           setLoadingPhase('transpiling')
 
           const transpilerService = TranspilerService.getInstance()
-          
-          // Get the component code from App.jsx
-          const componentCode = currentArtifact.files['App.jsx'] || ''
-          
+
+          // Get the component code from the detected entry point
+          const componentCode = reactEntryPoint ? currentArtifact.files[reactEntryPoint] : ''
+
           if (componentCode) {
             const cssCode = currentArtifact.files['App.module.css'] || currentArtifact.files['styles.css'] || ''
-            fullHtml = await transpilerService.createReactHTML(componentCode, cssCode)
+            fullHtml = await transpilerService.createReactHTML(componentCode, cssCode, currentArtifact.files)
           } else {
-            // No App.jsx found
-            console.error('No App.jsx file found for React component')
+            // No React entry point found
+            const availableFiles = Object.keys(currentArtifact.files).join(', ')
+            console.error('No React entry point found for component. Available files:', availableFiles)
             fullHtml = `
               <html>
                 <body>
                   <div style="color: #d73a49; padding: 20px; border: 1px solid #d73a49; border-radius: 6px; margin: 20px; font-family: system-ui, sans-serif;">
                     <h3>❌ Component File Not Found</h3>
-                    <p>No App.jsx file was generated. Please try generating the component again.</p>
+                    <p>No React entry point (App.jsx, App.tsx, etc.) was found.</p>
+                    <p style="margin-top: 10px; font-size: 14px; color: #586069;">
+                      <strong>Available files:</strong> ${availableFiles || 'none'}
+                    </p>
+                    <p style="margin-top: 10px; font-size: 14px; color: #586069;">
+                      Please ensure your component is named App.jsx or App.tsx
+                    </p>
                   </div>
                 </body>
               </html>
@@ -303,27 +347,43 @@ export const PreviewFrame = () => {
 
       setLoadingPhase('rendering')
 
-      if (iframeRef.current) {
-        const iframe = iframeRef.current
-        // Reset previous content before injecting new markup
-        iframe.src = 'about:blank'
-        iframe.srcdoc = fullHtml
+        if (iframeRef.current) {
+          const iframe = iframeRef.current
 
-        // Listen for iframe load to end loading state
-        const handleLoad = () => {
-          // Add a small delay to ensure content is fully rendered
-          setTimeout(() => {
-            setIsLoading(false)
-          }, 300)
+          // Clean up any previously created blob URLs
+          if (previewBlobUrlRef.current) {
+            URL.revokeObjectURL(previewBlobUrlRef.current)
+            previewBlobUrlRef.current = null
+          }
+
+          // Serve the preview HTML from a Blob-backed URL so relative asset
+          // resolution has a valid origin instead of about:blank.
+          const htmlBlob = new Blob([fullHtml], { type: 'text/html' })
+          const blobUrl = URL.createObjectURL(htmlBlob)
+          previewBlobUrlRef.current = blobUrl
+
+          iframe.src = blobUrl
+
+          // Listen for iframe load to end loading state
+          const handleLoad = () => {
+            // Add a small delay to ensure content is fully rendered
+            setTimeout(() => {
+              setIsLoading(false)
+            }, 300)
+          }
+
+          iframe.addEventListener('load', handleLoad)
+
+          return () => {
+            iframe.removeEventListener('load', handleLoad)
+            // Reset the iframe to a blank page and revoke the blob URL
+            iframe.src = 'about:blank'
+            if (previewBlobUrlRef.current) {
+              URL.revokeObjectURL(previewBlobUrlRef.current)
+              previewBlobUrlRef.current = null
+            }
+          }
         }
-
-        iframe.addEventListener('load', handleLoad)
-
-        return () => {
-          iframe.removeEventListener('load', handleLoad)
-          iframe.srcdoc = ''
-        }
-      }
 
       return () => {}
     }
@@ -349,6 +409,16 @@ export const PreviewFrame = () => {
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // Ensure any allocated blob URLs are released when the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrlRef.current) {
+        URL.revokeObjectURL(previewBlobUrlRef.current)
+        previewBlobUrlRef.current = null
+      }
+    }
   }, [])
 
   if (!currentArtifact) {

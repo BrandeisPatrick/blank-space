@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { Artifact, ChatMessage, ResponseMode } from '../types'
+import { BinaArtifact, BinaAction } from '../types/binaArtifact'
 
 interface AppStore {
   // Core app state
   isGenerating: boolean
-  artifacts: Artifact[]
+  artifacts: BinaArtifact[]
   currentArtifactId: string | null
   chatMessages: ChatMessage[]
   responseMode: ResponseMode
@@ -14,10 +15,12 @@ interface AppStore {
   showCode: boolean
   showPreview: boolean
 
-  // Actions
+  // Actions - BinaArtifact support
   setGenerating: (generating: boolean) => void
   addArtifact: (artifact: Artifact) => void
+  upsertBinaArtifact: (artifact: BinaArtifact) => void
   updateArtifact: (id: string, files: Record<string, string>) => void
+  addActionToArtifact: (artifactId: string, action: BinaAction) => void
   setCurrentArtifact: (id: string | null) => void
   addChatMessage: (message: ChatMessage) => void
   clearChat: () => void
@@ -30,6 +33,7 @@ interface AppStore {
   deleteFile: (artifactId: string, filePath: string) => void
   renameFile: (artifactId: string, oldPath: string, newName: string) => void
   updateFileContent: (artifactId: string, filePath: string, content: string) => void
+  trackFileModification: (artifactId: string, filePath: string, originalContent: string, modifiedContent: string) => void
 }
 
 // Load response mode from localStorage with fallback
@@ -62,15 +66,64 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ isGenerating: generating }),
 
   addArtifact: (artifact: Artifact) =>
+    set((state) => {
+      // Convert legacy Artifact to BinaArtifact
+      const binaArtifact: BinaArtifact = {
+        ...artifact,
+        title: artifact.projectId || 'Untitled Project',
+        actions: [],
+        modifiedFiles: {},
+        shellHistory: [],
+        serverProcess: null,
+        updatedAt: new Date().toISOString()
+      }
+      return {
+        artifacts: [...state.artifacts, binaArtifact],
+        currentArtifactId: artifact.id
+      }
+    }),
+
+  upsertBinaArtifact: (artifact: BinaArtifact) =>
+    set((state) => {
+      const existingIndex = state.artifacts.findIndex(a => a.id === artifact.id)
+
+      if (existingIndex >= 0) {
+        // Update existing artifact
+        const updatedArtifacts = [...state.artifacts]
+        updatedArtifacts[existingIndex] = {
+          ...updatedArtifacts[existingIndex],
+          ...artifact,
+          updatedAt: new Date().toISOString()
+        }
+        return { artifacts: updatedArtifacts }
+      } else {
+        // Add new artifact
+        return {
+          artifacts: [...state.artifacts, artifact],
+          currentArtifactId: artifact.id
+        }
+      }
+    }),
+
+  addActionToArtifact: (artifactId: string, action: BinaAction) =>
     set((state) => ({
-      artifacts: [...state.artifacts, artifact],
-      currentArtifactId: artifact.id
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === artifactId
+          ? {
+              ...artifact,
+              actions: [...artifact.actions, action],
+              updatedAt: new Date().toISOString()
+            }
+          : artifact
+      )
     })),
 
   updateArtifact: (id: string, files: Record<string, string>) =>
     set((state) => ({
       artifacts: state.artifacts.map(artifact =>
-        artifact.id === id ? { ...artifact, files } : artifact
+        artifact.id === id
+          ? { ...artifact, files, updatedAt: new Date().toISOString() }
+          : artifact
       )
     })),
 
@@ -175,7 +228,31 @@ export const useAppStore = create<AppStore>((set) => ({
     set((state) => ({
       artifacts: state.artifacts.map(artifact =>
         artifact.id === artifactId
-          ? { ...artifact, files: { ...artifact.files, [filePath]: content } }
+          ? {
+              ...artifact,
+              files: { ...artifact.files, [filePath]: content },
+              updatedAt: new Date().toISOString()
+            }
+          : artifact
+      )
+    })),
+
+  trackFileModification: (artifactId: string, filePath: string, originalContent: string, modifiedContent: string) =>
+    set((state) => ({
+      artifacts: state.artifacts.map(artifact =>
+        artifact.id === artifactId
+          ? {
+              ...artifact,
+              modifiedFiles: {
+                ...artifact.modifiedFiles,
+                [filePath]: {
+                  originalContent,
+                  modifiedContent,
+                  modifiedAt: new Date().toISOString()
+                }
+              },
+              updatedAt: new Date().toISOString()
+            }
           : artifact
       )
     }))
