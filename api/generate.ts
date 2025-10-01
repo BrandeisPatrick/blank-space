@@ -70,18 +70,38 @@ FORMAT REQUIREMENTS:
 - Add shell commands as <binaAction type="shell">
 - Close all tags properly
 
-EXAMPLE:
-<binaArtifact id="app-${Date.now()}" title="React Application">
-  <binaAction type="file" filePath="App.jsx">
-import React, { useState } from 'react';
+FILE STRUCTURE REQUIREMENTS (MANDATORY - VIOLATIONS WILL BE REJECTED):
+✅ REQUIRED folder structure for ALL React apps:
+- App.tsx or App.jsx at root level (entry point only)
+- components/ folder - ALL UI components MUST go here
+- hooks/ folder - ALL custom hooks MUST go here
+- lib/ or utils/ folder - helper functions (if needed)
+- styles/ folder or CSS files with components
+
+❌ FORBIDDEN - The following will cause REJECTION:
+- Placing components directly at root level (except App.tsx/App.jsx)
+- Mixing hooks with components in the same folder
+- Creating TodoList.tsx at root instead of components/TodoList.tsx
+- Flat file structures without proper folders
+- Components outside the components/ folder
+
+COMPLETE WORKING EXAMPLE (FOLLOW THIS STRUCTURE EXACTLY):
+<binaArtifact id="app-${Date.now()}" title="Todo Application">
+  <!-- Root entry point - ONLY file allowed at root -->
+  <binaAction type="file" filePath="App.tsx">
+import React from 'react';
+import Header from './components/Header';
+import TodoList from './components/TodoList';
+import { useTodos } from './hooks/useTodos';
+import './styles.css';
 
 function App() {
-  const [count, setCount] = useState(0);
+  const { todos, addTodo, removeTodo } = useTodos();
 
   return (
     <div className="app">
-      <h1>Counter: {count}</h1>
-      <button onClick={() => setCount(count + 1)}>Increment</button>
+      <Header />
+      <TodoList todos={todos} onAdd={addTodo} onRemove={removeTodo} />
     </div>
   );
 }
@@ -89,21 +109,155 @@ function App() {
 export default App;
   </binaAction>
 
+  <!-- ALL components MUST be in components/ folder -->
+  <binaAction type="file" filePath="components/Header.tsx">
+import React from 'react';
+
+const Header: React.FC = () => {
+  return (
+    <header className="header">
+      <h1>My Todo App</h1>
+    </header>
+  );
+};
+
+export default Header;
+  </binaAction>
+
+  <binaAction type="file" filePath="components/TodoList.tsx">
+import React, { useState } from 'react';
+
+interface TodoListProps {
+  todos: string[];
+  onAdd: (todo: string) => void;
+  onRemove: (index: number) => void;
+}
+
+const TodoList: React.FC<TodoListProps> = ({ todos, onAdd, onRemove }) => {
+  const [input, setInput] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      onAdd(input);
+      setInput('');
+    }
+  };
+
+  return (
+    <div className="todo-list">
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Add a todo..."
+        />
+        <button type="submit">Add</button>
+      </form>
+      <ul>
+        {todos.map((todo, index) => (
+          <li key={index}>
+            {todo}
+            <button onClick={() => onRemove(index)}>Remove</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default TodoList;
+  </binaAction>
+
+  <!-- ALL hooks MUST be in hooks/ folder -->
+  <binaAction type="file" filePath="hooks/useTodos.ts">
+import { useState } from 'react';
+
+export const useTodos = () => {
+  const [todos, setTodos] = useState<string[]>([]);
+
+  const addTodo = (todo: string) => {
+    setTodos([...todos, todo]);
+  };
+
+  const removeTodo = (index: number) => {
+    setTodos(todos.filter((_, i) => i !== index));
+  };
+
+  return { todos, addTodo, removeTodo };
+};
+  </binaAction>
+
+  <!-- Styles can be at root or in styles/ folder -->
   <binaAction type="file" filePath="styles.css">
 .app {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-button {
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.todo-list {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.todo-list form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.todo-list input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.todo-list button {
   padding: 10px 20px;
-  font-size: 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
+}
+
+.todo-list button:hover {
+  background: #0056b3;
+}
+
+.todo-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.todo-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: white;
+  margin-bottom: 8px;
+  border-radius: 4px;
 }
   </binaAction>
 </binaArtifact>
+
+VALIDATION CHECKLIST (YOU MUST FOLLOW):
+✓ Every component import uses './components/...'
+✓ Every hook import uses './hooks/...'
+✓ NO components at root level (only App.tsx/App.jsx allowed)
+✓ ALL visual components in components/ folder
+✓ ALL custom hooks in hooks/ folder
+✓ Clean import paths with proper folder references
 
 GENERATION GUIDELINES:
 - Modern functional components with hooks
@@ -111,22 +265,15 @@ GENERATION GUIDELINES:
 - Proper state management with useState/useReducer
 - Event handlers and side effects with useEffect
 - Accessible components (ARIA labels, semantic HTML)
-- Clean, well-structured code
+- Clean, well-structured code with PROPER FOLDER ORGANIZATION
 
-IMPORTANT FOR REACT APPS:
-- Always generate an App entry point (App.jsx/App.tsx) that imports its child views from `./components`
-- Always create a `components/` folder and place every visual subcomponent inside it (e.g., `components/TodoList.tsx`)
-- Always extract custom hook logic into a `hooks/` folder (e.g., `hooks/useTodos.ts`), even for simple stateful helpers
-- Keep utilities/helpers in `lib/` or `utils/` if needed; never co-locate extras beside App
-- Update imports to point at these folders (e.g., `import TodoList from './components/TodoList'`)
-- Styles belong in dedicated CSS/SCSS files referenced from App or components
-- DO NOT generate index.html, index.js, or package.json - those are handled by the host app
-
-RULES:
+MANDATORY RULES:
+- ALWAYS use proper folder structure (components/, hooks/, etc.)
 - ALWAYS include FULL file contents
 - NO placeholders like "// rest of code here"
 - NO markdown code blocks inside <binaAction>
-- Close ALL tags properly`
+- Close ALL tags properly
+- DO NOT generate index.html, index.js, or package.json - those are handled by the host app`
       : `You are Bina, an expert web developer. Generate clean HTML, CSS, and JavaScript using <binaArtifact> and <binaAction> tags.`
 
     // Build context-aware prompt
