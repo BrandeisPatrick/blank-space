@@ -14,13 +14,136 @@ export interface ModuleBundleOptions {
 }
 
 export class ModuleBundler {
+  private files: Record<string, string> = {}
+  private processedFiles: Set<string> = new Set()
+  private bundledCode: string = ''
+
   constructor() {}
+
+  /**
+   * Resolve import path relative to current file
+   */
+  private resolveImportPath(currentFile: string, importPath: string): string | null {
+    // Remove quotes
+    const cleanPath = importPath.replace(/['"]/g, '')
+
+    // Skip external packages
+    if (!cleanPath.startsWith('.')) {
+      return null
+    }
+
+    // Get directory of current file
+    const currentDir = currentFile.includes('/')
+      ? currentFile.substring(0, currentFile.lastIndexOf('/'))
+      : ''
+
+    // Resolve relative path
+    let resolvedPath = cleanPath
+    if (cleanPath.startsWith('./')) {
+      resolvedPath = currentDir ? `${currentDir}/${cleanPath.slice(2)}` : cleanPath.slice(2)
+    } else if (cleanPath.startsWith('../')) {
+      const parts = currentDir.split('/').filter(Boolean)
+      let path = cleanPath
+      while (path.startsWith('../')) {
+        parts.pop()
+        path = path.slice(3)
+      }
+      resolvedPath = parts.length > 0 ? `${parts.join('/')}/${path}` : path
+    }
+
+    // Try different extensions
+    const extensions = ['.tsx', '.ts', '.jsx', '.js']
+    for (const ext of extensions) {
+      if (this.files[resolvedPath + ext]) {
+        return resolvedPath + ext
+      }
+    }
+
+    // Try exact path
+    if (this.files[resolvedPath]) {
+      return resolvedPath
+    }
+
+    return null
+  }
+
+  /**
+   * Process a file and inline its imports
+   */
+  private processFile(filePath: string): string {
+    if (this.processedFiles.has(filePath)) {
+      return '' // Already processed
+    }
+
+    const content = this.files[filePath]
+    if (!content) {
+      return `// File not found: ${filePath}\n`
+    }
+
+    this.processedFiles.add(filePath)
+
+    let processedContent = content
+    const importedCode: string[] = []
+
+    // Find and process all imports
+    const importRegex = /import\s+(?:(\w+)|{([^}]+)})\s+from\s+['"]([^'"]+)['"];?\s*/g
+    let match
+
+    while ((match = importRegex.exec(content)) !== null) {
+      const defaultImport = match[1]
+      const namedImports = match[2]
+      const importPath = match[3]
+
+      // Skip react imports - these will be handled separately
+      if (importPath === 'react' || importPath.startsWith('react/')) {
+        continue
+      }
+
+      // Skip CSS imports - these are collected separately
+      if (importPath.endsWith('.css')) {
+        continue
+      }
+
+      const resolvedPath = this.resolveImportPath(filePath, importPath)
+      if (resolvedPath) {
+        // Recursively process the imported file
+        const importedFileCode = this.processFile(resolvedPath)
+        if (importedFileCode) {
+          importedCode.push(`\n// Inlined from: ${resolvedPath}`)
+          importedCode.push(importedFileCode)
+        }
+      }
+    }
+
+    // Remove all imports from this file
+    processedContent = processedContent
+      .replace(/import\s+(?:\w+|{[^}]+})\s+from\s+['"][^'"]+['"];?\s*/g, '')
+
+    // Remove export statements but keep the declarations
+    processedContent = processedContent
+      .replace(/export\s+default\s+function\s+/g, 'function ')
+      .replace(/export\s+default\s+const\s+/g, 'const ')
+      .replace(/export\s+default\s+class\s+/g, 'class ')
+      .replace(/export\s+function\s+/g, 'function ')
+      .replace(/export\s+const\s+/g, 'const ')
+      .replace(/export\s+class\s+/g, 'class ')
+      .replace(/export\s+default\s+(\w+);?\s*/g, '// export default $1')
+      .replace(/export\s+\{[^}]*\};?\s*/g, '')
+      .replace(/export\s+(interface|type)\s+/g, '$1 ')
+
+    // Combine imported code with processed content
+    return importedCode.join('\n') + '\n' + processedContent
+  }
 
   async bundle(
     files: Record<string, string>,
     options: ModuleBundleOptions
   ): Promise<ModuleBundleResult> {
-    // Simplified bundler that just returns the entry file content
+    // Store files for import resolution
+    this.files = files
+    this.processedFiles = new Set()
+    this.bundledCode = ''
+
     const entryContent = files[options.entryPoint]
 
     if (!entryContent) {
@@ -56,10 +179,10 @@ export class ModuleBundler {
                     entryContent.includes('from "react"')
 
     if (isReact) {
-      // Transform React component for browser execution
-      let transformedCode = entryContent
+      // Process the entry file and all its imports
+      let transformedCode = this.processFile(options.entryPoint)
 
-      // Transform imports to work with CDN-loaded React
+      // Transform React imports to work with CDN-loaded React
       transformedCode = transformedCode
         // Remove React imports and replace with global React
         .replace(/import\s+React\s*,?\s*\{([^}]*)\}\s+from\s+['"]react['"];?\s*/g, (match, hooks) => {
@@ -74,17 +197,6 @@ export class ModuleBundler {
           const hookList = hooks.split(',').map((h: string) => h.trim()).filter(Boolean)
           return hookList.length > 0 ? `const { ${hookList.join(', ')} } = React;\n` : ''
         })
-        // Remove CSS imports
-        .replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '')
-        // Remove other component imports (we'll need to handle these properly in a full implementation)
-        .replace(/import\s+\{[^}]*\}\s+from\s+['"]\.[^'"]*['"];?\s*/g, '')
-        .replace(/import\s+\w+\s+from\s+['"]\.[^'"]*['"];?\s*/g, '')
-        // Remove export statements
-        .replace(/export\s+default\s+(\w+);?\s*/g, '')
-        .replace(/export\s+\{[^}]*\};?\s*/g, '')
-        .replace(/export\s+default\s+function\s+/g, 'function ')
-        .replace(/export\s+function\s+/g, 'function ')
-        .replace(/export\s+(interface|type)\s+/g, '$1 ')
 
       const sanitizedCode = transformedCode.replace(/<\/script>/gi, '<\\/script>')
 
