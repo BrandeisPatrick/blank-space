@@ -93,9 +93,12 @@ export function addViteProjectFiles(
     enhancedFiles['vite.config.ts'] = VITE_CONFIG_TEMPLATE
   }
 
-  // Add index.html if not present
+  // Add index.html if not present (fallback only - LLM should generate it)
   if (!enhancedFiles['index.html']) {
+    console.log('[projectTemplates] Using fallback index.html template. LLM should generate custom index.html.')
     enhancedFiles['index.html'] = INDEX_HTML_TEMPLATE
+  } else {
+    console.log('[projectTemplates] Using LLM-generated index.html')
   }
 
   // Add src/main.tsx if not present

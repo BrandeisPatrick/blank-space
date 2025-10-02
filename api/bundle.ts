@@ -30,6 +30,48 @@ class ModuleBundler {
 
   constructor() {}
 
+  // Extract metadata from generated index.html
+  private extractHtmlMetadata(html: string): {
+    title: string
+    cdnScripts: string[]
+    customStyles: string
+    bodyClass: string
+  } {
+    const metadata = {
+      title: 'React App', // fallback
+      cdnScripts: [] as string[],
+      customStyles: '',
+      bodyClass: ''
+    }
+
+    // Extract title
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i)
+    if (titleMatch) {
+      metadata.title = titleMatch[1]
+    }
+
+    // Extract CDN scripts (Tailwind, Chart.js, etc.)
+    const scriptRegex = /<script[^>]*src=["']([^"']+cdn[^"']+)["'][^>]*><\/script>/gi
+    let scriptMatch
+    while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+      metadata.cdnScripts.push(scriptMatch[0])
+    }
+
+    // Extract custom styles from <style> tag
+    const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+    if (styleMatch) {
+      metadata.customStyles = styleMatch[1]
+    }
+
+    // Extract body class
+    const bodyMatch = html.match(/<body[^>]*class=["']([^"']+)["']/i)
+    if (bodyMatch) {
+      metadata.bodyClass = bodyMatch[1]
+    }
+
+    return metadata
+  }
+
   private resolveImportPath(currentFile: string, importPath: string): string | null {
     const cleanPath = importPath.replace(/['"]/g, '')
 
@@ -208,6 +250,11 @@ class ModuleBundler {
         .map(path => files[path])
         .join('\n')
 
+      // Extract metadata from generated index.html (if exists)
+      const htmlMetadata = files['index.html']
+        ? this.extractHtmlMetadata(files['index.html'])
+        : { title: 'React App', cdnScripts: [], customStyles: '', bodyClass: '' }
+
       transformedCode = transformedCode
         .replace(/import\s+React\s*,?\s*\{([^}]*)\}\s+from\s+['"]react['"];?\s*/g, (_match, hooks) => {
           const hookList = hooks.split(',').map((h: string) => h.trim()).filter(Boolean)
@@ -227,16 +274,18 @@ class ModuleBundler {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React App</title>
+    <title>${htmlMetadata.title}</title>
+    ${htmlMetadata.cdnScripts.join('\n    ')}
     <style>
         body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        ${htmlMetadata.customStyles}
         ${cssContent}
     </style>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body>
+<body${htmlMetadata.bodyClass ? ` class="${htmlMetadata.bodyClass}"` : ''}>
     <div id="root"></div>
     <script type="text/babel" data-type="module" data-presets="react">
         ${sanitizedCode}

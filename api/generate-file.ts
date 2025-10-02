@@ -229,6 +229,75 @@ For CSS files (CRITICAL - Must be comprehensive, not minimal):
 - Ensure accessibility (focus outlines, contrast ratios)
 - Make it visually appealing with proper colors, spacing, shadows
 
+For HTML files (index.html) - CRITICAL:
+- ALWAYS generate custom index.html (NEVER use generic templates!)
+- Generate app-specific customizations:
+
+  1. Custom <title> based on app purpose:
+     * Calculator app → "Calculator App"
+     * Todo/Notes app → "Todo List" or "Notes App"
+     * Dashboard → "Analytics Dashboard"
+     * Portfolio → "Portfolio"
+     * NEVER use generic "React App" or "Preview"
+
+  2. Auto-detect and add CDN scripts based on code usage:
+     * If code uses Tailwind classes (bg-*, flex, grid, etc.):
+       <script src="https://cdn.tailwindcss.com"></script>
+     * If code uses Chart.js:
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     * If code uses Framer Motion (import from 'framer-motion'):
+       <script type="module">
+         import { motion } from 'https://cdn.skypack.dev/framer-motion'
+       </script>
+
+  3. Theme-aware body classes:
+     * Dark theme apps → <body class="bg-slate-900 dark">
+     * Light theme apps → <body class="bg-white">
+     * Detect theme from CSS color scheme or component styling
+
+  4. Custom scrollbar styling for dark themes:
+     <style>
+       ::-webkit-scrollbar { width: 8px; }
+       ::-webkit-scrollbar-track { background: #1e293b; }
+       ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+       ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+     </style>
+
+  5. Required structure:
+     <!DOCTYPE html>
+     <html lang="en">
+       <head>
+         <meta charset="UTF-8" />
+         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+         <meta name="description" content="[Brief app description]" />
+         <title>[Custom App Title]</title>
+         [CDN scripts if needed]
+         [Custom scrollbar styles for dark themes]
+       </head>
+       <body class="[theme-aware classes]">
+         <div id="root"></div>
+         <script type="module" src="/src/main.tsx"></script>
+       </body>
+     </html>
+
+  6. Examples:
+     * Todo app with Tailwind dark theme:
+       <title>Todo List</title>
+       <script src="https://cdn.tailwindcss.com"></script>
+       <body class="bg-slate-900">
+
+     * Calculator with light theme:
+       <title>Calculator App</title>
+       <body class="bg-white">
+
+     * Dashboard with Chart.js:
+       <title>Analytics Dashboard</title>
+       <script src="https://cdn.tailwindcss.com"></script>
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+- Make index.html app-specific and production-ready
+- NEVER generate generic placeholder titles
+
 IMPORTANT: Output ONLY the file content, nothing else. Ensure import paths are relative and correct.`
 
     // Set up SSE headers for streaming

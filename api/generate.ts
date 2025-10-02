@@ -355,6 +355,44 @@ body, html {
   animation: fadeIn 0.3s ease-out;
 }
   </binaAction>
+
+  <!-- CRITICAL: Generate custom index.html for EVERY app (NEVER use generic templates) -->
+  <binaAction type="file" filePath="index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A modern todo list application built with React" />
+    <title>Todo List App</title>
+    <!-- Add CDN scripts if using external libraries -->
+    <!-- Example: Tailwind CSS for this app -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Add global styles for app theme -->
+    <style>
+      /* Custom scrollbar for dark theme */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b; /* slate-800 */
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569; /* slate-600 */
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b; /* slate-500 */
+      }
+    </style>
+  </head>
+  <body class="bg-slate-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+  </binaAction>
 </binaArtifact>
 
 VALIDATION CHECKLIST (YOU MUST FOLLOW):
@@ -380,6 +418,28 @@ GENERATION GUIDELINES:
 - Event handlers and side effects with useEffect
 - Accessible components (ARIA labels, semantic HTML)
 - Clean, well-structured code with PROPER FOLDER ORGANIZATION
+
+index.html GENERATION REQUIREMENTS (CRITICAL):
+- ALWAYS generate a custom index.html file (NEVER use generic templates!)
+- Custom <title> based on app purpose:
+  * Calculator app → "Calculator App"
+  * Todo app → "Todo List" or "Task Manager"
+  * Dashboard → "Analytics Dashboard" or "[App Name] Dashboard"
+  * NOT generic "Preview" or "React App"
+- Auto-detect and add CDN scripts based on code:
+  * Using Tailwind classes (className="bg-*", "text-*") → <script src="https://cdn.tailwindcss.com"></script>
+  * Using Chart.js → <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  * Using Framer Motion → <script src="https://cdn.skypack.dev/framer-motion"></script>
+- Theme-aware body classes:
+  * Dark theme (dark colors in CSS) → <body class="bg-slate-900 dark">
+  * Light theme → <body class="bg-white">
+  * Custom gradient → <body class="bg-gradient-to-br from-purple-600 to-blue-600">
+- Add custom scrollbar styling for dark themes in <style> tag:
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #1e293b; }
+  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+- Include proper meta tags: charset UTF-8, viewport, description
+- Script tag MUST be: <script type="module" src="/src/main.tsx"></script>
 
 MANDATORY RULES:
 - ALWAYS use proper folder structure (components/, hooks/, etc.)

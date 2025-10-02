@@ -218,9 +218,9 @@ function App() {
           
           // Start UI summary pipeline (clean user display)
           uiSummaryService.startGeneration(message)
-          
-          // Run internal pipeline with multi-stage generation
-          const result = await chatService.generateWithMultiStage(message, {
+
+          // Run internal pipeline with single-pass holistic generation
+          const result = await chatService.generateWithReasoning(message, {
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
 

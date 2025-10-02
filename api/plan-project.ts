@@ -202,17 +202,38 @@ Return ONLY valid JSON in this exact format:
         ],
         "styling": "Modern, clean, professional design with excellent UX. Include complete visual styling for buttons, inputs, cards, lists, and all interactive elements. Must be production-ready with proper colors, spacing, and responsive design."
       }
+    },
+    {
+      "path": "index.html",
+      "description": "HTML entry point with app-specific customizations",
+      "category": "config",
+      "dependencies": [],
+      "specification": {
+        "purpose": "Provide HTML shell with custom title, CDN scripts, and global styles",
+        "features": [
+          "Custom title based on app name (e.g., 'Calculator App', 'Todo List', 'Dashboard')",
+          "CDN scripts for external libraries (Tailwind CSS, Chart.js, etc.) based on code usage",
+          "Global styles in <style> tag (custom scrollbar for dark themes, font imports)",
+          "Theme-aware body classes (bg-slate-900 for dark, bg-white for light)",
+          "Proper meta tags (charset UTF-8, viewport width=device-width, app description)",
+          "Root div: <div id=\"root\"></div>",
+          "Module script: <script type=\"module\" src=\"/src/main.tsx\"></script>"
+        ],
+        "styling": "Theme-aware with proper CDN detection and global customizations. Dark theme apps include custom scrollbar styling."
+      }
     }
   ]
 }
 
 Guidelines:
-- Create 5-10 files for proper React architecture
+- Create 6-11 files for proper React architecture
+- ALWAYS include index.html with app-specific customizations
 - ALWAYS use folder structure (components/, hooks/, lib/)
 - Each component in its own file in components/
 - Each custom hook in its own file in hooks/
 - List dependencies to ensure correct generation order
-- Be specific about props, state, and methods`
+- Be specific about props, state, and methods
+- index.html should include custom title, CDN scripts for libraries used, and theme-based styling`
 
     const result = await generateText({
       model,
