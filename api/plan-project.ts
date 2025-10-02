@@ -76,20 +76,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const systemPrompt = `You are an expert software architect planning a ${framework} application.
 Your task is to create a detailed project structure with file specifications.
 
-MANDATORY FOLDER STRUCTURE:
-- App.tsx or App.jsx at root level (entry point only)
-- components/ folder - ALL UI components MUST go here
-- hooks/ folder - ALL custom hooks MUST go here
-- lib/ or utils/ folder - helper functions (if needed)
-- styles.css or styles/ folder - styling
+IMPORTANT CONSTRAINTS:
+- Generate a MAXIMUM of 3 files (App.tsx/jsx, styles.css, types.ts)
+- NO subdirectories (no components/, hooks/, utils/ folders)
+- Keep ALL code in a single App file
+- Inline helper functions and components within the main App component
+- Use local functions instead of separate component files
 
-IMPORTANT:
-- ALWAYS organize code into proper folders (components/, hooks/, lib/)
-- Each component gets its own file in components/
-- Each custom hook gets its own file in hooks/
-- Create 5-10 files for a proper React application structure
-
-Analyze the user's request and generate a comprehensive project plan with proper folder organization.
+Analyze the user's request and generate a comprehensive project plan.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -107,7 +101,7 @@ Return ONLY valid JSON in this exact format:
   "files": [
     {
       "path": "types.ts",
-      "description": "TypeScript type definitions",
+      "description": "TypeScript type definitions (OPTIONAL - only if truly needed)",
       "category": "type",
       "dependencies": [],
       "specification": {
@@ -120,120 +114,67 @@ Return ONLY valid JSON in this exact format:
     },
     {
       "path": "App.tsx",
-      "description": "Main application entry point",
+      "description": "Main application component with ALL logic inline",
       "category": "component",
-      "dependencies": ["types.ts", "components/TodoList.tsx", "hooks/useTodos.ts"],
+      "dependencies": ["types.ts"],
       "specification": {
-        "purpose": "Root component that composes the application",
+        "purpose": "Complete todo app in a single file",
         "imports": [
-          "import React from 'react'",
-          "import TodoList from './components/TodoList'",
-          "import Header from './components/Header'",
-          "import { useTodos } from './hooks/useTodos'",
+          "import React, { useState, useEffect } from 'react'",
+          "import { Todo, FilterType } from './types'",
           "import './styles.css'"
         ],
+        "state": [
+          "const [todos, setTodos] = useState<Todo[]>(() => JSON.parse(localStorage.getItem('todos') || '[]'))",
+          "const [filter, setFilter] = useState<FilterType>('all')",
+          "const [inputText, setInputText] = useState('')"
+        ],
+        "methods": [
+          "addTodo - inline function",
+          "toggleTodo - inline function",
+          "deleteTodo - inline function",
+          "getFilteredTodos - inline function"
+        ],
+        "components": [
+          "Define TodoItem as LOCAL function component inside App",
+          "Header with title",
+          "Input form",
+          "Filter buttons",
+          "TodoItem list (using local function)",
+          "Empty state"
+        ],
         "features": [
-          "Compose child components",
-          "Pass data from hooks to components",
-          "Handle top-level state"
-        ]
-      }
-    },
-    {
-      "path": "components/Header.tsx",
-      "description": "Header component",
-      "category": "component",
-      "dependencies": [],
-      "specification": {
-        "purpose": "Display application header",
-        "exports": ["export default Header"]
-      }
-    },
-    {
-      "path": "components/TodoList.tsx",
-      "description": "Todo list component",
-      "category": "component",
-      "dependencies": ["types.ts"],
-      "specification": {
-        "purpose": "Display and manage todo items",
-        "props": "{ todos: Todo[]; onToggle: (id: string) => void; onDelete: (id: string) => void; }",
-        "exports": ["export default TodoList"]
-      }
-    },
-    {
-      "path": "hooks/useTodos.ts",
-      "description": "Custom hook for todo management",
-      "category": "hook",
-      "dependencies": ["types.ts"],
-      "specification": {
-        "purpose": "Manage todo state and localStorage persistence",
-        "exports": ["export const useTodos"],
-        "features": [
-          "useState for todos",
-          "useEffect for localStorage sync",
-          "addTodo, toggleTodo, deleteTodo methods"
+          "useEffect to persist todos to localStorage",
+          "All helper functions defined inside App component",
+          "NO imports from other components - everything inline"
         ]
       }
     },
     {
       "path": "styles.css",
-      "description": "Complete application styles with modern design",
+      "description": "Application styles",
       "category": "style",
       "dependencies": [],
       "specification": {
-        "purpose": "Comprehensive styling for all components with modern design tokens",
+        "purpose": "Modern, clean styling",
         "features": [
-          "CSS Reset and base styles (body, html, #root)",
-          "Design tokens: colors (primary, secondary, backgrounds, borders, text colors)",
-          "Typography system (headings h1-h6, body text, font weights)",
-          "Layout utilities (containers, flexbox, grid, spacing)",
-          "Button styles (primary, secondary, disabled states, hover/focus/active)",
-          "Input/form styles (text inputs, textareas, selects, labels, validation states)",
-          "Card/container styles (backgrounds, borders, shadows, padding)",
-          "List styles (ul, ol, custom list items, empty states)",
-          "Navigation/header styles",
-          "Responsive breakpoints (mobile: 320px, tablet: 768px, desktop: 1024px+)",
-          "Transitions and animations (hover effects, loading states, smooth transitions)",
-          "Accessibility (focus outlines, high contrast, keyboard navigation)",
-          "Component-specific classes for all UI elements",
-          "Empty state styling (centered messages, icons, helpful text)",
-          "Loading/skeleton states",
-          "Minimum 200+ lines of comprehensive CSS"
-        ],
-        "styling": "Modern, clean, professional design with excellent UX. Include complete visual styling for buttons, inputs, cards, lists, and all interactive elements. Must be production-ready with proper colors, spacing, and responsive design."
-      }
-    },
-    {
-      "path": "index.html",
-      "description": "HTML entry point with app-specific customizations",
-      "category": "config",
-      "dependencies": [],
-      "specification": {
-        "purpose": "Provide HTML shell with custom title, CDN scripts, and global styles",
-        "features": [
-          "Custom title based on app name (e.g., 'Calculator App', 'Todo List', 'Dashboard')",
-          "CDN scripts for external libraries (Tailwind CSS, Chart.js, etc.) based on code usage",
-          "Global styles in <style> tag (custom scrollbar for dark themes, font imports)",
-          "Theme-aware body classes (bg-slate-900 for dark, bg-white for light)",
-          "Proper meta tags (charset UTF-8, viewport width=device-width, app description)",
-          "Root div: <div id=\"root\"></div>",
-          "Module script: <script type=\"module\" src=\"/src/main.tsx\"></script>"
-        ],
-        "styling": "Theme-aware with proper CDN detection and global customizations. Dark theme apps include custom scrollbar styling."
+          "Responsive design",
+          "CSS animations",
+          "Button hover effects",
+          "Input styling"
+        ]
       }
     }
   ]
 }
 
 Guidelines:
-- Create 6-11 files for proper React architecture
-- ALWAYS include index.html with app-specific customizations
-- ALWAYS use folder structure (components/, hooks/, lib/)
-- Each component in its own file in components/
-- Each custom hook in its own file in hooks/
+- MAXIMUM 3 files TOTAL
+- NO subdirectories (all files in root)
+- Keep ALL logic in App.tsx - use local functions for "components"
+- Only create types.ts if TypeScript types are complex
 - List dependencies to ensure correct generation order
-- Be specific about props, state, and methods
-- index.html should include custom title, CDN scripts for libraries used, and theme-based styling`
+- Be specific about props, state, and methods`
 
     const result = await generateText({
       model,
@@ -247,7 +188,8 @@ Guidelines:
           content: `Create a detailed project plan for: ${prompt}`
         }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      maxTokens: 4000
     })
 
     try {
@@ -257,20 +199,25 @@ Guidelines:
 
       const plan: ProjectPlan = JSON.parse(jsonText)
 
-      // Validate folder structure - ensure files are in proper folders
-      const hasProperStructure = plan.files.some(f =>
-        f.path.startsWith('components/') ||
-        f.path.startsWith('hooks/') ||
-        f.path.startsWith('lib/') ||
-        f.path.startsWith('utils/')
-      )
-
-      if (!hasProperStructure) {
-        console.warn('Warning: Plan does not include folder structure. AI may have ignored instructions.')
+      // Enforce constraints: max 3 files, no folders
+      if (plan.files.length > 3) {
+        plan.files = plan.files.slice(0, 3)
       }
 
-      // Remove .bina.json if AI generated it
-      plan.files = plan.files.filter(f => f.path !== '.bina.json')
+      // Remove any files with folder paths
+      plan.files = plan.files.filter(f => !f.path.includes('/'))
+
+      // Add .bina.json manifest as first file
+      plan.files.unshift({
+        path: '.bina.json',
+        description: 'Bina project manifest',
+        category: 'config',
+        dependencies: [],
+        specification: {
+          purpose: 'Configure preview mode and project metadata',
+          exports: []
+        }
+      })
 
       // Sort files by dependencies (files with no dependencies first)
       plan.files.sort((a, b) => {

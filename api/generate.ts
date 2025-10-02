@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { xai } from '@ai-sdk/xai'
-import { addViteProjectFiles } from '../src/lib/projectTemplates'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -76,10 +75,14 @@ FILE STRUCTURE REQUIREMENTS (MANDATORY - VIOLATIONS WILL BE REJECTED):
 - Creating TodoList.tsx at root instead of components/TodoList.tsx
 - Flat file structures without proper folders
 - Components outside the components/ folder
+- Generating .bina.json (system auto-detects entry points)
 - Generating index.html, index.js, or package.json (handled by host)
 
 ❌ REJECTED EXAMPLE (DO NOT FOLLOW THIS):
 <binaArtifact id="bad-counter" title="Counter App">
+  <binaAction type="file" filePath=".bina.json">
+  ❌ WRONG - Do NOT generate .bina.json
+  </binaAction>
   <binaAction type="file" filePath="types.ts">
   ❌ WRONG - Flat structure without folders
   </binaAction>
@@ -199,37 +202,7 @@ export const useTodos = () => {
   </binaAction>
 
   <!-- Styles can be at root or in styles/ folder -->
-  <!-- CRITICAL: CSS MUST be comprehensive (200+ lines). Include complete styling for all components, buttons, inputs, cards, empty states, responsive design, and animations. NO minimal CSS! -->
   <binaAction type="file" filePath="styles.css">
-/* CSS Reset & Base Styles */
-* {
-  box-sizing: border-box;
-}
-
-body, html {
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-/* Design Tokens */
-:root {
-  --color-primary: #007bff;
-  --color-primary-hover: #0056b3;
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f5f5f5;
-  --color-text: #1f2937;
-  --color-text-secondary: #6b7280;
-  --color-border: #ddd;
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-  --radius: 8px;
-}
-
-/* App Layout */
 .app {
   max-width: 800px;
   margin: 0 auto;
@@ -242,12 +215,10 @@ body, html {
   margin-bottom: 2rem;
 }
 
-/* Todo List Container */
 .todo-list {
-  background: var(--color-bg-secondary);
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
+  border-radius: 8px;
 }
 
 .todo-list form {
@@ -256,142 +227,39 @@ body, html {
   margin-bottom: 20px;
 }
 
-/* Input Styles (ALL states) */
 .todo-list input {
   flex: 1;
   padding: 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
 }
 
-.todo-list input:focus {
-  border-color: var(--color-primary);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-}
-
-/* Button Styles (ALL states) */
 .todo-list button {
   padding: 10px 20px;
-  background: var(--color-primary);
+  background: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
 }
 
 .todo-list button:hover {
-  background: var(--color-primary-hover);
-  transform: translateY(-1px);
+  background: #0056b3;
 }
 
-.todo-list button:active {
-  transform: translateY(0);
-}
-
-.todo-list button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* List Styles */
 .todo-list ul {
   list-style: none;
   padding: 0;
-  margin: 0;
 }
 
 .todo-list li {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px;
+  padding: 10px;
   background: white;
   margin-bottom: 8px;
   border-radius: 4px;
-  border: 1px solid var(--color-border);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
-
-.todo-list li:hover {
-  transform: translateX(4px);
-  box-shadow: var(--shadow-md);
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--color-text-secondary);
-  font-size: 1.125rem;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .app {
-    padding: 10px;
-  }
-
-  .todo-list {
-    padding: 15px;
-  }
-
-  .todo-list form {
-    flex-direction: column;
-  }
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.todo-list li {
-  animation: fadeIn 0.3s ease-out;
-}
-  </binaAction>
-
-  <!-- CRITICAL: Generate custom index.html for EVERY app (NEVER use generic templates) -->
-  <binaAction type="file" filePath="index.html">
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A modern todo list application built with React" />
-    <title>Todo List App</title>
-    <!-- Add CDN scripts if using external libraries -->
-    <!-- Example: Tailwind CSS for this app -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Add global styles for app theme -->
-    <style>
-      /* Custom scrollbar for dark theme */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1e293b; /* slate-800 */
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #475569; /* slate-600 */
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; /* slate-500 */
-      }
-    </style>
-  </head>
-  <body class="bg-slate-900">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
   </binaAction>
 </binaArtifact>
 
@@ -402,6 +270,7 @@ VALIDATION CHECKLIST (YOU MUST FOLLOW):
 ✓ ALL visual components in components/ folder
 ✓ ALL custom hooks in hooks/ folder
 ✓ Clean import paths with proper folder references
+✓ NO .bina.json file generated
 
 FORMAT REQUIREMENTS:
 - CRITICAL: You MUST return your response wrapped in a single <binaArtifact> tag with nested <binaAction> tags
@@ -419,34 +288,14 @@ GENERATION GUIDELINES:
 - Accessible components (ARIA labels, semantic HTML)
 - Clean, well-structured code with PROPER FOLDER ORGANIZATION
 
-index.html GENERATION REQUIREMENTS (CRITICAL):
-- ALWAYS generate a custom index.html file (NEVER use generic templates!)
-- Custom <title> based on app purpose:
-  * Calculator app → "Calculator App"
-  * Todo app → "Todo List" or "Task Manager"
-  * Dashboard → "Analytics Dashboard" or "[App Name] Dashboard"
-  * NOT generic "Preview" or "React App"
-- Auto-detect and add CDN scripts based on code:
-  * Using Tailwind classes (className="bg-*", "text-*") → <script src="https://cdn.tailwindcss.com"></script>
-  * Using Chart.js → <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  * Using Framer Motion → <script src="https://cdn.skypack.dev/framer-motion"></script>
-- Theme-aware body classes:
-  * Dark theme (dark colors in CSS) → <body class="bg-slate-900 dark">
-  * Light theme → <body class="bg-white">
-  * Custom gradient → <body class="bg-gradient-to-br from-purple-600 to-blue-600">
-- Add custom scrollbar styling for dark themes in <style> tag:
-  ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-track { background: #1e293b; }
-  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-- Include proper meta tags: charset UTF-8, viewport, description
-- Script tag MUST be: <script type="module" src="/src/main.tsx"></script>
-
 MANDATORY RULES:
 - ALWAYS use proper folder structure (components/, hooks/, etc.)
 - ALWAYS include FULL file contents
 - NO placeholders like "// rest of code here"
 - NO markdown code blocks inside <binaAction>
 - Close ALL tags properly
+- DO NOT generate .bina.json (entry points are auto-detected from App.tsx/App.jsx)
+- DO NOT generate index.html, index.js, or package.json (handled by host)
 
 REMINDER: The system automatically detects App.tsx or App.jsx as the entry point and auto-enables bundling when it finds components/, hooks/, or lib/ folders. You do NOT need to specify this - just create the proper folder structure.`
       : `You are Bina, an expert web developer. Generate clean HTML, CSS, and JavaScript using <binaArtifact> and <binaAction> tags.`
@@ -477,19 +326,6 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
       temperature: 0.7
     })
 
-    // Helper to strip markdown code fences from file content
-    function stripMarkdownCodeFences(content: string): string {
-      let cleaned = content
-      // Remove opening fences: ```tsx, ```typescript, ```jsx, ```javascript, etc.
-      cleaned = cleaned.replace(/^```[\w]*\n?/gm, '')
-      // Remove closing fences: ```
-      cleaned = cleaned.replace(/\n?```$/gm, '')
-      // Handle any remaining stray fences
-      cleaned = cleaned.replace(/```[\w]*\n?/g, '')
-      cleaned = cleaned.replace(/```/g, '')
-      return cleaned.trim()
-    }
-
     // Helper function to parse Bina XML artifact
     function parseBinaArtifact(xmlString: string) {
       // Extract artifact
@@ -510,8 +346,7 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
       while ((fileMatch = fileRegex.exec(artifactContent)) !== null) {
         const filePath = fileMatch[1]
         const content = fileMatch[2].trim()
-        // Strip any markdown code fences the AI might have added
-        files[filePath] = stripMarkdownCodeFences(content)
+        files[filePath] = content
       }
 
       // Extract shell commands
@@ -571,15 +406,12 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
     try {
       const parsed = parseBinaArtifact(fullResponse)
 
-      // Enhance files with Vite boilerplate (index.html, main.tsx, package.json, etc.)
-      const enhancedFiles = addViteProjectFiles(parsed.files)
-
       const artifact = {
         id: parsed.id,
         projectId: 'default',
         regionId: 'full-page',
-        files: enhancedFiles,
-        entry: Object.keys(enhancedFiles).find(f => f.includes('index.html')) || Object.keys(enhancedFiles)[0],
+        files: parsed.files,
+        entry: Object.keys(parsed.files).find(f => f.includes('index.html')) || Object.keys(parsed.files)[0],
         metadata: {
           device,
           framework,

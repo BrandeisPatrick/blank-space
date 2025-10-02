@@ -37,11 +37,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'File specification is required' })
     }
 
-    // Reject .bina.json generation - system handles entry point detection
+    // Handle .bina.json specially - generate manifest directly
     if (file.path === '.bina.json') {
-      return res.status(400).json({
-        error: '.bina.json generation is not allowed. System auto-detects entry points from App.tsx/App.jsx.'
-      })
+      const manifest = {
+        previewMode: 'single-file',
+        entry: 'App.tsx',
+        framework: framework,
+        typescript: typescript,
+        bundlerReady: false,
+        version: '1.0.0'
+      }
+
+      const manifestContent = JSON.stringify(manifest, null, 2)
+
+      // Set up SSE headers
+      res.setHeader('Content-Type', 'text/event-stream')
+      res.setHeader('Cache-Control', 'no-cache')
+      res.setHeader('Connection', 'keep-alive')
+
+      res.write(`data: ${JSON.stringify({
+        type: 'complete',
+        file: '.bina.json',
+        content: manifestContent
+      })}\n\n`)
+
+      res.end()
+      return
     }
 
     // Select AI model
@@ -84,221 +105,34 @@ ${contextSummary || 'No previous files'}
 FILE SPECIFICATION:
 ${JSON.stringify(file.specification, null, 2)}
 
-IMPORT PATH RULES (CRITICAL):
-- If generating a file in components/ folder (e.g., components/Header.tsx):
-  - Import from hooks/ as: import { useHook } from '../hooks/useHook'
-  - Import from lib/ as: import { helper } from '../lib/helper'
-  - Import other components: import Other from './Other' (same folder)
-  - Import types from root: import { Type } from '../types'
-
-- If generating a file in hooks/ folder (e.g., hooks/useTodos.ts):
-  - Import types from root: import { Type } from '../types'
-  - Import from lib/ as: import { helper } from '../lib/helper'
-
-- If generating App.tsx (at root):
-  - Import components: import Header from './components/Header'
-  - Import hooks: import { useHook } from './hooks/useHook'
-  - Import types: import { Type } from './types'
-
 GENERATION RULES:
 1. Generate ONLY the file content - no explanations, no markdown code blocks
 2. Follow the specification exactly
-3. Use CORRECT relative import paths based on file location
+3. Import from previous files using correct relative paths
 4. Use modern ${framework} best practices
 5. Include all specified features and methods
 6. ${typescript ? 'Use proper TypeScript types' : 'Use JSDoc comments for type hints'}
 7. Make the code production-ready and complete
 8. NO placeholders like "// rest of code" - implement everything
-9. Ensure all imports use proper relative paths
+9. Ensure all imports reference files that actually exist
 
 For React components:
 - Use functional components with hooks
-- Include proper prop types with TypeScript interfaces
+- Include proper prop types
 - Handle all edge cases
 - Add accessibility attributes
-- Export as default: export default ComponentName
-
-For React hooks:
-- Follow hooks naming convention (useXxx)
-- Export as named export: export const useXxx
-- Return object with methods and state
 
 For TypeScript files:
 - Export all specified interfaces/types
 - Use proper type annotations
 - Avoid 'any' type
 
-For CSS files (CRITICAL - Must be comprehensive, not minimal):
-- Generate 200+ lines of complete, production-ready CSS
-- Include ALL of the following sections (non-negotiable):
+For CSS files:
+- Use modern CSS features
+- Include responsive design
+- Add smooth transitions
 
-  1. CSS Reset & Base Styles:
-     * { box-sizing: border-box; }
-     body, html { margin: 0; padding: 0; min-height: 100vh; }
-     #root { min-height: 100vh; }
-
-  2. Design Tokens (CSS Variables):
-     :root {
-       --color-primary: #3b82f6;
-       --color-primary-hover: #2563eb;
-       --color-secondary: #8b5cf6;
-       --color-bg: #ffffff;
-       --color-bg-secondary: #f3f4f6;
-       --color-text: #1f2937;
-       --color-text-secondary: #6b7280;
-       --color-border: #e5e7eb;
-       --color-error: #ef4444;
-       --color-success: #10b981;
-       --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-       --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-       --radius: 8px;
-       --spacing: 1rem;
-     }
-
-  3. Typography:
-     h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; color: var(--color-text); }
-     h1 { font-size: 2.5rem; }
-     h2 { font-size: 2rem; }
-     p { line-height: 1.6; color: var(--color-text-secondary); }
-
-  4. Buttons (ALL states required):
-     button {
-       padding: 0.75rem 1.5rem;
-       border: none;
-       border-radius: var(--radius);
-       font-size: 1rem;
-       cursor: pointer;
-       transition: all 0.2s;
-       background: var(--color-primary);
-       color: white;
-     }
-     button:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
-     button:active { transform: translateY(0); }
-     button:disabled { opacity: 0.5; cursor: not-allowed; }
-     button:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-
-  5. Inputs/Forms:
-     input, textarea, select {
-       padding: 0.75rem;
-       border: 1px solid var(--color-border);
-       border-radius: var(--radius);
-       font-size: 1rem;
-       width: 100%;
-       transition: border-color 0.2s;
-     }
-     input:focus, textarea:focus { border-color: var(--color-primary); outline: none; }
-     label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-
-  6. Cards/Containers:
-     .card {
-       background: var(--color-bg);
-       border: 1px solid var(--color-border);
-       border-radius: var(--radius);
-       padding: 1.5rem;
-       box-shadow: var(--shadow-md);
-     }
-
-  7. Lists:
-     ul, ol { padding-left: 1.5rem; }
-     li { margin-bottom: 0.5rem; }
-
-  8. Empty States (MUST style these):
-     .empty-state {
-       text-align: center;
-       padding: 3rem 1rem;
-       color: var(--color-text-secondary);
-       font-size: 1.125rem;
-     }
-
-  9. Responsive Design (required breakpoints):
-     @media (max-width: 768px) { /* mobile styles */ }
-     @media (min-width: 769px) and (max-width: 1024px) { /* tablet */ }
-     @media (min-width: 1025px) { /* desktop */ }
-
-  10. Animations & Transitions:
-      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      .fade-in { animation: fadeIn 0.3s; }
-
-  11. Component-Specific Styles:
-      Style EVERY component mentioned in the app with proper classes
-
-- Generate complete, production-ready CSS (200+ lines minimum)
-- NO placeholders or comments like "/* add more styles */"
-- Include ALL interactive states (hover, focus, active, disabled)
-- Use modern CSS features (flexbox, grid, CSS variables, transitions)
-- Ensure accessibility (focus outlines, contrast ratios)
-- Make it visually appealing with proper colors, spacing, shadows
-
-For HTML files (index.html) - CRITICAL:
-- ALWAYS generate custom index.html (NEVER use generic templates!)
-- Generate app-specific customizations:
-
-  1. Custom <title> based on app purpose:
-     * Calculator app → "Calculator App"
-     * Todo/Notes app → "Todo List" or "Notes App"
-     * Dashboard → "Analytics Dashboard"
-     * Portfolio → "Portfolio"
-     * NEVER use generic "React App" or "Preview"
-
-  2. Auto-detect and add CDN scripts based on code usage:
-     * If code uses Tailwind classes (bg-*, flex, grid, etc.):
-       <script src="https://cdn.tailwindcss.com"></script>
-     * If code uses Chart.js:
-       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-     * If code uses Framer Motion (import from 'framer-motion'):
-       <script type="module">
-         import { motion } from 'https://cdn.skypack.dev/framer-motion'
-       </script>
-
-  3. Theme-aware body classes:
-     * Dark theme apps → <body class="bg-slate-900 dark">
-     * Light theme apps → <body class="bg-white">
-     * Detect theme from CSS color scheme or component styling
-
-  4. Custom scrollbar styling for dark themes:
-     <style>
-       ::-webkit-scrollbar { width: 8px; }
-       ::-webkit-scrollbar-track { background: #1e293b; }
-       ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-       ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-     </style>
-
-  5. Required structure:
-     <!DOCTYPE html>
-     <html lang="en">
-       <head>
-         <meta charset="UTF-8" />
-         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-         <meta name="description" content="[Brief app description]" />
-         <title>[Custom App Title]</title>
-         [CDN scripts if needed]
-         [Custom scrollbar styles for dark themes]
-       </head>
-       <body class="[theme-aware classes]">
-         <div id="root"></div>
-         <script type="module" src="/src/main.tsx"></script>
-       </body>
-     </html>
-
-  6. Examples:
-     * Todo app with Tailwind dark theme:
-       <title>Todo List</title>
-       <script src="https://cdn.tailwindcss.com"></script>
-       <body class="bg-slate-900">
-
-     * Calculator with light theme:
-       <title>Calculator App</title>
-       <body class="bg-white">
-
-     * Dashboard with Chart.js:
-       <title>Analytics Dashboard</title>
-       <script src="https://cdn.tailwindcss.com"></script>
-       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-- Make index.html app-specific and production-ready
-- NEVER generate generic placeholder titles
-
-IMPORTANT: Output ONLY the file content, nothing else. Ensure import paths are relative and correct.`
+IMPORTANT: Output ONLY the file content, nothing else.`
 
     // Set up SSE headers for streaming
     res.setHeader('Content-Type', 'text/event-stream')
@@ -323,20 +157,9 @@ Dependencies: ${file.dependencies.join(', ') || 'none'}
 Follow the specification exactly and create production-ready code.`
         }
       ],
-      temperature: 0.5 // Lower temperature for more consistent code
+      temperature: 0.5, // Lower temperature for more consistent code
+      maxTokens: 4000
     })
-
-    // Helper to strip markdown code fences
-    const stripMarkdownCodeFences = (content: string): string => {
-      // Remove opening fence: ```typescript, ```tsx, ```javascript, ```jsx, ```css, etc.
-      content = content.replace(/^```(?:typescript|tsx|javascript|jsx|js|ts|css|html|json)?\s*\n/gm, '')
-      // Remove closing fence: ```
-      content = content.replace(/\n```\s*$/gm, '')
-      // Also handle cases where fence appears mid-content
-      content = content.replace(/```(?:typescript|tsx|javascript|jsx|js|ts|css|html|json)?\s*\n/g, '')
-      content = content.replace(/\n```/g, '')
-      return content.trim()
-    }
 
     // Stream the file content
     let fullContent = ''
@@ -351,14 +174,11 @@ Follow the specification exactly and create production-ready code.`
       })}\n\n`)
     }
 
-    // Strip markdown code fences before sending final content
-    const cleanContent = stripMarkdownCodeFences(fullContent)
-
     // Send completion event
     res.write(`data: ${JSON.stringify({
       type: 'complete',
       file: file.path,
-      content: cleanContent
+      content: fullContent
     })}\n\n`)
 
     res.end()
