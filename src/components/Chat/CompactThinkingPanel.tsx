@@ -32,6 +32,13 @@ export const CompactThinkingPanel: React.FC<CompactThinkingPanelProps> = ({
   const theme = getTheme(mode)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  // Auto-expand when thinking or streaming starts (to show steps)
+  useEffect(() => {
+    if ((phase === 'thinking' || phase === 'streaming') && steps.length > 0) {
+      setIsCollapsed(false)
+    }
+  }, [phase, steps.length])
+
   // Auto-collapse after completion
   useEffect(() => {
     if (phase === 'done' && !isCollapsed) {
