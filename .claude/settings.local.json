@@ -67,7 +67,9 @@
       "Bash(xargs sed:*)",
       "Bash(npx vercel:*)",
       "WebFetch(domain:blank-space-f2qq0t03g-patricks-projects-1e98187f.vercel.app)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git reflog:*)",
+      "Bash(git gc:*)"
     ],
     "deny": [],
     "ask": []
