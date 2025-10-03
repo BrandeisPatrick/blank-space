@@ -121,6 +121,8 @@ For React components:
 - Include proper prop types
 - Handle all edge cases
 - Add accessibility attributes
+- IMPORTANT: For JSX attributes with dynamic values, use string concatenation instead of template literals
+- Example: aria-label={"Toggle " + todo.text} NOT aria-label={\`Toggle \${todo.text}\`}
 
 For TypeScript files:
 - Export all specified interfaces/types
