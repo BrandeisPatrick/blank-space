@@ -121,6 +121,7 @@ export class ChatService {
                 const data = JSON.parse(line.slice(6))
 
                 if (data.type === 'reasoning_step' && inReasoningPhase) {
+                  console.log('[ChatService DEBUG] Received reasoning_step event:', data)
                   const step: ReasoningStep = {
                     id: data.step.id || `step_${Date.now()}`,
                     type: data.step.type as ReasoningStep['type'],
@@ -135,6 +136,7 @@ export class ChatService {
                   // Emit compact thinking panel events
                   const thinkingLabel = this.mapReasoningStepToThinkingLabel(step)
                   const stepId = `thinking_${step.id}`
+                  console.log('[ChatService DEBUG] Mapped to thinking label:', thinkingLabel, 'stepId:', stepId)
 
                   // Complete previous step if exists
                   if (currentStepId) {
@@ -160,6 +162,7 @@ export class ChatService {
 
                   // Start new step
                   currentStepId = stepId
+                  console.log('[ChatService DEBUG] Emitting phase_step event:', { stepId, label: thinkingLabel, status: 'active' })
                   onPhaseEvent?.({
                     type: 'phase_step',
                     stepId,
@@ -168,6 +171,7 @@ export class ChatService {
                     progress: 0
                   })
                 } else if (data.type === 'reasoning_complete') {
+                  console.log('[ChatService DEBUG] Received reasoning_complete event')
                   // Reasoning phase is complete
                   if (currentStepId) {
                     onPhaseEvent?.({

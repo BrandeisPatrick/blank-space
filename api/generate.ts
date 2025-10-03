@@ -376,20 +376,25 @@ REMINDER: The system automatically detects App.tsx or App.jsx as the entry point
 
       // Try to parse reasoning steps
       if (inReasoningPhase && chunk.includes('reasoning_step')) {
+        console.log('[API DEBUG] Reasoning step pattern detected in chunk:', chunk.substring(0, 200))
         try {
           const stepMatch = chunk.match(/\{[^}]*"type":\s*"reasoning_step"[^}]*\}/)
           if (stepMatch) {
             const step = JSON.parse(stepMatch[0])
+            console.log('[API DEBUG] Successfully parsed reasoning step:', step)
             reasoningSteps.push(step.step)
             res.write(`data: ${JSON.stringify(step)}\n\n`)
+          } else {
+            console.log('[API DEBUG] Reasoning step pattern found but regex did not match')
           }
         } catch (e) {
-          // Continue if parsing fails
+          console.error('[API DEBUG] Failed to parse reasoning step:', e, 'Chunk:', chunk.substring(0, 200))
         }
       }
 
       // Check if reasoning is complete
       if (chunk.includes('reasoning_complete')) {
+        console.log('[API DEBUG] Reasoning complete detected')
         inReasoningPhase = false
         res.write(`data: ${JSON.stringify({ type: 'reasoning_complete' })}\n\n`)
       }

@@ -215,7 +215,8 @@ function App() {
           // Reset thinking state for new generation
           thinking.reset()
           thinking.startThinking()
-          
+          console.log('[App DEBUG] Started thinking, initial steps.length:', thinking.steps.length)
+
           // Start UI summary pipeline (clean user display)
           uiSummaryService.startGeneration(message)
 
@@ -246,20 +247,25 @@ function App() {
               uiSummaryService.onChatServicePhaseEvent(phaseEvent)
 
               // Handle thinking panel updates - use ChatService's step IDs to avoid duplicates
+              console.log('[App DEBUG] Received phaseEvent:', phaseEvent.type, phaseEvent)
               switch (phaseEvent.type) {
                 case 'phase_start':
+                  console.log('[App DEBUG] phase_start for phase:', phaseEvent.phase)
                   if (phaseEvent.phase === 'thinking') {
                     thinking.reset()
                     thinking.startThinking()
+                    console.log('[App DEBUG] Reset and started thinking, steps.length:', thinking.steps.length)
                   } else if (phaseEvent.phase === 'generation') {
                     thinking.startStreaming()
                   }
                   break
 
                 case 'phase_step':
+                  console.log('[App DEBUG] phase_step:', phaseEvent.stepId, phaseEvent.label, phaseEvent.status)
                   if (phaseEvent.status === 'active') {
                     // Check if this step already exists to avoid duplicates
                     const existingStep = thinking.steps.find(s => s.id === phaseEvent.stepId)
+                    console.log('[App DEBUG] Existing step found:', !!existingStep, 'Current steps.length:', thinking.steps.length)
                     if (!existingStep) {
                       // Complete any currently active steps first
                       const activeSteps = thinking.steps.filter(s => s.status === 'active')
@@ -267,16 +273,19 @@ function App() {
 
                       // Add new step with the ChatService's step ID
                       thinking.addStep(phaseEvent.label, 'active', phaseEvent.stepId)
+                      console.log('[App DEBUG] Added new step, steps.length now:', thinking.steps.length)
                     } else {
                       // Update existing step
                       thinking.updateStep(phaseEvent.stepId, {
                         label: phaseEvent.label,
                         status: 'active'
                       })
+                      console.log('[App DEBUG] Updated existing step')
                     }
                   } else if (phaseEvent.status === 'complete') {
                     // Complete the specific step
                     thinking.completeStep(phaseEvent.stepId)
+                    console.log('[App DEBUG] Completed step:', phaseEvent.stepId)
                   }
                   break
 
