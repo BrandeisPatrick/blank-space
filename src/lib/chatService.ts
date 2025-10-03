@@ -82,18 +82,27 @@ export class ChatService {
         : prompt
 
       // Use enhanced generate API with reasoning enabled
+      const requestBody = {
+        prompt: enhancedPrompt,
+        framework: 'react',
+        device: 'desktop',
+        withReasoning: true,
+        sessionContext: sessionContext || undefined,
+        userPreferences: memoryService.getUserPreferences(),
+        projectPlan: projectPlan || undefined
+      }
+      console.log('[ChatService DEBUG] API Request:', {
+        url: `${this.baseUrl}/api/generate`,
+        withReasoning: requestBody.withReasoning,
+        promptLength: enhancedPrompt.length,
+        hasSessionContext: !!sessionContext,
+        hasProjectPlan: !!projectPlan
+      })
+
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: enhancedPrompt,
-          framework: 'react',
-          device: 'desktop',
-          withReasoning: true,
-          sessionContext: sessionContext || undefined,
-          userPreferences: memoryService.getUserPreferences(),
-          projectPlan: projectPlan || undefined
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -117,8 +126,10 @@ export class ChatService {
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
+              console.log('[ChatService DEBUG] Raw SSE line:', line)
               try {
                 const data = JSON.parse(line.slice(6))
+                console.log('[ChatService DEBUG] Parsed SSE data type:', data.type, 'Full data:', data)
 
                 if (data.type === 'reasoning_step' && inReasoningPhase) {
                   console.log('[ChatService DEBUG] Received reasoning_step event:', data)
