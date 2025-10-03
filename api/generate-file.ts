@@ -157,8 +157,7 @@ Dependencies: ${file.dependencies.join(', ') || 'none'}
 Follow the specification exactly and create production-ready code.`
         }
       ],
-      temperature: 0.5, // Lower temperature for more consistent code
-      maxTokens: 4000
+      temperature: 0.5 // Lower temperature for more consistent code
     })
 
     // Stream the file content

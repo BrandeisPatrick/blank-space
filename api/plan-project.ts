@@ -188,8 +188,7 @@ Guidelines:
           content: `Create a detailed project plan for: ${prompt}`
         }
       ],
-      temperature: 0.7,
-      maxTokens: 4000
+      temperature: 0.7
     })
 
     try {

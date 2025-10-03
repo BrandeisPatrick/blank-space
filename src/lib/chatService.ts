@@ -744,7 +744,6 @@ export class ChatService {
         entry: 'index.html',
         metadata: {
           framework: projectPlan.framework,
-          typescript: projectPlan.typescript,
           device: 'desktop'
         },
         createdAt: new Date().toISOString(),
