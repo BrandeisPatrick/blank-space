@@ -69,7 +69,11 @@
       "WebFetch(domain:blank-space-f2qq0t03g-patricks-projects-1e98187f.vercel.app)",
       "Bash(ls:*)",
       "Bash(git reflog:*)",
-      "Bash(git gc:*)"
+      "Bash(git gc:*)",
+      "Bash(for file in bundler componentBuilder virtualFileSystem generationService aiResponseParser)",
+      "Bash(do echo \"=== Checking $file.ts usage ===\")",
+      "Bash(for file in PreviewPanel ErrorConsole ThinkingSection)",
+      "Bash(do echo \"=== Checking $file.tsx usage ===\")"
     ],
     "deny": [],
     "ask": []
