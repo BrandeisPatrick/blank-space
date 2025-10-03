@@ -34,9 +34,7 @@ export const CompactThinkingPanel: React.FC<CompactThinkingPanelProps> = ({
 
   // Auto-expand when thinking or streaming starts (to show steps)
   useEffect(() => {
-    console.log('[CompactThinkingPanel DEBUG] Auto-expand effect - phase:', phase, 'steps.length:', steps.length, 'isCollapsed:', isCollapsed)
     if ((phase === 'thinking' || phase === 'streaming') && steps.length > 0) {
-      console.log('[CompactThinkingPanel DEBUG] Auto-expanding panel')
       setIsCollapsed(false)
     }
   }, [phase, steps.length])
@@ -295,7 +293,6 @@ export const CompactThinkingPanel: React.FC<CompactThinkingPanelProps> = ({
                 gap: theme.spacing.sm
               }}
             >
-              {console.log('[CompactThinkingPanel DEBUG] Rendering steps, count:', steps.length, 'steps:', steps)}
               {steps.map(renderChip)}
             </div>
           </div>
