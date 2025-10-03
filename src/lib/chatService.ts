@@ -39,8 +39,10 @@ export class ChatService {
   private baseUrl: string
 
   constructor() {
-    // Always use relative paths - Vercel dev and production handle this automatically
-    this.baseUrl = ''
+    // Use production API URL in development, relative paths in production
+    this.baseUrl = import.meta.env.DEV
+      ? 'https://blank-space-omega.vercel.app'
+      : ''
   }
 
   /**
@@ -91,13 +93,6 @@ export class ChatService {
         userPreferences: memoryService.getUserPreferences(),
         projectPlan: projectPlan || undefined
       }
-      console.log('[ChatService DEBUG] API Request:', {
-        url: `${this.baseUrl}/api/generate`,
-        withReasoning: requestBody.withReasoning,
-        promptLength: enhancedPrompt.length,
-        hasSessionContext: !!sessionContext,
-        hasProjectPlan: !!projectPlan
-      })
 
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
@@ -126,13 +121,10 @@ export class ChatService {
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-              console.log('[ChatService DEBUG] Raw SSE line:', line)
               try {
                 const data = JSON.parse(line.slice(6))
-                console.log('[ChatService DEBUG] Parsed SSE data type:', data.type, 'Full data:', data)
 
                 if (data.type === 'reasoning_step' && inReasoningPhase) {
-                  console.log('[ChatService DEBUG] Received reasoning_step event:', data)
                   const step: ReasoningStep = {
                     id: data.step.id || `step_${Date.now()}`,
                     type: data.step.type as ReasoningStep['type'],
@@ -147,7 +139,6 @@ export class ChatService {
                   // Emit compact thinking panel events
                   const thinkingLabel = this.mapReasoningStepToThinkingLabel(step)
                   const stepId = `thinking_${step.id}`
-                  console.log('[ChatService DEBUG] Mapped to thinking label:', thinkingLabel, 'stepId:', stepId)
 
                   // Complete previous step if exists
                   if (currentStepId) {
@@ -173,7 +164,6 @@ export class ChatService {
 
                   // Start new step
                   currentStepId = stepId
-                  console.log('[ChatService DEBUG] Emitting phase_step event:', { stepId, label: thinkingLabel, status: 'active' })
                   onPhaseEvent?.({
                     type: 'phase_step',
                     stepId,
@@ -182,7 +172,6 @@ export class ChatService {
                     progress: 0
                   })
                 } else if (data.type === 'reasoning_complete') {
-                  console.log('[ChatService DEBUG] Received reasoning_complete event')
                   // Reasoning phase is complete
                   if (currentStepId) {
                     onPhaseEvent?.({

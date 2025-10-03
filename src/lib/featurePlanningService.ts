@@ -58,8 +58,10 @@ export class FeaturePlanningService {
   private readonly baseUrl: string
 
   constructor() {
-    // Use relative paths for Vercel deployment
-    this.baseUrl = ''
+    // Use production API URL in development, relative paths in production
+    this.baseUrl = import.meta.env.DEV
+      ? 'https://blank-space-omega.vercel.app'
+      : ''
   }
 
   /**

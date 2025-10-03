@@ -40,11 +40,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle .bina.json specially - generate manifest directly
     if (file.path === '.bina.json') {
       const manifest = {
-        previewMode: 'single-file',
+        previewMode: typescript ? 'bundled' : 'single-file',
         entry: 'App.tsx',
         framework: framework,
         typescript: typescript,
-        bundlerReady: false,
+        bundlerReady: true,
         version: '1.0.0'
       }
 

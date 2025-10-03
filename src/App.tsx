@@ -215,13 +215,12 @@ function App() {
           // Reset thinking state for new generation
           thinking.reset()
           thinking.startThinking()
-          console.log('[App DEBUG] Started thinking, initial steps.length:', thinking.steps.length)
 
           // Start UI summary pipeline (clean user display)
           uiSummaryService.startGeneration(message)
 
-          // Run internal pipeline with single-pass holistic generation
-          const result = await chatService.generateWithReasoning(message, {
+          // Run internal pipeline with multi-stage generation (real progress tracking)
+          const result = await chatService.generateWithMultiStage(message, {
             onError: (error) => {
               console.error('Generation pipeline failed:', error)
 
@@ -246,65 +245,57 @@ function App() {
               // Route to UI Summary Service for user-friendly display
               uiSummaryService.onChatServicePhaseEvent(phaseEvent)
 
-              // Handle thinking panel updates - use ChatService's step IDs to avoid duplicates
-              console.log('[App DEBUG] Received phaseEvent:', phaseEvent.type, phaseEvent)
+              // Handle thinking panel updates with real multi-stage progress
               switch (phaseEvent.type) {
                 case 'phase_start':
-                  console.log('[App DEBUG] phase_start for phase:', phaseEvent.phase)
-                  if (phaseEvent.phase === 'thinking') {
+                  if (phaseEvent.phase === 'planning') {
+                    // Start planning phase - this is the first real step
                     thinking.reset()
                     thinking.startThinking()
-                    console.log('[App DEBUG] Reset and started thinking, steps.length:', thinking.steps.length)
+                    thinking.addStep('Analyzing your request', 'active', 'step_planning')
                   } else if (phaseEvent.phase === 'generation') {
+                    // Complete planning, move to generation
+                    const planningStep = thinking.steps.find(s => s.id === 'step_planning')
+                    if (planningStep && planningStep.status === 'active') {
+                      thinking.completeStep('step_planning')
+                    }
                     thinking.startStreaming()
                   }
                   break
 
                 case 'phase_step':
-                  console.log('[App DEBUG] phase_step:', phaseEvent.stepId, phaseEvent.label, phaseEvent.status)
+                  // Real progress: showing actual files being generated
                   if (phaseEvent.status === 'active') {
                     // Check if this step already exists to avoid duplicates
                     const existingStep = thinking.steps.find(s => s.id === phaseEvent.stepId)
-                    console.log('[App DEBUG] Existing step found:', !!existingStep, 'Current steps.length:', thinking.steps.length)
                     if (!existingStep) {
-                      // Complete any currently active steps first
-                      const activeSteps = thinking.steps.filter(s => s.status === 'active')
+                      // Complete any currently active steps first (except planning)
+                      const activeSteps = thinking.steps.filter(s =>
+                        s.status === 'active' && s.id !== 'step_planning'
+                      )
                       activeSteps.forEach(step => thinking.completeStep(step.id))
 
                       // Add new step with the ChatService's step ID
                       thinking.addStep(phaseEvent.label, 'active', phaseEvent.stepId)
-                      console.log('[App DEBUG] Added new step, steps.length now:', thinking.steps.length)
                     } else {
                       // Update existing step
                       thinking.updateStep(phaseEvent.stepId, {
                         label: phaseEvent.label,
                         status: 'active'
                       })
-                      console.log('[App DEBUG] Updated existing step')
                     }
                   } else if (phaseEvent.status === 'complete') {
                     // Complete the specific step
                     thinking.completeStep(phaseEvent.stepId)
-                    console.log('[App DEBUG] Completed step:', phaseEvent.stepId)
-                  }
-                  break
-
-                case 'planning_complete':
-                  // Automatically proceed with the generated plan
-                  if (phaseEvent.projectPlan) {
-                    // Continue automatically - no user intervention needed
                   }
                   break
 
                 case 'phase_complete':
                   if (phaseEvent.phase === 'generation') {
+                    // All generation complete
                     thinking.complete()
-                  } else if (phaseEvent.phase === 'thinking') {
-                    // Complete any remaining active steps
-                    const activeSteps = thinking.steps.filter(s => s.status === 'active')
-                    activeSteps.forEach(step => thinking.completeStep(step.id))
                   } else if (phaseEvent.phase === 'planning') {
-                    // Planning phase is complete, but we're waiting for user approval
+                    // Planning phase is complete
                     const activeSteps = thinking.steps.filter(s => s.status === 'active')
                     activeSteps.forEach(step => thinking.completeStep(step.id))
                   }
