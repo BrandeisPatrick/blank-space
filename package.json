@@ -1,0 +1,27 @@
+{
+  "name": "react-live-sandbox",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.4",
+    "@codesandbox/sandpack-react": "^2.19.12",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/postcss": "^4.1.14",
+    "openai": "^6.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "vite": "^6.0.5"
+  }
+}

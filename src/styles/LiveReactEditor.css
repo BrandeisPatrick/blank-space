@@ -1,0 +1,102 @@
+.live-editor-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.editor-controls {
+  display: flex;
+  gap: 20px;
+  padding: 16px;
+  background: #1e1e1e;
+  border-radius: 8px 8px 0 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.control-group select {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #2d2d2d;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.control-group select:hover {
+  border-color: #666;
+}
+
+.control-group input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.editor-wrapper {
+  border: 1px solid #333;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.editor-wrapper.layout-horizontal {
+  height: 800px;
+}
+
+.editor-wrapper.layout-horizontal .sp-layout {
+  display: flex;
+  flex-direction: row;
+}
+
+.editor-wrapper.layout-vertical {
+  min-height: 700px;
+}
+
+.editor-wrapper.layout-vertical .sp-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure equal split for editor and preview */
+.editor-wrapper .sp-layout > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  .editor-controls {
+    background: #f5f5f5;
+  }
+
+  .control-group label {
+    color: #333;
+  }
+
+  .control-group select {
+    background: #fff;
+    border-color: #ccc;
+    color: #333;
+  }
+
+  .control-group select:hover {
+    border-color: #999;
+  }
+
+  .editor-wrapper {
+    border-color: #ddd;
+  }
+}
