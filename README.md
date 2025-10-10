@@ -4,7 +4,7 @@ An open-source AI app builder. Alternative to [v0](https://v0.dev), [Lovable](ht
 
 ## Demo
 
-![Blank Space Demo](./public/blank-space-demo.gif)
+<img src="./public/blank-space-demo.gif" width="800" alt="Blank Space Demo">
 
 **Try it live:** [www.blankspace.build](https://www.blankspace.build)
 
