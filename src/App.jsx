@@ -13,6 +13,7 @@ import { FileTabs } from "./components/FileTabs";
 import { FileExplorer } from "./components/FileExplorer";
 import { ArtifactSidebar } from "./components/ArtifactSidebar";
 import { useThinkingState } from "./hooks/useThinkingState";
+import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/agentOrchestrator";
 import { reactExamples } from "./templates";
 import "./styles/App.css";
@@ -21,6 +22,7 @@ function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { activeArtifact, updateArtifactFiles, createArtifact, activeArtifactId } = useArtifacts();
+  const isMobile = useIsMobile();
 
   // Route state: 'landing' or 'studio'
   const [currentRoute, setCurrentRoute] = useState('landing');
@@ -60,9 +62,16 @@ function App() {
   // Navigation handlers
   const handleTryNow = () => {
     setCurrentRoute('studio');
-    setShowChat(true);
-    setShowCode(false);  // Hide code panel
-    setShowPreview(true);
+    if (isMobile) {
+      // On mobile, only show preview by default
+      setShowChat(false);
+      setShowCode(false);
+      setShowPreview(true);
+    } else {
+      setShowChat(true);
+      setShowCode(false);  // Hide code panel
+      setShowPreview(true);
+    }
   };
 
   const handleNavigateToSignIn = () => setCurrentRoute('signin');
@@ -75,9 +84,16 @@ function App() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     // Navigate to studio after successful sign-in
     setCurrentRoute('studio');
-    setShowChat(true);
-    setShowCode(false);  // Hide code panel
-    setShowPreview(true);
+    if (isMobile) {
+      // On mobile, only show preview by default
+      setShowChat(false);
+      setShowCode(false);
+      setShowPreview(true);
+    } else {
+      setShowChat(true);
+      setShowCode(false);  // Hide code panel
+      setShowPreview(true);
+    }
   };
 
   // Track rate limit warnings shown
@@ -287,7 +303,7 @@ function App() {
 
   // Calculate panel widths
   const visiblePanels = [showChat, showCode, showPreview].filter(Boolean).length;
-  const panelWidth = visiblePanels > 0 ? `${100 / visiblePanels}%` : '100%';
+  const panelWidth = isMobile ? '100%' : (visiblePanels > 0 ? `${100 / visiblePanels}%` : '100%');
 
   // Show landing page if route is 'landing'
   if (currentRoute === 'landing') {
@@ -333,9 +349,27 @@ function App() {
         showCode={showCode}
         showPreview={showPreview}
         onTogglePanel={(panel) => {
-          if (panel === 'chat') setShowChat(!showChat);
-          if (panel === 'code') setShowCode(!showCode);
-          if (panel === 'preview') setShowPreview(!showPreview);
+          if (isMobile) {
+            // On mobile, only show one panel at a time
+            if (panel === 'chat') {
+              setShowChat(true);
+              setShowCode(false);
+              setShowPreview(false);
+            } else if (panel === 'code') {
+              setShowChat(false);
+              setShowCode(true);
+              setShowPreview(false);
+            } else if (panel === 'preview') {
+              setShowChat(false);
+              setShowCode(false);
+              setShowPreview(true);
+            }
+          } else {
+            // On desktop, toggle panels independently
+            if (panel === 'chat') setShowChat(!showChat);
+            if (panel === 'code') setShowCode(!showCode);
+            if (panel === 'preview') setShowPreview(!showPreview);
+          }
         }}
         onToggleArtifacts={() => setShowArtifacts(!showArtifacts)}
         onLoadExample={(exampleId) => {
@@ -343,8 +377,9 @@ function App() {
           if (selectedExample) {
             // Create new artifact for the example
             createArtifact(selectedExample.name, selectedExample.files);
-            // Ensure panels are visible
-            setShowCode(true);
+            // Show only preview panel for both mobile and desktop
+            setShowChat(false);
+            setShowCode(false);
             setShowPreview(true);
           }
         }}
@@ -531,16 +566,18 @@ function App() {
 
             {/* Editor Content with File Explorer */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              {/* File Explorer Sidebar */}
-              <div style={{ width: '220px', height: '100%', overflow: 'hidden' }}>
-                <FileExplorer
-                  files={files}
-                  activeFile={activeFile}
-                  onFileSelect={setActiveFile}
-                  onFileCreate={handleFileCreate}
-                  onFileDelete={handleFileDelete}
-                />
-              </div>
+              {/* File Explorer Sidebar - Hidden on mobile */}
+              {!isMobile && (
+                <div style={{ width: '220px', height: '100%', overflow: 'hidden' }}>
+                  <FileExplorer
+                    files={files}
+                    activeFile={activeFile}
+                    onFileSelect={setActiveFile}
+                    onFileCreate={handleFileCreate}
+                    onFileDelete={handleFileDelete}
+                  />
+                </div>
+              )}
 
               {/* Editor Area */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
