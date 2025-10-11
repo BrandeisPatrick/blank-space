@@ -220,9 +220,17 @@ function App() {
           setActiveFile(result.fileOperations[0].filename);
         }
 
-        // Ensure code and preview panels are visible
-        setShowCode(true);
-        setShowPreview(true);
+        // Ensure panels are visible based on device
+        if (isMobile) {
+          // On mobile, only show preview
+          setShowChat(false);
+          setShowCode(false);
+          setShowPreview(true);
+        } else {
+          // On desktop, show both code and preview
+          setShowCode(true);
+          setShowPreview(true);
+        }
 
         // Complete thinking process
         setTimeout(() => thinking.complete(), 500);
