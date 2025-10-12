@@ -1,30 +1,60 @@
-# blank-space
+# Blank Space
 
-An open-source AI app builder. Alternative to [v0](https://v0.dev), [Lovable](https://lovable.dev), and [Bolt](https://bolt.new).
+> Build AI apps fast — open source alternative to [v0](https://v0.dev), [Lovable](https://lovable.dev), and [Bolt](https://bolt.new).
 
-## Demo
+<p align="center">
+  <!-- Optional hero: replace with your own image or keep only the demo GIF below -->
+  <!-- <img src="docs/hero.png" alt="Blank Space Hero" width="100%" /> -->
+</p>
 
-<img src="./public/blank-space-demo.gif" width="800" alt="Blank Space Demo">
+<p align="center">
+  <a href="https://github.com/BrandeisPatrick/blank-space/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/BrandeisPatrick/blank-space?logo=github">
+  </a>
+  <a href="https://github.com/BrandeisPatrick/blank-space/issues">
+    <img alt="Issues" src="https://img.shields.io/github/issues/BrandeisPatrick/blank-space">
+  </a>
+  <a href="https://github.com/BrandeisPatrick/blank-space/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue">
+  </a>
+  <img alt="Free tier" src="https://img.shields.io/badge/Free%20tier-50%20req%2Fday-brightgreen">
+</p>
 
-**Try it live:** [www.blankspace.build](https://www.blankspace.build)
+<p align="center">
+  <strong>Try it live:</strong> <a href="https://www.blankspace.build">www.blankspace.build</a>
+</p>
 
-**Free tier:** 50 requests per day.
+---
 
-## Future Work Plan
+## ✨ What is Blank Space?
 
-- Improve the agent orchestra inspired by [AutoGen](https://microsoft.github.io/autogen/) (Microsoft)
-- Convert to React Native + Expo mobile app
-- Add user login authentication
-- Add support for Reactbit and other templates
+Blank Space is an open-source AI app builder focused on speed and simplicity:
+- **Visual flow to app** — create useful AI flows quickly.
+- **Composable agents** — orchestrate tools/functions with an extendable core.
+- **Bring your own UI** — drop in components or templates you already love.
+- **Self-hostable** — run locally or deploy to your favorite platform.
 
-## Help Needed: LLM Token Funding
+---
 
-We want to make this project cheaper and more available to everyone. If you know how to apply for LLM token funding or have connections with AI companies offering credits for open-source projects, please [create a ticket](https://github.com/patrickli/blank-space/issues) and let us know!
+## 🎬 Demo
 
-## License
+<p align="center">
+  <img src="./public/blank-space-demo.gif" width="800" alt="Blank Space Demo">
+</p>
 
-Apache 2.0
+---
 
-## Contributing
+## 🚀 Quick Start
 
-Contributions are welcome! Feel free to open issues or submit pull requests.
+```bash
+# 1) Clone
+git clone https://github.com/BrandeisPatrick/blank-space
+cd blank-space
+
+# 2) Configure (optional: copy and fill in env values if needed)
+cp .env.example .env
+
+# 3) Install & run
+npm install
+npm run dev
+# open http://localhost:5173  (or the port shown in your terminal)
