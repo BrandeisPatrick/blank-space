@@ -6,7 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node test/runAllTests.js",
+    "test:basic": "node test/api/testAgents.js",
+    "test:reliability": "node test/api/testReliability.js",
+    "test:orchestrator": "node test/api/testOrchestrator.js",
+    "test:modifications": "node test/api/testModifications.js",
+    "test:debugger": "node test/api/testDebugger.js",
+    "test:reviewer": "node test/api/testReviewerAgent.js",
+    "test:reflection": "node test/api/testReflectionLoop.js",
+    "test:agents": "node test/api/testAgentSystem.js",
+    "test:autogen": "node test/api/runAutoGenTests.js",
+    "test:integration": "node test/integration/endToEndTests.js"
   },
   "dependencies": {
     "@babel/parser": "^7.28.4",

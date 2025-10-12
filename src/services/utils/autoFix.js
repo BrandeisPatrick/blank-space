@@ -150,6 +150,7 @@ export function fixImportPaths(code, filename) {
 
 /**
  * Remove duplicate declarations
+ * Enhanced to handle multi-line statements
  */
 export function removeDuplicateDeclarations(code) {
   let fixed = code;
@@ -162,8 +163,36 @@ export function removeDuplicateDeclarations(code) {
     if (declMatch) {
       const identifier = declMatch[1];
       if (declarations[identifier] !== undefined) {
-        // Mark second occurrence for removal
+        // Found duplicate - mark this line and subsequent lines of the statement
         linesToRemove.add(index);
+
+        // Check if this is a multi-line statement
+        // Look for the closing of this statement (semicolon, or matching closing bracket/paren)
+        let currentLine = index;
+        let currentCode = lines[currentLine];
+        let openParens = (currentCode.match(/\(/g) || []).length - (currentCode.match(/\)/g) || []).length;
+        let openBraces = (currentCode.match(/\{/g) || []).length - (currentCode.match(/\}/g) || []).length;
+        let openBrackets = (currentCode.match(/\[/g) || []).length - (currentCode.match(/\]/g) || []).length;
+
+        // Continue removing lines until statement is complete
+        while (
+          currentLine < lines.length - 1 &&
+          (openParens > 0 || openBraces > 0 || openBrackets > 0 || !currentCode.trim().endsWith(";"))
+        ) {
+          currentLine++;
+          if (currentLine < lines.length) {
+            linesToRemove.add(currentLine);
+            currentCode = lines[currentLine];
+            openParens += (currentCode.match(/\(/g) || []).length - (currentCode.match(/\)/g) || []).length;
+            openBraces += (currentCode.match(/\{/g) || []).length - (currentCode.match(/\}/g) || []).length;
+            openBrackets += (currentCode.match(/\[/g) || []).length - (currentCode.match(/\]/g) || []).length;
+
+            // If we found semicolon and all brackets are closed, we're done
+            if (currentCode.trim().endsWith(";") && openParens <= 0 && openBraces <= 0 && openBrackets <= 0) {
+              break;
+            }
+          }
+        }
       } else {
         declarations[identifier] = index;
       }
@@ -171,6 +200,9 @@ export function removeDuplicateDeclarations(code) {
   });
 
   fixed = lines.filter((line, index) => !linesToRemove.has(index)).join("\n");
+
+  // Clean up multiple consecutive newlines
+  fixed = fixed.replace(/\n\n\n+/g, "\n\n");
 
   return fixed;
 }
@@ -242,6 +274,70 @@ export function replaceLodashWithNative(code) {
 }
 
 /**
+ * Remove React initialization code
+ * Prevents duplicate "const root" declarations
+ */
+export function removeInitializationCode(code) {
+  let fixed = code;
+
+  // Remove ReactDOM import (not needed in generated components)
+  fixed = fixed.replace(/import\s+ReactDOM\s+from\s+["']react-dom\/client["'];?\s*\n?/g, "");
+  fixed = fixed.replace(/import\s+ReactDOM\s+from\s+["']react-dom["'];?\s*\n?/g, "");
+  fixed = fixed.replace(/import\s+{\s*createRoot\s*}\s+from\s+["']react-dom\/client["'];?\s*\n?/g, "");
+
+  // Remove initialization patterns - multi-line detection
+  // Pattern 1: const root = ReactDOM.createRoot(...); root.render(...);
+  fixed = fixed.replace(
+    /\n?\s*const\s+root\s*=\s*ReactDOM\.createRoot\s*\([^)]+\)\s*;?\s*\n?\s*root\.render\s*\([^)]*<[^>]+\s*\/>\s*\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 2: const root = ReactDOM.createRoot(...) (without semicolon or render)
+  fixed = fixed.replace(
+    /\n?\s*const\s+root\s*=\s*ReactDOM\.createRoot\s*\([^)]+\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 3: root.render(...) standalone
+  fixed = fixed.replace(
+    /\n?\s*root\.render\s*\([^)]*<[^>]+\s*\/>\s*\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 4: ReactDOM.createRoot(...).render(...) (chained)
+  fixed = fixed.replace(
+    /\n?\s*ReactDOM\.createRoot\s*\([^)]+\)\.render\s*\([^)]*<[^>]+\s*\/>\s*\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 5: const container = document.getElementById(...) lines
+  fixed = fixed.replace(
+    /\n?\s*const\s+container\s*=\s*document\.getElementById\s*\([^)]+\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 6: Legacy ReactDOM.render (React 17 and earlier)
+  fixed = fixed.replace(
+    /\n?\s*ReactDOM\.render\s*\([^)]*,\s*document\.getElementById\s*\([^)]+\)\s*\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Pattern 7: document.getElementById('root') or document.getElementById("root")
+  fixed = fixed.replace(
+    /\n?\s*document\.getElementById\s*\(\s*["']root["']\s*\)\s*;?\s*\n?/g,
+    "\n"
+  );
+
+  // Clean up multiple consecutive newlines
+  fixed = fixed.replace(/\n\n\n+/g, "\n\n");
+
+  // Remove trailing whitespace before newlines
+  fixed = fixed.replace(/[ \t]+\n/g, "\n");
+
+  return fixed;
+}
+
+/**
  * Run all auto-fixes
  */
 export function autoFixCommonIssues(code, filename) {
@@ -251,6 +347,7 @@ export function autoFixCommonIssues(code, filename) {
   fixed = removePropTypes(fixed);
   fixed = removeUnusedImports(fixed);
   fixed = fixImportPaths(fixed, filename);
+  fixed = removeInitializationCode(fixed);  // NEW: Remove initialization code
   fixed = removeDuplicateDeclarations(fixed);
   fixed = replaceAxiosWithFetch(fixed);
   fixed = replaceLodashWithNative(fixed);

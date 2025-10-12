@@ -6,7 +6,7 @@
  * JavaScript parsing issues with nested backticks and code examples.
  */
 
-import prompts from "./prompts.json";
+import prompts from "./prompts.json" with { type: "json" };
 
 // Re-export all prompt templates for backward compatibility
 export const THINKING_FRAMEWORK = prompts.THINKING_FRAMEWORK;
@@ -24,6 +24,8 @@ export const SINGLE_FILE_OUTPUT_ONLY = prompts.SINGLE_FILE_OUTPUT_ONLY;
 export const DETAILED_PLANNING_GUIDANCE = prompts.DETAILED_PLANNING_GUIDANCE;
 export const PACKAGE_MANAGEMENT_RULES = prompts.PACKAGE_MANAGEMENT_RULES;
 export const SANDPACK_NAVIGATION_RULES = prompts.SANDPACK_NAVIGATION_RULES;
+export const UNIVERSAL_UX_PRINCIPLES = prompts.UNIVERSAL_UX_PRINCIPLES;
+export const NO_INITIALIZATION_CODE = prompts.NO_INITIALIZATION_CODE;
 
 /**
  * Build enhanced system prompt from templates

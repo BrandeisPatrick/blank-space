@@ -1,13 +1,61 @@
-import { openai } from "../utils/openaiClient.js";
+import { callLLMForJSON } from "../utils/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
 import { THINKING_FRAMEWORK } from "../promptTemplates.js";
+import compressedPrompts from "../compressedPrompts.json" with { type: "json" };
+import { extractUXFromCode } from "./uxDesigner.js";
+import { inferArchitectureFromCode } from "./architectureDesigner.js";
 
 /**
- * Codebase Analyzer Agent
- * Analyzes the entire codebase to determine what needs to be modified
- * This agent has full context of all files to make intelligent decisions
+ * Analysis modes for different pipeline types
  */
-export async function analyzeCodebaseForModification(userMessage, currentFiles = {}) {
+export const AnalysisMode = {
+  MODIFICATION: 'modification',    // Find what files to modify
+  DEBUG: 'debug',                  // Identify error location and context
+  STYLE_EXTRACTION: 'style-extraction', // Extract current UX patterns
+  EXPLAIN: 'explain'               // Explain code functionality
+};
+
+/**
+ * Enhanced Codebase Analyzer Agent
+ * Supports multiple analysis modes for different pipeline types
+ * Integrates with UX and Architecture agents
+ */
+
+/**
+ * Main analysis function with mode support
+ * @param {Object} options - Analysis options
+ * @param {string} options.userMessage - User's request
+ * @param {Object} options.currentFiles - Current files map
+ * @param {string} [options.mode='modification'] - Analysis mode
+ * @returns {Promise<Object>} Analysis result
+ */
+export async function analyze({ userMessage, currentFiles = {}, mode = AnalysisMode.MODIFICATION }) {
+  // Route to appropriate analysis function based on mode
+  switch (mode) {
+    case AnalysisMode.MODIFICATION:
+      return await analyzeForModification(userMessage, currentFiles);
+
+    case AnalysisMode.DEBUG:
+      return await analyzeForDebug(userMessage, currentFiles);
+
+    case AnalysisMode.STYLE_EXTRACTION:
+      return await analyzeForStyleExtraction(userMessage, currentFiles);
+
+    case AnalysisMode.EXPLAIN:
+      return await analyzeForExplanation(userMessage, currentFiles);
+
+    default:
+      return await analyzeForModification(userMessage, currentFiles);
+  }
+}
+
+/**
+ * Analyze codebase for modification (original function, enhanced)
+ * @param {string} userMessage - User's modification request
+ * @param {Object} currentFiles - Current files map
+ * @returns {Promise<Object>} Modification analysis
+ */
+async function analyzeForModification(userMessage, currentFiles = {}) {
   // If no files exist, nothing to analyze
   if (Object.keys(currentFiles).length === 0) {
     return {
@@ -87,37 +135,227 @@ If the request doesn't require modification analysis (e.g., creating new files),
 }`;
 
   try {
-    // GPT-5 models have different parameter requirements
-    const isGPT5 = MODELS.ANALYZER.includes("gpt-5");
-    const tokenParam = isGPT5 ? { max_completion_tokens: 1500 } : { max_tokens: 1500 };
-    const tempParam = isGPT5 ? {} : { temperature: 0.3 }; // GPT-5 only supports default temperature
-
-    const response = await openai.chat.completions.create({
+    const analysis = await callLLMForJSON({
       model: MODELS.ANALYZER,
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Analyze the codebase for this modification request: "${userMessage}"\n\nCodebase:\n${filesContext}`
-        }
-      ],
-      ...tempParam,
-      ...tokenParam
+      systemPrompt,
+      userPrompt: `Analyze the codebase for this modification request: "${userMessage}"\n\nCodebase:\n${filesContext}`,
+      maxTokens: 1500,
+      temperature: 0.3
     });
 
-    let content = response.choices[0].message.content;
+    // Extract UX and Architecture from existing code
+    analysis.existingUX = extractUXFromCode(currentFiles);
+    analysis.existingArchitecture = inferArchitectureFromCode(currentFiles);
 
-    // Clean markdown code fences if present
-    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-    return JSON.parse(content);
+    return analysis;
   } catch (error) {
     console.error("Codebase analysis error:", error);
     return {
       needsAnalysis: false,
       filesToModify: [],
       changeTargets: {},
-      reasoning: `Analysis error: ${error.message}`
+      reasoning: `Analysis error: ${error.message}`,
+      existingUX: extractUXFromCode(currentFiles),
+      existingArchitecture: inferArchitectureFromCode(currentFiles)
     };
   }
 }
+
+/**
+ * Analyze codebase for debugging
+ * Identifies error location, type, and provides context
+ * @param {string} userMessage - User's error description
+ * @param {Object} currentFiles - Current files map
+ * @returns {Promise<Object>} Debug analysis
+ */
+async function analyzeForDebug(userMessage, currentFiles) {
+  if (Object.keys(currentFiles).length === 0) {
+    return {
+      errorFile: null,
+      errorType: 'unknown',
+      errorMessage: 'No files to analyze',
+      possibleCauses: []
+    };
+  }
+
+  const filesContext = Object.entries(currentFiles)
+    .map(([filename, content]) => `File: ${filename}\n\`\`\`\n${content}\n\`\`\``)
+    .join("\n\n");
+
+  const systemPrompt = `You are a debugging analysis agent for React applications.
+Analyze the code to identify where and why an error is occurring.
+
+${THINKING_FRAMEWORK}
+
+${compressedPrompts.DEBUGGER_PATTERNS}
+
+Respond ONLY with JSON in this format:
+{
+  "errorFile": "components/TodoList.jsx",
+  "errorType": "state-mutation | event-handler | hooks-rules | async | props | rendering",
+  "errorMessage": "Brief description of the error",
+  "errorLocation": "Line numbers or function name",
+  "possibleCauses": ["Cause 1", "Cause 2"],
+  "relatedFiles": ["Other files that might be involved"],
+  "codeContext": "Relevant code snippet around the error"
+}`;
+
+  try {
+    const analysis = await callLLMForJSON({
+      model: MODELS.ANALYZER,
+      systemPrompt,
+      userPrompt: `Analyze this error: "${userMessage}"\n\nCodebase:\n${filesContext}`,
+      maxTokens: 1200,
+      temperature: 0.2
+    });
+
+    return analysis;
+  } catch (error) {
+    console.error("Debug analysis error:", error);
+    return {
+      errorFile: null,
+      errorType: 'unknown',
+      errorMessage: `Analysis failed: ${error.message}`,
+      possibleCauses: ['Unable to analyze - manual debugging required']
+    };
+  }
+}
+
+/**
+ * Analyze codebase for style extraction
+ * Extracts current UX patterns and prepares for redesign
+ * @param {string} userMessage - User's style change request
+ * @param {Object} currentFiles - Current files map
+ * @returns {Promise<Object>} Style extraction analysis
+ */
+async function analyzeForStyleExtraction(userMessage, currentFiles) {
+  if (Object.keys(currentFiles).length === 0) {
+    return {
+      styledFiles: [],
+      currentStyles: null
+    };
+  }
+
+  // Use the extractUXFromCode function to get current styles
+  const currentStyles = extractUXFromCode(currentFiles);
+
+  // Identify files that contain visual elements
+  const styledFiles = Object.keys(currentFiles).filter(filename => {
+    const code = currentFiles[filename];
+    return (
+      filename.match(/\.(jsx|tsx)$/) && // Component files
+      (code.includes('className=') || code.includes('style=')) // Has styling
+    );
+  });
+
+  const filesContext = styledFiles
+    .map(filename => `File: ${filename}\n\`\`\`\n${currentFiles[filename]}\n\`\`\``)
+    .join("\n\n");
+
+  const systemPrompt = `You are a UX analysis agent.
+Identify which files need style updates and what changes are needed.
+
+${compressedPrompts.STYLE_EXTRACTION_GUIDE}
+
+Respond ONLY with JSON:
+{
+  "styledFiles": ["components/Header.jsx", "components/TodoList.jsx"],
+  "styleChanges": {
+    "components/Header.jsx": ["Update background gradient", "Change text colors"],
+    "components/TodoList.jsx": ["Update button colors", "Change card backgrounds"]
+  },
+  "currentTheme": "dark | light",
+  "reasoning": "Why these files need updates"
+}`;
+
+  try {
+    const analysis = await callLLMForJSON({
+      model: MODELS.ANALYZER,
+      systemPrompt,
+      userPrompt: `Analyze style changes for: "${userMessage}"\n\nStyled Files:\n${filesContext}`,
+      maxTokens: 800,
+      temperature: 0.3
+    });
+
+    analysis.currentStyles = currentStyles;
+    analysis.styledFiles = styledFiles; // Override with our detection
+
+    return analysis;
+  } catch (error) {
+    console.error("Style extraction error:", error);
+    return {
+      styledFiles,
+      currentStyles,
+      styleChanges: {},
+      reasoning: `Extraction failed: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Analyze codebase for explanation
+ * Provides understanding of code functionality
+ * @param {string} userMessage - User's question about code
+ * @param {Object} currentFiles - Current files map
+ * @returns {Promise<Object>} Explanation
+ */
+async function analyzeForExplanation(userMessage, currentFiles) {
+  if (Object.keys(currentFiles).length === 0) {
+    return {
+      explanation: 'No code to explain',
+      relevantFiles: []
+    };
+  }
+
+  const filesContext = Object.entries(currentFiles)
+    .map(([filename, content]) => `File: ${filename}\n\`\`\`\n${content}\n\`\`\``)
+    .join("\n\n");
+
+  const systemPrompt = `You are a code explanation agent for React applications.
+Explain the code functionality in clear, understandable terms.
+
+${THINKING_FRAMEWORK}
+
+Focus on:
+- What the code does
+- How components are structured
+- Key functionality and features
+- Data flow and state management
+
+Respond ONLY with JSON:
+{
+  "explanation": "Clear explanation of the code",
+  "relevantFiles": ["files related to the question"],
+  "keyFeatures": ["Feature 1", "Feature 2"],
+  "architecture": "Brief overview of code structure",
+  "suggestions": ["Optional improvement suggestions"]
+}`;
+
+  try {
+    const analysis = await callLLMForJSON({
+      model: MODELS.ANALYZER,
+      systemPrompt,
+      userPrompt: `Explain: "${userMessage}"\n\nCodebase:\n${filesContext}`,
+      maxTokens: 1200,
+      temperature: 0.5
+    });
+
+    return analysis;
+  } catch (error) {
+    console.error("Explanation error:", error);
+    return {
+      explanation: `Unable to generate explanation: ${error.message}`,
+      relevantFiles: Object.keys(currentFiles),
+      keyFeatures: []
+    };
+  }
+}
+
+// Keep backward compatibility
+export const analyzeCodebaseForModification = analyzeForModification;
+
+export default {
+  analyze,
+  analyzeCodebaseForModification,
+  AnalysisMode
+};
