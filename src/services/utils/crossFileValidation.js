@@ -159,6 +159,9 @@ export function validateExportsExist(files) {
     // Skip certain files that don't need exports
     if (filename === "App.jsx") return;
 
+    // Skip CSS, JSON, and other non-JS/JSX files
+    if (filename.match(/\.(css|json|md|txt|svg|png|jpg|jpeg|gif|ico)$/)) return;
+
     // Check if file has any export
     const hasExport = code.includes("export default") || code.includes("export const") || code.includes("export function");
 

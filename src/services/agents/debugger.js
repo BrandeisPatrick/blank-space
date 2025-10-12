@@ -1,195 +1,285 @@
-import { openai } from "../utils/openaiClient.js";
+import { callLLMForJSON } from "../utils/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
+import compressedPrompts from "../compressedPrompts.json" with { type: "json" };
 
 /**
  * Debugger Agent
- * Identifies and fixes bugs in existing code
+ * Specialized agent for root cause analysis and bug diagnosis
+ * Handles error analysis, pattern recognition, and fix strategies
  */
 
 /**
- * Analyze code to identify the bug
- * @param {string} userMessage - User's description of the bug
- * @param {Object} currentFiles - Current project files
- * @returns {Object} Bug analysis with diagnosis
+ * Analyze and diagnose a bug
+ * @param {Object} options - Debug options
+ * @param {Object} options.errorContext - Error information from analyzer
+ * @param {string} options.code - Code where error occurs
+ * @param {string} options.userMessage - User's error description
+ * @returns {Promise<Object>} Debug analysis with root cause and fix strategy
  */
-export async function identifyBug(userMessage, currentFiles) {
-  const filesList = Object.entries(currentFiles)
-    .map(([filename, code]) => `=== ${filename} ===\n${code}`)
-    .join("\n\n");
+export async function diagnoseBug({ errorContext, code, userMessage }) {
+  const systemPrompt = `You are a React debugging specialist.
+Your job is to:
+1. Identify the root cause of bugs
+2. Explain WHY the bug occurs
+3. Provide a targeted fix strategy
 
-  const systemPrompt = `You are a debugging expert for React applications.
-Analyze the user's bug report and the provided code to identify what's wrong.
+${compressedPrompts.DEBUGGER_PATTERNS}
 
-Respond ONLY with a JSON object in this format:
+🐛 DIAGNOSIS PROCESS:
+1. **Identify Error Type**: Runtime, logic, rendering, state, props, hooks
+2. **Trace Root Cause**: Follow data flow to find where it breaks
+3. **Explain Why**: What assumption was violated?
+4. **Suggest Fix**: Minimal, surgical fix that addresses root cause
+
+Respond ONLY with JSON in this format:
 {
-  "bugFound": true/false,
-  "diagnosis": "Clear explanation of what's wrong",
-  "affectedFiles": ["filename1", "filename2"],
-  "bugType": "logic_error|missing_handler|state_issue|prop_issue|syntax_error",
-  "severity": "critical|high|medium|low",
-  "suggestedFix": "Brief description of how to fix it"
+  "errorType": "state-mutation | event-handler | hooks-rules | async | props | rendering",
+  "rootCause": "Clear explanation of WHY the bug occurs",
+  "explanation": "Detailed breakdown of the issue",
+  "affectedCode": {
+    "location": "Line numbers or function name",
+    "problematicPattern": "The code causing the issue",
+    "whyItFails": "Why this pattern causes problems"
+  },
+  "fixStrategy": {
+    "approach": "How to fix it (e.g., use functional setState, add cleanup)",
+    "minimalChanges": "Specific changes needed",
+    "codeExample": "Brief example of the fix (if helpful)"
+  },
+  "relatedIssues": ["Other potential problems in the same area"],
+  "preventionTip": "How to avoid this in the future"
 }`;
 
-  const userPrompt = `User reports: "${userMessage}"
+  const userPrompt = `Debug this issue: "${userMessage}"
 
-Current code:
-${filesList}
+${errorContext.errorFile ? `File: ${errorContext.errorFile}` : ''}
+${errorContext.errorType ? `Error Type: ${errorContext.errorType}` : ''}
+${errorContext.errorMessage ? `Error Message: ${errorContext.errorMessage}` : ''}
 
-Analyze the code and identify the bug.`;
+Code Context:
+\`\`\`
+${code}
+\`\`\`
+
+${errorContext.stackTrace ? `Stack Trace:\n${errorContext.stackTrace}` : ''}
+
+Analyze the root cause and provide a targeted fix strategy.`;
 
   try {
-    const isGPT5 = MODELS.ANALYZER.includes("gpt-5");
-    const tokenParam = isGPT5 ? { max_completion_tokens: 500 } : { max_tokens: 500 };
-    const tempParam = isGPT5 ? {} : { temperature: 0.3 };
-
-    const response = await openai.chat.completions.create({
-      model: MODELS.ANALYZER,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      ...tempParam,
-      ...tokenParam
+    const diagnosis = await callLLMForJSON({
+      model: MODELS.MODIFIER, // Use stronger model for complex analysis
+      systemPrompt,
+      userPrompt,
+      maxTokens: 1500,
+      temperature: 0.2 // Low temperature for accurate diagnosis
     });
 
-    let content = response.choices[0].message.content;
-    content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-
-    return JSON.parse(content);
-  } catch (error) {
-    console.error("Bug identification error:", error);
     return {
-      bugFound: false,
-      diagnosis: "Unable to identify the bug",
-      affectedFiles: [],
-      bugType: "unknown",
-      severity: "unknown",
-      suggestedFix: "Please provide more details about the issue"
+      ...diagnosis,
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        file: errorContext.errorFile,
+        userMessage
+      }
+    };
+  } catch (error) {
+    console.error("Debug diagnosis error:", error);
+    // Fallback to basic analysis
+    return {
+      errorType: "unknown",
+      rootCause: "Unable to perform detailed analysis. Please check the code manually.",
+      explanation: `Error occurred while analyzing: ${error.message}`,
+      affectedCode: {
+        location: errorContext.errorFile || "unknown",
+        problematicPattern: "Could not identify",
+        whyItFails: "Analysis failed"
+      },
+      fixStrategy: {
+        approach: "Manual debugging required",
+        minimalChanges: "Review the code carefully and test incrementally",
+        codeExample: ""
+      },
+      relatedIssues: [],
+      preventionTip: "Use React DevTools and add error boundaries for better debugging",
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        file: errorContext.errorFile,
+        userMessage,
+        fallback: true
+      }
     };
   }
 }
 
 /**
- * Fix the identified bug in the code
- * @param {string} filename - File to fix
- * @param {string} currentCode - Current code content
- * @param {Object} bugAnalysis - Bug analysis from identifyBug
- * @param {string} userMessage - Original user message
- * @returns {string} Fixed code
+ * Quick pattern-based bug detection
+ * Fast heuristic-based analysis for common issues
+ * @param {string} code - Code to analyze
+ * @returns {Object} Quick diagnosis
  */
-export async function fixBug(filename, currentCode, bugAnalysis, userMessage) {
-  const systemPrompt = `You are an expert React developer who fixes bugs.
-Given a bug diagnosis and the current code, fix the bug.
+export function quickDiagnose(code) {
+  const issues = [];
 
-IMPORTANT:
-- Only fix the specific bug identified
-- Preserve all existing functionality
-- Maintain code style and formatting
-- Don't add unnecessary features
-- Return ONLY the fixed code, no explanations or markdown
-
-The bug diagnosis:
-${JSON.stringify(bugAnalysis, null, 2)}`;
-
-  const userPrompt = `User reported: "${userMessage}"
-
-Current code in ${filename}:
-${currentCode}
-
-Fix the bug and return the corrected code.`;
-
-  try {
-    const isGPT5 = MODELS.GENERATOR.includes("gpt-5");
-    const tokenParam = isGPT5 ? { max_completion_tokens: 2000 } : { max_tokens: 2000 };
-    const tempParam = isGPT5 ? {} : { temperature: 0.2 };
-
-    const response = await openai.chat.completions.create({
-      model: MODELS.GENERATOR,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      ...tempParam,
-      ...tokenParam
+  // Check for direct state mutation
+  if (code.match(/\w+\.(push|pop|shift|unshift|splice)\(/)) {
+    issues.push({
+      type: "state-mutation",
+      pattern: "Direct array mutation (e.g., arr.push())",
+      fix: "Use spread operator: setState([...arr, newItem])"
     });
-
-    let fixedCode = response.choices[0].message.content;
-
-    // Clean up markdown fences if present
-    fixedCode = fixedCode.replace(/```(?:jsx|javascript|js|tsx|ts)?\s*/g, "").replace(/```\s*/g, "").trim();
-
-    // Remove explanatory text before/after code
-    const lines = fixedCode.split("\n");
-    let startIndex = 0;
-    let endIndex = lines.length;
-
-    // Find first import or code line
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith("import") || lines[i].trim().startsWith("export") || lines[i].trim().startsWith("function") || lines[i].trim().startsWith("const")) {
-        startIndex = i;
-        break;
-      }
-    }
-
-    // Find last export or closing brace
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].trim().startsWith("export") || lines[i].trim() === "};") {
-        endIndex = i + 1;
-        break;
-      }
-    }
-
-    fixedCode = lines.slice(startIndex, endIndex).join("\n");
-
-    return fixedCode;
-  } catch (error) {
-    console.error("Bug fixing error:", error);
-    return currentCode; // Return original code if fix fails
-  }
-}
-
-/**
- * Debug and fix code (combined workflow)
- * @param {string} userMessage - User's bug report
- * @param {Object} currentFiles - Current project files
- * @returns {Object} Debug results with fixed files
- */
-export async function debugAndFix(userMessage, currentFiles) {
-  // Step 1: Identify the bug
-  const bugAnalysis = await identifyBug(userMessage, currentFiles);
-
-  if (!bugAnalysis.bugFound) {
-    return {
-      success: false,
-      message: "No bug could be identified. Please provide more details.",
-      diagnosis: bugAnalysis.diagnosis
-    };
   }
 
-  // Step 2: Fix affected files
-  const fixedFiles = [];
+  // Check for missing useEffect dependencies
+  if (code.match(/useEffect\([^,]*,\s*\[\s*\]\s*\)/)) {
+    issues.push({
+      type: "missing-dependencies",
+      pattern: "Empty dependency array might be incorrect",
+      fix: "Add all used variables to dependency array or use ESLint"
+    });
+  }
 
-  for (const filename of bugAnalysis.affectedFiles) {
-    if (!currentFiles[filename]) {
-      console.warn(`File ${filename} not found in current files`);
-      continue;
-    }
+  // Check for function calls in onClick
+  if (code.match(/onClick=\{\w+\([^)]*\)\}/)) {
+    issues.push({
+      type: "event-handler",
+      pattern: "Function called immediately: onClick={fn()}",
+      fix: "Pass function reference: onClick={() => fn()} or onClick={fn}"
+    });
+  }
 
-    const fixedCode = await fixBug(filename, currentFiles[filename], bugAnalysis, userMessage);
+  // Check for missing preventDefault
+  if (code.match(/<form[^>]*>/) && !code.includes('preventDefault')) {
+    issues.push({
+      type: "form-handling",
+      pattern: "Form without preventDefault",
+      fix: "Add e.preventDefault() in form submit handler"
+    });
+  }
 
-    fixedFiles.push({
-      filename,
-      originalCode: currentFiles[filename],
-      fixedCode
+  // Check for conditional hooks
+  if (code.match(/(if|while|for)\s*\([^)]*\)\s*\{[^}]*use[A-Z]/)) {
+    issues.push({
+      type: "hooks-rules",
+      pattern: "Hook called conditionally",
+      fix: "Move hook to top level or use conditional logic inside hook"
+    });
+  }
+
+  // Check for async issues
+  if (code.match(/async\s+\([^)]*\)\s*=>\s*\{[^}]*set[A-Z]\w+\(/)) {
+    issues.push({
+      type: "async-state",
+      pattern: "Async function with state updates",
+      fix: "Add cleanup to prevent state updates after unmount"
     });
   }
 
   return {
-    success: true,
-    diagnosis: bugAnalysis.diagnosis,
-    bugType: bugAnalysis.bugType,
-    severity: bugAnalysis.severity,
-    suggestedFix: bugAnalysis.suggestedFix,
-    fixedFiles
+    quickScan: true,
+    issuesFound: issues.length,
+    issues,
+    recommendation: issues.length > 0
+      ? "Found potential issues - review the patterns above"
+      : "No obvious issues found - may need deeper analysis"
   };
 }
+
+/**
+ * Generate fix suggestions for common patterns
+ * @param {string} errorType - Type of error
+ * @returns {Object} Fix suggestions
+ */
+export function getFixSuggestions(errorType) {
+  const suggestions = {
+    "state-mutation": {
+      problem: "Direct state mutation doesn't trigger re-render",
+      solution: "Use immutable updates",
+      examples: [
+        "❌ arr.push(item) → ✅ setArr([...arr, item])",
+        "❌ obj.key = val → ✅ setObj({...obj, key: val})"
+      ]
+    },
+    "event-handler": {
+      problem: "Function called immediately instead of on event",
+      solution: "Pass function reference or use arrow function",
+      examples: [
+        "❌ onClick={handleClick()} → ✅ onClick={handleClick}",
+        "❌ onClick={handleClick(id)} → ✅ onClick={() => handleClick(id)}"
+      ]
+    },
+    "hooks-rules": {
+      problem: "Hooks must be called in same order every render",
+      solution: "Move hooks to top level",
+      examples: [
+        "❌ if (x) { useState(0); } → ✅ const [val, setVal] = useState(x ? 0 : null);"
+      ]
+    },
+    "async-state": {
+      problem: "State update on unmounted component",
+      solution: "Add cleanup or check mounted status",
+      examples: [
+        "useEffect(() => { let mounted = true; fetchData().then(d => mounted && setData(d)); return () => mounted = false; }, []);"
+      ]
+    },
+    "missing-dependencies": {
+      problem: "useEffect may use stale values",
+      solution: "Add all dependencies or use functional updates",
+      examples: [
+        "✅ useEffect(() => {...}, [dep1, dep2]);",
+        "✅ setCount(c => c + 1); // functional update doesn't need count in deps"
+      ]
+    }
+  };
+
+  return suggestions[errorType] || {
+    problem: "Unknown error type",
+    solution: "Manual debugging required",
+    examples: []
+  };
+}
+
+/**
+ * Backward compatibility wrapper for old agentOrchestrator.js
+ * Combines diagnosis + fix into one function (old API)
+ * @param {string} userMessage - User's error description
+ * @param {Object} currentFiles - Current files map
+ * @returns {Promise<Object>} Old-style debug result
+ */
+export async function debugAndFix(userMessage, currentFiles) {
+  // Use quick diagnose for fast pattern detection
+  const files = Object.values(currentFiles);
+  const allCode = files.join('\n');
+  const quickResult = quickDiagnose(allCode);
+
+  if (quickResult.issuesFound === 0) {
+    return {
+      success: false,
+      message: 'Could not identify the bug automatically. Please provide more details.',
+      diagnosis: 'No obvious issues found',
+      bugType: 'unknown',
+      severity: 'unknown',
+      fixedFiles: []
+    };
+  }
+
+  // For now, return pattern-based diagnosis
+  // In the future, this could integrate with the modifier agent
+  const mainIssue = quickResult.issues[0];
+
+  return {
+    success: true,
+    diagnosis: mainIssue.pattern,
+    bugType: mainIssue.type,
+    severity: 'medium',
+    fixedFiles: [],
+    suggestion: mainIssue.fix,
+    message: `Detected ${mainIssue.type}: ${mainIssue.pattern}\n\nSuggested fix: ${mainIssue.fix}`
+  };
+}
+
+export default {
+  diagnoseBug,
+  quickDiagnose,
+  getFixSuggestions,
+  debugAndFix
+};

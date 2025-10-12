@@ -4,7 +4,7 @@ import { useArtifacts } from '../contexts/ArtifactContext';
 import { getTheme } from '../styles/theme';
 import { EditIcon, CopyIcon, TrashIcon } from './icons';
 
-export const ArtifactSidebar = ({ isOpen, onClose }) => {
+export const ArtifactSidebar = ({ isOpen, onClose, onNewArtifact }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const {
@@ -50,7 +50,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
   };
 
   const handleNewArtifact = () => {
-    createArtifact('Untitled Project');
+    onNewArtifact();
   };
 
   const handleClearAll = () => {

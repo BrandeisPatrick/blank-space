@@ -55,7 +55,7 @@ function App() {
 
   // Panel visibility
   const [showChat, setShowChat] = useState(true);
-  const [showCode, setShowCode] = useState(true);
+  const [showCode, setShowCode] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [showArtifacts, setShowArtifacts] = useState(false);
 
@@ -63,10 +63,10 @@ function App() {
   const handleTryNow = () => {
     setCurrentRoute('studio');
     if (isMobile) {
-      // On mobile, only show preview by default
-      setShowChat(false);
+      // On mobile, only show chat by default
+      setShowChat(true);
       setShowCode(false);
-      setShowPreview(true);
+      setShowPreview(false);
     } else {
       setShowChat(true);
       setShowCode(false);  // Hide code panel
@@ -85,10 +85,10 @@ function App() {
     // Navigate to studio after successful sign-in
     setCurrentRoute('studio');
     if (isMobile) {
-      // On mobile, only show preview by default
-      setShowChat(false);
+      // On mobile, only show chat by default
+      setShowChat(true);
       setShowCode(false);
-      setShowPreview(true);
+      setShowPreview(false);
     } else {
       setShowChat(true);
       setShowCode(false);  // Hide code panel
@@ -222,13 +222,14 @@ function App() {
 
         // Ensure panels are visible based on device
         if (isMobile) {
-          // On mobile, only show preview
-          setShowChat(false);
+          // On mobile, only show chat
+          setShowChat(true);
           setShowCode(false);
-          setShowPreview(true);
+          setShowPreview(false);
         } else {
-          // On desktop, show both code and preview
-          setShowCode(true);
+          // On desktop, show chat and preview (hide code)
+          setShowChat(true);
+          setShowCode(false);
           setShowPreview(true);
         }
 
@@ -309,6 +310,21 @@ function App() {
     }
   };
 
+  // Handle new artifact creation with proper panel visibility
+  const handleNewArtifact = () => {
+    createArtifact('Untitled Project');
+    // Set panel visibility based on device
+    if (isMobile) {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(false);
+    } else {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(true);
+    }
+  };
+
   // Calculate panel widths
   const visiblePanels = [showChat, showCode, showPreview].filter(Boolean).length;
   const panelWidth = isMobile ? '100%' : (visiblePanels > 0 ? `${100 / visiblePanels}%` : '100%');
@@ -349,6 +365,7 @@ function App() {
       <ArtifactSidebar
         isOpen={showArtifacts}
         onClose={() => setShowArtifacts(false)}
+        onNewArtifact={handleNewArtifact}
       />
 
       {/* Top Bar */}
@@ -452,7 +469,8 @@ function App() {
                 <button
                   onClick={() => {
                     createArtifact('My Project');
-                    setShowCode(true);
+                    setShowChat(true);
+                    setShowCode(false);
                     setShowPreview(true);
                   }}
                   style={{

@@ -35,25 +35,28 @@ export const CompactThinkingPanel = ({
         background: 'rgba(255, 255, 255, 0.04)',
         border: `1px solid ${theme.colors.border}`,
         color: theme.colors.text.secondary,
-        padding: '6px 12px',
+        padding: '8px 14px',
         borderRadius: '999px',
         fontSize: theme.typography.fontSize.xs,
         fontWeight: theme.typography.fontWeight.medium,
         display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
+        flexDirection: 'column',
+        gap: '4px',
         transition: 'all 0.2s ease',
-        minHeight: '28px',
+        minHeight: '32px',
         width: '100%'
       }
+
+      // Use custom color if provided
+      const customColor = step.color;
 
       switch (step.status) {
         case 'active':
           return {
             ...baseStyles,
-            borderColor: theme.colors.accent.primary,
+            borderColor: customColor || theme.colors.accent.primary,
             color: theme.colors.text.primary,
-            background: `${theme.colors.accent.primary}10`
+            background: customColor ? `${customColor}15` : `${theme.colors.accent.primary}10`
           }
         case 'complete':
           return {
@@ -81,18 +84,72 @@ export const CompactThinkingPanel = ({
           height: '10px',
           borderRadius: '50%',
           border: `2px solid ${theme.colors.text.tertiary}`,
-          borderRightColor: theme.colors.accent.primary,
+          borderRightColor: step.color || theme.colors.accent.primary,
           animation: 'spin 0.7s linear infinite',
         }}
       />
     )
 
-    return (
-      <div key={step.id} style={getChipStyles()}>
+    // Main content row
+    const renderMainContent = () => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
         {step.status === 'active' && renderSpinner()}
         {step.status === 'complete' && <span style={{ color: theme.colors.status.success }}>✓</span>}
         {step.status === 'error' && <span style={{ color: theme.colors.status.error }}>✗</span>}
-        <span>{step.label}</span>
+
+        {/* Agent emoji */}
+        {step.emoji && <span style={{ fontSize: '14px' }}>{step.emoji}</span>}
+
+        {/* Agent name and message */}
+        <span style={{ flex: 1 }}>
+          {step.agent && <strong style={{ color: step.color || theme.colors.text.primary }}>{step.agent}: </strong>}
+          {step.friendlyMessage || step.label}
+        </span>
+
+        {/* Progress indicator */}
+        {step.progress && (
+          <span style={{
+            fontSize: '11px',
+            color: theme.colors.text.tertiary,
+            fontFamily: 'ui-monospace, monospace'
+          }}>
+            {step.progress}
+          </span>
+        )}
+      </div>
+    )
+
+    // Detail row (if exists)
+    const renderDetail = () => {
+      if (!step.detail && !step.estimatedTime) return null
+
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '11px',
+          color: theme.colors.text.tertiary,
+          paddingLeft: step.emoji ? '34px' : '18px'
+        }}>
+          {step.detail && <span>└─ {step.detail}</span>}
+          {step.estimatedTime && (
+            <span style={{
+              marginLeft: 'auto',
+              fontFamily: 'ui-monospace, monospace',
+              opacity: 0.7
+            }}>
+              ~{step.estimatedTime}
+            </span>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div key={step.id} style={getChipStyles()}>
+        {renderMainContent()}
+        {renderDetail()}
       </div>
     )
   }, [theme])
