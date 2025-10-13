@@ -37,3 +37,4 @@ test/
 # Markdown files (private design docs)
 *.md
 !README.md
+.env*.local

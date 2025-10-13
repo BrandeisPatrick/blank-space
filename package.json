@@ -24,6 +24,8 @@
     "@codesandbox/sandpack-react": "^2.19.12",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/postcss": "^4.1.14",
+    "firebase": "^12.4.0",
+    "firebase-admin": "^13.5.0",
     "openai": "^6.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
