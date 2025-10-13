@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the file
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User files - each user can only access their own files
+    match /users/{userId}/{allPaths=**} {
+      // Allow read if user owns the file
+      allow read: if isOwner(userId);
+
+      // Allow write (create/update) if user owns the file
+      // and file size is less than 10MB
+      allow write: if isOwner(userId)
+                   && request.resource.size < 10 * 1024 * 1024;
+
+      // Allow delete if user owns the file
+      allow delete: if isOwner(userId);
+    }
+
+    // Deny all other access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

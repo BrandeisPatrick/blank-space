@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const ArtifactContext = createContext();
 
@@ -19,68 +20,222 @@ const createEmptyArtifact = () => ({
 });
 
 export const ArtifactProvider = ({ children }) => {
-  const [artifacts, setArtifacts] = useState(() => {
-    // Load from localStorage on init
-    const saved = localStorage.getItem('vibe_artifacts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Allow empty state
-        return parsed;
-      } catch (e) {
-        console.error('Failed to parse artifacts from localStorage:', e);
-        return [];
+  const { user, getIdToken } = useAuth();
+  const [artifacts, setArtifacts] = useState([]);
+  const [activeArtifactId, setActiveArtifactId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load artifacts from API (when authenticated) or localStorage (when guest)
+  useEffect(() => {
+    if (user) {
+      loadArtifactsFromAPI();
+    } else {
+      // Load from localStorage for guest mode
+      loadArtifactsFromLocalStorage();
+    }
+  }, [user]);
+
+  // localStorage helpers for guest mode
+  const STORAGE_KEY = 'guestArtifacts';
+  const ACTIVE_ARTIFACT_KEY = 'guestActiveArtifactId';
+
+  const loadArtifactsFromLocalStorage = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const activeId = localStorage.getItem(ACTIVE_ARTIFACT_KEY);
+
+      if (stored) {
+        const parsedArtifacts = JSON.parse(stored);
+        setArtifacts(parsedArtifacts);
+
+        if (activeId && parsedArtifacts.some(a => a.id === activeId)) {
+          setActiveArtifactId(activeId);
+        } else if (parsedArtifacts.length > 0) {
+          setActiveArtifactId(parsedArtifacts[0].id);
+        }
+      } else {
+        setArtifacts([]);
+        setActiveArtifactId(null);
       }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+      setArtifacts([]);
+      setActiveArtifactId(null);
     }
-    return [];
-  });
+  };
 
-  const [activeArtifactId, setActiveArtifactId] = useState(() => {
-    const saved = localStorage.getItem('vibe_active_artifact_id');
-    return saved || artifacts[0]?.id || null;
-  });
-
-  // Save to localStorage whenever artifacts change
-  useEffect(() => {
-    localStorage.setItem('vibe_artifacts', JSON.stringify(artifacts));
-  }, [artifacts]);
-
-  // Save active artifact ID
-  useEffect(() => {
-    if (activeArtifactId) {
-      localStorage.setItem('vibe_active_artifact_id', activeArtifactId);
+  const saveArtifactsToLocalStorage = (artifactsToSave, activeId) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(artifactsToSave));
+      if (activeId) {
+        localStorage.setItem(ACTIVE_ARTIFACT_KEY, activeId);
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
     }
-  }, [activeArtifactId]);
+  };
+
+  // Helper function to make authenticated API calls
+  const makeAuthenticatedRequest = async (url, options = {}) => {
+    try {
+      const token = await getIdToken();
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'API request failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API request error:', error);
+      throw error;
+    }
+  };
+
+  // Load all artifacts from API
+  const loadArtifactsFromAPI = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await makeAuthenticatedRequest('/api/artifacts/list');
+      setArtifacts(data.artifacts || []);
+
+      // Set active artifact to first one if none selected
+      if (!activeArtifactId && data.artifacts.length > 0) {
+        setActiveArtifactId(data.artifacts[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading artifacts:', error);
+      setError(error.message);
+      // Fallback to empty array
+      setArtifacts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get active artifact (can be null if no artifacts)
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || null;
 
   // Create new artifact
-  const createArtifact = (name = 'Untitled Project', files = null) => {
-    const newArtifact = {
-      id: generateArtifactId(),
-      name,
-      files: files || createEmptyArtifact().files,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    setArtifacts(prev => [...prev, newArtifact]);
-    setActiveArtifactId(newArtifact.id);
-    return newArtifact.id;
+  const createArtifact = async (name = 'Untitled Project', files = null) => {
+    // Guest mode: Create artifact in localStorage
+    if (!user) {
+      const newArtifact = {
+        id: generateArtifactId(),
+        name,
+        files: files || {},
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      const updatedArtifacts = [...artifacts, newArtifact];
+      setArtifacts(updatedArtifacts);
+      setActiveArtifactId(newArtifact.id);
+      saveArtifactsToLocalStorage(updatedArtifacts, newArtifact.id);
+
+      return newArtifact.id;
+    }
+
+    // Authenticated mode: Create artifact via API
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await makeAuthenticatedRequest('/api/artifacts/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          files: files || {},
+        }),
+      });
+
+      const newArtifact = data.artifact;
+      setArtifacts(prev => [...prev, newArtifact]);
+      setActiveArtifactId(newArtifact.id);
+      return newArtifact.id;
+    } catch (error) {
+      console.error('Error creating artifact:', error);
+      setError(error.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Update artifact
-  const updateArtifact = (id, updates) => {
+  const updateArtifact = async (id, updates) => {
+    // Guest mode: Update artifact in localStorage
+    if (!user) {
+      const updatedArtifacts = artifacts.map(artifact =>
+        artifact.id === id
+          ? { ...artifact, ...updates, updatedAt: Date.now() }
+          : artifact
+      );
+      setArtifacts(updatedArtifacts);
+      saveArtifactsToLocalStorage(updatedArtifacts, activeArtifactId);
+      return;
+    }
+
+    // Authenticated mode: Update artifact via API
+    // Optimistically update UI
     setArtifacts(prev => prev.map(artifact =>
       artifact.id === id
-        ? { ...artifact, ...updates, updatedAt: Date.now() }
+        ? { ...artifact, ...updates, updatedAt: new Date().toISOString() }
         : artifact
     ));
+
+    try {
+      const data = await makeAuthenticatedRequest('/api/artifacts/update', {
+        method: 'PUT',
+        body: JSON.stringify({
+          artifactId: id,
+          updates,
+        }),
+      });
+
+      // Update with server response
+      setArtifacts(prev => prev.map(artifact =>
+        artifact.id === id ? data.artifact : artifact
+      ));
+    } catch (error) {
+      console.error('Error updating artifact:', error);
+      setError(error.message);
+      // Revert optimistic update by reloading
+      await loadArtifactsFromAPI();
+    }
   };
 
-  // Update artifact files
+  // Update artifact files (with debouncing to reduce API calls)
+  let updateFilesTimeout = null;
   const updateArtifactFiles = (id, files) => {
-    updateArtifact(id, { files });
+    // Optimistically update UI immediately
+    setArtifacts(prev => prev.map(artifact =>
+      artifact.id === id
+        ? { ...artifact, files, updatedAt: new Date().toISOString() }
+        : artifact
+    ));
+
+    // Debounce API call
+    if (updateFilesTimeout) {
+      clearTimeout(updateFilesTimeout);
+    }
+
+    updateFilesTimeout = setTimeout(() => {
+      updateArtifact(id, { files });
+    }, 2000); // Wait 2 seconds before saving
   };
 
   // Rename artifact
@@ -89,16 +244,39 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Delete artifact
-  const deleteArtifact = (id) => {
-    setArtifacts(prev => prev.filter(a => a.id !== id));
+  const deleteArtifact = async (id) => {
+    const remaining = artifacts.filter(a => a.id !== id);
+    let newActiveId = activeArtifactId;
 
     // If deleting active artifact, switch to another or null
     if (id === activeArtifactId) {
-      const remaining = artifacts.filter(a => a.id !== id);
-      if (remaining.length > 0) {
-        setActiveArtifactId(remaining[0].id);
-      } else {
-        setActiveArtifactId(null);
+      newActiveId = remaining.length > 0 ? remaining[0].id : null;
+    }
+
+    // Guest mode: Delete artifact from localStorage
+    if (!user) {
+      setArtifacts(remaining);
+      setActiveArtifactId(newActiveId);
+      saveArtifactsToLocalStorage(remaining, newActiveId);
+      return;
+    }
+
+    // Authenticated mode: Delete artifact via API
+    // Optimistically update UI
+    const artifactToDelete = artifacts.find(a => a.id === id);
+    setArtifacts(remaining);
+    setActiveArtifactId(newActiveId);
+
+    try {
+      await makeAuthenticatedRequest(`/api/artifacts/delete?id=${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Error deleting artifact:', error);
+      setError(error.message);
+      // Revert deletion by adding it back
+      if (artifactToDelete) {
+        setArtifacts(prev => [...prev, artifactToDelete]);
       }
     }
   };
@@ -108,6 +286,10 @@ export const ArtifactProvider = ({ children }) => {
     const artifact = artifacts.find(a => a.id === id);
     if (artifact) {
       setActiveArtifactId(id);
+      // Save active artifact ID to localStorage for guests
+      if (!user) {
+        localStorage.setItem(ACTIVE_ARTIFACT_KEY, id);
+      }
     }
   };
 
@@ -122,8 +304,15 @@ export const ArtifactProvider = ({ children }) => {
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
-      setArtifacts(prev => [...prev, newArtifact]);
+      const updatedArtifacts = [...artifacts, newArtifact];
+      setArtifacts(updatedArtifacts);
       setActiveArtifactId(newArtifact.id);
+
+      // Save to localStorage for guests
+      if (!user) {
+        saveArtifactsToLocalStorage(updatedArtifacts, newArtifact.id);
+      }
+
       return newArtifact.id;
     }
   };
@@ -132,12 +321,20 @@ export const ArtifactProvider = ({ children }) => {
   const clearAllArtifacts = () => {
     setArtifacts([]);
     setActiveArtifactId(null);
+
+    // Clear localStorage for guests
+    if (!user) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+    }
   };
 
   const value = {
     artifacts,
     activeArtifact,
     activeArtifactId,
+    loading,
+    error,
     createArtifact,
     updateArtifact,
     updateArtifactFiles,
@@ -145,7 +342,8 @@ export const ArtifactProvider = ({ children }) => {
     deleteArtifact,
     loadArtifact,
     duplicateArtifact,
-    clearAllArtifacts
+    clearAllArtifacts,
+    refreshArtifacts: loadArtifactsFromAPI,
   };
 
   return (

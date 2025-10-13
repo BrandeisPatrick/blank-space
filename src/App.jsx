@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "./contexts/ThemeContext";
+import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage } from "./components/LandingPage";
 import { SignInPage } from "./components/SignInPage";
+import { SignUpPage } from "./components/SignUpPage";
 import { TopBar } from "./components/TopBar";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
@@ -21,10 +23,11 @@ import "./styles/App.css";
 function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const { user, loading: authLoading } = useAuth();
   const { activeArtifact, updateArtifactFiles, createArtifact, activeArtifactId } = useArtifacts();
   const isMobile = useIsMobile();
 
-  // Route state: 'landing' or 'studio'
+  // Route state: 'landing', 'signin', 'signup', or 'studio'
   const [currentRoute, setCurrentRoute] = useState('landing');
 
   // Thinking state for CompactThinkingPanel
@@ -59,6 +62,16 @@ function App() {
   const [showPreview, setShowPreview] = useState(true);
   const [showArtifacts, setShowArtifacts] = useState(false);
 
+  // Guest mode banner
+  const [showGuestBanner, setShowGuestBanner] = useState(() => {
+    return localStorage.getItem('guestBannerDismissed') !== 'true';
+  });
+
+  const dismissGuestBanner = () => {
+    setShowGuestBanner(false);
+    localStorage.setItem('guestBannerDismissed', 'true');
+  };
+
   // Navigation handlers
   const handleTryNow = () => {
     setCurrentRoute('studio');
@@ -75,14 +88,11 @@ function App() {
   };
 
   const handleNavigateToSignIn = () => setCurrentRoute('signin');
+  const handleNavigateToSignUp = () => setCurrentRoute('signup');
   const handleNavigateToLanding = () => setCurrentRoute('landing');
 
-  const handleSignIn = async (email, password) => {
-    // For now, simulate authentication
-    console.log('Signing in with:', email);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // Navigate to studio after successful sign-in
+  const handleAuthSuccess = () => {
+    // Navigate to studio after successful sign-in/sign-up
     setCurrentRoute('studio');
     if (isMobile) {
       // On mobile, only show chat by default
@@ -325,9 +335,53 @@ function App() {
     }
   };
 
+  // Auto-navigate based on auth state
+  useEffect(() => {
+    if (!authLoading) {
+      // If user is authenticated and on landing/signin/signup, go to studio
+      if (user && (currentRoute === 'landing' || currentRoute === 'signin' || currentRoute === 'signup')) {
+        setCurrentRoute('studio');
+      }
+      // Guest mode: Allow unauthenticated users to access studio
+      // (removed redirect that sent guests back to landing)
+    }
+  }, [user, authLoading, currentRoute]);
+
   // Calculate panel widths
   const visiblePanels = [showChat, showCode, showPreview].filter(Boolean).length;
   const panelWidth = isMobile ? '100%' : (visiblePanels > 0 ? `${100 / visiblePanels}%` : '100%');
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100vw',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.bg.primary,
+        color: theme.colors.text.primary,
+      }}>
+        <div style={{
+          textAlign: 'center',
+        }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: theme.spacing.lg,
+          }}>
+            ⏳
+          </div>
+          <p style={{
+            fontSize: theme.typography.fontSize.lg,
+            color: theme.colors.text.secondary,
+          }}>
+            Loading...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Show landing page if route is 'landing'
   if (currentRoute === 'landing') {
@@ -344,7 +398,19 @@ function App() {
     return (
       <SignInPage
         onNavigateToMain={handleNavigateToLanding}
-        onSignIn={handleSignIn}
+        onNavigateToSignUp={handleNavigateToSignUp}
+        onSignInSuccess={handleAuthSuccess}
+      />
+    );
+  }
+
+  // Show sign up page if route is 'signup'
+  if (currentRoute === 'signup') {
+    return (
+      <SignUpPage
+        onNavigateToMain={handleNavigateToLanding}
+        onNavigateToSignIn={handleNavigateToSignIn}
+        onSignUpSuccess={handleAuthSuccess}
       />
     );
   }
@@ -408,7 +474,77 @@ function App() {
             setShowPreview(true);
           }
         }}
+        onNavigateToSignIn={handleNavigateToSignIn}
       />
+
+      {/* Guest Mode Banner */}
+      {!user && showGuestBanner && (
+        <div style={{
+          background: '#2a2a2a',
+          borderBottom: `1px solid ${theme.colors.bg.border}`,
+          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: theme.spacing.md,
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            flex: 1,
+          }}>
+            <span style={{ fontSize: '20px' }}>ℹ️</span>
+            <p style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.text.secondary,
+            }}>
+              You're in guest mode. Work is saved locally. <strong style={{ color: theme.colors.text.primary }}>Sign in to save across devices.</strong>
+            </p>
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: theme.spacing.sm,
+            alignItems: 'center',
+          }}>
+            <button
+              onClick={handleNavigateToSignIn}
+              style={{
+                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                background: theme.colors.accent.primary,
+                color: '#fff',
+                border: 'none',
+                borderRadius: theme.radius.md,
+                cursor: 'pointer',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                transition: `opacity ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={dismissGuestBanner}
+              style={{
+                padding: theme.spacing.sm,
+                background: 'transparent',
+                color: theme.colors.text.tertiary,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                lineHeight: '1',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text.primary}
+              onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text.tertiary}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Panels */}
       <div style={{
