@@ -10,6 +10,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
+        // Proxy artifact API calls to deployed Vercel instance (for local development)
+        '/api/artifacts': {
+          target: 'https://blank-space-2qb5bgs2m-patricks-projects-1e98187f.vercel.app',
+          changeOrigin: true,
+          secure: true,
+        },
         '/api/chat': {
           target: 'https://api.openai.com',
           changeOrigin: true,

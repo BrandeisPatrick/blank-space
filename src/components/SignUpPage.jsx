@@ -3,59 +3,51 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getTheme } from '../styles/theme';
 
-export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSuccess }) => {
+export const SignUpPage = ({ onNavigateToSignIn, onNavigateToMain, onSignUpSuccess }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const { signIn, signInWithGoogle, error: authError, clearError } = useAuth();
+  const { signUp, signInWithGoogle, error: authError, clearError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    rememberMe: false
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningMessage, setWarningMessage] = useState('');
+  const [localError, setLocalError] = useState('');
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
     // Clear errors when user starts typing
+    setLocalError('');
     clearError();
-    setShowWarning(false);
-  };
-
-  const showNotImplementedWarning = (feature) => {
-    setWarningMessage(`${feature} is not implemented yet`);
-    setShowWarning(true);
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      setShowWarning(false);
-    }, 3000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (formData.password.length < 6) {
+      setLocalError('Password must be at least 6 characters');
+      return;
+    }
+
     setIsLoading(true);
-    setShowWarning(false);
+    setLocalError('');
 
     try {
-      await signIn(formData.email, formData.password);
+      await signUp(formData.email, formData.password);
       // Success! The AuthContext will update user state
-      if (onSignInSuccess) {
-        onSignInSuccess();
+      if (onSignUpSuccess) {
+        onSignUpSuccess();
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      // Error is already set in AuthContext, show it as warning
-      if (authError) {
-        setWarningMessage(authError);
-        setShowWarning(true);
-      }
+      console.error('Sign up error:', error);
+      // Error is already set in AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -63,23 +55,21 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    setShowWarning(false);
+    setLocalError('');
 
     try {
       await signInWithGoogle();
-      if (onSignInSuccess) {
-        onSignInSuccess();
+      if (onSignUpSuccess) {
+        onSignUpSuccess();
       }
     } catch (error) {
       console.error('Google sign in error:', error);
-      if (authError) {
-        setWarningMessage(authError);
-        setShowWarning(true);
-      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const displayError = localError || authError;
 
   return (
     <div style={{
@@ -135,7 +125,7 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
             margin: '0 0 8px 0',
             fontFamily: theme.typography.fontFamily.sans,
           }}>
-            Welcome Back
+            Create Account
           </h1>
           <p style={{
             fontSize: theme.typography.fontSize.base,
@@ -143,54 +133,32 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
             margin: 0,
             fontFamily: theme.typography.fontFamily.sans,
           }}>
-            Sign in to your account
+            Sign up to start building
           </p>
         </div>
 
-        {/* Warning Notification */}
-        {showWarning && (
+        {/* Error Message */}
+        {displayError && (
           <div style={{
             marginBottom: theme.spacing.lg,
             padding: theme.spacing.md,
             background: theme.colors.bg.primary,
             borderRadius: theme.radius.md,
             boxShadow: theme.shadows.outsetMd,
-            border: `1px solid ${theme.colors.status.warning}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            animation: 'slideIn 0.3s ease',
+            border: `1px solid ${theme.colors.status.error}`,
           }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.lg,
-            }}>⚠️</span>
             <p style={{
               margin: 0,
               fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.text.primary,
+              color: theme.colors.status.error,
               fontFamily: theme.typography.fontFamily.sans,
-              flex: 1,
             }}>
-              {warningMessage}
+              {displayError}
             </p>
-            <button
-              onClick={() => setShowWarning(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: theme.colors.text.tertiary,
-                cursor: 'pointer',
-                fontSize: theme.typography.fontSize.lg,
-                padding: 0,
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
           </div>
         )}
 
-        {/* Sign In Form */}
+        {/* Sign Up Form */}
         <form onSubmit={handleSubmit} style={{
           display: 'flex',
           flexDirection: 'column',
@@ -274,42 +242,11 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
               onBlur={(e) => {
                 e.target.style.boxShadow = theme.shadows.sm;
               }}
-              placeholder="Enter your password"
+              placeholder="Create a password (min 6 characters)"
             />
           </div>
 
-          {/* Remember Me Checkbox */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-          }}>
-            <input
-              type="checkbox"
-              name="rememberMe"
-              id="rememberMe"
-              checked={formData.rememberMe}
-              onChange={handleInputChange}
-              style={{
-                width: '18px',
-                height: '18px',
-                accentColor: theme.colors.accent.primary,
-              }}
-            />
-            <label
-              htmlFor="rememberMe"
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.secondary,
-                fontFamily: theme.typography.fontFamily.sans,
-                cursor: 'pointer',
-              }}
-            >
-              Remember me for 30 days
-            </label>
-          </div>
-
-          {/* Sign In Button */}
+          {/* Sign Up Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -340,20 +277,8 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
                 e.currentTarget.style.transform = 'translateY(0)';
               }
             }}
-            onMouseDown={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.boxShadow = theme.shadows.sm;
-                e.currentTarget.style.transform = 'translateY(0)';
-              }
-            }}
-            onMouseUp={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.boxShadow = theme.shadows.glow;
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }
-            }}
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
 
@@ -383,51 +308,46 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
           }} />
         </div>
 
-        {/* Social Sign In */}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing.md,
-        }}>
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: theme.spacing.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: '#ffffff',
-              backgroundColor: '#333333',
-              border: 'none',
-              borderRadius: theme.radius.md,
-              boxShadow: theme.shadows.outset,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontFamily: theme.typography.fontFamily.sans,
-              transition: `all ${theme.animation.normal}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              opacity: isLoading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.boxShadow = theme.shadows.glow;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.boxShadow = theme.shadows.outset;
-              }
-            }}
-          >
-            <span>🔍</span>
-            Google
-          </button>
-        </div>
+        {/* Google Sign Up */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          style={{
+            width: '100%',
+            padding: theme.spacing.md,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+            color: '#ffffff',
+            backgroundColor: '#333333',
+            border: 'none',
+            borderRadius: theme.radius.md,
+            boxShadow: theme.shadows.outset,
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            fontFamily: theme.typography.fontFamily.sans,
+            transition: `all ${theme.animation.normal}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+            opacity: isLoading ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.boxShadow = theme.shadows.glow;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.boxShadow = theme.shadows.outset;
+            }
+          }}
+        >
+          <span>🔍</span>
+          Continue with Google
+        </button>
 
-        {/* Footer Links */}
+        {/* Footer Link */}
         <div style={{
           textAlign: 'center',
           marginTop: theme.spacing.xl,
@@ -438,7 +358,7 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
             margin: 0,
             fontFamily: theme.typography.fontFamily.sans,
           }}>
-            Don't have an account?{' '}
+            Already have an account?{' '}
             <button
               type="button"
               style={{
@@ -451,32 +371,9 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
                 cursor: 'pointer',
                 fontFamily: theme.typography.fontFamily.sans,
               }}
-              onClick={onNavigateToSignUp}
+              onClick={onNavigateToSignIn}
             >
-              Sign up
-            </button>
-          </p>
-          <p style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.tertiary,
-            margin: `${theme.spacing.sm} 0 0 0`,
-            fontFamily: theme.typography.fontFamily.sans,
-          }}>
-            <button
-              type="button"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: theme.colors.accent.primary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontFamily: theme.typography.fontFamily.sans,
-              }}
-              onClick={() => showNotImplementedWarning('Password reset')}
-            >
-              Forgot your password?
+              Sign in
             </button>
           </p>
         </div>
