@@ -76,10 +76,10 @@ Provide a thorough review based on the criteria above.`;
 
   try {
     const review = await callLLMForJSON({
-      model: MODELS.ANALYZER,
+      model: MODELS.REVIEWER,
       systemPrompt,
       userPrompt,
-      maxTokens: 1000,
+      maxTokens: 10000,  // Increased for GPT-5 reasoning tokens (~3000-5000) + JSON output (~2000-5000)
       temperature: 0.3
     });
 

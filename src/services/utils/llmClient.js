@@ -70,7 +70,7 @@ function getUserFriendlyError(error) {
  * @param {number} [options.maxTokens=1500] - Max tokens to generate
  * @param {number} [options.temperature=0.7] - Temperature (ignored for GPT-5)
  * @param {number} [options.maxRetries=3] - Max retry attempts
- * @param {number} [options.timeout=60000] - Timeout in milliseconds
+ * @param {number} [options.timeout=45000] - Timeout in milliseconds
  * @param {number} [options.baseDelay=1000] - Base delay for exponential backoff
  * @returns {Promise<Object>} OpenAI API response
  * @throws {Error} If all retries fail or non-retryable error occurs
@@ -82,11 +82,14 @@ export async function callLLM({
   maxTokens = 1500,
   temperature = 0.7,
   maxRetries = 3,
-  timeout = 60000,
+  timeout = 45000,
   baseDelay = 1000
 }) {
   // Detect GPT-5 model
   const isGPT5 = model.includes('gpt-5');
+
+  // Increase timeout for GPT-5 models (they may be slower for complex tasks)
+  const effectiveTimeout = isGPT5 && timeout === 45000 ? 120000 : timeout;
 
   // Build parameters based on model type
   const tokenParam = isGPT5
@@ -103,11 +106,16 @@ export async function callLLM({
 
   // Retry loop with exponential backoff
   let lastError = null;
+  const startTime = Date.now();
+
+  // Log request details
+  console.log(`\n🔄 LLM Request: ${model} (timeout: ${effectiveTimeout}ms, max_tokens: ${maxTokens})`);
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), timeout);
+        setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout);
       });
 
       // Create API call promise
@@ -115,11 +123,27 @@ export async function callLLM({
         model,
         messages,
         ...tempParam,
-        ...tokenParam
+        ...tokenParam,
+        stream: false  // Explicitly disable streaming
       });
 
       // Race between API call and timeout
       const response = await Promise.race([apiPromise, timeoutPromise]);
+
+      // Log response details
+      const duration = Date.now() - startTime;
+      const content = response.choices[0]?.message?.content || '';
+      const finishReason = response.choices[0]?.finish_reason || 'unknown';
+
+      console.log(`✅ LLM Response: ${model} completed in ${duration}ms`);
+      console.log(`   Finish reason: ${finishReason}`);
+      console.log(`   Content length: ${content.length} characters`);
+      console.log(`   Tokens used: ${response.usage?.total_tokens || 'N/A'}`);
+
+      if (content.length === 0) {
+        console.warn(`⚠️  WARNING: Empty response received from ${model}`);
+        console.warn(`   Response object:`, JSON.stringify(response, null, 2));
+      }
 
       // Success - return response
       return response;
@@ -178,6 +202,115 @@ export async function callLLMAndExtract(options) {
 }
 
 /**
+ * Extract JSON from response content with multiple fallback strategies
+ */
+function extractJSONFromContent(content) {
+  // Strategy 1: Extract JSON between delimiters <<<JSON>>> and <<</JSON>>>
+  const delimiterMatch = content.match(/<<<JSON>>>([\s\S]*?)<<<\/JSON>>>/);
+  if (delimiterMatch) {
+    return delimiterMatch[1].trim();
+  }
+
+  // Strategy 2: Extract from markdown code fences
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+
+  // Strategy 3: Find JSON-like content (starts with { or [)
+  const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (jsonMatch) {
+    return jsonMatch[1].trim();
+  }
+
+  // Fallback: return cleaned content
+  return content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+}
+
+/**
+ * Attempt to auto-complete truncated JSON and handle trailing content
+ */
+function attemptJSONCompletion(jsonString) {
+  try {
+    // Try parsing as-is first
+    return JSON.parse(jsonString);
+  } catch (error) {
+    // Strategy 1: Try to extract just the JSON object/array if there's trailing content
+    // Find the position where the first complete JSON object ends
+    let depth = 0;
+    let inString = false;
+    let escapeNext = false;
+    let startChar = jsonString.trim()[0];
+
+    if (startChar === '{' || startChar === '[') {
+      const closingChar = startChar === '{' ? '}' : ']';
+
+      for (let i = 0; i < jsonString.length; i++) {
+        const char = jsonString[i];
+
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+
+        if (char === '"' && !escapeNext) {
+          inString = !inString;
+          continue;
+        }
+
+        if (!inString) {
+          if (char === startChar) depth++;
+          if (char === closingChar) depth--;
+
+          if (depth === 0 && i > 0) {
+            // Found the end of the JSON - try parsing just this part
+            const cleanJson = jsonString.substring(0, i + 1);
+            try {
+              return JSON.parse(cleanJson);
+            } catch (e) {
+              // Continue to next strategy
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // Strategy 2: Try auto-completing if truncated
+    let openBraces = (jsonString.match(/\{/g) || []).length;
+    let closeBraces = (jsonString.match(/\}/g) || []).length;
+    let openBrackets = (jsonString.match(/\[/g) || []).length;
+    let closeBrackets = (jsonString.match(/\]/g) || []).length;
+
+    // Try adding missing closing characters
+    let completed = jsonString;
+
+    // Add missing closing brackets first (arrays)
+    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+      completed += ']';
+    }
+
+    // Add missing closing braces (objects)
+    for (let i = 0; i < openBraces - closeBraces; i++) {
+      completed += '}';
+    }
+
+    // Try parsing completed version
+    try {
+      return JSON.parse(completed);
+    } catch (completionError) {
+      // If auto-completion failed, throw original error with context
+      throw new Error(`JSON parsing failed. Missing ${openBraces - closeBraces} closing braces, ${openBrackets - closeBrackets} closing brackets. Original error: ${error.message}`);
+    }
+  }
+}
+
+/**
  * Call LLM and parse JSON response
  *
  * @param {Object} options - Same as callLLM options
@@ -188,13 +321,17 @@ export async function callLLMForJSON(options) {
   const response = await callLLM(options);
   let content = extractContent(response);
 
-  // Clean markdown code fences if present
-  content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  // Extract JSON using multiple strategies
+  const jsonContent = extractJSONFromContent(content);
 
+  // Attempt to parse with auto-completion for truncated JSON
   try {
-    return JSON.parse(content);
+    return attemptJSONCompletion(jsonContent);
   } catch (error) {
-    throw new Error(`Failed to parse JSON response: ${error.message}\nContent: ${content.substring(0, 200)}...`);
+    // Provide detailed error message
+    const preview = jsonContent.substring(0, 300);
+    const suffix = jsonContent.length > 300 ? '...' : '';
+    throw new Error(`Failed to parse JSON response: ${error.message}\nContent preview: ${preview}${suffix}`);
   }
 }
 

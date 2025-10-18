@@ -71,7 +71,14 @@ Color Creativity Score:
 - Below 60: Boring, monochrome, or cliché
 
 Set approved=true if qualityScore >= 75, colorCreativityScore >= 70, and no critical issues.
-Set needsRevision=true if qualityScore < 75 or colorCreativityScore < 70 or there are critical issues.`;
+Set needsRevision=true if qualityScore < 75 or colorCreativityScore < 70 or there are critical issues.
+
+🔧 JSON FORMATTING RULES (GPT-5):
+1. Output valid, complete JSON only
+2. Wrap your response: <<<JSON>>> ... <<</JSON>>>
+3. Include ALL required fields (qualityScore, approved, issues, etc.)
+4. Close all brackets/braces
+5. Verify JSON is syntactically complete before responding`;
 
   const userPrompt = `Review this plan for: "${userRequest}"
 
@@ -85,10 +92,10 @@ Focus especially on color creativity - reject boring/monochrome palettes.`;
 
   try {
     const review = await callLLMForJSON({
-      model: MODELS.ANALYZER,
+      model: MODELS.PLAN_REVIEWER,
       systemPrompt,
       userPrompt,
-      maxTokens: 1000,
+      maxTokens: 10000,  // Increased for GPT-5 reasoning tokens (~3000-5000) + JSON output (~2000-5000)
       temperature: 0.3
     });
 

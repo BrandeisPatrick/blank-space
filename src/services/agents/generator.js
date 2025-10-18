@@ -287,7 +287,7 @@ If initialData is specified, initialize with REAL data, not empty arrays/null va
       model: MODELS.GENERATOR,
       systemPrompt,
       userPrompt: `I need you to generate the file: ${filename2}${customStyleGuide}${detailedContext}${dependencyContext}\n\nGeneral Context: ${plan.summary}\n\nUser's request: ${userMessage}\n\nRemember: Generate ONLY the code for ${filename2}. Do not generate any other files. Follow ALL specifications above, especially the color scheme and design style.`,
-      maxTokens: 2000,
+      maxTokens: 8000,  // Increased for GPT-5 reasoning tokens + output (complex files need more)
       temperature: 0.7
     });
 

@@ -41,7 +41,7 @@ export class AgentOrchestrator {
 
     // Reflection loop configuration
     this.reflectionEnabled = options.reflectionEnabled !== false; // Default: enabled
-    this.maxReflectionIterations = options.maxReflectionIterations || 2;
+    this.maxReflectionIterations = options.maxReflectionIterations || 1;
     this.qualityThreshold = options.qualityThreshold || 75;
 
     // Consultation configuration (NEW)
@@ -377,7 +377,7 @@ export class AgentOrchestrator {
     let currentPlan = null;
     let previousReview = null;
     const reflectionHistory = [];
-    const maxPlanningIterations = 2; // Fewer iterations for planning
+    const maxPlanningIterations = 1; // Fewer iterations for planning
 
     for (let iteration = 0; iteration < maxPlanningIterations; iteration++) {
       // Generate or refine plan

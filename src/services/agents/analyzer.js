@@ -98,6 +98,13 @@ CRITICAL: When analyzing for color/theme changes:
 - CSS files often DON'T control component colors - components use inline Tailwind classes
 - Return ALL files that contain the colors to change
 
+🔧 JSON FORMATTING RULES:
+1. Output valid, complete JSON only
+2. Wrap response: <<<JSON>>> ... <<</JSON>>>
+3. Include ALL required fields
+4. Close all brackets/braces
+5. Verify syntax before responding
+
 Respond ONLY with a JSON object in this format:
 {
   "needsAnalysis": true,
@@ -139,7 +146,7 @@ If the request doesn't require modification analysis (e.g., creating new files),
       model: MODELS.ANALYZER,
       systemPrompt,
       userPrompt: `Analyze the codebase for this modification request: "${userMessage}"\n\nCodebase:\n${filesContext}`,
-      maxTokens: 1500,
+      maxTokens: 10000,  // Increased for GPT-5 reasoning tokens (~4000-5000) + JSON output (~2000-5000)
       temperature: 0.3
     });
 
@@ -205,7 +212,7 @@ Respond ONLY with JSON in this format:
       model: MODELS.ANALYZER,
       systemPrompt,
       userPrompt: `Analyze this error: "${userMessage}"\n\nCodebase:\n${filesContext}`,
-      maxTokens: 1200,
+      maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
       temperature: 0.2
     });
 
@@ -257,6 +264,12 @@ Identify which files need style updates and what changes are needed.
 
 ${compressedPrompts.STYLE_EXTRACTION_GUIDE}
 
+🔧 JSON FORMATTING RULES:
+1. Output valid, complete JSON only
+2. Wrap response: <<<JSON>>> ... <<</JSON>>>
+3. Include ALL required fields
+4. Close all brackets/braces
+
 Respond ONLY with JSON:
 {
   "styledFiles": ["components/Header.jsx", "components/TodoList.jsx"],
@@ -273,7 +286,7 @@ Respond ONLY with JSON:
       model: MODELS.ANALYZER,
       systemPrompt,
       userPrompt: `Analyze style changes for: "${userMessage}"\n\nStyled Files:\n${filesContext}`,
-      maxTokens: 800,
+      maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
       temperature: 0.3
     });
 
@@ -336,7 +349,7 @@ Respond ONLY with JSON:
       model: MODELS.ANALYZER,
       systemPrompt,
       userPrompt: `Explain: "${userMessage}"\n\nCodebase:\n${filesContext}`,
-      maxTokens: 1200,
+      maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
       temperature: 0.5
     });
 

@@ -184,7 +184,7 @@ FINAL REMINDER: Your response must be ONLY raw code. Start with import/const/fun
       model: MODELS.MODIFIER,
       systemPrompt,
       userPrompt: `Current code:\n\`\`\`\n${currentCode}\n\`\`\`${approachGuidance}${bestPractices}\n\nModification request: ${userMessage}`,
-      maxTokens: 2000,
+      maxTokens: 5000,  // Increased for GPT-5 reasoning tokens + output
       temperature: 0.7
     });
 

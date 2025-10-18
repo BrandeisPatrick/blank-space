@@ -89,10 +89,10 @@ Respond ONLY with JSON in this format:
 
   try {
     const design = await callLLMForJSON({
-      model: MODELS.ANALYZER, // Use lighter model for design
+      model: MODELS.ANALYZER, // Use lighter model for design (gpt-5-nano)
       systemPrompt,
       userPrompt,
-      maxTokens: 1000,
+      maxTokens: 6000,  // Increased for GPT-5-nano reasoning tokens + output
       temperature: 0.8 // Higher temperature for creative designs
     });
 

@@ -25,6 +25,13 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
+    // If Firebase is not configured, set loading to false immediately
+    if (!auth) {
+      console.info('ℹ️ Running in guest mode - authentication disabled');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // User is signed in
@@ -47,6 +54,9 @@ export const AuthProvider = ({ children }) => {
 
   // Get Firebase ID token for API authentication
   const getIdToken = async () => {
+    if (!auth) {
+      throw new Error('Authentication not available in guest mode');
+    }
     if (!auth.currentUser) {
       throw new Error('No user logged in');
     }
@@ -58,6 +68,11 @@ export const AuthProvider = ({ children }) => {
 
   // Sign up with email and password
   const signUp = async (email, password, displayName = null) => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
     try {
       setError(null);
       const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -77,6 +92,11 @@ export const AuthProvider = ({ children }) => {
 
   // Sign in with email and password
   const signIn = async (email, password) => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
     try {
       setError(null);
       const result = await signInWithEmailAndPassword(auth, email, password);
@@ -90,6 +110,11 @@ export const AuthProvider = ({ children }) => {
 
   // Sign in with Google
   const signInWithGoogle = async () => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
     try {
       setError(null);
       const provider = new GoogleAuthProvider();
@@ -104,6 +129,11 @@ export const AuthProvider = ({ children }) => {
 
   // Sign out
   const signOut = async () => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
     try {
       setError(null);
       await firebaseSignOut(auth);
@@ -116,6 +146,11 @@ export const AuthProvider = ({ children }) => {
 
   // Send password reset email
   const resetPassword = async (email) => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
     try {
       setError(null);
       await sendPasswordResetEmail(auth, email);

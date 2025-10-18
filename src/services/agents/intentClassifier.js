@@ -1,9 +1,10 @@
-import { openai } from "../utils/openaiClient.js";
+import { callLLMForJSON } from "../utils/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
 
 /**
  * Intent Classifier Agent
  * Analyzes user message and determines the intent
+ * Uses gpt-4o-mini for fast, reliable classification without reasoning overhead
  */
 export async function classifyIntent(userMessage) {
   const systemPrompt = `You are an intent classifier for a React code generation tool.
@@ -23,27 +24,15 @@ Respond ONLY with a JSON object in this format:
 }`;
 
   try {
-    // GPT-5 models have different parameter requirements
-    const isGPT5 = MODELS.INTENT_CLASSIFIER.includes("gpt-5");
-    const tokenParam = isGPT5 ? { max_completion_tokens: 150 } : { max_tokens: 150 };
-    const tempParam = isGPT5 ? {} : { temperature: 0.3 }; // GPT-5 only supports default temperature
-
-    const response = await openai.chat.completions.create({
+    const result = await callLLMForJSON({
       model: MODELS.INTENT_CLASSIFIER,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
-      ...tempParam,
-      ...tokenParam
+      systemPrompt,
+      userPrompt: userMessage,
+      maxTokens: 500,
+      temperature: 0.3
     });
 
-    let content = response.choices[0].message.content;
-
-    // Clean markdown code fences if present
-    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-    return JSON.parse(content);
+    return result;
   } catch (error) {
     console.error("Intent classification error:", error);
     return { intent: "create_new", confidence: 0.5, reasoning: "Fallback intent" };
