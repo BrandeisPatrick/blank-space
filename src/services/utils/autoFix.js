@@ -338,12 +338,51 @@ export function removeInitializationCode(code) {
 }
 
 /**
+ * Convert CommonJS require() to ES6 import
+ * Browser environments don't support require()
+ */
+export function convertRequireToImport(code) {
+  let fixed = code;
+
+  // Pattern 1: const Name = require('module')
+  // → import Name from 'module'
+  fixed = fixed.replace(
+    /const\s+(\w+)\s*=\s*require\s*\(\s*(['"])([^'"]+)\2\s*\)\s*;?\s*\n?/g,
+    (match, name, quote, module) => `import ${name} from ${quote}${module}${quote};\n`
+  );
+
+  // Pattern 2: const { name1, name2 } = require('module')
+  // → import { name1, name2 } from 'module'
+  fixed = fixed.replace(
+    /const\s*{\s*([^}]+)\s*}\s*=\s*require\s*\(\s*(['"])([^'"]+)\2\s*\)\s*;?\s*\n?/g,
+    (match, names, quote, module) => `import { ${names.trim()} } from ${quote}${module}${quote};\n`
+  );
+
+  // Pattern 3: let Name = require('module')
+  // → import Name from 'module'
+  fixed = fixed.replace(
+    /let\s+(\w+)\s*=\s*require\s*\(\s*(['"])([^'"]+)\2\s*\)\s*;?\s*\n?/g,
+    (match, name, quote, module) => `import ${name} from ${quote}${module}${quote};\n`
+  );
+
+  // Pattern 4: var Name = require('module')
+  // → import Name from 'module'
+  fixed = fixed.replace(
+    /var\s+(\w+)\s*=\s*require\s*\(\s*(['"])([^'"]+)\2\s*\)\s*;?\s*\n?/g,
+    (match, name, quote, module) => `import ${name} from ${quote}${module}${quote};\n`
+  );
+
+  return fixed;
+}
+
+/**
  * Run all auto-fixes
  */
 export function autoFixCommonIssues(code, filename) {
   let fixed = code;
 
   // Run fixes in order
+  fixed = convertRequireToImport(fixed);  // NEW: Convert require() to import
   fixed = removePropTypes(fixed);
   fixed = removeUnusedImports(fixed);
   fixed = fixImportPaths(fixed, filename);

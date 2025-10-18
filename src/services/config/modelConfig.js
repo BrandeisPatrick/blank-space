@@ -8,10 +8,9 @@
 /**
  * Model Selection Strategy:
  *
- * - gpt-4o: Production code generation (highest quality)
- * - gpt-5-mini: Complex planning and reasoning
- * - gpt-4o-mini: Simple tasks (cost-effective)
- * - o1: Advanced reasoning (optional, slower but more thorough)
+ * - gpt-5-mini: Major agents (Generator, Modifier, Planner) - advanced reasoning and generation
+ * - gpt-5-nano: Lightweight agents (Analyzer, Intent Classifier) - fast, cost-effective tasks
+ * - Production mode: Upgrades lightweight agents to gpt-5-mini for maximum quality
  */
 
 // Helper to safely get environment variable (works in both Node.js and browser)
@@ -28,36 +27,45 @@ function getEnv(key) {
 }
 
 const MODEL_CONFIGS = {
-  // Code generation - needs highest quality output
-  GENERATOR: getEnv("MODEL_GENERATOR") || "gpt-4o",
+  // Code generation - using GPT-5-mini for advanced capabilities
+  GENERATOR: getEnv("MODEL_GENERATOR") || "gpt-5-mini",
 
-  // Code modification - needs precision and quality
-  MODIFIER: getEnv("MODEL_MODIFIER") || "gpt-4o",
+  // Code modification - using GPT-5-mini for precision
+  MODIFIER: getEnv("MODEL_MODIFIER") || "gpt-5-mini",
 
-  // Planning - complex reasoning, architectural decisions
-  // Note: GPT-5 doesn't support temperature control (fixed at 1.0) which makes
-  // it unreliable for structured JSON output. Using GPT-4o for better consistency.
-  PLANNER: getEnv("MODEL_PLANNER") || "gpt-4o",
+  // Planning - using GPT-5-mini for complex reasoning
+  PLANNER: getEnv("MODEL_PLANNER") || "gpt-5-mini",
 
-  // Intent classification - simple task
+  // Intent classification - using gpt-4o-mini for fast, reliable classification
   INTENT_CLASSIFIER: getEnv("MODEL_INTENT_CLASSIFIER") || "gpt-4o-mini",
 
-  // Codebase analysis - pattern matching
-  ANALYZER: getEnv("MODEL_ANALYZER") || "gpt-4o-mini",
+  // Codebase analysis - using gpt-5-nano for lightweight tasks
+  ANALYZER: getEnv("MODEL_ANALYZER") || "gpt-5-nano",
+
+  // Code review - using gpt-5-nano for quality checking
+  REVIEWER: getEnv("MODEL_REVIEWER") || "gpt-5-nano",
+
+  // Plan review - using gpt-5-nano for plan quality checking
+  PLAN_REVIEWER: getEnv("MODEL_PLAN_REVIEWER") || "gpt-5-nano",
+
+  // Debugging - using gpt-5-mini for accurate bug detection
+  DEBUGGER: getEnv("MODEL_DEBUGGER") || "gpt-5-mini",
 };
 
 /**
- * Production mode - uses best models for all tasks
- * Set PRODUCTION_MODE=true to enable
+ * Production mode - uses premium models for all tasks
+ * Set PRODUCTION_MODE=true to enable (upgrades lighter agents)
+ * Note: Major agents already use gpt-5-mini by default
  */
 const PRODUCTION_MODE = getEnv("PRODUCTION_MODE") === "true";
 
 if (PRODUCTION_MODE) {
-  MODEL_CONFIGS.GENERATOR = "gpt-4o";
-  MODEL_CONFIGS.MODIFIER = "gpt-4o";
-  MODEL_CONFIGS.PLANNER = "gpt-5-mini";
-  MODEL_CONFIGS.INTENT_CLASSIFIER = "gpt-4o";
-  MODEL_CONFIGS.ANALYZER = "gpt-4o";
+  // Major agents already use gpt-5-mini by default, no need to override
+  // Only upgrade lighter agents to more powerful models in production
+  MODEL_CONFIGS.INTENT_CLASSIFIER = "gpt-5-mini";
+  MODEL_CONFIGS.ANALYZER = "gpt-5-mini";
+  MODEL_CONFIGS.REVIEWER = "gpt-5-mini";
+  MODEL_CONFIGS.PLAN_REVIEWER = "gpt-5-mini";
 }
 
 /**
@@ -87,8 +95,11 @@ export function logModelConfig() {
   console.log(`Generator:         ${MODEL_CONFIGS.GENERATOR}`);
   console.log(`Modifier:          ${MODEL_CONFIGS.MODIFIER}`);
   console.log(`Planner:           ${MODEL_CONFIGS.PLANNER}`);
+  console.log(`Debugger:          ${MODEL_CONFIGS.DEBUGGER}`);
   console.log(`Intent Classifier: ${MODEL_CONFIGS.INTENT_CLASSIFIER}`);
   console.log(`Analyzer:          ${MODEL_CONFIGS.ANALYZER}`);
+  console.log(`Reviewer:          ${MODEL_CONFIGS.REVIEWER}`);
+  console.log(`Plan Reviewer:     ${MODEL_CONFIGS.PLAN_REVIEWER}`);
   console.log(`Production Mode:   ${PRODUCTION_MODE ? "✅ Enabled" : "❌ Disabled"}`);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }

@@ -31,37 +31,42 @@ const missingVars = requiredEnvVars.filter(
   varName => !import.meta.env[varName]
 );
 
+// Initialize Firebase app
+let app = null;
+let auth = null;
+let db = null;
+
 if (missingVars.length > 0) {
-  console.error(
-    '❌ Missing Firebase environment variables:',
+  console.info(
+    'ℹ️ Firebase not configured - running in guest mode only.',
+    '\nMissing variables:',
     missingVars.join(', ')
   );
-  console.error(
-    'Please check your .env file and ensure all Firebase variables are set.'
+  console.info(
+    'To enable authentication, add Firebase credentials to your .env file.'
   );
-}
+} else {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
 
-// Initialize Firebase app
-let app;
-let auth;
-let db;
+    // Optional: Connect to Firebase Emulators for local development
+    // Uncomment these lines if you want to use Firebase Emulators
+    // if (import.meta.env.DEV) {
+    //   connectAuthEmulator(auth, 'http://localhost:9099');
+    //   connectFirestoreEmulator(db, 'localhost', 8080);
+    // }
 
-try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-
-  // Optional: Connect to Firebase Emulators for local development
-  // Uncomment these lines if you want to use Firebase Emulators
-  // if (import.meta.env.DEV) {
-  //   connectAuthEmulator(auth, 'http://localhost:9099');
-  //   connectFirestoreEmulator(db, 'localhost', 8080);
-  // }
-
-  console.log('✅ Firebase initialized successfully');
-} catch (error) {
-  console.error('❌ Firebase initialization error:', error);
-  throw error;
+    console.log('✅ Firebase initialized successfully');
+  } catch (error) {
+    console.error('❌ Firebase initialization error:', error);
+    console.info('Running in guest mode only.');
+    // Don't throw - allow app to continue without Firebase
+    app = null;
+    auth = null;
+    db = null;
+  }
 }
 
 export { app, auth, db };

@@ -112,7 +112,16 @@ You MUST design a complete, polished user experience. Think holistically:
 
 **CRITICAL**: These aren't templates - think intelligently about what THIS specific app needs.
 
-Respond ONLY with a JSON object in this format:
+🔧 CRITICAL JSON FORMATTING RULES (GPT-5 SPECIFIC):
+1. Your response MUST be valid, complete JSON - no truncation allowed
+2. Start your response with: <<<JSON>>>
+3. End your response with: <<</JSON>>>
+4. Include ALL required fields listed below - no omissions
+5. Ensure all brackets [], braces {}, and quotes are properly closed
+6. Before responding, verify your JSON is syntactically complete
+7. If you're running out of space, prioritize completing the JSON structure over adding extra details
+
+Respond ONLY with a JSON object in this EXACT format (wrapped in delimiters):
 {
   "steps": ["Step 1 description", "Step 2 description", ...],
   "filesToCreate": ["App.jsx", "components/Header.jsx", "hooks/useData.js"],
@@ -217,7 +226,7 @@ IMPORTANT:
       model: MODELS.PLANNER,
       systemPrompt,
       userPrompt: `Intent: ${intent}\nRequest: ${userMessage}`,
-      maxTokens: 1500,
+      maxTokens: 6000,  // Increased for GPT-5 reasoning tokens + output
       temperature: 0.5
     });
   } catch (error) {

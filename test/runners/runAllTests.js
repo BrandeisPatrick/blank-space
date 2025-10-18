@@ -3,6 +3,11 @@
  * Runs all test suites in the correct order
  */
 
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
 import { runAllTests as runBasicTests } from "../unit/testAgents.js";
 import { runModificationTests } from "../unit/testModifications.js";
 // import { runDebuggerTests } from "../unit/testDebugger.js"; // Disabled: uses outdated API

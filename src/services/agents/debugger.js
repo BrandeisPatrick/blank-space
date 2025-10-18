@@ -70,7 +70,7 @@ Analyze the root cause and provide a targeted fix strategy.`;
       model: MODELS.MODIFIER, // Use stronger model for complex analysis
       systemPrompt,
       userPrompt,
-      maxTokens: 1500,
+      maxTokens: 3000,  // Increased for GPT-5 reasoning tokens + output
       temperature: 0.2 // Low temperature for accurate diagnosis
     });
 
