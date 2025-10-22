@@ -1,4 +1,4 @@
-import { callLLMForJSON } from "../utils/llmClient.js";
+import { callLLMForJSON } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
 import { THINKING_FRAMEWORK } from "../promptTemplates.js";
 import compressedPrompts from "../compressedPrompts.json" with { type: "json" };

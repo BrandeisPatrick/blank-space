@@ -8,7 +8,7 @@ import { diagnoseBug } from "./agents/debugger.js";
 import { designUX } from "./agents/uxDesigner.js";
 import { designArchitecture } from "./agents/architectureDesigner.js";
 import { validateCode, ValidationMode } from "./agents/validator.js";
-import { callLLMAndExtract } from "./utils/llmClient.js";
+import { callLLMAndExtract } from "./utils/llm/llmClient.js";
 import { MODELS } from "./config/modelConfig.js";
 
 /**

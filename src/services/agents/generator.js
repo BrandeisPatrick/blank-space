@@ -1,8 +1,8 @@
-import { callLLMAndExtract } from "../utils/llmClient.js";
+import { callLLMAndExtract } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
-import { cleanGeneratedCode } from "../utils/codeCleanup.js";
-import { validateRuntimeSafety } from "../utils/runtimeValidation.js";
-import { autoFixCommonIssues } from "../utils/autoFix.js";
+import { cleanGeneratedCode } from "../utils/code/codeCleanup.js";
+import { validateRuntimeSafety } from "../utils/validation/runtimeValidation.js";
+import { autoFixCommonIssues } from "../utils/code/autoFix.js";
 import {
   THINKING_FRAMEWORK,
   CODE_FORMATTING_STANDARDS,

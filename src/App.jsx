@@ -1,19 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { getTheme } from "./styles/theme";
-import { LandingPage } from "./components/LandingPage";
-import { SignInPage } from "./components/SignInPage";
-import { SignUpPage } from "./components/SignUpPage";
-import { TopBar } from "./components/TopBar";
-import { ChatPanel } from "./components/ChatPanel";
-import { ChatInput } from "./components/ChatInput";
-import { EditorPanel } from "./components/EditorPanel";
-import { PreviewPanel } from "./components/PreviewPanel";
-import { FileTabs } from "./components/FileTabs";
-import { FileExplorer } from "./components/FileExplorer";
-import { ArtifactSidebar } from "./components/ArtifactSidebar";
+import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
+import { TopBar } from "./components/ui";
+import { ChatPanel, ChatInput } from "./components/chat";
+import { EditorPanel, FileTabs, FileExplorer } from "./components/editor";
+import { PreviewPanel } from "./components/preview";
+import { ArtifactSidebar } from "./components/artifact";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/agentOrchestrator";
@@ -24,7 +19,7 @@ function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, createArtifact, activeArtifactId } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state: 'landing', 'signin', 'signup', or 'studio'
@@ -41,10 +36,15 @@ function App() {
   const [files, setFiles] = useState(activeArtifact?.files || {});
   const [activeFile, setActiveFile] = useState('App.jsx');
 
-  // Sync files with active artifact
+  // Error deduplication - track recent errors to prevent spam
+  const recentErrors = useRef(new Map());
+
+  // Sync files and chat history with active artifact
   useEffect(() => {
     if (activeArtifact) {
       setFiles(activeArtifact.files);
+      // Load chat history for this artifact (default to empty array if not set)
+      setChatMessages(activeArtifact.chatHistory || []);
       // Set active file to first available file
       const fileNames = Object.keys(activeArtifact.files);
       if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
@@ -53,8 +53,16 @@ function App() {
     } else {
       // Empty state - no artifacts
       setFiles({});
+      setChatMessages([]);
     }
   }, [activeArtifactId]);
+
+  // Save chat messages to artifact whenever they change
+  useEffect(() => {
+    if (activeArtifactId && chatMessages.length > 0) {
+      updateChatHistory(activeArtifactId, chatMessages);
+    }
+  }, [chatMessages, activeArtifactId]);
 
   // Panel visibility
   const [showChat, setShowChat] = useState(true);
@@ -150,6 +158,36 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Handle preview errors with deduplication
+  // Layer 1: useCallback for stable reference (prevents infinite loops)
+  // Layer 2: Deduplication logic (prevents spam)
+  const handlePreviewError = useCallback((error) => {
+    // Create unique signature for this error
+    const signature = `${error.file || 'unknown'}:${error.line || 0}:${error.message}`;
+    const lastShown = recentErrors.current.get(signature);
+    const now = Date.now();
+
+    // Only add if this is a new error OR >2 seconds since last identical error
+    if (!lastShown || now - lastShown > 2000) {
+      recentErrors.current.set(signature, now);
+
+      const errorMessage = {
+        type: 'error',
+        error: error,
+        timestamp: now
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+
+      // Memory cleanup: prevent Map from growing unbounded
+      // Keep only the 50 most recent errors
+      if (recentErrors.current.size > 50) {
+        const entries = [...recentErrors.current.entries()];
+        // Remove oldest 25 entries
+        entries.slice(0, 25).forEach(([sig]) => recentErrors.current.delete(sig));
+      }
+    }
+  }, []);
+
   // Handle chat message with AI agents
   const handleSendMessage = async (message) => {
     // Add user message
@@ -201,6 +239,14 @@ function App() {
       // Process message with AI agents
       const result = await processMessage(message, files, onUpdate);
 
+      // DEBUG: Log file operations received
+      console.log('✅ File operations received from orchestrator:');
+      if (result.fileOperations) {
+        result.fileOperations.forEach(op => {
+          console.log(`   ${op.type}: ${op.filename} (${op.content?.length || 0} chars)`);
+        });
+      }
+
       if (result.success && result.fileOperations) {
         // Add generating steps for each file
         result.fileOperations.forEach((op, index) => {
@@ -215,14 +261,20 @@ function App() {
           newFiles[op.filename] = op.content;
         });
 
+        // DEBUG: Log files being saved
+        console.log('💾 Files to save to artifact:', Object.keys(newFiles));
+        console.log('   Active artifact ID:', activeArtifactId);
+
         // If no active artifact, create a new one
         if (!activeArtifactId) {
           const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
           createArtifact(artifactName, newFiles);
         } else {
           // Update existing artifact
+          console.log('🔄 Updating existing artifact with new files');
           setFiles(newFiles);
           updateArtifactFiles(activeArtifactId, newFiles);
+          console.log('✓ setFiles() and updateArtifactFiles() called');
         }
 
         // Switch to the first created/modified file
@@ -367,10 +419,34 @@ function App() {
           textAlign: 'center',
         }}>
           <div style={{
-            fontSize: '48px',
             marginBottom: theme.spacing.lg,
+            display: 'flex',
+            justifyContent: 'center',
           }}>
-            ⏳
+            <svg
+              width="64"
+              height="80"
+              viewBox="0 0 24 30"
+              fill="none"
+              stroke={theme.colors.text.secondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+            >
+              <path d="M6.5 7h11" />
+              <path d="M6.5 23h11" />
+              <path d="M6.5 7l5.5 8l-5.5 8" />
+              <path d="M17.5 7l-5.5 8l5.5 8" />
+            </svg>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+              }
+            `}</style>
           </div>
           <p style={{
             fontSize: theme.typography.fontSize.lg,
@@ -512,17 +588,17 @@ function App() {
               onClick={handleNavigateToSignIn}
               style={{
                 padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                background: theme.colors.accent.primary,
-                color: '#fff',
+                background: '#333333',
+                color: '#ffffff',
                 border: 'none',
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.medium,
-                transition: `opacity ${theme.animation.fast}`,
+                transition: `background ${theme.animation.fast}`,
               }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#444444'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#333333'}
             >
               Sign In
             </button>
@@ -677,7 +753,7 @@ function App() {
             boxShadow: theme.shadows.md,
             overflow: 'hidden',
           }}>
-            <ChatPanel messages={chatMessages} thinkingState={thinking} />
+            <ChatPanel messages={chatMessages} thinkingState={thinking} onFixBug={handleSendMessage} />
             <ChatInput onSend={handleSendMessage} />
           </div>
         )}
@@ -773,7 +849,7 @@ function App() {
             boxShadow: theme.shadows.md,
             overflow: 'hidden',
           }}>
-            <PreviewPanel files={files} />
+            <PreviewPanel files={files} onError={handlePreviewError} />
           </div>
         )}
         </>

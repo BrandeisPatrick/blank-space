@@ -140,6 +140,11 @@ export class AgentConsultation {
    * @returns {Promise<Object>} Response from analyzer
    */
   async consultAnalyzer(consultationType, question, context) {
+    // Validate context before destructuring
+    if (!context || typeof context !== 'object') {
+      throw new Error('consultAnalyzer requires a valid context object');
+    }
+
     const { userMessage, currentFiles } = context;
 
     switch (consultationType) {
