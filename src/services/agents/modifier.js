@@ -1,6 +1,6 @@
-import { callLLMAndExtract } from "../utils/llmClient.js";
+import { callLLMAndExtract } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
-import { cleanGeneratedCode } from "../utils/codeCleanup.js";
+import { cleanGeneratedCode } from "../utils/code/codeCleanup.js";
 import {
   THINKING_FRAMEWORK,
   CODE_FORMATTING_STANDARDS,
@@ -10,7 +10,10 @@ import {
   SIMPLICITY_GUIDELINES,
   COMPLETENESS_PRINCIPLES,
   IMPORT_RESOLUTION_RULES,
-  RAW_CODE_OUTPUT_ONLY
+  RAW_CODE_OUTPUT_ONLY,
+  PACKAGE_MANAGEMENT_RULES,
+  SANDPACK_NAVIGATION_RULES,
+  NO_INITIALIZATION_CODE
 } from "../promptTemplates.js";
 import { consultAgent, ConsultationType } from "../agentConsultation.js";
 import { agentConfig } from "../config/agentConfig.js";
@@ -19,6 +22,11 @@ import { agentConfig } from "../config/agentConfig.js";
  * Extract color scheme from existing code to maintain consistency
  */
 function extractColorScheme(code) {
+  // Type guard: ensure code is a string to prevent crashes
+  if (!code || typeof code !== 'string') {
+    return null;
+  }
+
   const colorPatterns = {
     backgrounds: code.match(/bg-[\w-]+/g) || [],
     gradients: code.match(/from-[\w-]+|via-[\w-]+|to-[\w-]+/g) || [],
@@ -64,11 +72,20 @@ export async function modifyCode(currentCodeOrOptions, userMessage, filename, an
   userMessage = isNewSignature ? currentCodeOrOptions.userMessage : userMessage;
   filename = isNewSignature ? currentCodeOrOptions.filename : filename;
   analysisTargets = isNewSignature ? (currentCodeOrOptions.changeTargets || currentCodeOrOptions.analysisTargets) : analysisTargets;
+
+  // DEBUG: Log what modifier received
+  console.log('🔧 Modifier received:');
+  console.log('   Filename:', filename);
+  console.log('   User message:', userMessage);
+  console.log('   Analysis targets:', analysisTargets);
+  console.log('   Current code length:', currentCode?.length || 0, 'chars');
   // If we have specific change targets from the analyzer, include them
-  const targetContext = analysisTargets && analysisTargets.length > 0
-    ? `\n\nSpecific changes to make in this file:\n${analysisTargets.map(t =>
-        `- Replace "${t.pattern}" with "${t.replacement}" (${t.reason})`
-      ).join("\n")}`
+  const targetContext = analysisTargets && Array.isArray(analysisTargets) && analysisTargets.length > 0
+    ? `\n\nSpecific changes to make in this file:\n${analysisTargets
+        .filter(t => t && typeof t === 'object' && t.pattern && t.replacement && t.reason)
+        .map(t =>
+          `- Replace "${t.pattern}" with "${t.replacement}" (${t.reason})`
+        ).join("\n")}`
     : "";
 
   // Extract existing color scheme to maintain consistency
@@ -90,6 +107,12 @@ Given existing code and a modification request, generate the COMPLETE updated co
 ${RAW_CODE_OUTPUT_ONLY}
 
 ${THINKING_FRAMEWORK}
+
+${PACKAGE_MANAGEMENT_RULES}
+
+${SANDPACK_NAVIGATION_RULES}
+
+${NO_INITIALIZATION_CODE}
 
 ${CODE_FORMATTING_STANDARDS}
 
@@ -184,11 +207,16 @@ FINAL REMINDER: Your response must be ONLY raw code. Start with import/const/fun
       model: MODELS.MODIFIER,
       systemPrompt,
       userPrompt: `Current code:\n\`\`\`\n${currentCode}\n\`\`\`${approachGuidance}${bestPractices}\n\nModification request: ${userMessage}`,
-      maxTokens: 5000,  // Increased for GPT-5 reasoning tokens + output
+      maxTokens: 12000,  // Increased for GPT-5 reasoning tokens (~5000) + output (~7000)
       temperature: 0.7
     });
 
     const cleanedCode = cleanGeneratedCode(rawCode);
+
+    // Validate response is not empty
+    if (!cleanedCode || cleanedCode.trim().length === 0) {
+      throw new Error('LLM returned empty code. This may be due to token limits (GPT-5 reasoning tokens exhausted) or model issues. Please try again.');
+    }
 
     // Return object for new signature, string for old signature
     return isNewSignature ? { code: cleanedCode } : cleanedCode;

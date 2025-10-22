@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 const ThemeContext = createContext();
 
@@ -23,12 +23,19 @@ export const ThemeProvider = ({ children }) => {
     document.documentElement.setAttribute('data-theme', mode);
   }, [mode]);
 
-  const toggleTheme = () => {
+  // Memoize toggleTheme to prevent recreation on every render
+  const toggleTheme = useCallback(() => {
     setMode(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({ mode, toggleTheme }),
+    [mode, toggleTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

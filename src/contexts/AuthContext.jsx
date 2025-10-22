@@ -33,19 +33,25 @@ export const AuthProvider = ({ children }) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // User is signed in
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        });
-      } else {
-        // User is signed out
-        setUser(null);
+      try {
+        if (firebaseUser) {
+          // User is signed in
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+          });
+        } else {
+          // User is signed out
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change handler:', error);
+        setUser(null); // Fail safely by setting user to null
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Cleanup subscription on unmount

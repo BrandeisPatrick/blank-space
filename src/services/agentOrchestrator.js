@@ -3,8 +3,8 @@ import { createPlan } from './agents/planner.js';
 import { analyzeCodebaseForModification } from './agents/analyzer.js';
 import { generateCode } from './agents/generator.js';
 import { modifyCode } from './agents/modifier.js';
-import { debugAndFix } from './agents/debugger.js';
-import { validateCrossFileConsistency } from './utils/crossFileValidation.js';
+import { debugAndFix, debugAndFixIterative } from './agents/debugger.js';
+import { validateCrossFileConsistency } from './utils/validation/crossFileValidation.js';
 import {
   reviewCode,
   generateImprovementInstructions,
@@ -199,6 +199,11 @@ export class AgentOrchestrator {
           // Use reflection loop for code generation
           const result = await this.generateCodeWithReflection(plan, userMessage, filename);
 
+          // DEBUG: Log generated file content
+          console.log('📝 Generated file:', filename);
+          console.log('   Content preview:', result.code.substring(0, 200) + '...');
+          console.log('   Full length:', result.code.length, 'chars');
+
           // Notify completion
           this.sendUpdate({
             type: 'file_operation',
@@ -222,8 +227,35 @@ export class AgentOrchestrator {
           };
         });
 
-        // Wait for all files to complete
-        const generatedFiles = await Promise.all(generationPromises);
+        // Wait for all files to complete (use Promise.allSettled to handle individual failures)
+        const settledResults = await Promise.allSettled(generationPromises);
+
+        // Process results and handle failures gracefully
+        const generatedFiles = [];
+        const failedFiles = [];
+
+        settledResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            generatedFiles.push(result.value);
+          } else {
+            // Extract filename from the original promise (approximation based on order)
+            const failedFilename = plan.files[index] || `file_${index}`;
+            failedFiles.push({
+              filename: failedFilename,
+              error: result.reason?.message || 'Unknown error'
+            });
+            console.error(`Failed to generate ${failedFilename}:`, result.reason);
+          }
+        });
+
+        // Report failures if any occurred
+        if (failedFiles.length > 0) {
+          this.sendUpdate({
+            type: 'warning',
+            content: `⚠️  ${failedFiles.length} file(s) failed to generate. Continuing with successful files.`,
+            data: { failedFiles }
+          });
+        }
 
         // Add to file operations and collect reviews
         generatedFiles.forEach(({ filename, result, review }) => {
@@ -269,12 +301,28 @@ export class AgentOrchestrator {
           // Get analysis targets for this specific file
           const analysisTargets = analysisResult?.changeTargets?.[filename] || null;
 
+          // DEBUG: Log analysis targets being passed to modifier
+          console.log('📋 Analysis targets for', filename, ':', analysisTargets);
+          if (analysisTargets && Array.isArray(analysisTargets) && analysisTargets.length > 0) {
+            analysisTargets.forEach((target, i) => {
+              console.log(`   Target ${i + 1}:`, target);
+            });
+          } else {
+            console.log('   ⚠️  No specific targets provided to modifier');
+          }
+
           const updatedCode = await modifyCode(
             currentFiles[filename],
             userMessage,
             filename,
             analysisTargets
           );
+
+          // DEBUG: Log modified file content
+          console.log('🔧 Modified file:', filename);
+          console.log('   Old content preview:', currentFiles[filename].substring(0, 150) + '...');
+          console.log('   New content preview:', updatedCode.substring(0, 150) + '...');
+          console.log('   Content changed:', currentFiles[filename] !== updatedCode);
 
           fileOperations.push({
             type: 'modify',
@@ -620,7 +668,20 @@ export class AgentOrchestrator {
         content: 'Analyzing code to identify the bug...'
       }, 'debugger', 'debuggingCode');
 
-      const debugResult = await debugAndFix(userMessage, currentFiles);
+      // Use iterative debugger with validation and retry
+      const debugResult = await debugAndFixIterative({
+        errorMessage: userMessage,
+        currentFiles,
+        userMessage
+      });
+
+      // Show iteration details to user
+      if (debugResult.attempts && debugResult.attempts > 1) {
+        this.sendUpdate({
+          type: 'thinking',
+          content: `Completed ${debugResult.attempts} attempt${debugResult.attempts > 1 ? 's' : ''} to fix the bug`
+        }, 'debugger', 'iterativeFixing');
+      }
 
       if (!debugResult.success) {
         this.sendUpdate({

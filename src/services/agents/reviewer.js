@@ -1,4 +1,4 @@
-import { callLLMForJSON } from "../utils/llmClient.js";
+import { callLLMForJSON } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
 
 /**
@@ -83,15 +83,15 @@ Provide a thorough review based on the criteria above.`;
       temperature: 0.3
     });
 
-    // Ensure required fields exist
+    // Ensure required fields exist with safe optional chaining
     return {
-      qualityScore: review.qualityScore || 70,
-      approved: review.approved ?? (review.qualityScore >= 75),
-      needsRevision: review.needsRevision ?? (review.qualityScore < 75),
-      issues: review.issues || [],
-      missingFeatures: review.missingFeatures || [],
-      strengths: review.strengths || [],
-      overallFeedback: review.overallFeedback || "Review completed",
+      qualityScore: review?.qualityScore || 70,
+      approved: review?.approved ?? (review?.qualityScore >= 75),
+      needsRevision: review?.needsRevision ?? (review?.qualityScore < 75),
+      issues: review?.issues || [],
+      missingFeatures: review?.missingFeatures || [],
+      strengths: review?.strengths || [],
+      overallFeedback: review?.overallFeedback || "Review completed",
       filename
     };
   } catch (error) {

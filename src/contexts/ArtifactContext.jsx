@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const ArtifactContext = createContext();
@@ -15,6 +15,7 @@ const createEmptyArtifact = () => ({
   id: generateArtifactId(),
   name: 'Untitled Project',
   files: {},
+  chatHistory: [], // Each artifact has its own chat history
   createdAt: Date.now(),
   updatedAt: Date.now()
 });
@@ -25,6 +26,9 @@ export const ArtifactProvider = ({ children }) => {
   const [activeArtifactId, setActiveArtifactId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Use ref to persist timeout across renders without causing re-renders
+  const updateFilesTimeoutRef = useRef(null);
 
   // Load artifacts from API (when authenticated) or localStorage (when guest)
   useEffect(() => {
@@ -47,12 +51,21 @@ export const ArtifactProvider = ({ children }) => {
 
       if (stored) {
         const parsedArtifacts = JSON.parse(stored);
+
+        // Validate parsedArtifacts is an array
+        if (!Array.isArray(parsedArtifacts)) {
+          console.warn('Invalid artifacts data in localStorage (not an array). Resetting.');
+          setArtifacts([]);
+          setActiveArtifactId(null);
+          return;
+        }
+
         setArtifacts(parsedArtifacts);
 
-        if (activeId && parsedArtifacts.some(a => a.id === activeId)) {
+        if (activeId && parsedArtifacts.some(a => a && a.id === activeId)) {
           setActiveArtifactId(activeId);
         } else if (parsedArtifacts.length > 0) {
-          setActiveArtifactId(parsedArtifacts[0].id);
+          setActiveArtifactId(parsedArtifacts[0]?.id || null);
         }
       } else {
         setArtifacts([]);
@@ -90,11 +103,27 @@ export const ArtifactProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'API request failed');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          // If JSON parsing fails, use HTTP status text
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+
+        // Safely extract error message with null checks
+        const errorMessage =
+          (errorData && typeof errorData === 'object' && (errorData.message || errorData.error)) ||
+          'API request failed';
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      // Add error handling for successful response JSON parsing
+      try {
+        return await response.json();
+      } catch (jsonError) {
+        throw new Error('Failed to parse API response as JSON');
+      }
     } catch (error) {
       console.error('API request error:', error);
       throw error;
@@ -129,6 +158,11 @@ export const ArtifactProvider = ({ children }) => {
   // Get active artifact (can be null if no artifacts)
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || null;
 
+  // Update artifact's chat history
+  const updateChatHistory = (id, chatHistory) => {
+    updateArtifact(id, { chatHistory });
+  };
+
   // Create new artifact
   const createArtifact = async (name = 'Untitled Project', files = null) => {
     // Guest mode: Create artifact in localStorage
@@ -137,6 +171,7 @@ export const ArtifactProvider = ({ children }) => {
         id: generateArtifactId(),
         name,
         files: files || {},
+        chatHistory: [],
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
@@ -159,6 +194,7 @@ export const ArtifactProvider = ({ children }) => {
         body: JSON.stringify({
           name,
           files: files || {},
+          chatHistory: [],
         }),
       });
 
@@ -219,24 +255,43 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Update artifact files (with debouncing to reduce API calls)
-  let updateFilesTimeout = null;
   const updateArtifactFiles = (id, files) => {
-    // Optimistically update UI immediately
-    setArtifacts(prev => prev.map(artifact =>
-      artifact.id === id
-        ? { ...artifact, files, updatedAt: new Date().toISOString() }
-        : artifact
-    ));
+    // DEBUG: Log artifact file updates
+    console.log('🗄️  updateArtifactFiles called');
+    console.log('   Artifact ID:', id);
+    console.log('   Files being saved:', Object.keys(files));
+    console.log('   Total file count:', Object.keys(files).length);
 
-    // Debounce API call
-    if (updateFilesTimeout) {
-      clearTimeout(updateFilesTimeout);
+    // Optimistically update UI immediately
+    setArtifacts(prev => {
+      const updated = prev.map(artifact =>
+        artifact.id === id
+          ? { ...artifact, files, updatedAt: new Date().toISOString() }
+          : artifact
+      );
+      console.log('   ✓ Artifact state updated (optimistic)');
+      return updated;
+    });
+
+    // Debounce API call using ref to persist timeout
+    if (updateFilesTimeoutRef.current) {
+      clearTimeout(updateFilesTimeoutRef.current);
     }
 
-    updateFilesTimeout = setTimeout(() => {
+    updateFilesTimeoutRef.current = setTimeout(() => {
       updateArtifact(id, { files });
+      updateFilesTimeoutRef.current = null; // Clear ref after execution
     }, 2000); // Wait 2 seconds before saving
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateFilesTimeoutRef.current) {
+        clearTimeout(updateFilesTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Rename artifact
   const renameArtifact = (id, newName) => {
@@ -301,6 +356,7 @@ export const ArtifactProvider = ({ children }) => {
         id: generateArtifactId(),
         name: `${artifact.name} (Copy)`,
         files: { ...artifact.files },
+        chatHistory: [], // Start with empty chat history for duplicates
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
@@ -318,33 +374,77 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Clear all artifacts
-  const clearAllArtifacts = () => {
+  const clearAllArtifacts = async () => {
+    // Guest mode: Clear localStorage only
+    if (!user) {
+      setArtifacts([]);
+      setActiveArtifactId(null);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+      return;
+    }
+
+    // Authenticated mode: Delete all artifacts from remote database
+    const artifactIds = artifacts.map(a => a.id);
+
+    // Optimistically clear UI
     setArtifacts([]);
     setActiveArtifactId(null);
 
-    // Clear localStorage for guests
-    if (!user) {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+    // Delete each artifact from database
+    try {
+      await Promise.all(
+        artifactIds.map(id =>
+          makeAuthenticatedRequest(`/api/artifacts/delete?id=${id}`, {
+            method: 'DELETE',
+          })
+        )
+      );
+    } catch (error) {
+      console.error('Error clearing all artifacts:', error);
+      setError(error.message);
+      // Reload artifacts to show actual state
+      await loadArtifactsFromAPI();
     }
   };
 
-  const value = {
-    artifacts,
-    activeArtifact,
-    activeArtifactId,
-    loading,
-    error,
-    createArtifact,
-    updateArtifact,
-    updateArtifactFiles,
-    renameArtifact,
-    deleteArtifact,
-    loadArtifact,
-    duplicateArtifact,
-    clearAllArtifacts,
-    refreshArtifacts: loadArtifactsFromAPI,
-  };
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo(
+    () => ({
+      artifacts,
+      activeArtifact,
+      activeArtifactId,
+      loading,
+      error,
+      createArtifact,
+      updateArtifact,
+      updateArtifactFiles,
+      updateChatHistory,
+      renameArtifact,
+      deleteArtifact,
+      loadArtifact,
+      duplicateArtifact,
+      clearAllArtifacts,
+      refreshArtifacts: loadArtifactsFromAPI,
+    }),
+    [
+      artifacts,
+      activeArtifact,
+      activeArtifactId,
+      loading,
+      error,
+      createArtifact,
+      updateArtifact,
+      updateArtifactFiles,
+      updateChatHistory,
+      renameArtifact,
+      deleteArtifact,
+      loadArtifact,
+      duplicateArtifact,
+      clearAllArtifacts,
+      loadArtifactsFromAPI,
+    ]
+  );
 
   return (
     <ArtifactContext.Provider value={value}>

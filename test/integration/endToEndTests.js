@@ -4,7 +4,7 @@
  */
 
 import { AgentOrchestrator } from "../../src/services/agentOrchestrator.js";
-import { validateFiles } from "../api/validators.js";
+import { validateFiles } from "../unit/validators/codeQuality.test.js";
 import { hasAPIKey, formatTime } from "../utils/testHelpers.js";
 
 /**

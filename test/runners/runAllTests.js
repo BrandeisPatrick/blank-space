@@ -8,15 +8,15 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 
-import { runAllTests as runBasicTests } from "../unit/testAgents.js";
-import { runModificationTests } from "../unit/testModifications.js";
-// import { runDebuggerTests } from "../unit/testDebugger.js"; // Disabled: uses outdated API
-import { runReliabilityTests } from "../unit/testReliability.js";
-import { runReviewerTests } from "../unit/agents/testReviewerAgent.js";
-import { runReflectionLoopTests } from "../unit/orchestrators/testReflectionLoop.js";
-// import { runAgentSystemTests } from "../unit/agents/testAgentSystem.js"; // Disabled: requires unimplemented services
-import { runHybridOrchestratorTests } from "../unit/orchestrators/testHybridOrchestrator.js";
-import { runSpecializedAgentTests } from "../unit/agents/testSpecializedAgents.js";
+// import { runAllTests as runBasicTests } from "../unit/testAgents.js"; // Deleted - file no longer exists
+import { runModificationTests } from "../unit/modifications.test.js";
+// import { runDebuggerTests } from "../unit/debugger.test.js"; // Disabled: uses outdated API
+import { runReliabilityTests } from "../unit/reliability.test.js";
+import { runReviewerTests } from "../unit/agents/reviewer.test.js";
+import { runReflectionLoopTests } from "../unit/orchestrators/reflectionLoop.test.js";
+// import { runAgentSystemTests } from "../unit/agents/agentSystem.test.js"; // Disabled: requires unimplemented services
+import { runHybridOrchestratorTests } from "../unit/orchestrators/hybridOrchestrator.test.js";
+import { runSpecializedAgentTests } from "../unit/agents/specializedAgents.test.js";
 import { formatResults, printSummaryTable, checkAPIKey } from "../utils/testHelpers.js";
 import testConfig from "../config/testConfig.js";
 
@@ -250,8 +250,9 @@ async function main() {
   const suiteResults = [];
 
   // Test Suite 1: Basic Tests (Validators & Code Cleanup)
-  const basicResults = await runTestSuite("Basic Tests", runBasicTests, hasKey);
-  suiteResults.push(formatResults("Basic Tests", basicResults));
+  // Commented out - testAgents.js file no longer exists
+  // const basicResults = await runTestSuite("Basic Tests", runBasicTests, hasKey);
+  // suiteResults.push(formatResults("Basic Tests", basicResults));
 
   // Test Suite 2: Reliability Tests (Runtime Validation & Auto-fix)
   const reliabilityResults = await runTestSuite("Reliability Tests", runReliabilityTests, hasKey);
