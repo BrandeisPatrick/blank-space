@@ -56,29 +56,24 @@ function getModelWithFallback(preferredModel) {
 }
 
 const MODEL_CONFIGS = {
-  // Code generation - using GPT-5-mini for advanced capabilities (fallback: gpt-4o)
-  GENERATOR: getModelWithFallback(getEnv("MODEL_GENERATOR") || "gpt-5-mini"),
-
-  // Code modification - using GPT-5-mini for precision (fallback: gpt-4o)
-  MODIFIER: getModelWithFallback(getEnv("MODEL_MODIFIER") || "gpt-5-mini"),
-
   // Planning - using GPT-5-mini for complex reasoning (fallback: gpt-4o)
   PLANNER: getModelWithFallback(getEnv("MODEL_PLANNER") || "gpt-5-mini"),
-
-  // Intent classification - using gpt-4o-mini for fast, reliable classification
-  INTENT_CLASSIFIER: getEnv("MODEL_INTENT_CLASSIFIER") || "gpt-4o-mini",
 
   // Codebase analysis - using gpt-5-nano for lightweight tasks (fallback: gpt-4o-mini)
   ANALYZER: getModelWithFallback(getEnv("MODEL_ANALYZER") || "gpt-5-nano"),
 
-  // Code review - using gpt-5-nano for quality checking (fallback: gpt-4o-mini)
-  REVIEWER: getModelWithFallback(getEnv("MODEL_REVIEWER") || "gpt-5-nano"),
+  // Code writing (replaces GENERATOR + MODIFIER) - using GPT-5-mini for precision (fallback: gpt-4o)
+  CODE_WRITER: getModelWithFallback(getEnv("MODEL_CODE_WRITER") || "gpt-5-mini"),
 
-  // Plan review - using gpt-5-nano for plan quality checking (fallback: gpt-4o-mini)
-  PLAN_REVIEWER: getModelWithFallback(getEnv("MODEL_PLAN_REVIEWER") || "gpt-5-nano"),
+  // Design - using gpt-5-nano for lightweight design tasks (fallback: gpt-4o-mini)
+  DESIGNER: getModelWithFallback(getEnv("MODEL_DESIGNER") || "gpt-5-nano"),
 
   // Debugging - using gpt-5-mini for accurate bug detection (fallback: gpt-4o)
   DEBUGGER: getModelWithFallback(getEnv("MODEL_DEBUGGER") || "gpt-5-mini"),
+
+  // Legacy support (deprecated - use CODE_WRITER instead)
+  GENERATOR: getModelWithFallback(getEnv("MODEL_GENERATOR") || "gpt-5-mini"),
+  MODIFIER: getModelWithFallback(getEnv("MODEL_MODIFIER") || "gpt-5-mini"),
 };
 
 /**
@@ -120,16 +115,14 @@ export function getAllModels() {
  * Log current model configuration
  */
 export function logModelConfig() {
-  console.log("\n🤖 Current Model Configuration:");
+  console.log("\n🤖 Current Model Configuration (6-Agent System):");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log(`Generator:         ${MODEL_CONFIGS.GENERATOR}`);
-  console.log(`Modifier:          ${MODEL_CONFIGS.MODIFIER}`);
   console.log(`Planner:           ${MODEL_CONFIGS.PLANNER}`);
-  console.log(`Debugger:          ${MODEL_CONFIGS.DEBUGGER}`);
-  console.log(`Intent Classifier: ${MODEL_CONFIGS.INTENT_CLASSIFIER}`);
   console.log(`Analyzer:          ${MODEL_CONFIGS.ANALYZER}`);
-  console.log(`Reviewer:          ${MODEL_CONFIGS.REVIEWER}`);
-  console.log(`Plan Reviewer:     ${MODEL_CONFIGS.PLAN_REVIEWER}`);
+  console.log(`Code Writer:       ${MODEL_CONFIGS.CODE_WRITER}`);
+  console.log(`Designer:          ${MODEL_CONFIGS.DESIGNER}`);
+  console.log(`Debugger:          ${MODEL_CONFIGS.DEBUGGER}`);
+  console.log(`Validator:         (no LLM - rule-based)`);
   console.log(`Production Mode:   ${PRODUCTION_MODE ? "✅ Enabled" : "❌ Disabled"}`);
   console.log(`GPT-5 Mode:        ${USE_GPT5 ? "✅ Enabled" : "❌ Disabled (using GPT-4 fallbacks)"}`);
   if (!USE_GPT5) {

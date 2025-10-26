@@ -17,7 +17,12 @@
     "test:reflection": "node test/api/testReflectionLoop.js",
     "test:agents": "node test/api/testAgentSystem.js",
     "test:autogen": "node test/api/runAutoGenTests.js",
-    "test:integration": "node test/integration/endToEndTests.js"
+    "test:integration": "node test/integration/endToEndTests.js",
+    "test:sandpack": "node test/scenarios/sandpack-integration.test.js",
+    "test:browser": "node test/browser/memory-bank-browser.test.js",
+    "test:contracts": "node test/unit/contracts/file-operations.test.js",
+    "test:new": "npm run test:sandpack && npm run test:browser && npm run test:contracts",
+    "test:all": "npm run test:new && npm run test:orchestrator"
   },
   "dependencies": {
     "@babel/parser": "^7.28.4",
@@ -33,6 +38,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^27.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "vercel": "^39.2.4",

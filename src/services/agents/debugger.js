@@ -1,10 +1,32 @@
 import { callLLMForJSON } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
+import { MemoryBank } from "../utils/memory/MemoryBank.js";
 import compressedPrompts from "../compressedPrompts.json" with { type: "json" };
-import { modifyCode } from "./modifier.js";
+import { writeCode } from "./codeWriter.js";
 import { validateFix, formatIssuesForLLM } from "../utils/validation/fixValidator.js";
 import { convertRequireToImport } from "../utils/code/autoFix.js";
-import { scanForIssue } from "./fileScanner.js";
+
+/**
+ * Simple file scanner utility (inline replacement for deleted fileScanner.js)
+ */
+function scanForIssue({ currentFiles, startFile, searchPattern, maxDepth = 5 }) {
+  const scannedFiles = [];
+  const found = Object.keys(currentFiles).some(filename => {
+    scannedFiles.push(filename);
+    return currentFiles[filename]?.includes(searchPattern);
+  });
+
+  const foundFile = found
+    ? Object.keys(currentFiles).find(f => currentFiles[f]?.includes(searchPattern))
+    : startFile;
+
+  return {
+    found,
+    filename: foundFile,
+    importPath: [foundFile],
+    scannedFiles
+  };
+}
 
 /**
  * Debugger Agent
@@ -712,6 +734,11 @@ export function getFixSuggestions(errorType) {
  * @returns {string|null} Extracted filename or null
  */
 function extractFilenameFromError(errorMessage) {
+  // Null safety check
+  if (!errorMessage || typeof errorMessage !== 'string') {
+    return null;
+  }
+
   // Try to match patterns like:
   // - "components/TodoList.jsx:142"
   // - "Syntax error in components/TodoList.jsx: ..."
@@ -802,14 +829,12 @@ IMPORTANT:
 - Preserve all existing code that is not part of the bug fix
 - Return COMPLETE, working code`;
 
-    const result = await modifyCode({
+    const fixedCode = await writeCode({
+      mode: 'modify',
       currentCode: currentFiles[targetFile],
       userMessage: fixPrompt,
       filename: targetFile
     });
-
-    // Extract code from result (modifyCode returns { code: "..." })
-    const fixedCode = result.code || result;
 
     // Step 5: Return fixed file
     return {
@@ -1055,13 +1080,12 @@ The code you receive already uses import syntax - keep it that way.`
           : '');
 
       // Generate fix with pre-processed code
-      const result = await modifyCode({
+      let fixedCode = await writeCode({
+        mode: 'modify',
         currentCode: codeToFix,
         userMessage: constrainedPrompt,
         filename: targetFile
       });
-
-      let fixedCode = result.code || result;
 
       // Double-check: Auto-fix any remaining issues (backup safety net)
       if (fixedCode.includes('require(')) {
@@ -1088,6 +1112,21 @@ The code you receive already uses import syntax - keep it that way.`
       // Success!
       if (validation.valid) {
         console.log(`✅ Fix succeeded on attempt ${attempt}`);
+
+        // Record bug pattern in Memory Bank for learning
+        try {
+          const memory = new MemoryBank();
+          await memory.recordBugPattern(
+            mainIssue.type,
+            mainIssue.pattern,
+            mainIssue.fix,
+            targetFile
+          );
+          console.log(`📝 Recorded bug pattern: ${mainIssue.type}`);
+        } catch (err) {
+          console.warn('Failed to record bug pattern:', err.message);
+        }
+
         return {
           success: true,
           diagnosis: mainIssue.pattern,

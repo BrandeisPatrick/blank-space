@@ -1,7 +1,20 @@
 /**
  * Agents Module - Barrel Export
  * Centralized exports for all AI agents
+ *
+ * 6-Agent System:
+ * 1. Planner - Plans app structure
+ * 2. Analyzer - Understands existing code
+ * 3. CodeWriter - Writes/modifies code (merged generator + modifier)
+ * 4. Designer - Creates design systems
+ * 5. Debugger - Fixes bugs
+ * 6. Validator - Validates code (utility, no LLM)
  */
+
+// Planner Agent
+export {
+  createPlan
+} from './planner.js';
 
 // Analyzer Agent
 export {
@@ -10,12 +23,16 @@ export {
   analyzeCodebaseForModification
 } from './analyzer.js';
 
-// Architecture Designer Agent
+// Code Writer Agent (merged generator + modifier)
 export {
-  designArchitecture,
-  inferArchitectureFromCode,
-  generateImportPath
-} from './architectureDesigner.js';
+  writeCode
+} from './codeWriter.js';
+
+// Designer Agent (formerly uxDesigner)
+export {
+  designUX,
+  extractUXFromCode
+} from './designer.js';
 
 // Debugger Agent
 export {
@@ -26,55 +43,9 @@ export {
   quickDiagnose
 } from './debugger.js';
 
-// Generator Agent
-export {
-  generateCode
-} from './generator.js';
-
-// Intent Classifier Agent
-export {
-  classifyIntent
-} from './intentClassifier.js';
-
-// Modifier Agent
-export {
-  modifyCode
-} from './modifier.js';
-
-// Planner Agent
-export {
-  createPlan
-} from './planner.js';
-
-// Plan Reviewer Agent
-export {
-  reviewPlan,
-  generatePlanImprovementInstructions,
-  hasPlanImproved
-} from './planReviewer.js';
-
-// Reviewer Agent
-export {
-  reviewCode,
-  generateImprovementInstructions,
-  hasImproved,
-  aggregateReviews
-} from './reviewer.js';
-
-// UX Designer Agent
-export {
-  designUX,
-  extractUXFromCode
-} from './uxDesigner.js';
-
-// Validator Agent
+// Validator Agent (utility, no LLM)
 export {
   validateCode,
   quickValidate,
   ValidationMode
 } from './validator.js';
-
-// File Scanner Agent
-export {
-  scanForIssue
-} from './fileScanner.js';

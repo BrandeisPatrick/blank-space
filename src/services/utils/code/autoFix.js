@@ -4,6 +4,58 @@
  */
 
 /**
+ * Ensure React import exists if code uses JSX or React hooks
+ */
+export function ensureReactImport(code) {
+  // Check if code already has React import
+  const hasReactImport = code.includes("import React") ||
+                         code.includes("import * as React") ||
+                         (code.includes("import {") && code.includes("} from 'react'")) ||
+                         (code.includes("import {") && code.includes('} from "react"'));
+
+  if (hasReactImport) {
+    return code; // Already has React import
+  }
+
+  // Check if code needs React import (has JSX or React hooks)
+  const hasJSX = /<[A-Z][a-zA-Z0-9]*[\s/>]/.test(code) || // Component JSX like <App />
+                 /<[a-z]+[\s>]/.test(code); // HTML JSX like <div>
+
+  const hasReactHooks = /\b(useState|useEffect|useContext|useReducer|useCallback|useMemo|useRef|useImperativeHandle|useLayoutEffect|useDebugValue)\s*\(/.test(code);
+
+  // If code has JSX or hooks, add React import at the top
+  if (hasJSX || hasReactHooks) {
+    // Find the position after the first set of imports (if any)
+    const lines = code.split('\n');
+    let insertIndex = 0;
+
+    // Find last import line
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim().startsWith('import ')) {
+        insertIndex = i + 1;
+      } else if (lines[i].trim() && !lines[i].trim().startsWith('//')) {
+        // Stop at first non-import, non-comment line
+        break;
+      }
+    }
+
+    // Insert React import
+    const reactImport = "import React from 'react';";
+
+    if (insertIndex === 0) {
+      // No imports found, add at the very top
+      return reactImport + '\n\n' + code;
+    } else {
+      // Insert after other imports
+      lines.splice(insertIndex, 0, reactImport);
+      return lines.join('\n');
+    }
+  }
+
+  return code;
+}
+
+/**
  * Remove PropTypes imports and usage
  */
 export function removePropTypes(code) {
@@ -382,14 +434,15 @@ export function autoFixCommonIssues(code, filename) {
   let fixed = code;
 
   // Run fixes in order
-  fixed = convertRequireToImport(fixed);  // NEW: Convert require() to import
+  fixed = convertRequireToImport(fixed);  // Convert require() to import
   fixed = removePropTypes(fixed);
   fixed = removeUnusedImports(fixed);
   fixed = fixImportPaths(fixed, filename);
-  fixed = removeInitializationCode(fixed);  // NEW: Remove initialization code
+  fixed = removeInitializationCode(fixed);  // Remove initialization code
   fixed = removeDuplicateDeclarations(fixed);
   fixed = replaceAxiosWithFetch(fixed);
   fixed = replaceLodashWithNative(fixed);
+  fixed = ensureReactImport(fixed);  // Ensure React import exists if needed
   // Note: Skipping addMissingSemicolons as it can be too aggressive
 
   return fixed;

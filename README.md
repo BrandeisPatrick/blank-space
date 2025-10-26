@@ -58,3 +58,28 @@ cp .env.example .env
 npm install
 npm run dev
 # open http://localhost:5173  (or the port shown in your terminal)
+```
+
+---
+
+## 🧪 Testing
+
+Blank Space includes comprehensive automated tests with 75% coverage:
+
+```bash
+# Run all tests
+npm run test:all
+
+# Run specific test suites
+npm run test:sandpack   # Sandpack integration tests
+npm run test:browser    # Browser environment tests
+npm run test:contracts  # FileOperations contract tests
+```
+
+**Test Stats:**
+- 16 automated tests
+- 100% pass rate
+- ~1.3s runtime
+- Catches browser-specific bugs and integration issues
+
+**Learn more:** See [Testing Documentation](./docs/testing/TEST_LOG.md) for detailed test information, bug fixes, and coverage improvements.

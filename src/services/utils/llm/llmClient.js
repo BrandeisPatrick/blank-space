@@ -1,4 +1,5 @@
 import { openai } from "./openaiClient.js";
+import { ConversationLogger } from "./conversationLogger.js";
 
 /**
  * Shared LLM Client
@@ -8,6 +9,7 @@ import { openai } from "./openaiClient.js";
  * - Rate limit detection
  * - GPT-5 parameter handling
  * - Consistent error handling
+ * - Conversation logging for debugging and testing
  */
 
 /**
@@ -72,6 +74,7 @@ function getUserFriendlyError(error) {
  * @param {number} [options.maxRetries=3] - Max retry attempts
  * @param {number} [options.timeout=45000] - Timeout in milliseconds
  * @param {number} [options.baseDelay=1000] - Base delay for exponential backoff
+ * @param {ConversationLogger} [options.logger=null] - Optional conversation logger
  * @returns {Promise<Object>} OpenAI API response
  * @throws {Error} If all retries fail or non-retryable error occurs
  */
@@ -83,7 +86,8 @@ export async function callLLM({
   temperature = 0.7,
   maxRetries = 3,
   timeout = 45000,
-  baseDelay = 1000
+  baseDelay = 1000,
+  logger = null
 }) {
   // Detect GPT-5 model
   const isGPT5 = model.includes('gpt-5');
@@ -110,6 +114,11 @@ export async function callLLM({
     messages.push({ role: 'system', content: systemPrompt });
   }
   messages.push({ role: 'user', content: userPrompt });
+
+  // Log request to conversation logger
+  if (logger) {
+    logger.logRequest({ model, systemPrompt, userPrompt, maxTokens, temperature });
+  }
 
   // Retry loop with exponential backoff
   let lastError = null;
@@ -177,6 +186,11 @@ export async function callLLM({
         }
       }
 
+      // Log response to conversation logger
+      if (logger) {
+        logger.logResponse({ response });
+      }
+
       // Success - return response
       return response;
 
@@ -185,12 +199,20 @@ export async function callLLM({
 
       // Check if error is retryable
       if (!isRetryableError(error)) {
+        // Log error to conversation logger
+        if (logger) {
+          logger.logResponse({ error });
+        }
         // Non-retryable error - throw immediately
         throw new Error(getUserFriendlyError(error));
       }
 
       // Last attempt - throw error
       if (attempt === maxRetries - 1) {
+        // Log error to conversation logger
+        if (logger) {
+          logger.logResponse({ error });
+        }
         throw new Error(getUserFriendlyError(error));
       }
 
@@ -229,11 +251,11 @@ export function extractContent(response) {
 /**
  * Call LLM and extract content in one step
  *
- * @param {Object} options - Same as callLLM options
+ * @param {Object} options - Same as callLLM options (including optional logger)
  * @returns {Promise<string>} Extracted text content
  */
 export async function callLLMAndExtract(options) {
-  const response = await callLLM(options);
+  const response = await callLLM(options); // Pass through all options including logger
   const content = extractContent(response);
 
   // Check for empty response
@@ -250,29 +272,55 @@ export async function callLLMAndExtract(options) {
 }
 
 /**
+ * Strip comments from JSON string
+ * LLMs sometimes return JSON with comments which breaks JSON.parse()
+ */
+function stripJSONComments(jsonString) {
+  let result = jsonString;
+
+  // Remove single-line comments: // comment
+  // But preserve // inside strings
+  result = result.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*/g, (match, stringMatch) => {
+    return stringMatch || ''; // Keep strings, remove comments
+  });
+
+  // Remove multi-line comments: /* comment */
+  // But preserve /* inside strings
+  result = result.replace(/("(?:[^"\\]|\\.)*")|\/\*[\s\S]*?\*\//g, (match, stringMatch) => {
+    return stringMatch || ''; // Keep strings, remove comments
+  });
+
+  // Remove trailing commas before } or ] (another common LLM mistake)
+  result = result.replace(/,(\s*[}\]])/g, '$1');
+
+  return result;
+}
+
+/**
  * Extract JSON from response content with multiple fallback strategies
  */
 function extractJSONFromContent(content) {
   // Strategy 1: Extract JSON between delimiters <<<JSON>>> and <<</JSON>>>
   const delimiterMatch = content.match(/<<<JSON>>>([\s\S]*?)<<<\/JSON>>>/);
   if (delimiterMatch) {
-    return delimiterMatch[1].trim();
+    return stripJSONComments(delimiterMatch[1].trim());
   }
 
   // Strategy 2: Extract from markdown code fences
   const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+    return stripJSONComments(codeBlockMatch[1].trim());
   }
 
   // Strategy 3: Find JSON-like content (starts with { or [)
   const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if (jsonMatch) {
-    return jsonMatch[1].trim();
+    return stripJSONComments(jsonMatch[1].trim());
   }
 
   // Fallback: return cleaned content
-  return content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  return stripJSONComments(cleaned);
 }
 
 /**
@@ -361,12 +409,12 @@ function attemptJSONCompletion(jsonString) {
 /**
  * Call LLM and parse JSON response
  *
- * @param {Object} options - Same as callLLM options
+ * @param {Object} options - Same as callLLM options (including optional logger)
  * @returns {Promise<Object>} Parsed JSON object
  * @throws {Error} If response is not valid JSON
  */
 export async function callLLMForJSON(options) {
-  const response = await callLLM(options);
+  const response = await callLLM(options); // Pass through all options including logger
   let content = extractContent(response);
 
   // Extract JSON using multiple strategies

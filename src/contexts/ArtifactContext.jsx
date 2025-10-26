@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { VersionControl } from '../services/utils/versionControl/VersionControl';
 
 const ArtifactContext = createContext();
 
@@ -29,6 +30,20 @@ export const ArtifactProvider = ({ children }) => {
 
   // Use ref to persist timeout across renders without causing re-renders
   const updateFilesTimeoutRef = useRef(null);
+
+  // Version control for each artifact (stored by artifact ID)
+  const versionControlRef = useRef({});
+
+  // Get or create version control instance for an artifact
+  const getVersionControlForArtifact = (artifactId) => {
+    if (!versionControlRef.current[artifactId]) {
+      versionControlRef.current[artifactId] = new VersionControl({
+        maxHistoryPerFile: 50,
+        maxSnapshots: 20
+      });
+    }
+    return versionControlRef.current[artifactId];
+  };
 
   // Load artifacts from API (when authenticated) or localStorage (when guest)
   useEffect(() => {
@@ -255,12 +270,35 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Update artifact files (with debouncing to reduce API calls)
-  const updateArtifactFiles = (id, files) => {
+  const updateArtifactFiles = (id, files, message = 'File modified') => {
     // DEBUG: Log artifact file updates
     console.log('🗄️  updateArtifactFiles called');
     console.log('   Artifact ID:', id);
     console.log('   Files being saved:', Object.keys(files));
     console.log('   Total file count:', Object.keys(files).length);
+
+    // Get version control for this artifact
+    const versionControl = getVersionControlForArtifact(id);
+
+    // Get current artifact to check what changed
+    const currentArtifact = artifacts.find(a => a.id === id);
+
+    // Record changes in version control for each modified file
+    if (currentArtifact) {
+      Object.entries(files).forEach(([filename, code]) => {
+        const oldCode = currentArtifact.files[filename];
+        // Only record if file actually changed
+        if (oldCode !== code) {
+          versionControl.recordChange(filename, code, message);
+          console.log(`📝 Recorded version: ${filename}`);
+        }
+      });
+    } else {
+      // New artifact, record all files
+      Object.entries(files).forEach(([filename, code]) => {
+        versionControl.recordChange(filename, code, 'Initial version');
+      });
+    }
 
     // Optimistically update UI immediately
     setArtifacts(prev => {
@@ -408,6 +446,133 @@ export const ArtifactProvider = ({ children }) => {
     }
   };
 
+  // ==================== VERSION CONTROL METHODS ====================
+
+  // Undo last change for active file
+  const undoFileChange = (filename) => {
+    if (!activeArtifactId) return null;
+
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    const result = versionControl.undo(filename);
+
+    if (result) {
+      // Update artifact files with previous version
+      const artifact = artifacts.find(a => a.id === activeArtifactId);
+      if (artifact) {
+        const updatedFiles = {
+          ...artifact.files,
+          [filename]: result.code
+        };
+        updateArtifactFiles(activeArtifactId, updatedFiles, `Undo: ${result.message}`);
+      }
+    }
+
+    return result;
+  };
+
+  // Redo last undone change for active file
+  const redoFileChange = (filename) => {
+    if (!activeArtifactId) return null;
+
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    const result = versionControl.redo(filename);
+
+    if (result) {
+      // Update artifact files with next version
+      const artifact = artifacts.find(a => a.id === activeArtifactId);
+      if (artifact) {
+        const updatedFiles = {
+          ...artifact.files,
+          [filename]: result.code
+        };
+        updateArtifactFiles(activeArtifactId, updatedFiles, `Redo: ${result.message}`);
+      }
+    }
+
+    return result;
+  };
+
+  // Check if undo is available
+  const canUndoFile = (filename) => {
+    if (!activeArtifactId) return false;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.canUndo(filename);
+  };
+
+  // Check if redo is available
+  const canRedoFile = (filename) => {
+    if (!activeArtifactId) return false;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.canRedo(filename);
+  };
+
+  // Create named snapshot
+  const createSnapshot = (label) => {
+    if (!activeArtifactId) return null;
+
+    const artifact = artifacts.find(a => a.id === activeArtifactId);
+    if (!artifact) return null;
+
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.createSnapshot(artifact.files, label);
+  };
+
+  // Restore from snapshot
+  const restoreSnapshot = (snapshotId) => {
+    if (!activeArtifactId) return null;
+
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    const result = versionControl.restoreSnapshot(snapshotId);
+
+    if (result) {
+      updateArtifactFiles(activeArtifactId, result.files, `Restored snapshot: ${result.label}`);
+    }
+
+    return result;
+  };
+
+  // Get snapshots for active artifact
+  const getSnapshots = () => {
+    if (!activeArtifactId) return [];
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.getSnapshots();
+  };
+
+  // Delete snapshot
+  const deleteSnapshot = (snapshotId) => {
+    if (!activeArtifactId) return false;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.deleteSnapshot(snapshotId);
+  };
+
+  // Get file history
+  const getFileHistory = (filename, limit = 10) => {
+    if (!activeArtifactId) return null;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.getFileHistory(filename, limit);
+  };
+
+  // Get timeline for all files
+  const getTimeline = (limit = 20) => {
+    if (!activeArtifactId) return [];
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.getTimeline(limit);
+  };
+
+  // Get diff between versions
+  const getDiff = (filename, fromVersion = null, toVersion = null) => {
+    if (!activeArtifactId) return null;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.getDiff(filename, fromVersion, toVersion);
+  };
+
+  // Get version control stats
+  const getVersionControlStats = () => {
+    if (!activeArtifactId) return null;
+    const versionControl = getVersionControlForArtifact(activeArtifactId);
+    return versionControl.getStats();
+  };
+
   // Memoize context value to prevent unnecessary re-renders of consumers
   const value = useMemo(
     () => ({
@@ -426,6 +591,19 @@ export const ArtifactProvider = ({ children }) => {
       duplicateArtifact,
       clearAllArtifacts,
       refreshArtifacts: loadArtifactsFromAPI,
+      // Version control methods
+      undoFileChange,
+      redoFileChange,
+      canUndoFile,
+      canRedoFile,
+      createSnapshot,
+      restoreSnapshot,
+      getSnapshots,
+      deleteSnapshot,
+      getFileHistory,
+      getTimeline,
+      getDiff,
+      getVersionControlStats,
     }),
     [
       artifacts,
@@ -443,6 +621,18 @@ export const ArtifactProvider = ({ children }) => {
       duplicateArtifact,
       clearAllArtifacts,
       loadArtifactsFromAPI,
+      undoFileChange,
+      redoFileChange,
+      canUndoFile,
+      canRedoFile,
+      createSnapshot,
+      restoreSnapshot,
+      getSnapshots,
+      deleteSnapshot,
+      getFileHistory,
+      getTimeline,
+      getDiff,
+      getVersionControlStats,
     ]
   );
 

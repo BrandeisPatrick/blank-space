@@ -32,3 +32,7 @@ dist-ssr
 *.sw?
 
 .env*.local
+
+# Agent runtime data (keep rules/ and prompts/ tracked)
+.agent-memory/context/
+.agent-memory/learnings/

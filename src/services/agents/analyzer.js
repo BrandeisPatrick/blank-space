@@ -2,8 +2,7 @@ import { callLLMForJSON } from "../utils/llm/llmClient.js";
 import { MODELS } from "../config/modelConfig.js";
 import { THINKING_FRAMEWORK } from "../promptTemplates.js";
 import compressedPrompts from "../compressedPrompts.json" with { type: "json" };
-import { extractUXFromCode } from "./uxDesigner.js";
-import { inferArchitectureFromCode } from "./architectureDesigner.js";
+import { extractUXFromCode } from "./designer.js";
 
 /**
  * Analysis modes for different pipeline types
@@ -27,25 +26,26 @@ export const AnalysisMode = {
  * @param {string} options.userMessage - User's request
  * @param {Object} options.currentFiles - Current files map
  * @param {string} [options.mode='modification'] - Analysis mode
+ * @param {ConversationLogger} [options.logger=null] - Optional conversation logger
  * @returns {Promise<Object>} Analysis result
  */
-export async function analyze({ userMessage, currentFiles = {}, mode = AnalysisMode.MODIFICATION }) {
+export async function analyze({ userMessage, currentFiles = {}, mode = AnalysisMode.MODIFICATION, logger = null }) {
   // Route to appropriate analysis function based on mode
   switch (mode) {
     case AnalysisMode.MODIFICATION:
-      return await analyzeForModification(userMessage, currentFiles);
+      return await analyzeForModification(userMessage, currentFiles, logger);
 
     case AnalysisMode.DEBUG:
-      return await analyzeForDebug(userMessage, currentFiles);
+      return await analyzeForDebug(userMessage, currentFiles, logger);
 
     case AnalysisMode.STYLE_EXTRACTION:
-      return await analyzeForStyleExtraction(userMessage, currentFiles);
+      return await analyzeForStyleExtraction(userMessage, currentFiles, logger);
 
     case AnalysisMode.EXPLAIN:
-      return await analyzeForExplanation(userMessage, currentFiles);
+      return await analyzeForExplanation(userMessage, currentFiles, logger);
 
     default:
-      return await analyzeForModification(userMessage, currentFiles);
+      return await analyzeForModification(userMessage, currentFiles, logger);
   }
 }
 
@@ -53,9 +53,10 @@ export async function analyze({ userMessage, currentFiles = {}, mode = AnalysisM
  * Analyze codebase for modification (original function, enhanced)
  * @param {string} userMessage - User's modification request
  * @param {Object} currentFiles - Current files map
+ * @param {ConversationLogger} logger - Optional conversation logger
  * @returns {Promise<Object>} Modification analysis
  */
-async function analyzeForModification(userMessage, currentFiles = {}) {
+async function analyzeForModification(userMessage, currentFiles = {}, logger = null) {
   // If no files exist, nothing to analyze
   if (Object.keys(currentFiles).length === 0) {
     return {
@@ -147,12 +148,12 @@ If the request doesn't require modification analysis (e.g., creating new files),
       systemPrompt,
       userPrompt: `Analyze the codebase for this modification request: "${userMessage}"\n\nCodebase:\n${filesContext}`,
       maxTokens: 10000,  // Increased for GPT-5 reasoning tokens (~4000-5000) + JSON output (~2000-5000)
-      temperature: 0.3
+      temperature: 0.3,
+      logger
     });
 
-    // Extract UX and Architecture from existing code
+    // Extract UX from existing code
     analysis.existingUX = extractUXFromCode(currentFiles);
-    analysis.existingArchitecture = inferArchitectureFromCode(currentFiles);
 
     return analysis;
   } catch (error) {
@@ -162,8 +163,7 @@ If the request doesn't require modification analysis (e.g., creating new files),
       filesToModify: [],
       changeTargets: {},
       reasoning: `Analysis error: ${error.message}`,
-      existingUX: extractUXFromCode(currentFiles),
-      existingArchitecture: inferArchitectureFromCode(currentFiles)
+      existingUX: extractUXFromCode(currentFiles)
     };
   }
 }
@@ -173,9 +173,10 @@ If the request doesn't require modification analysis (e.g., creating new files),
  * Identifies error location, type, and provides context
  * @param {string} userMessage - User's error description
  * @param {Object} currentFiles - Current files map
+ * @param {ConversationLogger} logger - Optional conversation logger
  * @returns {Promise<Object>} Debug analysis
  */
-async function analyzeForDebug(userMessage, currentFiles) {
+async function analyzeForDebug(userMessage, currentFiles, logger = null) {
   if (Object.keys(currentFiles).length === 0) {
     return {
       errorFile: null,
@@ -213,7 +214,8 @@ Respond ONLY with JSON in this format:
       systemPrompt,
       userPrompt: `Analyze this error: "${userMessage}"\n\nCodebase:\n${filesContext}`,
       maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
-      temperature: 0.2
+      temperature: 0.2,
+      logger
     });
 
     return analysis;
@@ -233,9 +235,10 @@ Respond ONLY with JSON in this format:
  * Extracts current UX patterns and prepares for redesign
  * @param {string} userMessage - User's style change request
  * @param {Object} currentFiles - Current files map
+ * @param {ConversationLogger} logger - Optional conversation logger
  * @returns {Promise<Object>} Style extraction analysis
  */
-async function analyzeForStyleExtraction(userMessage, currentFiles) {
+async function analyzeForStyleExtraction(userMessage, currentFiles, logger = null) {
   if (Object.keys(currentFiles).length === 0) {
     return {
       styledFiles: [],
@@ -287,7 +290,8 @@ Respond ONLY with JSON:
       systemPrompt,
       userPrompt: `Analyze style changes for: "${userMessage}"\n\nStyled Files:\n${filesContext}`,
       maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
-      temperature: 0.3
+      temperature: 0.3,
+      logger
     });
 
     analysis.currentStyles = currentStyles;
@@ -310,9 +314,10 @@ Respond ONLY with JSON:
  * Provides understanding of code functionality
  * @param {string} userMessage - User's question about code
  * @param {Object} currentFiles - Current files map
+ * @param {ConversationLogger} logger - Optional conversation logger
  * @returns {Promise<Object>} Explanation
  */
-async function analyzeForExplanation(userMessage, currentFiles) {
+async function analyzeForExplanation(userMessage, currentFiles, logger = null) {
   if (Object.keys(currentFiles).length === 0) {
     return {
       explanation: 'No code to explain',
@@ -350,7 +355,8 @@ Respond ONLY with JSON:
       systemPrompt,
       userPrompt: `Explain: "${userMessage}"\n\nCodebase:\n${filesContext}`,
       maxTokens: 8000,  // Increased for GPT-5 reasoning tokens (~3000-4000) + JSON output (~2000-3000)
-      temperature: 0.5
+      temperature: 0.5,
+      logger
     });
 
     return analysis;

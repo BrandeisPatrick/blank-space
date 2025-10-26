@@ -1,12 +1,46 @@
 import { Editor } from '@monaco-editor/react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DocumentIcon } from '../icons'
+import { VersionControlToolbar } from '../versionControl/VersionControlToolbar'
+import { useArtifacts } from '../../contexts/ArtifactContext'
 
 export const EditorPanel = ({ files, activeFile, onFileChange }) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
+  const { undoFileChange, redoFileChange, canUndoFile, canRedoFile } = useArtifacts()
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+Z or Cmd+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && activeFile) {
+        if (canUndoFile(activeFile)) {
+          e.preventDefault()
+          const result = undoFileChange(activeFile)
+          if (result) {
+            console.log(`⌨️ Keyboard undo: ${activeFile} → v${result.version}`)
+          }
+        }
+      }
+
+      // Ctrl+Y or Cmd+Shift+Z for redo
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+        if (activeFile && canRedoFile(activeFile)) {
+          e.preventDefault()
+          const result = redoFileChange(activeFile)
+          if (result) {
+            console.log(`⌨️ Keyboard redo: ${activeFile} → v${result.version}`)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeFile, undoFileChange, redoFileChange, canUndoFile, canRedoFile])
 
   const getLanguage = (filename) => {
     if (!filename) return 'javascript'
@@ -43,38 +77,44 @@ export const EditorPanel = ({ files, activeFile, onFileChange }) => {
   }
 
   return (
-    <div style={{ height: '100%', position: 'relative' }}>
-      <Editor
-        key={activeFile}
-        height="100%"
-        defaultLanguage={getLanguage(activeFile)}
-        language={getLanguage(activeFile)}
-        value={files[activeFile] || ''}
-        onChange={(value) => onFileChange(activeFile, value)}
-        theme={mode === 'dark' ? 'vs-dark' : 'vs-light'}
-        options={{
-          fontSize: 14,
-          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", "Consolas", monospace',
-          lineNumbers: 'on',
-          roundedSelection: false,
-          scrollBeyondLastLine: false,
-          readOnly: false,
-          automaticLayout: true,
-          minimap: { enabled: false },
-          scrollbar: {
-            vertical: 'visible',
-            horizontal: 'visible',
-            useShadows: false,
-            verticalHasArrows: false,
-            horizontalHasArrows: false,
-          },
-          padding: { top: 16, bottom: 16 },
-          bracketPairColorization: { enabled: true },
-          folding: true,
-          lineDecorationsWidth: 10,
-          lineNumbersMinChars: 3,
-        }}
-      />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Version Control Toolbar */}
+      <VersionControlToolbar activeFile={activeFile} />
+
+      {/* Monaco Editor */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <Editor
+          key={activeFile}
+          height="100%"
+          defaultLanguage={getLanguage(activeFile)}
+          language={getLanguage(activeFile)}
+          value={files[activeFile] || ''}
+          onChange={(value) => onFileChange(activeFile, value)}
+          theme={mode === 'dark' ? 'vs-dark' : 'vs-light'}
+          options={{
+            fontSize: 14,
+            fontFamily: 'Monaco, Menlo, "Ubuntu Mono", "Consolas", monospace',
+            lineNumbers: 'on',
+            roundedSelection: false,
+            scrollBeyondLastLine: false,
+            readOnly: false,
+            automaticLayout: true,
+            minimap: { enabled: false },
+            scrollbar: {
+              vertical: 'visible',
+              horizontal: 'visible',
+              useShadows: false,
+              verticalHasArrows: false,
+              horizontalHasArrows: false,
+            },
+            padding: { top: 16, bottom: 16 },
+            bracketPairColorization: { enabled: true },
+            folding: true,
+            lineDecorationsWidth: 10,
+            lineNumbersMinChars: 3,
+          }}
+        />
+      </div>
     </div>
   )
 }

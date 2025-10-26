@@ -11,7 +11,7 @@ import { PreviewPanel } from "./components/preview";
 import { ArtifactSidebar } from "./components/artifact";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
-import { processMessage } from "./services/agentOrchestrator";
+import { runOrchestrator } from "./services/orchestrator";
 import { reactExamples } from "./templates";
 import "./styles/App.css";
 
@@ -237,7 +237,7 @@ function App() {
 
     try {
       // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate);
+      const result = await runOrchestrator(message, files, onUpdate);
 
       // DEBUG: Log file operations received
       console.log('✅ File operations received from orchestrator:');
