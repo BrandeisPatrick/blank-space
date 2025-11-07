@@ -454,7 +454,7 @@ export async function callLLMWithTools({
 
   // Get tools in OpenAI schema format
   const tools = toolRegistry.toOpenAISchema();
-  const executor = new ToolExecutor();
+  const executor = new ToolExecutor(toolRegistry);
 
   console.log(`\n🔧 Tool-based LLM call: ${model}`);
   console.log(`   Tools available: ${toolRegistry.getToolNames().join(', ')}`);
