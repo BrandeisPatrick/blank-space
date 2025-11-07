@@ -1,6 +1,8 @@
 /**
  * Virtual File System for Browser-Based Development
  * Stores files in-memory for Sandpack preview integration
+ *
+ * This is pure JavaScript with no JSX syntax.
  */
 
 export class VirtualFileSystem {
@@ -91,7 +93,8 @@ export class VirtualFileSystem {
 
   /**
    * Find files matching glob pattern
-   * @param {string} pattern - Glob pattern (e.g., "*.jsx", "components/**/*.js")
+   * Pattern examples: "*.jsx", "components" with "**" prefix for recursive
+   * @param {string} pattern - Glob pattern to match files
    * @returns {string[]} - Matching file paths
    */
   glob(pattern) {
