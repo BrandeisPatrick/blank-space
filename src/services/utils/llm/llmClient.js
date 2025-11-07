@@ -151,6 +151,14 @@ export async function callLLM({
       if (tools && Array.isArray(tools) && tools.length > 0) {
         apiParams.tools = tools;
         apiParams.tool_choice = 'auto';
+
+        // DEBUG: Log tools being sent to API
+        console.log(`   📦 Tools payload:`);
+        console.log(`      - Count: ${tools.length}`);
+        console.log(`      - Names: ${tools.map(t => t.function.name).join(', ')}`);
+        if (tools.length > 0) {
+          console.log(`      - Sample tool schema:`, JSON.stringify(tools[0], null, 2).substring(0, 300) + '...');
+        }
       }
 
       // Create API call promise
@@ -484,8 +492,18 @@ export async function callLLMWithTools({
       const firstChoice = response.choices[0];
       const toolCalls = firstChoice.message.tool_calls;
 
+      // DEBUG: Log response structure
+      console.log(`   📨 LLM Response Details:`);
+      console.log(`      - message.content: "${(firstChoice.message.content || '').substring(0, 100)}..."`);
+      console.log(`      - message.tool_calls: ${toolCalls ? `Array(${toolCalls.length})` : 'undefined'}`);
+      console.log(`      - Full message object keys:`, Object.keys(firstChoice.message));
+      console.log(`      - First choice keys:`, Object.keys(firstChoice));
+
       if (!toolCalls || toolCalls.length === 0) {
         // No tool calls - LLM is done, return final response
+        console.log(`   ⚠️  No tool calls detected!`);
+        console.log(`   📝 LLM text response (first 500 chars):`);
+        console.log(`      ${(firstChoice.message.content || '').substring(0, 500)}`);
         console.log(`✅ LLM finished (no tool calls). Loop count: ${loopCount}`);
         return response;
       }
