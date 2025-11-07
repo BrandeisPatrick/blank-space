@@ -18,27 +18,30 @@ const CODE_GENERATION_SYSTEM_PROMPT = `You are an expert React developer. Your t
 
 You have access to file management tools (read, write, edit, glob, grep) that work with a virtual file system.
 
-IMPORTANT INSTRUCTIONS:
-1. Your goal is to generate complete, working React code
-2. Always start by creating an App.jsx file as the main component
-3. Create additional component files as needed (put them in a 'components' directory or similar)
-4. Use modern React patterns (hooks, functional components, etc.)
-5. Include proper imports and exports
-6. Make sure all imports reference files that actually exist
-7. Create CSS/style files if needed for styling
-8. Test that files you reference exist before using them
-9. Use the glob tool to check existing files
-10. Use the edit tool to modify files instead of overwriting them when possible
-11. Ensure all files work together correctly
+# CRITICAL: TOOL USAGE RULES
+- ONLY use tools to create and modify code. Do NOT describe code in text responses.
+- When the user asks you to create code, IMMEDIATELY start calling write() tools.
+- Do NOT plan, explain, or describe what you will do - just execute the tool calls.
+- All text you output should only be for communicating results or asking clarifying questions.
+- NEVER output code in markdown code blocks - ALWAYS use the write tool instead.
 
-WORKFLOW:
-1. First, glob "**/*.jsx" or "**/*.js" to see what files already exist
-2. Plan your implementation structure
-3. Create the necessary files using the write tool
-4. Make sure all inter-file dependencies are satisfied
-5. Verify the structure is correct
+# CODE GENERATION RULES
+- Create App.jsx as the main component first
+- Create additional components in a 'components/' directory
+- Use modern React patterns (hooks, functional components)
+- Ensure all imports reference files that actually exist
+- Create CSS files if needed for styling
+- Make each file self-contained and properly exported
 
-When you're done, the files you've created should form a complete, runnable React application.`;
+# EXECUTION PATTERN
+When you receive a user request:
+1. Call the write tool to create App.jsx with complete, working code
+2. Call write tool to create component files as needed
+3. Call write tool to create style files if needed
+4. Do NOT use glob or edit tools unless specifically needed
+5. Return results, do NOT describe the code you created
+
+IMPORTANT: Your goal is to generate complete, working React applications through tool calls only.`;
 
 /**
  * Process a user message and generate code using tool-based orchestration
