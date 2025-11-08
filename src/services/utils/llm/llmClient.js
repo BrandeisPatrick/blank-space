@@ -470,6 +470,10 @@ export async function callLLMWithTools({
 
   let loopCount = 0;
 
+  // Track recent tool calls for doom loop detection
+  const recentToolCalls = [];
+  const DOOM_LOOP_THRESHOLD = 3;
+
   // Tool calling loop
   while (loopCount < maxToolLoops) {
     loopCount++;
@@ -522,6 +526,7 @@ export async function callLLMWithTools({
       for (const toolCall of toolCalls) {
         const toolName = toolCall.function.name;
         const toolCallId = toolCall.id;
+        const callSignature = `${toolName}:${toolCall.function.arguments}`;
 
         try {
           // Parse tool parameters
@@ -553,9 +558,64 @@ export async function callLLMWithTools({
 
           if (toolResult.success) {
             console.log(`     ✅ Success`);
+
+            // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
+            if (toolName === 'write' && params.filename && params.content) {
+              console.log(`     🔍 Auto-validating written file: ${params.filename}`);
+              try {
+                const validateResult = await executor.execute('validate', {
+                  filename: params.filename,
+                  content: params.content
+                }, context);
+
+                if (!validateResult.success) {
+                  // Add validation error as tool result so LLM sees it
+                  console.log(`     ⚠️  Validation failed: ${validateResult.errors?.length || 0} error(s)`);
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: `validate_${toolCallId}`,
+                    content: JSON.stringify({
+                      tool: 'validate',
+                      filename: params.filename,
+                      success: false,
+                      errors: validateResult.errors,
+                      guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.'
+                    })
+                  });
+                } else {
+                  console.log(`     ✅ Validation passed`);
+                }
+              } catch (validateError) {
+                console.log(`     ⚠️  Validation check skipped: ${validateError.message}`);
+              }
+            }
           } else {
             console.log(`     ❌ Failed: ${toolResult.error}`);
           }
+
+          // DOOM LOOP DETECTION: Track recent tool calls
+          recentToolCalls.push(callSignature);
+          if (recentToolCalls.length > DOOM_LOOP_THRESHOLD) {
+            recentToolCalls.shift(); // Keep only last N calls
+          }
+
+          // Check if last N calls are identical (doom loop)
+          if (recentToolCalls.length === DOOM_LOOP_THRESHOLD) {
+            const allSame = recentToolCalls.every(call => call === recentToolCalls[0]);
+            if (allSame) {
+              console.warn(`⚠️  DOOM LOOP DETECTED: Same tool call repeated ${DOOM_LOOP_THRESHOLD} times`);
+              console.warn(`    Tool: ${toolName}`);
+              console.warn(`    Args: ${toolCall.function.arguments.substring(0, 100)}...`);
+              // Add feedback to conversation
+              conversationMessages.push({
+                role: 'user',
+                content: `⚠️ ATTENTION: You called the same tool with identical parameters ${DOOM_LOOP_THRESHOLD} times in a row. This indicates a loop. ` +
+                  `Try a different approach, use different parameters, or use a different tool. ` +
+                  `If the previous tool call failed with validation errors, fix those errors and try again with corrected code.`
+              });
+            }
+          }
+
         } catch (error) {
           console.error(`  ❌ Tool execution error: ${error.message}`);
 
