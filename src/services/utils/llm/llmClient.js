@@ -560,11 +560,11 @@ export async function callLLMWithTools({
             console.log(`     ✅ Success`);
 
             // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
-            if (toolName === 'write' && params.filename && params.content) {
-              console.log(`     🔍 Auto-validating written file: ${params.filename}`);
+            if (toolName === 'write' && params.path && params.content) {
+              console.log(`     🔍 Auto-validating written file: ${params.path}`);
               try {
                 const validateResult = await executor.execute('validate', {
-                  filename: params.filename,
+                  filename: params.path,
                   content: params.content
                 }, context);
 
@@ -576,7 +576,7 @@ export async function callLLMWithTools({
                     tool_call_id: `validate_${toolCallId}`,
                     content: JSON.stringify({
                       tool: 'validate',
-                      filename: params.filename,
+                      filename: params.path,
                       success: false,
                       errors: validateResult.errors,
                       guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.'
