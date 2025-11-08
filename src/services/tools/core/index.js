@@ -8,6 +8,7 @@ export { writeTool } from './write.js';
 export { editTool } from './edit.js';
 export { globTool } from './glob.js';
 export { grepTool } from './grep.js';
+export { validateTool } from './validate.js';
 
 // Export as array for easy registration
 export const coreTools = async () => {
@@ -16,8 +17,9 @@ export const coreTools = async () => {
   const { editTool } = await import('./edit.js');
   const { globTool } = await import('./glob.js');
   const { grepTool } = await import('./grep.js');
+  const { validateTool } = await import('./validate.js');
 
-  return [readTool, writeTool, editTool, globTool, grepTool];
+  return [readTool, writeTool, editTool, globTool, grepTool, validateTool];
 };
 
 export default coreTools;
