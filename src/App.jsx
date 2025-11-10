@@ -55,7 +55,7 @@ function App() {
       setFiles({});
       setChatMessages([]);
     }
-  }, [activeArtifactId]);
+  }, [activeArtifactId, activeArtifact?.files]);
 
   // Save chat messages to artifact whenever they change
   useEffect(() => {

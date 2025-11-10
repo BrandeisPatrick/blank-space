@@ -275,17 +275,6 @@ function checkStyleWarnings(content, filename, warnings) {
   lines.forEach((line, index) => {
     const lineNum = index + 1;
 
-    // Check for single quotes in imports (should be double)
-    if (/import\s+.*\s+from\s+'[^']+'/.test(line)) {
-      warnings.push({
-        type: 'STYLE_WARNING',
-        message: 'Use double quotes in imports, not single quotes',
-        line: lineNum,
-        current: "from 'module'",
-        suggested: 'from "module"'
-      });
-    }
-
     // Check for console statements (in production code, should be removed before finishing)
     if (/console\.(log|debug|info)/.test(line) && !line.trim().startsWith('//')) {
       warnings.push({

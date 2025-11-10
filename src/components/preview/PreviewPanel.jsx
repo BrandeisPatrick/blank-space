@@ -132,6 +132,53 @@ export const PreviewPanel = ({ files, onError }) => {
 <body>
     <div id="root"></div>
 
+    <!-- localStorage Polyfill for Sandboxed Iframe -->
+    <script>
+      // Create in-memory storage that mimics localStorage API
+      (function() {
+        const storage = {};
+
+        const memoryStorage = {
+          getItem: function(key) {
+            return storage.hasOwnProperty(key) ? storage[key] : null;
+          },
+          setItem: function(key, value) {
+            storage[key] = String(value);
+          },
+          removeItem: function(key) {
+            delete storage[key];
+          },
+          clear: function() {
+            for (let key in storage) {
+              if (storage.hasOwnProperty(key)) {
+                delete storage[key];
+              }
+            }
+          },
+          key: function(index) {
+            const keys = Object.keys(storage);
+            return index >= 0 && index < keys.length ? keys[index] : null;
+          },
+          get length() {
+            return Object.keys(storage).length;
+          }
+        };
+
+        // Override localStorage and sessionStorage
+        Object.defineProperty(window, 'localStorage', {
+          value: memoryStorage,
+          writable: false,
+          configurable: false
+        });
+
+        Object.defineProperty(window, 'sessionStorage', {
+          value: memoryStorage,
+          writable: false,
+          configurable: false
+        });
+      })();
+    </script>
+
     <!-- React & ReactDOM from CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -204,6 +251,53 @@ export const PreviewPanel = ({ files, onError }) => {
     </style>
 </head>
 <body>
+    <!-- localStorage Polyfill for Sandboxed Iframe -->
+    <script>
+      // Create in-memory storage that mimics localStorage API
+      (function() {
+        const storage = {};
+
+        const memoryStorage = {
+          getItem: function(key) {
+            return storage.hasOwnProperty(key) ? storage[key] : null;
+          },
+          setItem: function(key, value) {
+            storage[key] = String(value);
+          },
+          removeItem: function(key) {
+            delete storage[key];
+          },
+          clear: function() {
+            for (let key in storage) {
+              if (storage.hasOwnProperty(key)) {
+                delete storage[key];
+              }
+            }
+          },
+          key: function(index) {
+            const keys = Object.keys(storage);
+            return index >= 0 && index < keys.length ? keys[index] : null;
+          },
+          get length() {
+            return Object.keys(storage).length;
+          }
+        };
+
+        // Override localStorage and sessionStorage
+        Object.defineProperty(window, 'localStorage', {
+          value: memoryStorage,
+          writable: false,
+          configurable: false
+        });
+
+        Object.defineProperty(window, 'sessionStorage', {
+          value: memoryStorage,
+          writable: false,
+          configurable: false
+        });
+      })();
+    </script>
+
     ${html}
     <script>
       window.addEventListener('error', function(e) {
@@ -461,7 +555,7 @@ export const PreviewPanel = ({ files, onError }) => {
               height: '100%',
               border: 'none',
             }}
-            sandbox="allow-scripts allow-forms allow-same-origin"
+            sandbox="allow-scripts allow-forms"
             title="Website Preview"
           />
         </div>
