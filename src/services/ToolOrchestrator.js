@@ -63,30 +63,30 @@ This is a BROWSER-BASED preview system. Follow these STRICT rules:
 - NO inline styles, NO plain CSS (Tailwind utilities only)
 - Tailwind CDN is pre-loaded and ready to use
 
-✅ DEFAULT DARK THEME WITH GRADIENTS:
-- Background: "min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+✅ DEFAULT MODERN LIGHT THEME:
+- Background: "min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50"
 - Container: max-w-4xl mx-auto px-4 py-12
 
 ✅ HERO HEADER (Include in every app):
-- Title: "text-5xl md:text-6xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent"
-- Subtitle: "text-xl text-gray-400 mt-4 mb-12"
-- Example: <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Todo List</h1>
+- Title: "text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+- Subtitle: "text-xl text-gray-600 mt-4 mb-12"
+- Example: <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Todo List</h1>
 
 ✅ GLASSMORPHISM CONTAINERS:
-- "bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-8"
-- Add subtle glow: "shadow-cyan-500/10"
+- "bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl p-8"
+- Add subtle glow: "shadow-blue-100/50"
 
 ✅ BUTTONS:
-- Primary: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all"
-- Secondary: "bg-slate-700 hover:bg-slate-600 text-gray-200 px-6 py-3 rounded-xl transition-all"
+- Primary: "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all"
+- Secondary: "bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl transition-all"
 
 ✅ INPUT FIELDS:
-- "bg-slate-800/50 border border-slate-700 text-gray-200 rounded-xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder:text-gray-500"
+- "bg-white border border-gray-300 text-gray-900 rounded-xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-500"
 
 ✅ TYPOGRAPHY:
-- Headings: "text-3xl font-bold text-gray-100" (h2), "text-2xl font-semibold text-gray-200" (h3)
-- Body: "text-base text-gray-300"
-- Muted/labels: "text-sm text-gray-400"
+- Headings: "text-3xl font-bold text-gray-900" (h2), "text-2xl font-semibold text-gray-800" (h3)
+- Body: "text-base text-gray-700"
+- Muted/labels: "text-sm text-gray-600"
 
 ✅ SPACING (Avoid excessive empty space):
 - Section gaps: gap-8, gap-10 (NOT gap-20 or gap-32)
@@ -95,17 +95,17 @@ This is a BROWSER-BASED preview system. Follow these STRICT rules:
 
 ✅ INTERACTIVE EFFECTS:
 - Smooth transitions: "transition-all duration-300"
-- Shadows with glow: "shadow-xl shadow-cyan-500/50"
+- Shadows with glow: "shadow-xl shadow-blue-100/50"
 - Hover states: "hover:shadow-xl hover:scale-[1.02]"
-- Focus states: "focus:ring-2 focus:ring-cyan-500"
+- Focus states: "focus:ring-2 focus:ring-blue-500"
 
 ✅ EMPTY STATES (Make them elegant):
 - Center with padding: "py-16 text-center"
-- Styling: "text-gray-400 text-lg"
+- Styling: "text-gray-600 text-lg"
 - Encouraging copy: "Your list is empty. Add your first item to get started!"
 
 ✅ LIST ITEMS (for todo lists, etc.):
-- "flex items-center gap-4 p-4 bg-slate-700/30 border border-slate-600/30 rounded-xl hover:bg-slate-700/50 transition-all"
+- "flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-all"
 
 # VALIDATION & ERROR CORRECTION WORKFLOW
 When you write code, it will be automatically validated. If validation fails:
