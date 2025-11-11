@@ -127,10 +127,6 @@ export async function callLLM({
   let lastError = null;
   const startTime = Date.now();
 
-  // Log request details
-  const toolsInfo = (tools && tools.length > 0) ? ` with ${tools.length} tool(s)` : '';
-  console.log(`\n🔄 LLM Request: ${model}${toolsInfo} (timeout: ${effectiveTimeout}ms, max_tokens: ${maxTokens})`);
-
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Create timeout promise
@@ -151,14 +147,6 @@ export async function callLLM({
       if (tools && Array.isArray(tools) && tools.length > 0) {
         apiParams.tools = tools;
         apiParams.tool_choice = 'auto';
-
-        // DEBUG: Log tools being sent to API
-        console.log(`   📦 Tools payload:`);
-        console.log(`      - Count: ${tools.length}`);
-        console.log(`      - Names: ${tools.map(t => t.function.name).join(', ')}`);
-        if (tools.length > 0) {
-          console.log(`      - Sample tool schema:`, JSON.stringify(tools[0], null, 2).substring(0, 300) + '...');
-        }
       }
 
       // Create API call promise
@@ -182,29 +170,6 @@ export async function callLLM({
 
       if (!response.choices[0]?.message) {
         throw new Error(`Invalid response from ${model}: missing message in first choice`);
-      }
-
-      // Log response details
-      const duration = Date.now() - startTime;
-      const content = response.choices[0].message.content || '';
-      const finishReason = response.choices[0].finish_reason || 'unknown';
-
-      console.log(`✅ LLM Response: ${model} completed in ${duration}ms`);
-      console.log(`   Finish reason: ${finishReason}`);
-      console.log(`   Content length: ${content.length} characters`);
-      console.log(`   Tokens used: ${response.usage?.total_tokens || 'N/A'}`);
-
-      if (content.length === 0) {
-        console.warn(`⚠️  WARNING: Empty response received from ${model}`);
-        console.warn(`   Finish reason: ${finishReason}`);
-        console.warn(`   This may indicate the model hit token limits or content filtering.`);
-        if (isGPT5) {
-          const reasoningTokens = response.usage?.completion_tokens_details?.reasoning_tokens || 0;
-          if (reasoningTokens > 0) {
-            console.warn(`   Reasoning tokens used: ${reasoningTokens}`);
-            console.warn(`   Consider increasing maxTokens if the limit was exhausted.`);
-          }
-        }
       }
 
       // Success - return response
@@ -464,10 +429,6 @@ export async function callLLMWithTools({
   const tools = toolRegistry.toOpenAISchema();
   const executor = new ToolExecutor(toolRegistry);
 
-  console.log(`\n🔧 Tool-based LLM call: ${model}`);
-  console.log(`   Tools available: ${toolRegistry.getToolNames().join(', ')}`);
-  console.log(`   Max tool loops: ${maxToolLoops}`);
-
   let loopCount = 0;
 
   // Track recent tool calls for doom loop detection
@@ -477,7 +438,6 @@ export async function callLLMWithTools({
   // Tool calling loop
   while (loopCount < maxToolLoops) {
     loopCount++;
-    console.log(`\n📍 Tool loop iteration ${loopCount}/${maxToolLoops}`);
 
     try {
       // Call LLM with tools
@@ -496,23 +456,10 @@ export async function callLLMWithTools({
       const firstChoice = response.choices[0];
       const toolCalls = firstChoice.message.tool_calls;
 
-      // DEBUG: Log response structure
-      console.log(`   📨 LLM Response Details:`);
-      console.log(`      - message.content: "${(firstChoice.message.content || '').substring(0, 100)}..."`);
-      console.log(`      - message.tool_calls: ${toolCalls ? `Array(${toolCalls.length})` : 'undefined'}`);
-      console.log(`      - Full message object keys:`, Object.keys(firstChoice.message));
-      console.log(`      - First choice keys:`, Object.keys(firstChoice));
-
       if (!toolCalls || toolCalls.length === 0) {
         // No tool calls - LLM is done, return final response
-        console.log(`   ⚠️  No tool calls detected!`);
-        console.log(`   📝 LLM text response (first 500 chars):`);
-        console.log(`      ${(firstChoice.message.content || '').substring(0, 500)}`);
-        console.log(`✅ LLM finished (no tool calls). Loop count: ${loopCount}`);
         return response;
       }
-
-      console.log(`🔨 LLM requested ${toolCalls.length} tool(s)`);
 
       // Add assistant message to conversation
       conversationMessages.push({
@@ -537,9 +484,6 @@ export async function callLLMWithTools({
             throw new Error(`Failed to parse tool arguments: ${parseError.message}`);
           }
 
-          console.log(`  🔧 Executing: ${toolName}`);
-          console.log(`     Call ID: ${toolCallId}`);
-
           // Execute the tool
           const toolResult = await executor.execute(toolName, params, context);
 
@@ -557,11 +501,8 @@ export async function callLLMWithTools({
           });
 
           if (toolResult.success) {
-            console.log(`     ✅ Success`);
-
             // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
             if (toolName === 'write' && params.path && params.content) {
-              console.log(`     🔍 Auto-validating written file: ${params.path}`);
               try {
                 const validateResult = await executor.execute('validate', {
                   filename: params.path,
@@ -570,7 +511,6 @@ export async function callLLMWithTools({
 
                 if (!validateResult.success) {
                   // Add validation error as tool result so LLM sees it
-                  console.log(`     ⚠️  Validation failed: ${validateResult.errors?.length || 0} error(s)`);
                   conversationMessages.push({
                     role: 'tool',
                     tool_call_id: `validate_${toolCallId}`,
@@ -582,15 +522,11 @@ export async function callLLMWithTools({
                       guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.'
                     })
                   });
-                } else {
-                  console.log(`     ✅ Validation passed`);
                 }
               } catch (validateError) {
-                console.log(`     ⚠️  Validation check skipped: ${validateError.message}`);
+                // Validation check skipped
               }
             }
-          } else {
-            console.log(`     ❌ Failed: ${toolResult.error}`);
           }
 
           // DOOM LOOP DETECTION: Track recent tool calls
@@ -603,9 +539,6 @@ export async function callLLMWithTools({
           if (recentToolCalls.length === DOOM_LOOP_THRESHOLD) {
             const allSame = recentToolCalls.every(call => call === recentToolCalls[0]);
             if (allSame) {
-              console.warn(`⚠️  DOOM LOOP DETECTED: Same tool call repeated ${DOOM_LOOP_THRESHOLD} times`);
-              console.warn(`    Tool: ${toolName}`);
-              console.warn(`    Args: ${toolCall.function.arguments.substring(0, 100)}...`);
               // Add feedback to conversation
               conversationMessages.push({
                 role: 'user',
@@ -617,8 +550,6 @@ export async function callLLMWithTools({
           }
 
         } catch (error) {
-          console.error(`  ❌ Tool execution error: ${error.message}`);
-
           // Add error result to messages
           conversationMessages.push({
             role: 'tool',
@@ -638,11 +569,8 @@ export async function callLLMWithTools({
         }
       }
 
-      console.log(`   Tool results: ${toolResults.filter(r => r.success).length}/${toolResults.length} successful`);
-
     } catch (error) {
       // LLM call failed
-      console.error(`\n❌ Tool-based LLM call failed at loop ${loopCount}: ${error.message}`);
       throw error;
     }
   }

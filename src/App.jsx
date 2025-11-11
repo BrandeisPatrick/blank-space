@@ -216,15 +216,13 @@ function App() {
           thinking.updateStep(currentStepId, { label: update.content, status: 'active' });
         }
       } else if (update.type === 'intent') {
-        // Intent classification step - log to console instead of showing in chat
-        console.log('🎯 Intent Classification:', update.content);
+        // Intent classification step
         currentStepId = thinking.addStep('Understanding your request', 'active');
         thinking.completeStep(currentStepId);
         currentStepId = null;
         return; // Don't add to chat messages
       } else if (update.type === 'plan') {
-        // Planning step - log to console instead of showing in chat
-        console.log('📋 Plan:', update.content);
+        // Planning step
         currentStepId = thinking.addStep('Planning solution', 'active');
         thinking.completeStep(currentStepId);
         thinking.startStreaming();
@@ -238,14 +236,6 @@ function App() {
     try {
       // Process message with AI agents
       const result = await processMessage(message, files, onUpdate);
-
-      // DEBUG: Log file operations received
-      console.log('✅ File operations received from orchestrator:');
-      if (result.fileOperations) {
-        result.fileOperations.forEach(op => {
-          console.log(`   ${op.type}: ${op.filename} (${op.content?.length || 0} chars)`);
-        });
-      }
 
       if (result.success && result.fileOperations) {
         // Add generating steps for each file
@@ -261,20 +251,14 @@ function App() {
           newFiles[op.filename] = op.content;
         });
 
-        // DEBUG: Log files being saved
-        console.log('💾 Files to save to artifact:', Object.keys(newFiles));
-        console.log('   Active artifact ID:', activeArtifactId);
-
         // If no active artifact, create a new one
         if (!activeArtifactId) {
           const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
           createArtifact(artifactName, newFiles);
         } else {
           // Update existing artifact
-          console.log('🔄 Updating existing artifact with new files');
           setFiles(newFiles);
           updateArtifactFiles(activeArtifactId, newFiles);
-          console.log('✓ setFiles() and updateArtifactFiles() called');
         }
 
         // Switch to the first created/modified file

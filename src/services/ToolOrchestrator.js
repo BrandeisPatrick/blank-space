@@ -219,13 +219,6 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     // Extract final response content
     const finalContent = llmResponse.choices[0]?.message?.content || '';
 
-    // DEBUG: Log LLM final response
-    console.log(`\n📋 LLM Final Response:`);
-    console.log(`   Content length: ${finalContent.length} chars`);
-    console.log(`   Content preview (first 500 chars):`);
-    console.log(`   ${finalContent.substring(0, 500)}`);
-    console.log(`   Finish reason: ${llmResponse.choices[0]?.finish_reason}`);
-
     sendUpdate({
       type: 'thinking',
       content: 'Collecting generated files...'
@@ -233,16 +226,6 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
 
     // Get all files from virtual file system
     const generatedFiles = vfs.getAll();
-
-    // DEBUG: Log VFS state
-    console.log(`\n📁 VirtualFS State After LLM:`);
-    console.log(`   File count: ${Object.keys(generatedFiles).length}`);
-    console.log(`   Files: ${Object.keys(generatedFiles).join(', ') || '(none)'}`);
-    if (Object.keys(generatedFiles).length > 0) {
-      Object.entries(generatedFiles).forEach(([name, content]) => {
-        console.log(`     - ${name}: ${content.length} chars`);
-      });
-    }
 
     // Create file operations for the UI
     const fileOperations = Object.entries(generatedFiles).map(([filename, content]) => {
@@ -254,10 +237,6 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
         content
       };
     });
-
-    // Log to console for debugging
-    console.log(`✅ Code generation complete in ${Date.now() - startTime}ms`);
-    console.log(`Generated ${fileOperations.length} files`);
 
     // Send completion update
     sendUpdate({
