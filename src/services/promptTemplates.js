@@ -9,6 +9,7 @@
 import prompts from "./prompts.json" with { type: "json" };
 
 // Re-export all prompt templates for backward compatibility
+export const BROWSER_RENDERABILITY_RULES = prompts.BROWSER_RENDERABILITY_RULES;
 export const THINKING_FRAMEWORK = prompts.THINKING_FRAMEWORK;
 export const IMPORT_RESOLUTION_RULES = prompts.IMPORT_RESOLUTION_RULES;
 export const COMPLETENESS_PRINCIPLES = prompts.COMPLETENESS_PRINCIPLES;

@@ -11,7 +11,7 @@ import { PreviewPanel } from "./components/preview";
 import { ArtifactSidebar } from "./components/artifact";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
-import { processMessage } from "./services/agentOrchestrator";
+import { processMessage } from "./services/ToolOrchestrator.js";
 import { reactExamples } from "./templates";
 import "./styles/App.css";
 
@@ -55,7 +55,7 @@ function App() {
       setFiles({});
       setChatMessages([]);
     }
-  }, [activeArtifactId]);
+  }, [activeArtifactId, activeArtifact?.files]);
 
   // Save chat messages to artifact whenever they change
   useEffect(() => {

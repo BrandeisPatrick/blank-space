@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     // Extract request body
-    const { model, messages, temperature, max_tokens, max_completion_tokens } = req.body;
+    const { model, messages, temperature, max_tokens, max_completion_tokens, tools, tool_choice } = req.body;
 
     // Validate required fields
     if (!model || !messages) {
@@ -72,6 +72,12 @@ export default async function handler(req, res) {
     }
     if (max_completion_tokens !== undefined) {
       openaiRequestBody.max_completion_tokens = max_completion_tokens;
+    }
+    if (tools !== undefined) {
+      openaiRequestBody.tools = tools;
+    }
+    if (tool_choice !== undefined) {
+      openaiRequestBody.tool_choice = tool_choice;
     }
 
     // Make request to OpenAI API

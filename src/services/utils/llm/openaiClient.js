@@ -29,6 +29,8 @@ class SecureOpenAIClient {
                 temperature: options.temperature,
                 max_tokens: options.max_tokens,
                 max_completion_tokens: options.max_completion_tokens,
+                tools: options.tools,
+                tool_choice: options.tool_choice,
               }),
             });
 

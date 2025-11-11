@@ -1,4 +1,5 @@
 import { openai } from "./openaiClient.js";
+import { ToolExecutor } from "../../tools/ToolExecutor.js";
 
 /**
  * Shared LLM Client
@@ -65,8 +66,10 @@ function getUserFriendlyError(error) {
  *
  * @param {Object} options - Configuration options
  * @param {string} options.model - Model name (e.g., 'gpt-4o-mini', 'gpt-5-mini')
- * @param {string} options.systemPrompt - System prompt
- * @param {string} options.userPrompt - User prompt
+ * @param {string} options.systemPrompt - System prompt (for backwards compatibility, use messages instead)
+ * @param {string} options.userPrompt - User prompt (for backwards compatibility, use messages instead)
+ * @param {Array} [options.messages] - Messages array (preferred over systemPrompt/userPrompt)
+ * @param {Array} [options.tools] - Tool definitions for function calling
  * @param {number} [options.maxTokens=1500] - Max tokens to generate
  * @param {number} [options.temperature=0.7] - Temperature (ignored for GPT-5)
  * @param {number} [options.maxRetries=3] - Max retry attempts
@@ -79,6 +82,8 @@ export async function callLLM({
   model,
   systemPrompt,
   userPrompt,
+  messages = null,
+  tools = null,
   maxTokens = 1500,
   temperature = 0.7,
   maxRetries = 3,
@@ -104,19 +109,27 @@ export async function callLLM({
     : { max_tokens: maxTokens };
   const tempParam = isGPT5 ? {} : { temperature };
 
-  // Build messages array
-  const messages = [];
-  if (systemPrompt) {
-    messages.push({ role: 'system', content: systemPrompt });
+  // Build messages array - use provided messages or fallback to systemPrompt/userPrompt
+  let finalMessages = [];
+  if (messages && Array.isArray(messages) && messages.length > 0) {
+    finalMessages = messages;
+  } else {
+    // Backwards compatibility with systemPrompt/userPrompt
+    if (systemPrompt) {
+      finalMessages.push({ role: 'system', content: systemPrompt });
+    }
+    if (userPrompt) {
+      finalMessages.push({ role: 'user', content: userPrompt });
+    }
   }
-  messages.push({ role: 'user', content: userPrompt });
 
   // Retry loop with exponential backoff
   let lastError = null;
   const startTime = Date.now();
 
   // Log request details
-  console.log(`\n🔄 LLM Request: ${model} (timeout: ${effectiveTimeout}ms, max_tokens: ${maxTokens})`);
+  const toolsInfo = (tools && tools.length > 0) ? ` with ${tools.length} tool(s)` : '';
+  console.log(`\n🔄 LLM Request: ${model}${toolsInfo} (timeout: ${effectiveTimeout}ms, max_tokens: ${maxTokens})`);
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -125,14 +138,31 @@ export async function callLLM({
         setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout);
       });
 
-      // Create API call promise
-      const apiPromise = openai.chat.completions.create({
+      // Build API request parameters
+      const apiParams = {
         model,
-        messages,
+        messages: finalMessages,
         ...tempParam,
         ...tokenParam,
         stream: false  // Explicitly disable streaming
-      });
+      };
+
+      // Add tools if provided
+      if (tools && Array.isArray(tools) && tools.length > 0) {
+        apiParams.tools = tools;
+        apiParams.tool_choice = 'auto';
+
+        // DEBUG: Log tools being sent to API
+        console.log(`   📦 Tools payload:`);
+        console.log(`      - Count: ${tools.length}`);
+        console.log(`      - Names: ${tools.map(t => t.function.name).join(', ')}`);
+        if (tools.length > 0) {
+          console.log(`      - Sample tool schema:`, JSON.stringify(tools[0], null, 2).substring(0, 300) + '...');
+        }
+      }
+
+      // Create API call promise
+      const apiPromise = openai.chat.completions.create(apiParams);
 
       // Race between API call and timeout
       const response = await Promise.race([apiPromise, timeoutPromise]);
@@ -383,8 +413,262 @@ export async function callLLMForJSON(options) {
   }
 }
 
+/**
+ * Call LLM with tool calling support
+ * Implements the tool calling loop where LLM can request tool execution
+ *
+ * @param {Object} options - Configuration options
+ * @param {string} options.model - Model name (e.g., 'gpt-4o', 'gpt-4-turbo')
+ * @param {string} options.systemPrompt - System prompt
+ * @param {Array} options.messages - Initial messages array (can include user/assistant messages)
+ * @param {Object} options.toolRegistry - ToolRegistry instance with registered tools
+ * @param {Object} options.context - Execution context (passed to tools, should include 'fs')
+ * @param {number} [options.maxTokens=2000] - Max tokens to generate
+ * @param {number} [options.temperature=0.7] - Temperature (ignored for GPT-5)
+ * @param {number} [options.maxRetries=3] - Max retry attempts per LLM call
+ * @param {number} [options.timeout=60000] - Timeout for LLM calls
+ * @param {number} [options.maxToolLoops=10] - Maximum number of tool calling loops
+ * @param {number} [options.baseDelay=1000] - Base delay for exponential backoff
+ * @returns {Promise<Object>} Final LLM response after tool calling loop completes
+ * @throws {Error} If tool execution fails or max loops exceeded
+ */
+export async function callLLMWithTools({
+  model,
+  systemPrompt,
+  messages = [],
+  toolRegistry,
+  context,
+  maxTokens = 2000,
+  temperature = 0.7,
+  maxRetries = 3,
+  timeout = 60000,
+  maxToolLoops = 10,
+  baseDelay = 1000
+}) {
+  // Validate inputs
+  if (!toolRegistry) {
+    throw new Error('toolRegistry is required for callLLMWithTools');
+  }
+  if (!context) {
+    throw new Error('context is required for callLLMWithTools');
+  }
+
+  // Build messages array with system prompt if provided
+  const conversationMessages = [];
+  if (systemPrompt) {
+    conversationMessages.push({ role: 'system', content: systemPrompt });
+  }
+  conversationMessages.push(...messages);
+
+  // Get tools in OpenAI schema format
+  const tools = toolRegistry.toOpenAISchema();
+  const executor = new ToolExecutor(toolRegistry);
+
+  console.log(`\n🔧 Tool-based LLM call: ${model}`);
+  console.log(`   Tools available: ${toolRegistry.getToolNames().join(', ')}`);
+  console.log(`   Max tool loops: ${maxToolLoops}`);
+
+  let loopCount = 0;
+
+  // Track recent tool calls for doom loop detection
+  const recentToolCalls = [];
+  const DOOM_LOOP_THRESHOLD = 3;
+
+  // Tool calling loop
+  while (loopCount < maxToolLoops) {
+    loopCount++;
+    console.log(`\n📍 Tool loop iteration ${loopCount}/${maxToolLoops}`);
+
+    try {
+      // Call LLM with tools
+      const response = await callLLM({
+        model,
+        messages: conversationMessages,
+        tools,
+        maxTokens,
+        temperature,
+        maxRetries,
+        timeout,
+        baseDelay
+      });
+
+      // Check if response has tool calls
+      const firstChoice = response.choices[0];
+      const toolCalls = firstChoice.message.tool_calls;
+
+      // DEBUG: Log response structure
+      console.log(`   📨 LLM Response Details:`);
+      console.log(`      - message.content: "${(firstChoice.message.content || '').substring(0, 100)}..."`);
+      console.log(`      - message.tool_calls: ${toolCalls ? `Array(${toolCalls.length})` : 'undefined'}`);
+      console.log(`      - Full message object keys:`, Object.keys(firstChoice.message));
+      console.log(`      - First choice keys:`, Object.keys(firstChoice));
+
+      if (!toolCalls || toolCalls.length === 0) {
+        // No tool calls - LLM is done, return final response
+        console.log(`   ⚠️  No tool calls detected!`);
+        console.log(`   📝 LLM text response (first 500 chars):`);
+        console.log(`      ${(firstChoice.message.content || '').substring(0, 500)}`);
+        console.log(`✅ LLM finished (no tool calls). Loop count: ${loopCount}`);
+        return response;
+      }
+
+      console.log(`🔨 LLM requested ${toolCalls.length} tool(s)`);
+
+      // Add assistant message to conversation
+      conversationMessages.push({
+        role: 'assistant',
+        content: firstChoice.message.content || '',
+        tool_calls: toolCalls
+      });
+
+      // Execute each tool call
+      const toolResults = [];
+      for (const toolCall of toolCalls) {
+        const toolName = toolCall.function.name;
+        const toolCallId = toolCall.id;
+        const callSignature = `${toolName}:${toolCall.function.arguments}`;
+
+        try {
+          // Parse tool parameters
+          let params = {};
+          try {
+            params = JSON.parse(toolCall.function.arguments);
+          } catch (parseError) {
+            throw new Error(`Failed to parse tool arguments: ${parseError.message}`);
+          }
+
+          console.log(`  🔧 Executing: ${toolName}`);
+          console.log(`     Call ID: ${toolCallId}`);
+
+          // Execute the tool
+          const toolResult = await executor.execute(toolName, params, context);
+
+          // Add tool result to messages
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCallId,
+            content: JSON.stringify(toolResult)
+          });
+
+          toolResults.push({
+            toolName,
+            toolCallId,
+            success: toolResult.success
+          });
+
+          if (toolResult.success) {
+            console.log(`     ✅ Success`);
+
+            // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
+            if (toolName === 'write' && params.path && params.content) {
+              console.log(`     🔍 Auto-validating written file: ${params.path}`);
+              try {
+                const validateResult = await executor.execute('validate', {
+                  filename: params.path,
+                  content: params.content
+                }, context);
+
+                if (!validateResult.success) {
+                  // Add validation error as tool result so LLM sees it
+                  console.log(`     ⚠️  Validation failed: ${validateResult.errors?.length || 0} error(s)`);
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: `validate_${toolCallId}`,
+                    content: JSON.stringify({
+                      tool: 'validate',
+                      filename: params.path,
+                      success: false,
+                      errors: validateResult.errors,
+                      guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.'
+                    })
+                  });
+                } else {
+                  console.log(`     ✅ Validation passed`);
+                }
+              } catch (validateError) {
+                console.log(`     ⚠️  Validation check skipped: ${validateError.message}`);
+              }
+            }
+          } else {
+            console.log(`     ❌ Failed: ${toolResult.error}`);
+          }
+
+          // DOOM LOOP DETECTION: Track recent tool calls
+          recentToolCalls.push(callSignature);
+          if (recentToolCalls.length > DOOM_LOOP_THRESHOLD) {
+            recentToolCalls.shift(); // Keep only last N calls
+          }
+
+          // Check if last N calls are identical (doom loop)
+          if (recentToolCalls.length === DOOM_LOOP_THRESHOLD) {
+            const allSame = recentToolCalls.every(call => call === recentToolCalls[0]);
+            if (allSame) {
+              console.warn(`⚠️  DOOM LOOP DETECTED: Same tool call repeated ${DOOM_LOOP_THRESHOLD} times`);
+              console.warn(`    Tool: ${toolName}`);
+              console.warn(`    Args: ${toolCall.function.arguments.substring(0, 100)}...`);
+              // Add feedback to conversation
+              conversationMessages.push({
+                role: 'user',
+                content: `⚠️ ATTENTION: You called the same tool with identical parameters ${DOOM_LOOP_THRESHOLD} times in a row. This indicates a loop. ` +
+                  `Try a different approach, use different parameters, or use a different tool. ` +
+                  `If the previous tool call failed with validation errors, fix those errors and try again with corrected code.`
+              });
+            }
+          }
+
+        } catch (error) {
+          console.error(`  ❌ Tool execution error: ${error.message}`);
+
+          // Add error result to messages
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCallId,
+            content: JSON.stringify({
+              success: false,
+              error: error.message
+            })
+          });
+
+          toolResults.push({
+            toolName,
+            toolCallId,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+
+      console.log(`   Tool results: ${toolResults.filter(r => r.success).length}/${toolResults.length} successful`);
+
+    } catch (error) {
+      // LLM call failed
+      console.error(`\n❌ Tool-based LLM call failed at loop ${loopCount}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Max loops exceeded
+  throw new Error(
+    `Tool calling loop exceeded maximum iterations (${maxToolLoops}). ` +
+    `LLM may be stuck in a tool-calling loop. Consider adjusting prompts or max loop count.`
+  );
+}
+
+/**
+ * Call LLM with tools and extract content
+ *
+ * @param {Object} options - Same as callLLMWithTools options
+ * @returns {Promise<string>} Extracted text content from final response
+ */
+export async function callLLMWithToolsAndExtract(options) {
+  const response = await callLLMWithTools(options);
+  return extractContent(response);
+}
+
 export default {
   callLLM,
+  callLLMWithTools,
+  callLLMWithToolsAndExtract,
   extractContent,
   callLLMAndExtract,
   callLLMForJSON
