@@ -3,11 +3,14 @@
  */
 
 export {
-  LightningIcon,
-  DocumentIcon,
-  GlobeIcon,
-  EditIcon,
+  AppIcon,
+  ArrowUpIcon,
+  BinaIcon,
   CopyIcon,
-  TrashIcon,
-  BinaIcon
+  DocumentIcon,
+  EditIcon,
+  GlobeIcon,
+  LightningIcon,
+  PaperclipIcon,
+  TrashIcon
 } from './icons';
