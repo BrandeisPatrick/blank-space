@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { useArtifacts } from '../../contexts/ArtifactContext';
@@ -10,6 +11,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
+  const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
 
   // Check if mobile viewport
   const isMobile = window.innerWidth <= 768;
@@ -20,8 +22,13 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
     onTryNow();
   };
 
-  // Suggestion prompts
-  const suggestions = [
+  // Handle suggestion pill click
+  const handleSuggestionPillClick = (suggestionPillText) => {
+    setSelectedSuggestionPillText(suggestionPillText);
+  };
+
+  // Suggestion pill prompts
+  const suggestionPills = [
     "Create a browser with a functional nav bar",
     "Show what you can do",
     "Choose your own adventure game"
@@ -45,7 +52,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         justifyContent: 'space-between',
         alignItems: 'center',
         background: theme.colors.bg.secondary,
-        boxShadow: theme.shadows.outset,
+        borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <div style={{
           display: 'flex',
@@ -71,27 +78,22 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         <button
           onClick={onSignIn}
           style={{
-            background: '#333333',
-            border: 'none',
+            background: theme.colors.accent.primary,
+            border: `1px solid ${theme.colors.border}`,
             color: '#ffffff',
             cursor: 'pointer',
             padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-            borderRadius: theme.radius.lg,
+            borderRadius: theme.radius.md,
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
             fontFamily: theme.typography.fontFamily.sans,
-            transition: `all ${theme.animation.normal}`,
-            boxShadow: theme.shadows.outset,
+            transition: `background ${theme.animation.fast}`,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#444444';
-            e.currentTarget.style.color = '#ffffff';
-            e.currentTarget.style.boxShadow = theme.shadows.glow;
+            e.currentTarget.style.background = '#d89077';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#333333';
-            e.currentTarget.style.color = '#ffffff';
-            e.currentTarget.style.boxShadow = theme.shadows.outset;
+            e.currentTarget.style.background = theme.colors.accent.primary;
           }}
         >
           Sign In
@@ -158,30 +160,35 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Suggestion Pills */}
-          <div style={{
-            display: 'flex',
-            gap: theme.spacing.md,
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            marginTop: artifacts && artifacts.length > 0 ? theme.spacing.xl : 0,
-          }}>
-            {suggestions.map((suggestion, index) => (
-              <SuggestionPill
-                key={index}
-                text={suggestion}
-                onClick={onTryNow}
-              />
-            ))}
-          </div>
+        {/* Suggestion Pills - Positioned closer to chat input */}
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: theme.spacing.md,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          maxWidth: '90%',
+          zIndex: 99,
+        }}>
+          {suggestionPills.map((pillText, index) => (
+            <SuggestionPill
+              key={index}
+              text={pillText}
+              onClick={() => handleSuggestionPillClick(pillText)}
+            />
+          ))}
         </div>
 
         {/* Enhanced Chat Input - Fixed at bottom */}
         <EnhancedChatInput
           placeholder="Let's make something"
-          onFocus={onTryNow}
           onSend={onTryNow}
+          initialMessage={selectedSuggestionPillText}
         />
       </main>
     </div>

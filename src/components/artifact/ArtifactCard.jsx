@@ -26,8 +26,6 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
   const theme = getTheme(mode);
   const [isHovered, setIsHovered] = useState(false);
 
-  const fileCount = Object.keys(artifact.files).length;
-
   return (
     <div
       onClick={() => onSelect(artifact.id)}
@@ -38,26 +36,27 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
         flexDirection: 'column',
         alignItems: 'center',
         gap: theme.spacing.sm,
-        padding: theme.spacing.lg,
-        background: isHovered ? theme.colors.bg.tertiary : theme.colors.bg.secondary,
-        border: `1px solid ${theme.colors.bg.border}`,
-        borderRadius: theme.radius.lg,
+        padding: theme.spacing.md,
         cursor: 'pointer',
-        transition: `all ${theme.animation.fast}`,
-        boxShadow: isHovered ? theme.shadows.glow : theme.shadows.outset,
+        transition: `transform ${theme.animation.fast}`,
+        transform: isHovered ? 'scale(1.05)' : 'scale(1)',
         width: '100%',
       }}
     >
-      {/* App Icon */}
+      {/* App Icon - Mobile App Style */}
       <div style={{
-        width: '64px',
-        height: '64px',
+        width: '80px',
+        height: '80px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: theme.colors.bg.primary,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing.sm,
+        background: 'linear-gradient(135deg, #F9F8F5 0%, #E8E4F3 100%)',
+        borderRadius: '18px',
+        border: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow: isHovered
+          ? '0 8px 16px rgba(0, 0, 0, 0.1)'
+          : '0 4px 12px rgba(0, 0, 0, 0.08)',
+        transition: `all ${theme.animation.fast}`,
       }}>
         <AppIcon size={48} color={theme.colors.text.secondary} />
       </div>
@@ -65,7 +64,7 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
       {/* Artifact Name */}
       <div style={{
         fontSize: theme.typography.fontSize.sm,
-        fontWeight: theme.typography.fontWeight.semibold,
+        fontWeight: theme.typography.fontWeight.medium,
         color: theme.colors.text.primary,
         textAlign: 'center',
         wordBreak: 'break-word',
@@ -75,22 +74,9 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
         display: '-webkit-box',
         WebkitLineClamp: 2,
         WebkitBoxOrient: 'vertical',
+        lineHeight: theme.typography.lineHeight.tight,
       }}>
         {artifact.name}
-      </div>
-
-      {/* Meta Info */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing.xs,
-        fontSize: theme.typography.fontSize.xs,
-        color: theme.colors.text.tertiary,
-        textAlign: 'center',
-        width: '100%',
-      }}>
-        <div>{fileCount} {fileCount === 1 ? 'file' : 'files'}</div>
-        <div>{formatDate(artifact.updatedAt)}</div>
       </div>
     </div>
   );

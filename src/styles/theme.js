@@ -1,50 +1,49 @@
 const lightTheme = {
   colors: {
-    // Milky/Cream UI color palette (Light Mode)
+    // Custom lavender & terracotta UI palette
     bg: {
-      primary: '#fefcf8',      // Warm cream background
-      secondary: '#f9f6f1',    // Soft cream for cards
-      tertiary: '#f4f0ea',     // Slightly darker cream for active states
-      hover: '#ede8e1',        // Hover states
-      border: '#e6e1d8',       // Border color in bg context
+      primary: '#C9CAD8',      // Background lavender
+      secondary: '#F9F8F5',    // Off-white for cards/panels
+      tertiary: '#D3D3DE',     // Suggestion cards/chips
+      hover: '#D1D2DE',        // Slightly darker lavender
+      border: '#D1D2DE',       // Border color
     },
-    border: '#e6e1d8',         // Subtle cream borders
+    border: '#D1D2DE',         // Borders
     text: {
-      primary: '#3c3530',      // Warm dark brown
-      secondary: '#6b635a',    // Medium brown
-      tertiary: '#938b82',     // Light brown
-      disabled: '#c2bdb6',     // Very light brown
+      primary: '#403530',      // Dark gray/brown
+      secondary: '#5a534e',    // Medium gray/brown
+      tertiary: '#86868b',     // Light gray
+      disabled: '#b0b0b0',     // Very light gray
     },
     accent: {
-      primary: '#333333',      // Dark grey for buttons
-      secondary: '#a68b5b',    // Golden brown
-      success: '#7d8471',      // Sage green
-      warning: '#c4965a',      // Warm amber
-      error: '#b8695d',        // Soft terracotta
-      info: '#a68b5b',         // Golden brown for info
+      primary: '#C97D63',      // Terracotta/orange for buttons
+      secondary: '#D1D2DE',    // Light lavender
+      success: '#34c759',      // Bright green
+      warning: '#ff9500',      // Orange
+      error: '#ff3b30',        // Bright red
+      info: '#C97D63',         // Terracotta for info
     },
     status: {
-      success: '#7d8471',      // Sage green
-      warning: '#c4965a',      // Warm amber
-      error: '#b8695d',        // Soft terracotta
-      info: '#a68b5b',         // Golden brown for info
+      success: '#34c759',      // Bright green
+      warning: '#ff9500',      // Orange
+      error: '#ff3b30',        // Bright red
+      info: '#C97D63',         // Terracotta for info
     },
     gradient: {
-      primary: 'linear-gradient(145deg, #f9f6f1, #ede8e1)',
-      subtle: 'linear-gradient(145deg, #fefcf8, #f4f0ea)',
-      button: 'linear-gradient(145deg, #f4f0ea, #ede8e1)',
+      primary: 'linear-gradient(145deg, #C9CAD8, #D1D2DE)',
+      subtle: 'linear-gradient(145deg, #D1D2DE, #C9CAD8)',
+      button: 'linear-gradient(145deg, #D3D3DE, #D1D2DE)',
     }
   },
   shadows: {
-    // Soft neumorphism shadows for milky UI
-    sm: 'inset 2px 2px 4px rgba(203, 189, 174, 0.3), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-    md: 'inset 3px 3px 6px rgba(203, 189, 174, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.9)',
-    lg: 'inset 4px 4px 8px rgba(203, 189, 174, 0.5), inset -4px -4px 8px rgba(255, 255, 255, 1)',
-    xl: 'inset 6px 6px 12px rgba(203, 189, 174, 0.6), inset -6px -6px 12px rgba(255, 255, 255, 1)',
-    // Outset shadows for buttons and elevated elements
-    outset: '2px 2px 4px rgba(203, 189, 174, 0.3), -2px -2px 4px rgba(255, 255, 255, 0.8)',
-    outsetMd: '3px 3px 6px rgba(203, 189, 174, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.9)',
-    glow: '0 0 8px rgba(139, 115, 85, 0.2)',
+    // Flat design - no shadows
+    sm: 'none',
+    md: 'none',
+    lg: 'none',
+    xl: 'none',
+    outset: 'none',
+    outsetMd: 'none',
+    glow: 'none',
   },
 }
 
@@ -86,16 +85,15 @@ const darkTheme = {
     }
   },
   shadows: {
-    // Strong neumorphic shadows for dark theme
-    sm: 'inset 2px 2px 5px rgba(0, 0, 0, 0.8), inset -2px -2px 5px rgba(255, 255, 255, 0.05)',
-    md: 'inset 4px 4px 8px rgba(0, 0, 0, 0.9), inset -4px -4px 8px rgba(255, 255, 255, 0.06)',
-    lg: 'inset 6px 6px 12px rgba(0, 0, 0, 1), inset -6px -6px 12px rgba(255, 255, 255, 0.07)',
-    xl: 'inset 8px 8px 16px rgba(0, 0, 0, 1), inset -8px -8px 16px rgba(255, 255, 255, 0.08)',
-    // Outset shadows for buttons and elevated elements (stronger neumorphism)
-    outset: '5px 5px 10px rgba(0, 0, 0, 0.8), -5px -5px 10px rgba(255, 255, 255, 0.05)',
-    outsetMd: '8px 8px 16px rgba(0, 0, 0, 0.9), -8px -8px 16px rgba(255, 255, 255, 0.06)',
-    outsetPressed: 'inset 3px 3px 6px rgba(0, 0, 0, 0.9), inset -3px -3px 6px rgba(255, 255, 255, 0.04)',
-    glow: '0 0 20px rgba(255, 255, 255, 0.1)',
+    // Flat design - no shadows
+    sm: 'none',
+    md: 'none',
+    lg: 'none',
+    xl: 'none',
+    outset: 'none',
+    outsetMd: 'none',
+    outsetPressed: 'none',
+    glow: 'none',
   },
 }
 
@@ -105,13 +103,13 @@ export const getTheme = (mode) => {
     ...baseTheme,
     shadow: baseTheme.shadows, // Add shadow alias for shadows
     radius: {
-      xs: '4px',
-      sm: '8px',
-      base: '12px',
-      md: '16px',
-      lg: '20px',
-      xl: '24px',
-      '2xl': '32px',
+      xs: '2px',
+      sm: '3px',
+      base: '4px',
+      md: '6px',
+      lg: '6px',
+      xl: '8px',
+      '2xl': '12px',
       full: '9999px',
     },
     spacing: {
@@ -149,9 +147,9 @@ export const getTheme = (mode) => {
       }
     },
     animation: {
-      fast: '150ms ease',
-      normal: '250ms ease',
-      slow: '350ms ease',
+      fast: '100ms ease',
+      normal: '150ms ease',
+      slow: '200ms ease',
     },
     breakpoints: {
       mobile: '768px',

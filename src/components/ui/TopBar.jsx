@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useArtifacts } from '../../contexts/ArtifactContext';
-import { ThemeToggle } from './ThemeToggle';
 import { ExamplesDropdown } from './ExamplesDropdown';
 import { SettingsDropdown } from './SettingsDropdown';
 import { getTheme } from '../../styles/theme';
@@ -281,8 +280,6 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
-          <ThemeToggle />
-
           <ExamplesDropdown onSelectExample={onLoadExample} />
 
           <SettingsDropdown onSignIn={onNavigateToSignIn} />

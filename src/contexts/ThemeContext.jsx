@@ -1,37 +1,15 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [mode, setMode] = useState(() => {
-    // Check localStorage first
-    const saved = localStorage.getItem('theme-mode');
-    if (saved) return saved;
-
-    // Otherwise check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
-  });
-
-  useEffect(() => {
-    // Save to localStorage whenever mode changes
-    localStorage.setItem('theme-mode', mode);
-
-    // Update document class for global styling if needed
-    document.documentElement.setAttribute('data-theme', mode);
-  }, [mode]);
-
-  // Memoize toggleTheme to prevent recreation on every render
-  const toggleTheme = useCallback(() => {
-    setMode(prev => prev === 'light' ? 'dark' : 'light');
-  }, []);
+  // Always use light mode
+  const mode = 'light';
 
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
-    () => ({ mode, toggleTheme }),
-    [mode, toggleTheme]
+    () => ({ mode }),
+    [mode]
   );
 
   return (
