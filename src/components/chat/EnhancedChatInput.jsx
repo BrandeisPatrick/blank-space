@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { PaperclipIcon, ArrowUpIcon } from '../icons/icons';
 
-export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocus, onSend }) => {
+export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocus, onSend, initialMessage = '' }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(initialMessage);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Update message when initialMessage prop changes
+  useEffect(() => {
+    if (initialMessage) {
+      setMessage(initialMessage);
+    }
+  }, [initialMessage]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -44,11 +51,10 @@ export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocu
         display: 'flex',
         alignItems: 'center',
         gap: theme.spacing.sm,
-        padding: theme.spacing.sm,
+        padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
         background: theme.colors.bg.secondary,
-        border: `1px solid ${theme.colors.bg.border}`,
-        borderRadius: theme.radius.xl,
-        boxShadow: theme.shadows.md,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.radius.full,
       }}>
         {/* Attachment Button */}
         <button
@@ -110,7 +116,7 @@ export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocu
             justifyContent: 'center',
             width: '40px',
             height: '40px',
-            background: message.trim() ? '#333333' : theme.colors.bg.tertiary,
+            background: message.trim() ? theme.colors.accent.primary : theme.colors.bg.tertiary,
             border: 'none',
             borderRadius: theme.radius.full,
             cursor: message.trim() ? 'pointer' : 'not-allowed',
@@ -120,12 +126,12 @@ export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocu
           }}
           onMouseEnter={(e) => {
             if (message.trim()) {
-              e.currentTarget.style.background = '#444444';
+              e.currentTarget.style.background = '#d89077';
             }
           }}
           onMouseLeave={(e) => {
             if (message.trim()) {
-              e.currentTarget.style.background = '#333333';
+              e.currentTarget.style.background = theme.colors.accent.primary;
             }
           }}
         >

@@ -14,16 +14,19 @@ export const SuggestionPill = ({ text, onClick }) => {
       onMouseLeave={() => setIsHovered(false)}
       style={{
         padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-        background: isHovered ? theme.colors.bg.tertiary : theme.colors.bg.secondary,
-        border: `1px solid ${theme.colors.bg.border}`,
-        borderRadius: theme.radius.xl,
+        background: isHovered
+          ? 'rgba(255, 255, 255, 0.3)'
+          : 'rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: theme.radius.md,
         color: theme.colors.text.primary,
         fontSize: theme.typography.fontSize.sm,
         fontWeight: theme.typography.fontWeight.medium,
         fontFamily: theme.typography.fontFamily.sans,
         cursor: 'pointer',
         transition: `all ${theme.animation.fast}`,
-        boxShadow: theme.shadows.outset,
         whiteSpace: 'nowrap',
       }}
     >
