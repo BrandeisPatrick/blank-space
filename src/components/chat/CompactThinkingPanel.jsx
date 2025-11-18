@@ -36,7 +36,7 @@ export const CompactThinkingPanel = ({
         border: `1px solid ${theme.colors.border}`,
         color: theme.colors.text.secondary,
         padding: '8px 14px',
-        borderRadius: '999px',
+        borderRadius: theme.radius.full,
         fontSize: theme.typography.fontSize.xs,
         fontWeight: theme.typography.fontWeight.medium,
         display: 'flex',

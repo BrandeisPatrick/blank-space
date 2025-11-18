@@ -11,7 +11,7 @@ export const ErrorMessage = ({ error, onFixBug }) => {
         padding: theme.spacing.lg,
         backgroundColor: mode === 'dark' ? '#2a1a1a' : '#fff5f5',
         border: `1px solid ${theme.colors.status.error}`,
-        borderRadius: '12px',
+        borderRadius: theme.radius['2xl'],
         marginBottom: theme.spacing.md,
       }}
     >
@@ -65,7 +65,7 @@ export const ErrorMessage = ({ error, onFixBug }) => {
           backgroundColor: theme.colors.status.error,
           color: '#ffffff',
           border: 'none',
-          borderRadius: '8px',
+          borderRadius: theme.radius.xl,
           cursor: 'pointer',
           fontSize: theme.typography.fontSize.base,
           fontWeight: theme.typography.fontWeight.semibold,

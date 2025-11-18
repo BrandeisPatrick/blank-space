@@ -2,7 +2,6 @@
  * UI Components - Barrel Export
  */
 
-export { BackgroundDecoration } from './BackgroundDecoration';
 export { ConfirmDialog } from './ConfirmDialog';
 export { ExamplesDropdown } from './ExamplesDropdown';
 export { SettingsDropdown } from './SettingsDropdown';

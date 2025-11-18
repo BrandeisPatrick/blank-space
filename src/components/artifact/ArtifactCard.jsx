@@ -51,7 +51,7 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #F9F8F5 0%, #E8E4F3 100%)',
-        borderRadius: '18px',
+        borderRadius: theme.radius['2.5xl'],
         border: '1px solid rgba(255, 255, 255, 0.5)',
         boxShadow: isHovered
           ? '0 8px 16px rgba(0, 0, 0, 0.1)'

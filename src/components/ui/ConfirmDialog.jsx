@@ -44,7 +44,7 @@ export const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, con
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: mode === 'dark' ? '#1a1a1a' : theme.colors.bg.primary,
-          borderRadius: '12px',
+          borderRadius: theme.radius['2xl'],
           padding: theme.spacing['3xl'],
           maxWidth: '400px',
           width: '90%',
@@ -94,7 +94,7 @@ export const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, con
               backgroundColor: 'transparent',
               color: theme.colors.text.primary,
               border: mode === 'dark' ? '1px solid #444' : `1px solid ${theme.colors.border}`,
-              borderRadius: '8px',
+              borderRadius: theme.radius.xl,
               cursor: 'pointer',
               fontSize: theme.typography.fontSize.base,
               fontWeight: theme.typography.fontWeight.medium,
@@ -118,7 +118,7 @@ export const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, con
               backgroundColor: theme.colors.status.error,
               color: '#ffffff',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: theme.radius.xl,
               cursor: 'pointer',
               fontSize: theme.typography.fontSize.base,
               fontWeight: theme.typography.fontWeight.semibold,

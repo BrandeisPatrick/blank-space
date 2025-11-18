@@ -110,6 +110,7 @@ export const getTheme = (mode) => {
       lg: '6px',
       xl: '8px',
       '2xl': '12px',
+      '2.5xl': '18px',
       full: '9999px',
     },
     spacing: {
@@ -155,6 +156,42 @@ export const getTheme = (mode) => {
       mobile: '768px',
       tablet: '1024px',
       desktop: '1440px',
+    },
+    // Unified effect tokens for common patterns
+    effects: {
+      glass: {
+        // Liquid glass/glassmorphism effect
+        default: {
+          background: mode === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: mode === 'light' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.15)',
+        },
+        hover: {
+          background: mode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+        },
+      },
+      overlay: {
+        // Modal/backdrop overlays
+        dark: 'rgba(0, 0, 0, 0.5)',
+        light: 'rgba(0, 0, 0, 0.2)',
+      }
+    },
+    // Hover state opacity levels
+    opacity: {
+      hover: {
+        light: 0.85,    // For subtle hover effects
+        medium: 0.75,   // Standard hover effect
+        strong: 0.6,    // More pronounced hover effect
+      },
+      disabled: 0.5,
+      faded: 0.3,
+    },
+    // Color hover variants
+    colorVariants: {
+      accent: {
+        primaryHover: mode === 'light' ? '#d89077' : '#e8a896',
+      }
     }
   }
 }
