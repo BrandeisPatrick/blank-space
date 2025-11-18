@@ -9,6 +9,8 @@ import {
   useSandpackConsole
 } from "@codesandbox/sandpack-react";
 import { useState, useEffect } from "react";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getTheme } from "../../styles/theme";
 import SandpackErrorBoundary from "./SandpackErrorBoundary";
 import "../../styles/LiveReactEditor.css";
 
@@ -71,7 +73,7 @@ const SandpackLoadingWrapper = ({ children }) => {
           justifyContent: 'center',
           gap: '20px',
           zIndex: 1000,
-          borderRadius: '8px'
+          borderRadius: appTheme.radius.xl
         }}>
           <div style={{
             width: '50px',
@@ -140,6 +142,8 @@ export const LiveReactEditor = ({
   layout = "horizontal",
   onError
 }) => {
+  const { mode } = useTheme();
+  const appTheme = getTheme(mode);
   const [selectedTheme, setSelectedTheme] = useState(theme);
   const [selectedLayout, setSelectedLayout] = useState(layout);
   const [showConsolePanel, setShowConsolePanel] = useState(showConsole);
@@ -259,7 +263,7 @@ button:hover {
             background: '#ff6b6b',
             color: 'white',
             padding: '10px 20px',
-            borderRadius: '6px',
+            borderRadius: appTheme.radius.md,
             marginBottom: '15px',
             display: 'flex',
             alignItems: 'center',

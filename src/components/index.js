@@ -21,5 +21,8 @@ export * from './preview';
 // Artifact Components
 export * from './artifact';
 
+// Wallpaper Components
+export * from './wallpaper';
+
 // Icons
 export * from './icons';

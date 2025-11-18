@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
-import { BackgroundDecoration } from '../ui/BackgroundDecoration';
+import { BackgroundWaves } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
@@ -15,6 +16,9 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
 
   // Check if mobile viewport
   const isMobile = window.innerWidth <= 768;
+
+  // Glass effect for header
+  const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
 
   // Handle artifact selection
   const handleArtifactSelect = (artifactId) => {
@@ -51,8 +55,8 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: theme.colors.bg.secondary,
-        borderBottom: `1px solid ${theme.colors.border}`,
+        ...glassEffectStyle,
+        borderRadius: theme.radius.xl,
       }}>
         <div style={{
           display: 'flex',
@@ -66,10 +70,10 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
             margin: 0,
           }}>
             <span style={{
-              color: '#808080',
+              color: theme.colors.text.primary,
               fontWeight: theme.typography.fontWeight.bold,
             }}>&lt;</span> blank space <span style={{
-              color: '#808080',
+              color: theme.colors.text.primary,
               fontWeight: theme.typography.fontWeight.bold,
             }}>&gt;</span>
           </h1>
@@ -112,7 +116,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         paddingBottom: '120px', // Space for fixed chat input
       }}>
         {/* Background Decorations */}
-        <BackgroundDecoration />
+        <BackgroundWaves variant="diagonal" preset="landing" />
 
         {/* Content Container */}
         <div style={{

@@ -4,6 +4,7 @@ import { useArtifacts } from '../../contexts/ArtifactContext';
 import { ExamplesDropdown } from './ExamplesDropdown';
 import { SettingsDropdown } from './SettingsDropdown';
 import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadExample, onToggleArtifacts, onNavigateToSignIn }) => {
@@ -53,11 +54,12 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
     setIsEditingName(false);
   };
 
+  const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
+
   return (
     <div style={{
       height: isMobile ? '56px' : '64px',
-      background: theme.colors.gradient.subtle,
-      borderBottom: `1px solid ${theme.colors.border}`,
+      ...glassEffectStyle,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
