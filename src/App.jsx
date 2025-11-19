@@ -12,7 +12,7 @@ import { ArtifactSidebar } from "./components/artifact";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/ToolOrchestrator.js";
-import { reactExamples } from "./templates";
+import { ROUTES, TIMING, MESSAGES, LABELS, PANELS } from "./constants";
 import "./styles/App.css";
 
 function App() {
@@ -22,13 +22,13 @@ function App() {
   const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId } = useArtifacts();
   const isMobile = useIsMobile();
 
-  // Route state: 'landing', 'signin', 'signup', or 'studio'
-  const [currentRoute, setCurrentRoute] = useState('landing');
+  // Route state
+  const [currentRoute, setCurrentRoute] = useState(ROUTES.LANDING);
 
   // Thinking state for CompactThinkingPanel
   const thinking = useThinkingState({
     autoCollapse: true,
-    collapseDelay: 3000
+    collapseDelay: TIMING.THINKING_COLLAPSE_DELAY_MS
   });
 
   // State management
@@ -55,7 +55,7 @@ function App() {
       setFiles({});
       setChatMessages([]);
     }
-  }, [activeArtifactId, activeArtifact?.files]);
+  }, [activeArtifactId, activeArtifact?.files, activeFile]);
 
   // Save chat messages to artifact whenever they change
   useEffect(() => {
@@ -70,48 +70,38 @@ function App() {
   const [showPreview, setShowPreview] = useState(true);
   const [showArtifacts, setShowArtifacts] = useState(false);
 
-  // Guest mode banner
-  const [showGuestBanner, setShowGuestBanner] = useState(() => {
-    return localStorage.getItem('guestBannerDismissed') !== 'true';
-  });
+  // Clean up old guest banner localStorage key
+  useEffect(() => {
+    localStorage.removeItem('guestBannerDismissed');
+  }, []);
 
-  const dismissGuestBanner = () => {
-    setShowGuestBanner(false);
-    localStorage.setItem('guestBannerDismissed', 'true');
-  };
+  // Helper function to set panel visibility based on device type
+  const setupPanelVisibility = useCallback(() => {
+    if (isMobile) {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(false);
+    } else {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(true);
+    }
+  }, [isMobile]);
 
   // Navigation handlers
   const handleTryNow = () => {
-    setCurrentRoute('studio');
-    if (isMobile) {
-      // On mobile, only show chat by default
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    } else {
-      setShowChat(true);
-      setShowCode(false);  // Hide code panel
-      setShowPreview(true);
-    }
+    setCurrentRoute(ROUTES.STUDIO);
+    setupPanelVisibility();
   };
 
-  const handleNavigateToSignIn = () => setCurrentRoute('signin');
-  const handleNavigateToSignUp = () => setCurrentRoute('signup');
-  const handleNavigateToLanding = () => setCurrentRoute('landing');
+  const handleNavigateToSignIn = () => setCurrentRoute(ROUTES.SIGNIN);
+  const handleNavigateToSignUp = () => setCurrentRoute(ROUTES.SIGNUP);
+  const handleNavigateToLanding = () => setCurrentRoute(ROUTES.LANDING);
 
   const handleAuthSuccess = () => {
     // Navigate to studio after successful sign-in/sign-up
-    setCurrentRoute('studio');
-    if (isMobile) {
-      // On mobile, only show chat by default
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    } else {
-      setShowChat(true);
-      setShowCode(false);  // Hide code panel
-      setShowPreview(true);
-    }
+    setCurrentRoute(ROUTES.STUDIO);
+    setupPanelVisibility();
   };
 
   // Track rate limit warnings shown
@@ -128,7 +118,7 @@ function App() {
     if (percentUsed >= 50 && percentUsed < 75 && !rateLimitWarningsShown.fifty) {
       setChatMessages(prev => [...prev, {
         type: 'assistant',
-        content: `ℹ️ You've used ${rateLimit.used} of your ${rateLimit.limit} daily requests.\n${rateLimit.remaining} requests remaining today.`,
+        content: MESSAGES.RATE_LIMIT_50(rateLimit.used, rateLimit.limit, rateLimit.remaining),
         timestamp: Date.now()
       }]);
       setRateLimitWarningsShown(prev => ({ ...prev, fifty: true }));
@@ -138,7 +128,7 @@ function App() {
     if (percentUsed >= 75 && !rateLimitWarningsShown.seventyFive) {
       setChatMessages(prev => [...prev, {
         type: 'assistant',
-        content: `⚠️ Warning: You've used 75% of your daily quota.\nOnly ${rateLimit.remaining} requests remaining. Resets at midnight UTC.`,
+        content: MESSAGES.RATE_LIMIT_75(rateLimit.remaining),
         timestamp: Date.now()
       }]);
       setRateLimitWarningsShown(prev => ({ ...prev, seventyFive: true }));
@@ -154,7 +144,7 @@ function App() {
       }
     };
 
-    const interval = setInterval(checkMidnight, 60000); // Check every minute
+    const interval = setInterval(checkMidnight, TIMING.MIDNIGHT_CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -167,8 +157,8 @@ function App() {
     const lastShown = recentErrors.current.get(signature);
     const now = Date.now();
 
-    // Only add if this is a new error OR >2 seconds since last identical error
-    if (!lastShown || now - lastShown > 2000) {
+    // Only add if this is a new error OR >DEDUP_WINDOW since last identical error
+    if (!lastShown || now - lastShown > TIMING.ERROR_DEDUP_WINDOW_MS) {
       recentErrors.current.set(signature, now);
 
       const errorMessage = {
@@ -179,11 +169,11 @@ function App() {
       setChatMessages(prev => [...prev, errorMessage]);
 
       // Memory cleanup: prevent Map from growing unbounded
-      // Keep only the 50 most recent errors
-      if (recentErrors.current.size > 50) {
+      // Keep only the MAX_RECENT_ERRORS most recent errors
+      if (recentErrors.current.size > TIMING.MAX_RECENT_ERRORS) {
         const entries = [...recentErrors.current.entries()];
-        // Remove oldest 25 entries
-        entries.slice(0, 25).forEach(([sig]) => recentErrors.current.delete(sig));
+        // Remove oldest ERROR_CLEANUP_COUNT entries
+        entries.slice(0, TIMING.ERROR_CLEANUP_COUNT).forEach(([sig]) => recentErrors.current.delete(sig));
       }
     }
   }, []);
@@ -241,7 +231,7 @@ function App() {
         // Add generating steps for each file
         result.fileOperations.forEach((op, index) => {
           const stepId = thinking.addStep(`Generating ${op.filename}`, 'active');
-          setTimeout(() => thinking.completeStep(stepId), 100 * (index + 1));
+          setTimeout(() => thinking.completeStep(stepId), TIMING.FILE_GENERATION_DELAY_MS * (index + 1));
         });
 
         // Create or update artifact with generated files
@@ -267,20 +257,10 @@ function App() {
         }
 
         // Ensure panels are visible based on device
-        if (isMobile) {
-          // On mobile, only show chat
-          setShowChat(true);
-          setShowCode(false);
-          setShowPreview(false);
-        } else {
-          // On desktop, show chat and preview (hide code)
-          setShowChat(true);
-          setShowCode(false);
-          setShowPreview(true);
-        }
+        setupPanelVisibility();
 
         // Complete thinking process
-        setTimeout(() => thinking.complete(), 500);
+        setTimeout(() => thinking.complete(), TIMING.THINKING_COMPLETION_DELAY_MS);
 
         // Check for rate limit info in result and show warnings
         if (result.rateLimit) {
@@ -298,7 +278,7 @@ function App() {
         thinking.error('Rate limit reached');
         setChatMessages(prev => [...prev, {
           type: 'error',
-          content: `❌ Daily limit reached (${error.rateLimit.used}/${error.rateLimit.limit} requests used).\nYour quota will reset at midnight UTC.\nPlease try again later.`,
+          content: MESSAGES.RATE_LIMIT_EXCEEDED(error.rateLimit.used, error.rateLimit.limit),
           timestamp: Date.now()
         }]);
       } else {
@@ -359,24 +339,15 @@ function App() {
   // Handle new artifact creation with proper panel visibility
   const handleNewArtifact = () => {
     createArtifact('Untitled Project');
-    // Set panel visibility based on device
-    if (isMobile) {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    } else {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(true);
-    }
+    setupPanelVisibility();
   };
 
   // Auto-navigate based on auth state
   useEffect(() => {
     if (!authLoading) {
       // If user is authenticated and on landing/signin/signup, go to studio
-      if (user && (currentRoute === 'landing' || currentRoute === 'signin' || currentRoute === 'signup')) {
-        setCurrentRoute('studio');
+      if (user && (currentRoute === ROUTES.LANDING || currentRoute === ROUTES.SIGNIN || currentRoute === ROUTES.SIGNUP)) {
+        setCurrentRoute(ROUTES.STUDIO);
       }
       // Guest mode: Allow unauthenticated users to access studio
       // (removed redirect that sent guests back to landing)
@@ -443,8 +414,8 @@ function App() {
     );
   }
 
-  // Show landing page if route is 'landing'
-  if (currentRoute === 'landing') {
+  // Show landing page if route is LANDING
+  if (currentRoute === ROUTES.LANDING) {
     return (
       <LandingPage
         onTryNow={handleTryNow}
@@ -453,8 +424,8 @@ function App() {
     );
   }
 
-  // Show sign in page if route is 'signin'
-  if (currentRoute === 'signin') {
+  // Show sign in page if route is SIGNIN
+  if (currentRoute === ROUTES.SIGNIN) {
     return (
       <SignInPage
         onNavigateToMain={handleNavigateToLanding}
@@ -464,8 +435,8 @@ function App() {
     );
   }
 
-  // Show sign up page if route is 'signup'
-  if (currentRoute === 'signup') {
+  // Show sign up page if route is SIGNUP
+  if (currentRoute === ROUTES.SIGNUP) {
     return (
       <SignUpPage
         onNavigateToMain={handleNavigateToLanding}
@@ -502,109 +473,29 @@ function App() {
         onTogglePanel={(panel) => {
           if (isMobile) {
             // On mobile, only show one panel at a time
-            if (panel === 'chat') {
+            if (panel === PANELS.CHAT) {
               setShowChat(true);
               setShowCode(false);
               setShowPreview(false);
-            } else if (panel === 'code') {
+            } else if (panel === PANELS.CODE) {
               setShowChat(false);
               setShowCode(true);
               setShowPreview(false);
-            } else if (panel === 'preview') {
+            } else if (panel === PANELS.PREVIEW) {
               setShowChat(false);
               setShowCode(false);
               setShowPreview(true);
             }
           } else {
             // On desktop, toggle panels independently
-            if (panel === 'chat') setShowChat(!showChat);
-            if (panel === 'code') setShowCode(!showCode);
-            if (panel === 'preview') setShowPreview(!showPreview);
+            if (panel === PANELS.CHAT) setShowChat(!showChat);
+            if (panel === PANELS.CODE) setShowCode(!showCode);
+            if (panel === PANELS.PREVIEW) setShowPreview(!showPreview);
           }
         }}
         onToggleArtifacts={() => setShowArtifacts(!showArtifacts)}
-        onLoadExample={(exampleId) => {
-          const selectedExample = reactExamples[exampleId];
-          if (selectedExample) {
-            // Create new artifact for the example
-            createArtifact(selectedExample.name, selectedExample.files);
-            // Show only preview panel for both mobile and desktop
-            setShowChat(false);
-            setShowCode(false);
-            setShowPreview(true);
-          }
-        }}
-        onNavigateToSignIn={handleNavigateToSignIn}
+        onNavigateToHome={handleNavigateToLanding}
       />
-
-      {/* Guest Mode Banner */}
-      {!user && showGuestBanner && (
-        <div style={{
-          background: '#2a2a2a',
-          borderBottom: `1px solid ${theme.colors.bg.border}`,
-          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: theme.spacing.md,
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            flex: 1,
-          }}>
-            <span style={{ fontSize: '20px' }}>ℹ️</span>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.text.secondary,
-            }}>
-              You're in guest mode. Work is saved locally. <strong style={{ color: theme.colors.text.primary }}>Sign in to save across devices.</strong>
-            </p>
-          </div>
-          <div style={{
-            display: 'flex',
-            gap: theme.spacing.sm,
-            alignItems: 'center',
-          }}>
-            <button
-              onClick={handleNavigateToSignIn}
-              style={{
-                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                background: '#333333',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: theme.radius.md,
-                cursor: 'pointer',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                transition: `background ${theme.animation.fast}`,
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#444444'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#333333'}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={dismissGuestBanner}
-              style={{
-                padding: theme.spacing.sm,
-                background: 'transparent',
-                color: theme.colors.text.tertiary,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '18px',
-                lineHeight: '1',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.text.primary}
-              onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.text.tertiary}
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Content Panels */}
       <div style={{
@@ -693,29 +584,6 @@ function App() {
                 >
                   <span style={{ fontSize: '20px' }}>+</span>
                   Create New Artifact
-                </button>
-                <button
-                  onClick={() => setShowArtifacts(true)}
-                  style={{
-                    padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-                    background: theme.colors.bg.secondary,
-                    border: `1px solid ${theme.colors.bg.border}`,
-                    color: theme.colors.text.primary,
-                    borderRadius: theme.radius.md,
-                    cursor: 'pointer',
-                    fontSize: theme.typography.fontSize.md,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    transition: `opacity ${theme.animation.fast}`,
-                    opacity: 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.8';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                >
-                  Browse Examples
                 </button>
               </div>
             </div>

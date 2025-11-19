@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { PaperclipIcon, ArrowUpIcon } from '../icons/icons';
@@ -126,7 +127,7 @@ export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocu
           }}
           onMouseEnter={(e) => {
             if (message.trim()) {
-              e.currentTarget.style.background = '#d89077';
+              e.currentTarget.style.background = theme.colors.accent.warning;
             }
           }}
           onMouseLeave={(e) => {
@@ -140,4 +141,17 @@ export const EnhancedChatInput = ({ placeholder = "Let's make something", onFocu
       </div>
     </div>
   );
+};
+
+EnhancedChatInput.propTypes = {
+  placeholder: PropTypes.string,
+  onFocus: PropTypes.func,
+  onSend: PropTypes.func.isRequired,
+  initialMessage: PropTypes.string
+};
+
+EnhancedChatInput.defaultProps = {
+  placeholder: "Let's make something",
+  onFocus: undefined,
+  initialMessage: ''
 };
