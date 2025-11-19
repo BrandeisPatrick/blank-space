@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useArtifacts } from '../../contexts/ArtifactContext';
-import { ExamplesDropdown } from './ExamplesDropdown';
-import { SettingsDropdown } from './SettingsDropdown';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { PANELS, LABELS } from '../../constants';
 
-export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadExample, onToggleArtifacts, onNavigateToSignIn }) => {
+export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggleArtifacts, onNavigateToHome }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { activeArtifact, renameArtifact } = useArtifacts();
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(activeArtifact?.name || '');
   const isMobile = useIsMobile();
+
+  // Reset name state when active artifact changes
+  useEffect(() => {
+    setNameValue(activeArtifact?.name || '');
+    setIsEditingName(false);
+  }, [activeArtifact?.id]);
 
   // Base button style for all buttons
   const baseButtonStyle = {
@@ -23,7 +29,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
     cursor: 'pointer',
     padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
     borderRadius: theme.radius.md,
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.medium,
     fontFamily: theme.typography.fontFamily.sans,
     transition: `opacity ${theme.animation.fast}`,
@@ -33,37 +39,71 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
     gap: theme.spacing.sm,
   };
 
-  const buttonStyle = (isActive) => ({
-    ...baseButtonStyle,
-    background: isActive ? theme.colors.gradient.primary : theme.colors.bg.secondary,
-    color: isActive ? theme.colors.accent.primary : theme.colors.text.secondary,
-    fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-    boxShadow: isActive ? theme.shadows.sm : theme.shadows.outset,
-    borderRadius: theme.radius.lg,
-    border: 'none',
-    transition: `all ${theme.animation.normal}`,
-  });
+  const buttonStyle = (isActive) => {
+    const glassEffect = createGlassEffect(theme, { state: 'default' });
+
+    return {
+      ...baseButtonStyle,
+      ...glassEffect,
+      color: theme.colors.text.secondary, // Always gray - no color change on active
+      fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+      border: glassEffect.border, // Always glass border - no orange border on active
+      borderRadius: theme.radius.full, // Pill shape for modern Apple aesthetic
+      transition: `all ${theme.animation.normal}`,
+      // Active state: subtle background tint + soft shadow only
+      background: isActive
+        ? `rgba(201, 125, 99, 0.1)` // Subtle terracotta tint (10% opacity)
+        : glassEffect.background,
+      boxShadow: isActive ? `0 4px 12px rgba(201, 125, 99, 0.15)` : 'none',
+    };
+  };
 
   const handleNameSave = () => {
     if (nameValue.trim() && activeArtifact) {
       renameArtifact(activeArtifact.id, nameValue.trim());
-    } else if (!activeArtifact) {
-      // No artifact to rename
-      setIsEditingName(false);
     }
     setIsEditingName(false);
   };
 
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
 
+  // Helper function to create consistent hover handlers for panel buttons with glass effect
+  const createPanelButtonHandlers = (isActive) => {
+    const glassEffectDefault = createGlassEffect(theme, { state: 'default' });
+    const glassEffectHover = createGlassEffect(theme, { state: 'hover' });
+
+    return {
+      onMouseEnter: (e) => {
+        if (!isActive) {
+          Object.assign(e.currentTarget.style, {
+            background: glassEffectHover.background,
+            // Keep text color gray - no color change
+            transform: 'scale(1.02)',
+            boxShadow: `0 2px 8px rgba(201, 125, 99, 0.08)`, // Subtle hover shadow
+          });
+        }
+      },
+      onMouseLeave: (e) => {
+        if (!isActive) {
+          Object.assign(e.currentTarget.style, {
+            background: glassEffectDefault.background,
+            // Keep text color gray - no color change
+            transform: 'scale(1)',
+            boxShadow: 'none',
+          });
+        }
+      }
+    };
+  };
+
   return (
     <div style={{
-      height: isMobile ? '56px' : '64px',
+      height: isMobile ? theme.sizes.topbar.mobile : theme.sizes.topbar.desktop,
       ...glassEffectStyle,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: isMobile ? `0 ${theme.spacing.md}` : `0 ${theme.spacing.xl}`,
+      padding: isMobile ? `0 ${theme.spacing.md}` : `0 ${theme.spacing.sm}`,
       fontSize: theme.typography.fontSize.sm,
       position: 'sticky',
       top: 0,
@@ -83,17 +123,28 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
           onClick={onToggleArtifacts}
           style={{
             ...baseButtonStyle,
-            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : `${theme.spacing.sm} ${theme.spacing.lg}`,
+            ...glassEffectStyle,
+            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : theme.sizes.button.padding.md,
+            height: isMobile ? 'auto' : theme.sizes.button.md,
+            display: 'flex',
+            alignItems: 'center',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '0.7';
+            const glassHover = createGlassEffect(theme, { state: 'hover' });
+            e.currentTarget.style.background = glassHover.background;
+            // Keep text color gray - no color change
+            e.currentTarget.style.transform = 'scale(1.02)';
+            e.currentTarget.style.boxShadow = `0 2px 8px rgba(201, 125, 99, 0.08)`;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.background = glassEffectStyle.background;
+            // Keep text color gray - no color change
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = 'none';
           }}
-          title="Manage Artifacts"
+          title={LABELS.MANAGE_ARTIFACTS}
         >
-          Artifacts
+          {LABELS.ARTIFACTS}
         </button>
 
         {/* Panel Toggles */}
@@ -101,93 +152,59 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
           display: 'flex',
           alignItems: 'center',
           gap: isMobile ? '2px' : theme.spacing.sm,
-          background: theme.colors.bg.primary,
+          background: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           padding: isMobile ? '4px' : theme.spacing.xs,
-          borderRadius: theme.radius.xl,
-          boxShadow: theme.shadows.md,
+          borderRadius: theme.radius.full,
+          border: `1px solid rgba(255, 255, 255, 0.15)`,
+          boxShadow: 'none',
         }}>
         <button
-          onClick={() => onTogglePanel('chat')}
+          onClick={() => onTogglePanel(PANELS.CHAT)}
           style={{
             ...buttonStyle(showChat),
-            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : `${theme.spacing.sm} ${theme.spacing.lg}`,
-            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
+            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : theme.sizes.button.padding.md,
+            height: isMobile ? 'auto' : theme.sizes.button.md,
+            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.base,
+            display: 'flex',
+            alignItems: 'center',
           }}
-          onMouseEnter={(e) => {
-            if (!showChat) {
-              e.currentTarget.style.background = theme.colors.bg.hover;
-              e.currentTarget.style.color = theme.colors.accent.primary;
-              e.currentTarget.style.boxShadow = theme.shadows.glow;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!showChat) {
-              e.currentTarget.style.background = theme.colors.bg.secondary;
-              e.currentTarget.style.color = theme.colors.text.secondary;
-              e.currentTarget.style.boxShadow = theme.shadows.outset;
-            }
-          }}
+          {...createPanelButtonHandlers(showChat)}
         >
-          Chat
+          {LABELS.CHAT}
         </button>
 
         <button
-          onClick={() => onTogglePanel('code')}
+          onClick={() => onTogglePanel(PANELS.CODE)}
           style={{
             ...buttonStyle(showCode),
-            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : `${theme.spacing.sm} ${theme.spacing.lg}`,
-            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
+            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : theme.sizes.button.padding.md,
+            height: isMobile ? 'auto' : theme.sizes.button.md,
+            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.base,
+            display: 'flex',
+            alignItems: 'center',
           }}
-          onMouseEnter={(e) => {
-            if (!showCode) {
-              e.currentTarget.style.background = theme.colors.bg.hover;
-              e.currentTarget.style.color = theme.colors.accent.primary;
-              e.currentTarget.style.boxShadow = theme.shadows.glow;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!showCode) {
-              e.currentTarget.style.background = theme.colors.bg.secondary;
-              e.currentTarget.style.color = theme.colors.text.secondary;
-              e.currentTarget.style.boxShadow = theme.shadows.outset;
-            }
-          }}
+          {...createPanelButtonHandlers(showCode)}
         >
-          Code
+          {LABELS.CODE}
         </button>
 
         <button
-          onClick={() => onTogglePanel('preview')}
+          onClick={() => onTogglePanel(PANELS.PREVIEW)}
           style={{
             ...buttonStyle(showPreview),
-            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : `${theme.spacing.sm} ${theme.spacing.lg}`,
-            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
+            padding: isMobile ? `${theme.spacing.xs} ${theme.spacing.md}` : theme.sizes.button.padding.md,
+            height: isMobile ? 'auto' : theme.sizes.button.md,
+            fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.base,
+            display: 'flex',
+            alignItems: 'center',
           }}
-          onMouseEnter={(e) => {
-            if (!showPreview) {
-              e.currentTarget.style.background = theme.colors.bg.hover;
-              e.currentTarget.style.color = theme.colors.accent.primary;
-              e.currentTarget.style.boxShadow = theme.shadows.glow;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!showPreview) {
-              e.currentTarget.style.background = theme.colors.bg.secondary;
-              e.currentTarget.style.color = theme.colors.text.secondary;
-              e.currentTarget.style.boxShadow = theme.shadows.outset;
-            }
-          }}
+          {...createPanelButtonHandlers(showPreview)}
         >
-          Preview
+          {LABELS.PREVIEW}
         </button>
         </div>
-
-        {/* Examples button - Show on mobile */}
-        {isMobile && (
-          <div style={{ marginLeft: 'auto' }}>
-            <ExamplesDropdown onSelectExample={onLoadExample} />
-          </div>
-        )}
       </div>
 
       {/* Center section - Artifact Name (Hidden on mobile) */}
@@ -221,7 +238,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
                   borderRadius: theme.radius.md,
                   background: theme.colors.bg.primary,
                   color: theme.colors.text.primary,
-                  fontSize: theme.typography.fontSize.lg,
+                  fontSize: theme.typography.fontSize.xl,
                   fontWeight: theme.typography.fontWeight.bold,
                   outline: 'none',
                   minWidth: '200px',
@@ -238,7 +255,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
                   padding: `${theme.spacing.xs} ${theme.spacing.md}`,
                   color: theme.colors.text.primary,
                   fontWeight: theme.typography.fontWeight.bold,
-                  fontSize: theme.typography.fontSize.lg,
+                  fontSize: theme.typography.fontSize.xl,
                   cursor: 'pointer',
                   borderRadius: theme.radius.md,
                   transition: `all ${theme.animation.fast}`,
@@ -254,7 +271,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
                   e.currentTarget.style.background = 'transparent';
                   e.currentTarget.style.color = theme.colors.text.primary;
                 }}
-                title="Click to rename"
+                title={LABELS.CLICK_TO_RENAME}
               >
                 <span>{activeArtifact.name}</span>
               </div>
@@ -269,24 +286,57 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onLoadE
                 fontStyle: 'italic',
               }}
             >
-              No Artifact Selected
+              {LABELS.NO_ARTIFACT_SELECTED}
             </div>
           )}
         </div>
       )}
 
-      {/* Right section - Actions (Hidden on mobile) */}
+      {/* Right section - Home Button (Hidden on mobile) */}
       {!isMobile && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
-          <ExamplesDropdown onSelectExample={onLoadExample} />
-
-          <SettingsDropdown onSignIn={onNavigateToSignIn} />
+          <button
+            onClick={onNavigateToHome}
+            style={{
+              ...baseButtonStyle,
+              ...glassEffectStyle,
+              padding: theme.sizes.button.padding.md,
+              height: theme.sizes.button.md,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={(e) => {
+              const glassHover = createGlassEffect(theme, { state: 'hover' });
+              e.currentTarget.style.background = glassHover.background;
+              // Keep text color gray - no color change
+              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.boxShadow = `0 2px 8px rgba(201, 125, 99, 0.08)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = glassEffectStyle.background;
+              // Keep text color gray - no color change
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            title={LABELS.HOME}
+          >
+            {LABELS.HOME}
+          </button>
         </div>
       )}
     </div>
   );
+};
+
+TopBar.propTypes = {
+  showChat: PropTypes.bool.isRequired,
+  showCode: PropTypes.bool.isRequired,
+  showPreview: PropTypes.bool.isRequired,
+  onTogglePanel: PropTypes.func.isRequired,
+  onToggleArtifacts: PropTypes.func.isRequired,
+  onNavigateToHome: PropTypes.func.isRequired
 };

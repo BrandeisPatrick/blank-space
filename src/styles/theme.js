@@ -36,14 +36,14 @@ const lightTheme = {
     }
   },
   shadows: {
-    // Flat design - no shadows
-    sm: 'none',
-    md: 'none',
-    lg: 'none',
-    xl: 'none',
-    outset: 'none',
-    outsetMd: 'none',
-    glow: 'none',
+    // iOS-style subtle shadows for depth and elevation
+    sm: '0 2px 4px rgba(0, 0, 0, 0.05)',
+    md: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    lg: '0 8px 24px rgba(0, 0, 0, 0.12)',
+    xl: '0 12px 32px rgba(0, 0, 0, 0.15)',
+    outset: '0 4px 12px rgba(0, 0, 0, 0.08)',      // Outset shadow for depth effect
+    outsetMd: '0 8px 20px rgba(0, 0, 0, 0.1)',    // Medium outset shadow
+    glow: '0 0 20px rgba(201, 125, 99, 0.2)',     // Glow effect for emphasis with terracotta
   },
 }
 
@@ -85,15 +85,15 @@ const darkTheme = {
     }
   },
   shadows: {
-    // Flat design - no shadows
-    sm: 'none',
-    md: 'none',
-    lg: 'none',
-    xl: 'none',
-    outset: 'none',
-    outsetMd: 'none',
-    outsetPressed: 'none',
-    glow: 'none',
+    // iOS-style subtle shadows for depth and elevation in dark mode
+    sm: '0 2px 4px rgba(0, 0, 0, 0.3)',
+    md: '0 4px 12px rgba(0, 0, 0, 0.4)',
+    lg: '0 8px 24px rgba(0, 0, 0, 0.5)',
+    xl: '0 12px 32px rgba(0, 0, 0, 0.6)',
+    outset: '0 4px 12px rgba(0, 0, 0, 0.4)',      // Outset shadow for depth effect
+    outsetMd: '0 8px 20px rgba(0, 0, 0, 0.5)',    // Medium outset shadow
+    outsetPressed: '0 2px 6px rgba(0, 0, 0, 0.3)',   // Pressed state shadow
+    glow: '0 0 20px rgba(201, 125, 99, 0.3)',     // Glow effect for emphasis with terracotta
   },
 }
 
@@ -101,7 +101,6 @@ export const getTheme = (mode) => {
   const baseTheme = mode === 'light' ? lightTheme : darkTheme
   return {
     ...baseTheme,
-    shadow: baseTheme.shadows, // Add shadow alias for shadows
     radius: {
       xs: '2px',
       sm: '3px',
@@ -121,6 +120,67 @@ export const getTheme = (mode) => {
       xl: '20px',
       '2xl': '24px',
       '3xl': '32px',
+      '4xl': '40px',
+      '5xl': '48px',
+      '6xl': '64px',
+      '7xl': '80px',
+      '8xl': '120px',
+    },
+    sizes: {
+      // Icon sizes for consistent icon dimensions
+      icon: {
+        xs: '12px',
+        sm: '16px',
+        md: '20px',
+        lg: '24px',
+        xl: '28px',
+        '2xl': '48px',
+      },
+      // Button heights for consistent button sizing
+      button: {
+        sm: '36px',
+        md: '46px',
+        lg: '54px',
+        // Button padding values (vertical/horizontal)
+        padding: {
+          sm: '10px 14px',
+          md: '12px 18px',
+          lg: '14px 22px',
+        }
+      },
+      // Avatar/profile picture sizes
+      avatar: {
+        sm: '32px',
+        md: '36px',
+        lg: '48px',
+      },
+      // Container max-widths for layout constraints
+      container: {
+        sm: '400px',
+        md: '600px',
+        lg: '800px',
+        xl: '1200px',
+      },
+      // Sidebar and panel widths
+      sidebar: {
+        narrow: '220px',
+        default: '320px',
+        wide: '350px',
+      },
+      // Header/TopBar heights
+      topbar: {
+        mobile: '60px',
+        desktop: '70px',
+      },
+      // Chat/input panel heights and widths
+      panel: {
+        headerHeight: '48px',
+      },
+    },
+    borderWidth: {
+      thin: '1px',
+      medium: '2px',
+      thick: '4px',
     },
     typography: {
       fontFamily: {
@@ -160,15 +220,15 @@ export const getTheme = (mode) => {
     // Unified effect tokens for common patterns
     effects: {
       glass: {
-        // Liquid glass/glassmorphism effect
+        // Liquid glass/glassmorphism effect with enhanced blur for modern Apple aesthetic
         default: {
-          background: mode === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: mode === 'light' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.15)',
+          background: mode === 'light' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: mode === 'light' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.18)',
         },
         hover: {
-          background: mode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+          background: mode === 'light' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.18)',
         },
       },
       overlay: {
@@ -191,6 +251,12 @@ export const getTheme = (mode) => {
     colorVariants: {
       accent: {
         primaryHover: mode === 'light' ? '#d89077' : '#e8a896',
+      },
+      // Common color overrides
+      white: '#ffffff',
+      error: {
+        light: '#fee2e2',
+        dark: '#7f1d1d',
       }
     }
   }

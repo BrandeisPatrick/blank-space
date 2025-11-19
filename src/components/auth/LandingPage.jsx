@@ -1,21 +1,22 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { BackgroundWaves } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
+import { LAYOUT, LABELS, COLORS } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
-
-  // Check if mobile viewport
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = useIsMobile();
 
   // Glass effect for header
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
@@ -51,12 +52,12 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
     }}>
       {/* Header */}
       <header style={{
-        padding: `${theme.spacing.xl} ${theme.spacing['3xl']}`,
+        height: isMobile ? theme.sizes.topbar.mobile : theme.sizes.topbar.desktop,
+        padding: isMobile ? `0 ${theme.spacing.md}` : `0 ${theme.spacing.xl}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         ...glassEffectStyle,
-        borderRadius: theme.radius.xl,
       }}>
         <div style={{
           display: 'flex',
@@ -64,7 +65,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
           gap: theme.spacing.md,
         }}>
           <h1 style={{
-            fontSize: isMobile ? theme.typography.fontSize.xl : theme.typography.fontSize['2xl'],
+            fontSize: theme.typography.fontSize.xl,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text.primary,
             margin: 0,
@@ -84,23 +85,26 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
           style={{
             background: theme.colors.accent.primary,
             border: `1px solid ${theme.colors.border}`,
-            color: '#ffffff',
+            color: COLORS.WHITE,
             cursor: 'pointer',
-            padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+            padding: theme.sizes.button.padding.md,
+            height: theme.sizes.button.md,
             borderRadius: theme.radius.md,
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
             fontFamily: theme.typography.fontFamily.sans,
             transition: `background ${theme.animation.fast}`,
+            display: 'flex',
+            alignItems: 'center',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#d89077';
+            e.currentTarget.style.background = theme.colorVariants.accent.primaryHover;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = theme.colors.accent.primary;
           }}
         >
-          Sign In
+          {LABELS.SIGN_IN}
         </button>
       </header>
 
@@ -110,10 +114,10 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         padding: isMobile ? theme.spacing.xl : theme.spacing['3xl'],
         position: 'relative',
-        paddingBottom: '120px', // Space for fixed chat input
+        paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
       }}>
         {/* Background Decorations */}
         <BackgroundWaves variant="diagonal" preset="landing" />
@@ -121,47 +125,35 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         {/* Content Container */}
         <div style={{
           width: '100%',
-          maxWidth: '1200px',
+          maxWidth: LAYOUT.LANDING_MAX_WIDTH,
           display: 'flex',
           flexDirection: 'column',
           gap: theme.spacing['2xl'],
-          alignItems: 'center',
+          alignItems: 'flex-start',
+          justifyContent: 'flex-start',
           position: 'relative',
-          zIndex: 1,
+          zIndex: LAYOUT.CONTENT_Z_INDEX,
+          paddingLeft: theme.spacing.xl,
+          paddingRight: theme.spacing.xl,
+          paddingTop: theme.spacing['3xl'],
         }}>
           {/* Artifact Grid - Shows at top if artifacts exist */}
           {artifacts && artifacts.length > 0 && (
             <div style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
+              display: 'grid',
+              gridTemplateColumns: isMobile
+                ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
+                : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
               gap: theme.spacing.lg,
+              justifyContent: 'center',
             }}>
-              <h2 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: 0,
-                textAlign: 'center',
-              }}>
-                Your Projects
-              </h2>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile
-                  ? 'repeat(auto-fill, minmax(140px, 1fr))'
-                  : 'repeat(auto-fill, minmax(180px, 1fr))',
-                gap: theme.spacing.lg,
-                justifyContent: 'center',
-              }}>
-                {artifacts.map(artifact => (
-                  <ArtifactCard
-                    key={artifact.id}
-                    artifact={artifact}
-                    onSelect={handleArtifactSelect}
-                  />
-                ))}
-              </div>
+              {artifacts.map(artifact => (
+                <ArtifactCard
+                  key={artifact.id}
+                  artifact={artifact}
+                  onSelect={handleArtifactSelect}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -169,15 +161,15 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         {/* Suggestion Pills - Positioned closer to chat input */}
         <div style={{
           position: 'fixed',
-          bottom: '100px',
+          bottom: LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET,
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
           gap: theme.spacing.md,
           flexWrap: 'wrap',
           justifyContent: 'center',
-          maxWidth: '90%',
-          zIndex: 99,
+          maxWidth: LAYOUT.LANDING_SUGGESTION_MAX_WIDTH,
+          zIndex: LAYOUT.SUGGESTION_PILLS_Z_INDEX,
         }}>
           {suggestionPills.map((pillText, index) => (
             <SuggestionPill
@@ -197,4 +189,9 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
       </main>
     </div>
   );
+};
+
+LandingPage.propTypes = {
+  onTryNow: PropTypes.func.isRequired,
+  onSignIn: PropTypes.func.isRequired
 };
