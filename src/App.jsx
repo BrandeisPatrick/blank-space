@@ -89,9 +89,17 @@ function App() {
   }, [isMobile]);
 
   // Navigation handlers
-  const handleTryNow = () => {
+  const handleTryNow = (message) => {
     setCurrentRoute(ROUTES.STUDIO);
     setupPanelVisibility();
+
+    // Auto-submit the message if provided from landing page
+    if (message?.trim()) {
+      // Small delay to ensure studio UI is ready
+      setTimeout(() => {
+        handleSendMessage(message);
+      }, 100);
+    }
   };
 
   const handleNavigateToSignIn = () => setCurrentRoute(ROUTES.SIGNIN);
