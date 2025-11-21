@@ -149,9 +149,3 @@ EnhancedChatInput.propTypes = {
   onSend: PropTypes.func.isRequired,
   initialMessage: PropTypes.string
 };
-
-EnhancedChatInput.defaultProps = {
-  placeholder: "Let's make something",
-  onFocus: undefined,
-  initialMessage: ''
-};
