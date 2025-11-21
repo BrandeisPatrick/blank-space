@@ -6,14 +6,13 @@ import { getTheme } from '../../styles/theme';
 import { EditIcon, CopyIcon, TrashIcon } from '../icons';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
-export const ArtifactSidebar = ({ isOpen, onClose, onNewArtifact }) => {
+export const ArtifactSidebar = ({ isOpen, onClose }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user } = useAuth();
   const {
     artifacts,
     activeArtifactId,
-    createArtifact,
     loadArtifact,
     deleteArtifact,
     duplicateArtifact,
@@ -51,10 +50,6 @@ export const ArtifactSidebar = ({ isOpen, onClose, onNewArtifact }) => {
       renameArtifact(id, renameValue.trim());
     }
     setRenamingId(null);
-  };
-
-  const handleNewArtifact = () => {
-    onNewArtifact();
   };
 
   const handleClearAll = () => {
@@ -157,18 +152,15 @@ export const ArtifactSidebar = ({ isOpen, onClose, onNewArtifact }) => {
             </button>
           </div>
 
-          <div style={{
-            display: 'flex',
-            gap: theme.spacing.sm,
-          }}>
+          {artifacts.length > 0 && (
             <button
-              onClick={handleNewArtifact}
+              onClick={handleClearAll}
               style={{
-                flex: 1,
+                width: '100%',
                 padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                background: theme.colors.bg.secondary,
+                background: 'transparent',
                 border: `1px solid ${theme.colors.bg.border}`,
-                color: theme.colors.text.primary,
+                color: theme.colors.text.secondary,
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 fontSize: theme.typography.fontSize.sm,
@@ -182,48 +174,15 @@ export const ArtifactSidebar = ({ isOpen, onClose, onNewArtifact }) => {
                 opacity: 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.8';
+                e.currentTarget.style.opacity = '0.7';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '1';
               }}
             >
-              <span style={{ fontSize: '18px' }}>+</span>
-              New Artifact
+              Clear All
             </button>
-
-            {artifacts.length > 0 && (
-              <button
-                onClick={handleClearAll}
-                style={{
-                  flex: 1,
-                  padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                  background: 'transparent',
-                  border: `1px solid ${theme.colors.bg.border}`,
-                  color: theme.colors.text.secondary,
-                  borderRadius: theme.radius.md,
-                  cursor: 'pointer',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  fontFamily: theme.typography.fontFamily.sans,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: theme.spacing.sm,
-                  transition: `opacity ${theme.animation.fast}`,
-                  opacity: 1,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.7';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                }}
-              >
-                Clear All
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Artifact List */}

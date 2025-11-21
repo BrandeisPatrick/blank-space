@@ -12,14 +12,14 @@ import { ArtifactSidebar } from "./components/artifact";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/ToolOrchestrator.js";
-import { ROUTES, TIMING, MESSAGES, LABELS, PANELS } from "./constants";
+import { ROUTES, TIMING, MESSAGES, LABELS, PANELS, COLORS } from "./constants";
 import "./styles/App.css";
 
 function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state
@@ -39,12 +39,25 @@ function App() {
   // Error deduplication - track recent errors to prevent spam
   const recentErrors = useRef(new Map());
 
-  // Sync files and chat history with active artifact
+  // Track current chat messages for saving to artifact
+  // Using ref to avoid including chatMessages in handleSendMessage dependencies
+  const chatMessagesRef = useRef([]);
+
+  // Track if initial message from URL was already processed
+  // Prevents effect from re-running when handleSendMessage changes
+  const initialMessageProcessedRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
+  // Sync files and chat history with active artifact (one-way only)
   useEffect(() => {
     if (activeArtifact) {
       setFiles(activeArtifact.files);
-      // Load chat history for this artifact (default to empty array if not set)
       setChatMessages(activeArtifact.chatHistory || []);
+
       // Set active file to first available file
       const fileNames = Object.keys(activeArtifact.files);
       if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
@@ -55,14 +68,13 @@ function App() {
       setFiles({});
       setChatMessages([]);
     }
-  }, [activeArtifactId, activeArtifact?.files, activeFile]);
-
-  // Save chat messages to artifact whenever they change
-  useEffect(() => {
-    if (activeArtifactId && chatMessages.length > 0) {
-      updateChatHistory(activeArtifactId, chatMessages);
-    }
-  }, [chatMessages, activeArtifactId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeArtifactId]);
+  // Intentionally omitting activeArtifact and activeFile from dependencies:
+  // - activeArtifact is derived from activeArtifactId (changes when ID changes)
+  // - Including it would cause effect to run on file/chatHistory changes (unwanted)
+  // - activeFile is only used for validation check, not meant to trigger re-sync
+  // This implements one-way sync: artifact → UI (not UI → artifact)
 
   // Panel visibility
   const [showChat, setShowChat] = useState(true);
@@ -75,8 +87,42 @@ function App() {
     localStorage.removeItem('guestBannerDismissed');
   }, []);
 
-  // Helper function to set panel visibility based on device type
+  // Helper to determine current UI state
+  const getUIState = useCallback(() => {
+    const hasArtifact = !!activeArtifact;
+    const hasMessages = chatMessages.length > 0;
+    const hasPendingWork = hasMessages || thinking.isThinking;
+
+    if (!hasArtifact && !hasPendingWork) {
+      return 'EMPTY'; // No artifacts, no activity
+    } else if (!hasArtifact && hasPendingWork) {
+      return 'PENDING'; // Working on first artifact
+    } else {
+      return 'ACTIVE'; // Has artifact
+    }
+  }, [activeArtifact, chatMessages.length, thinking.isThinking]);
+
+  // Helper function to set panel visibility based on device type and UI state
   const setupPanelVisibility = useCallback(() => {
+    const uiState = getUIState();
+
+    // In empty state, hide all panels
+    if (uiState === 'EMPTY') {
+      setShowChat(false);
+      setShowCode(false);
+      setShowPreview(false);
+      return;
+    }
+
+    // In pending state (user just sent message from landing), show only chat
+    if (uiState === 'PENDING') {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(false);
+      return;
+    }
+
+    // In active state (has artifact), set based on device type
     if (isMobile) {
       setShowChat(true);
       setShowCode(false);
@@ -86,25 +132,73 @@ function App() {
       setShowCode(false);
       setShowPreview(true);
     }
-  }, [isMobile]);
+  }, [isMobile, getUIState]);
+
+  // Auto-adjust panel visibility when UI state changes
+  useEffect(() => {
+    const uiState = getUIState();
+
+    // If transitioning to empty state, hide all panels
+    if (uiState === 'EMPTY' && showChat) {
+      setShowChat(false);
+      setShowCode(false);
+      setShowPreview(false);
+    }
+
+    // If transitioning from empty to pending (user sent first message)
+    // Show only chat panel to display the conversation
+    if (uiState === 'PENDING' && !showChat) {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(false);
+    }
+
+    // If transitioning from pending to active (artifact created)
+    // Setup panels based on device type
+    if (uiState === 'ACTIVE' && !showPreview && !isMobile) {
+      setupPanelVisibility();
+    }
+  }, [getUIState, showChat, showPreview, isMobile, setupPanelVisibility]);
 
   // Navigation handlers
   const handleTryNow = (message) => {
-    setCurrentRoute(ROUTES.STUDIO);
-    setupPanelVisibility();
-
     // Auto-submit the message if provided from landing page
     if (message?.trim()) {
-      // Small delay to ensure studio UI is ready
-      setTimeout(() => {
-        handleSendMessage(message);
-      }, 100);
+      // Clear active artifact to ensure a new one is created
+      clearActiveArtifact();
+
+      // Encode message in URL parameter
+      const encodedMessage = encodeURIComponent(message);
+
+      // Check if message is too long for URL (browser limit ~2000 chars)
+      if (encodedMessage.length > 2000) {
+        // Fallback: Use sessionStorage for long messages
+        sessionStorage.setItem('pendingMessage', message);
+        window.history.pushState({}, '', '?hasPendingMessage=true');
+      } else {
+        window.history.pushState({}, '', `?initialMessage=${encodedMessage}`);
+      }
+    }
+
+    setCurrentRoute(ROUTES.STUDIO);
+
+    // If message provided, show chat immediately for pending state
+    // Otherwise call setupPanelVisibility for normal navigation
+    if (message?.trim()) {
+      setShowChat(true);
+      setShowCode(false);
+      setShowPreview(false);
+    } else {
+      setupPanelVisibility();
     }
   };
 
   const handleNavigateToSignIn = () => setCurrentRoute(ROUTES.SIGNIN);
   const handleNavigateToSignUp = () => setCurrentRoute(ROUTES.SIGNUP);
-  const handleNavigateToLanding = () => setCurrentRoute(ROUTES.LANDING);
+  const handleNavigateToLanding = () => {
+    clearActiveArtifact(); // Clear active artifact so landing page always creates new
+    setCurrentRoute(ROUTES.LANDING);
+  };
 
   const handleAuthSuccess = () => {
     // Navigate to studio after successful sign-in/sign-up
@@ -187,14 +281,19 @@ function App() {
   }, []);
 
   // Handle chat message with AI agents
-  const handleSendMessage = async (message) => {
+  const handleSendMessage = useCallback(async (message) => {
     // Add user message
     const userMessage = {
       type: 'user',
       content: message,
       timestamp: Date.now()
     };
-    setChatMessages(prev => [...prev, userMessage]);
+    setChatMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      // Sync ref immediately to ensure it's available for artifact creation
+      chatMessagesRef.current = newMessages;
+      return newMessages;
+    });
 
     // Reset thinking state and start
     thinking.reset();
@@ -228,7 +327,12 @@ function App() {
         return; // Don't add to chat messages
       }
 
-      setChatMessages(prev => [...prev, { ...update, timestamp: Date.now() }]);
+      setChatMessages(prev => {
+        const newMessages = [...prev, { ...update, timestamp: Date.now() }];
+        // Sync ref immediately for AI responses too
+        chatMessagesRef.current = newMessages;
+        return newMessages;
+      });
     };
 
     try {
@@ -252,11 +356,32 @@ function App() {
         // If no active artifact, create a new one
         if (!activeArtifactId) {
           const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
-          createArtifact(artifactName, newFiles);
+          try {
+            // Use ref to get current chat messages (includes user message + AI responses)
+            // Ref always has the latest state, avoiding duplicate messages
+            const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
+            if (!newArtifactId) {
+              throw new Error('Failed to create artifact');
+            }
+          } catch (error) {
+            console.error('Error creating artifact:', error);
+            // Save files to state even if artifact creation fails
+            // User doesn't lose their generated content
+            setFiles(newFiles);
+            setChatMessages(prev => [...prev, {
+              type: 'error',
+              content: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
+              timestamp: Date.now()
+            }]);
+            thinking.complete();
+            return;
+          }
         } else {
-          // Update existing artifact
+          // Update existing artifact with files and chat history
           setFiles(newFiles);
           updateArtifactFiles(activeArtifactId, newFiles);
+          // Explicitly save chat history using ref (includes all messages)
+          updateChatHistory(activeArtifactId, chatMessagesRef.current);
         }
 
         // Switch to the first created/modified file
@@ -293,7 +418,51 @@ function App() {
         thinking.error('An error occurred while processing your request');
       }
     }
-  };
+  }, [files, activeArtifactId, thinking, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning]);
+  // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
+
+  // Handle initial message from URL parameter (landing page → studio transition)
+  useEffect(() => {
+    // Only process if on studio route and haven't processed initial message yet
+    if (currentRoute === ROUTES.STUDIO && !initialMessageProcessedRef.current) {
+      const params = new URLSearchParams(window.location.search);
+
+      let messageToSend = null;
+
+      // Check for sessionStorage fallback first (for long messages)
+      if (params.get('hasPendingMessage') === 'true') {
+        messageToSend = sessionStorage.getItem('pendingMessage');
+        sessionStorage.removeItem('pendingMessage');
+      } else {
+        // Check URL parameter for regular messages
+        const initialMessage = params.get('initialMessage');
+        if (initialMessage) {
+          messageToSend = decodeURIComponent(initialMessage);
+        }
+      }
+
+      if (messageToSend) {
+        // Mark as processed to prevent re-running when handleSendMessage changes
+        initialMessageProcessedRef.current = true;
+
+        // Clear URL parameter immediately to prevent double-processing
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Send message after a small delay to ensure studio UI is mounted
+        const timeoutId = setTimeout(() => {
+          handleSendMessage(messageToSend);
+        }, 100);
+
+        // Cleanup: clear timeout if component unmounts or route changes
+        return () => clearTimeout(timeoutId);
+      }
+    }
+
+    // Reset flag when leaving studio route
+    if (currentRoute !== ROUTES.STUDIO) {
+      initialMessageProcessedRef.current = false;
+    }
+  }, [currentRoute, handleSendMessage]);
 
   // Handle file changes
   const handleFileChange = (filename, newContent) => {
@@ -342,12 +511,6 @@ function App() {
     if (activeArtifactId) {
       updateArtifactFiles(activeArtifactId, updatedFiles);
     }
-  };
-
-  // Handle new artifact creation with proper panel visibility
-  const handleNewArtifact = () => {
-    createArtifact('Untitled Project');
-    setupPanelVisibility();
   };
 
   // Auto-navigate based on auth state
@@ -470,7 +633,6 @@ function App() {
       <ArtifactSidebar
         isOpen={showArtifacts}
         onClose={() => setShowArtifacts(false)}
-        onNewArtifact={handleNewArtifact}
       />
 
       {/* Top Bar */}
@@ -515,8 +677,12 @@ function App() {
         background: theme.colors.gradient.subtle,
         padding: theme.spacing.xs,
       }}>
-        {/* Empty State - No Artifacts */}
-        {!activeArtifact && (
+        {(() => {
+          const uiState = getUIState();
+
+          // STATE A: Empty State - No artifacts and no activity
+          if (uiState === 'EMPTY') {
+            return (
           <div style={{
             flex: 1,
             display: 'flex',
@@ -553,7 +719,7 @@ function App() {
                 marginBottom: theme.spacing.xl,
                 lineHeight: '1.6',
               }}>
-                Create a new artifact to start building your React application, or load an example from the templates.
+                Go to the home page to create a new artifact by describing what you want to build.
               </p>
               <div style={{
                 display: 'flex',
@@ -562,17 +728,12 @@ function App() {
                 flexWrap: 'wrap',
               }}>
                 <button
-                  onClick={() => {
-                    createArtifact('My Project');
-                    setShowChat(true);
-                    setShowCode(false);
-                    setShowPreview(true);
-                  }}
+                  onClick={handleNavigateToLanding}
                   style={{
                     padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-                    background: theme.colors.bg.secondary,
-                    border: `1px solid ${theme.colors.bg.border}`,
-                    color: theme.colors.text.primary,
+                    background: theme.colors.accent.primary,
+                    border: `1px solid ${theme.colors.border}`,
+                    color: COLORS.WHITE,
                     borderRadius: theme.radius.md,
                     cursor: 'pointer',
                     fontSize: theme.typography.fontSize.md,
@@ -580,29 +741,28 @@ function App() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: theme.spacing.sm,
-                    transition: `opacity ${theme.animation.fast}`,
-                    opacity: 1,
+                    transition: `background ${theme.animation.fast}`,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.8';
+                    e.currentTarget.style.background = theme.colorVariants.accent.primaryHover;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.background = theme.colors.accent.primary;
                   }}
                 >
-                  <span style={{ fontSize: '20px' }}>+</span>
-                  Create New Artifact
+                  Go to Home
                 </button>
               </div>
             </div>
           </div>
-        )}
+            );
+          }
 
-        {/* Regular Panels - Only show when there's an active artifact */}
-        {activeArtifact && (
-          <>
-        {/* Chat Panel */}
-        {showChat && (
+          // STATE B & C: Show panels based on user toggles and artifact state
+          return (
+            <>
+              {/* Chat Panel - Show when toggled AND (has artifact OR has pending work) */}
+              {showChat && (
           <div style={{
             width: panelWidth,
             height: '100%',
@@ -616,10 +776,10 @@ function App() {
             <ChatPanel messages={chatMessages} thinkingState={thinking} onFixBug={handleSendMessage} />
             <ChatInput onSend={handleSendMessage} />
           </div>
-        )}
+              )}
 
-        {/* Editor Panel */}
-        {showCode && (
+              {/* Editor Panel - Only show when there's an active artifact */}
+              {activeArtifact && showCode && (
           <div style={{
             width: panelWidth,
             height: '100%',
@@ -697,23 +857,24 @@ function App() {
               </div>
             </div>
           </div>
-        )}
+              )}
 
-        {/* Preview Panel */}
-        {showPreview && (
-          <div style={{
-            width: panelWidth,
-            height: '100%',
-            background: theme.colors.bg.primary,
-            borderRadius: theme.radius.lg,
-            boxShadow: theme.shadows.md,
-            overflow: 'hidden',
-          }}>
-            <PreviewPanel files={files} onError={handlePreviewError} />
-          </div>
-        )}
-        </>
-        )}
+              {/* Preview Panel - Only show when there's an active artifact */}
+              {activeArtifact && showPreview && (
+                <div style={{
+                  width: panelWidth,
+                  height: '100%',
+                  background: theme.colors.bg.primary,
+                  borderRadius: theme.radius.lg,
+                  boxShadow: theme.shadows.md,
+                  overflow: 'hidden',
+                }}>
+                  <PreviewPanel files={files} onError={handlePreviewError} />
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

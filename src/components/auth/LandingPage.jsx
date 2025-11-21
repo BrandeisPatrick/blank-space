@@ -140,6 +140,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
           {/* Artifact Grid - Shows at top if artifacts exist */}
           {artifacts && artifacts.length > 0 && (
             <div style={{
+              width: '100%',
               display: 'grid',
               gridTemplateColumns: isMobile
                 ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`

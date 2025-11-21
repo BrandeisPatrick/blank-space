@@ -164,14 +164,14 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Create new artifact
-  const createArtifact = async (name = 'Untitled Project', files = null) => {
+  const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = []) => {
     // Guest mode: Create artifact in localStorage
     if (!user) {
       const newArtifact = {
         id: generateArtifactId(),
         name,
-        files: files || {},
-        chatHistory: [],
+        files: files ?? {},
+        chatHistory: chatHistory ?? [],
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
@@ -193,8 +193,8 @@ export const ArtifactProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify({
           name,
-          files: files || {},
-          chatHistory: [],
+          files: files ?? {},
+          chatHistory: chatHistory ?? [],
         }),
       });
 
@@ -408,6 +408,14 @@ export const ArtifactProvider = ({ children }) => {
     }
   };
 
+  // Clear active artifact (useful for resetting to create new artifact)
+  const clearActiveArtifact = () => {
+    setActiveArtifactId(null);
+    if (!user) {
+      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+    }
+  };
+
   // Memoize context value to prevent unnecessary re-renders of consumers
   const value = useMemo(
     () => ({
@@ -424,6 +432,7 @@ export const ArtifactProvider = ({ children }) => {
       deleteArtifact,
       loadArtifact,
       duplicateArtifact,
+      clearActiveArtifact,
       clearAllArtifacts,
       refreshArtifacts: loadArtifactsFromAPI,
     }),
