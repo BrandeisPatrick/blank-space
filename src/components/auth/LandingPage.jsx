@@ -24,7 +24,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
   // Handle artifact selection
   const handleArtifactSelect = (artifactId) => {
     loadArtifact(artifactId);
-    onTryNow();
+    onTryNow(''); // Pass empty string to signal "open browser window only"
   };
 
   // Handle suggestion pill click

@@ -6,11 +6,17 @@ export {
   AppIcon,
   ArrowUpIcon,
   BinaIcon,
+  CodeIcon,
   CopyIcon,
   DocumentIcon,
   EditIcon,
+  EyeIcon,
   GlobeIcon,
   LightningIcon,
+  MaximizeIcon,
+  MessageCircleIcon,
+  MinimizeIcon,
   PaperclipIcon,
-  TrashIcon
+  TrashIcon,
+  XIcon
 } from './icons';
