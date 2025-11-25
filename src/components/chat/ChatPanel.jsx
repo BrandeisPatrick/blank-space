@@ -25,39 +25,6 @@ export const ChatPanel = ({ messages = [], thinkingState = null, onFixBug }) => 
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Chat header */}
-      <div style={{
-        padding: `${theme.spacing['2xl']} ${theme.spacing.md}`,
-        borderBottom: `1px solid ${theme.colors.bg.border}`,
-        background: theme.colors.bg.secondary,
-        display: 'flex',
-        alignItems: 'center',
-        height: '97.34px',
-        boxSizing: 'border-box',
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-        }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: theme.radius.full,
-            background: theme.colors.bg.primary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <BinaIcon size={28} />
-          </div>
-          Bina
-        </div>
-      </div>
-
       {/* Messages container */}
       <div style={{
         flex: 1,
@@ -119,50 +86,18 @@ export const ChatPanel = ({ messages = [], thinkingState = null, onFixBug }) => 
                 <ChatMessage key={index} message={message} onFixBug={onFixBug} />
               ))}
 
-            {/* Thinking Panel - styled as a Bina message, shown after messages */}
+            {/* Thinking Panel - simplified, no avatar */}
             {thinkingState && thinkingState.isActive && (
               <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing.sm,
-                alignItems: 'flex-start',
+                width: '100%',
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing.sm,
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.text.tertiary,
-                }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: theme.radius.full,
-                    background: theme.colors.bg.secondary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                  }}>
-                    <BinaIcon size={24} />
-                  </div>
-                  <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
-                    Bina
-                  </span>
-                </div>
-
-                <div style={{
-                  width: '100%',
-                  maxWidth: '85%',
-                }}>
-                  <CompactThinkingPanel
-                    phase={thinkingState.phase}
-                    steps={thinkingState.steps}
-                    answer={thinkingState.answer}
-                    isVisible={thinkingState.isVisible}
-                    onToggleVisibility={thinkingState.toggleVisibility}
-                  />
-                </div>
+                <CompactThinkingPanel
+                  phase={thinkingState.phase}
+                  steps={thinkingState.steps}
+                  answer={thinkingState.answer}
+                  isVisible={thinkingState.isVisible}
+                  onToggleVisibility={thinkingState.toggleVisibility}
+                />
               </div>
             )}
           </>
@@ -212,51 +147,20 @@ const ChatMessage = ({ message, onFixBug }) => {
     )
   }
 
-  // Regular user/assistant/complete messages
+  // Regular user/assistant/complete messages - simplified, no avatars, all left-aligned
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.sm,
-      alignItems: isUser ? 'flex-end' : 'flex-start',
+      background: isUser ? theme.colors.bg.tertiary : theme.colors.bg.secondary,
+      color: theme.colors.text.primary,
+      padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+      borderRadius: theme.radius.lg,
+      fontSize: theme.typography.fontSize.sm,
+      lineHeight: theme.typography.lineHeight.relaxed,
+      whiteSpace: 'pre-wrap',
+      width: '100%',
+      border: `1px solid ${theme.colors.border}`,
     }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        fontSize: theme.typography.fontSize.xs,
-        color: theme.colors.text.tertiary,
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: theme.radius.full,
-          background: isUser ? theme.colors.gradient.primary : theme.colors.bg.secondary,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '16px',
-        }}>
-          {isUser ? '👤' : <BinaIcon size={24} />}
-        </div>
-        <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
-          {isUser ? 'You' : 'Bina'}
-        </span>
-      </div>
-
-      <div style={{
-        background: isUser ? theme.colors.bg.tertiary : theme.colors.bg.secondary,
-        color: theme.colors.text.primary,
-        padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-        borderRadius: theme.radius.md,
-        fontSize: theme.typography.fontSize.sm,
-        lineHeight: theme.typography.lineHeight.relaxed,
-        whiteSpace: 'pre-wrap',
-        maxWidth: '85%',
-        border: `1px solid ${theme.colors.border}`,
-      }}>
-        {message.content}
-      </div>
+      {message.content}
     </div>
   )
 }

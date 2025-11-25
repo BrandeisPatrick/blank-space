@@ -62,10 +62,12 @@ export const ArtifactProvider = ({ children }) => {
 
         setArtifacts(parsedArtifacts);
 
+        // Only restore activeArtifactId if explicitly saved in localStorage
+        // Don't auto-select first artifact to keep landing page clean
         if (activeId && parsedArtifacts.some(a => a && a.id === activeId)) {
           setActiveArtifactId(activeId);
-        } else if (parsedArtifacts.length > 0) {
-          setActiveArtifactId(parsedArtifacts[0]?.id || null);
+        } else {
+          setActiveArtifactId(null);
         }
       } else {
         setArtifacts([]);
@@ -141,10 +143,8 @@ export const ArtifactProvider = ({ children }) => {
       const data = await makeAuthenticatedRequest('/api/artifacts/list');
       setArtifacts(data.artifacts || []);
 
-      // Set active artifact to first one if none selected
-      if (!activeArtifactId && data.artifacts.length > 0) {
-        setActiveArtifactId(data.artifacts[0].id);
-      }
+      // Don't auto-select first artifact to keep landing page clean
+      // Only set active artifact when explicitly requested by user
     } catch (error) {
       console.error('Error loading artifacts:', error);
       setError(error.message);

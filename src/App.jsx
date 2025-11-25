@@ -9,6 +9,8 @@ import { ChatPanel, ChatInput } from "./components/chat";
 import { EditorPanel, FileTabs, FileExplorer } from "./components/editor";
 import { PreviewPanel } from "./components/preview";
 import { ArtifactSidebar } from "./components/artifact";
+import { FloatingChatPanel } from "./components/ui/FloatingChatPanel";
+import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/ToolOrchestrator.js";
@@ -76,11 +78,46 @@ function App() {
   // - activeFile is only used for validation check, not meant to trigger re-sync
   // This implements one-way sync: artifact → UI (not UI → artifact)
 
-  // Panel visibility
+  // Panel visibility (legacy - keeping for compatibility)
   const [showChat, setShowChat] = useState(true);
   const [showCode, setShowCode] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [showArtifacts, setShowArtifacts] = useState(false);
+
+  // Floating window states
+  const [floatingChatVisible, setFloatingChatVisible] = useState(false);
+  const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
+  const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
+
+  // Show browser window only when: user clicked artifact card OR AI completed work
+  useEffect(() => {
+    console.log('[Browser Window Effect] activeArtifact:', activeArtifact?.name, 'thinking.isComplete:', thinking.isComplete, 'userRequestedBrowserWindow:', userRequestedBrowserWindow);
+
+    if (activeArtifact && (userRequestedBrowserWindow || thinking.isComplete)) {
+      console.log('[Browser Window Effect] Opening browser window');
+      setBrowserWindowVisible(true);
+    }
+  }, [activeArtifact, userRequestedBrowserWindow, thinking.isComplete]);
+
+  // Auto-show/hide chat based on AI working state
+  useEffect(() => {
+    console.log('[Chat Effect] thinking.isThinking:', thinking.isThinking, 'thinking.isComplete:', thinking.isComplete);
+
+    // Show chat when AI is thinking/working
+    if (thinking.isThinking) {
+      console.log('[Chat Effect] AI is thinking, showing chat');
+      setFloatingChatVisible(true);
+    }
+
+    // Hide chat when AI is done (complete and not thinking)
+    if (thinking.isComplete && !thinking.isThinking) {
+      console.log('[Chat Effect] AI is done, hiding chat');
+      // Add small delay so user can see the completion message
+      setTimeout(() => {
+        setFloatingChatVisible(false);
+      }, 2000); // Hide after 2 seconds
+    }
+  }, [thinking.isThinking, thinking.isComplete]);
 
   // Clean up old guest banner localStorage key
   useEffect(() => {
@@ -162,34 +199,35 @@ function App() {
 
   // Navigation handlers
   const handleTryNow = (message) => {
-    // Auto-submit the message if provided from landing page
-    if (message?.trim()) {
-      // Clear active artifact to ensure a new one is created
-      clearActiveArtifact();
+    console.log('[handleTryNow] Called with message:', message);
+    console.log('[handleTryNow] currentRoute:', currentRoute);
+    console.log('[handleTryNow] activeArtifact:', activeArtifact?.name);
 
-      // Encode message in URL parameter
-      const encodedMessage = encodeURIComponent(message);
-
-      // Check if message is too long for URL (browser limit ~2000 chars)
-      if (encodedMessage.length > 2000) {
-        // Fallback: Use sessionStorage for long messages
-        sessionStorage.setItem('pendingMessage', message);
-        window.history.pushState({}, '', '?hasPendingMessage=true');
-      } else {
-        window.history.pushState({}, '', `?initialMessage=${encodedMessage}`);
-      }
+    // Special case: empty string means user clicked artifact card (just open browser window)
+    if (message === '') {
+      console.log('[handleTryNow] User clicked artifact card, opening browser window');
+      setUserRequestedBrowserWindow(true);
+      return;
     }
 
-    setCurrentRoute(ROUTES.STUDIO);
-
-    // If message provided, show chat immediately for pending state
-    // Otherwise call setupPanelVisibility for normal navigation
+    // Auto-submit the message if provided from landing page
     if (message?.trim()) {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    } else {
-      setupPanelVisibility();
+      // Only clear artifact if starting completely fresh (no existing artifact)
+      // This prevents clearing messages on follow-up messages
+      if (!activeArtifact) {
+        console.log('[handleTryNow] No active artifact, will create new one');
+        clearActiveArtifact();
+      } else {
+        console.log('[handleTryNow] Active artifact exists, keeping it:', activeArtifact.name);
+      }
+
+      // Show floating chat panel
+      setFloatingChatVisible(true);
+      console.log('[handleTryNow] Set floatingChatVisible to true');
+
+      // Send the message directly to AI
+      handleSendMessage(message);
+      console.log('[handleTryNow] Called handleSendMessage');
     }
   };
 
@@ -197,6 +235,8 @@ function App() {
   const handleNavigateToSignUp = () => setCurrentRoute(ROUTES.SIGNUP);
   const handleNavigateToLanding = () => {
     clearActiveArtifact(); // Clear active artifact so landing page always creates new
+    setBrowserWindowVisible(false); // Close browser window
+    setUserRequestedBrowserWindow(false); // Reset user request flag
     setCurrentRoute(ROUTES.LANDING);
   };
 
@@ -282,6 +322,8 @@ function App() {
 
   // Handle chat message with AI agents
   const handleSendMessage = useCallback(async (message) => {
+    console.log('[handleSendMessage] Called with message:', message);
+
     // Add user message
     const userMessage = {
       type: 'user',
@@ -290,6 +332,7 @@ function App() {
     };
     setChatMessages(prev => {
       const newMessages = [...prev, userMessage];
+      console.log('[handleSendMessage] Updated chatMessages, new length:', newMessages.length);
       // Sync ref immediately to ensure it's available for artifact creation
       chatMessagesRef.current = newMessages;
       return newMessages;
@@ -585,16 +628,6 @@ function App() {
     );
   }
 
-  // Show landing page if route is LANDING
-  if (currentRoute === ROUTES.LANDING) {
-    return (
-      <LandingPage
-        onTryNow={handleTryNow}
-        onSignIn={handleNavigateToSignIn}
-      />
-    );
-  }
-
   // Show sign in page if route is SIGNIN
   if (currentRoute === ROUTES.SIGNIN) {
     return (
@@ -617,265 +650,41 @@ function App() {
     );
   }
 
-  // Otherwise show studio view
+  // Show landing page with floating windows (default route)
   return (
-    <div style={{
-      height: '100vh',
-      width: '100vw',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: theme.colors.bg.primary,
-      color: theme.colors.text.primary,
-      fontFamily: theme.typography.fontFamily.sans,
-      overflow: 'hidden',
-    }}>
-      {/* Artifact Sidebar */}
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      {/* Landing Page as Background */}
+      <LandingPage
+        onTryNow={handleTryNow}
+        onSignIn={handleNavigateToSignIn}
+      />
+
+      {/* Floating Chat Panel - Only shows when AI is working */}
+      <FloatingChatPanel
+        visible={floatingChatVisible}
+        messages={chatMessages}
+        thinkingState={thinking}
+        onFixBug={handleSendMessage}
+      />
+
+      {/* Floating Browser Window */}
+      <FloatingBrowserWindow
+        visible={browserWindowVisible}
+        artifact={activeArtifact}
+        files={files}
+        onClose={() => {
+          setBrowserWindowVisible(false);
+          setUserRequestedBrowserWindow(false); // Reset flag so card can be clicked again
+        }}
+        onFileChange={handleFileChange}
+        onError={handlePreviewError}
+      />
+
+      {/* Artifact Sidebar (still available) */}
       <ArtifactSidebar
         isOpen={showArtifacts}
         onClose={() => setShowArtifacts(false)}
       />
-
-      {/* Top Bar */}
-      <TopBar
-        showChat={showChat}
-        showCode={showCode}
-        showPreview={showPreview}
-        onTogglePanel={(panel) => {
-          if (isMobile) {
-            // On mobile, only show one panel at a time
-            if (panel === PANELS.CHAT) {
-              setShowChat(true);
-              setShowCode(false);
-              setShowPreview(false);
-            } else if (panel === PANELS.CODE) {
-              setShowChat(false);
-              setShowCode(true);
-              setShowPreview(false);
-            } else if (panel === PANELS.PREVIEW) {
-              setShowChat(false);
-              setShowCode(false);
-              setShowPreview(true);
-            }
-          } else {
-            // On desktop, toggle panels independently
-            if (panel === PANELS.CHAT) setShowChat(!showChat);
-            if (panel === PANELS.CODE) setShowCode(!showCode);
-            if (panel === PANELS.PREVIEW) setShowPreview(!showPreview);
-          }
-        }}
-        onToggleArtifacts={() => setShowArtifacts(!showArtifacts)}
-        onNavigateToHome={handleNavigateToLanding}
-      />
-
-      {/* Main Content Panels */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'row',
-        overflow: 'hidden',
-        gap: theme.spacing.xs,
-        background: theme.colors.gradient.subtle,
-        padding: theme.spacing.xs,
-      }}>
-        {(() => {
-          const uiState = getUIState();
-
-          // STATE A: Empty State - No artifacts and no activity
-          if (uiState === 'EMPTY') {
-            return (
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: theme.colors.bg.primary,
-            borderRadius: theme.radius.lg,
-            boxShadow: theme.shadows.md,
-          }}>
-            <div style={{
-              textAlign: 'center',
-              padding: theme.spacing['2xl'],
-              maxWidth: '500px',
-            }}>
-              <div style={{
-                fontSize: '80px',
-                marginBottom: theme.spacing.xl,
-                opacity: 0.6,
-              }}>
-                📦
-              </div>
-              <h2 style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.text.primary,
-                margin: 0,
-                marginBottom: theme.spacing.lg,
-              }}>
-                No Artifacts Yet
-              </h2>
-              <p style={{
-                fontSize: theme.typography.fontSize.md,
-                color: theme.colors.text.secondary,
-                marginBottom: theme.spacing.xl,
-                lineHeight: '1.6',
-              }}>
-                Go to the home page to create a new artifact by describing what you want to build.
-              </p>
-              <div style={{
-                display: 'flex',
-                gap: theme.spacing.md,
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-              }}>
-                <button
-                  onClick={handleNavigateToLanding}
-                  style={{
-                    padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-                    background: theme.colors.accent.primary,
-                    border: `1px solid ${theme.colors.border}`,
-                    color: COLORS.WHITE,
-                    borderRadius: theme.radius.md,
-                    cursor: 'pointer',
-                    fontSize: theme.typography.fontSize.md,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    transition: `background ${theme.animation.fast}`,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = theme.colorVariants.accent.primaryHover;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = theme.colors.accent.primary;
-                  }}
-                >
-                  Go to Home
-                </button>
-              </div>
-            </div>
-          </div>
-            );
-          }
-
-          // STATE B & C: Show panels based on user toggles and artifact state
-          return (
-            <>
-              {/* Chat Panel - Show when toggled AND (has artifact OR has pending work) */}
-              {showChat && (
-          <div style={{
-            width: panelWidth,
-            height: '100%',
-            background: theme.colors.bg.primary,
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: theme.radius.lg,
-            boxShadow: theme.shadows.md,
-            overflow: 'hidden',
-          }}>
-            <ChatPanel messages={chatMessages} thinkingState={thinking} onFixBug={handleSendMessage} />
-            <ChatInput onSend={handleSendMessage} />
-          </div>
-              )}
-
-              {/* Editor Panel - Only show when there's an active artifact */}
-              {activeArtifact && showCode && (
-          <div style={{
-            width: panelWidth,
-            height: '100%',
-            background: theme.colors.bg.primary,
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: theme.radius.lg,
-            overflow: 'hidden',
-          }}>
-            {/* Editor Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              background: theme.colors.bg.secondary,
-              borderBottom: `1px solid ${theme.colors.bg.border}`,
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                color: theme.colors.text.primary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '14px',
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: '#808080',
-                  fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
-                }}>
-                  <span style={{ opacity: 0.7 }}>&lt;</span>
-                  <span style={{ margin: '0 2px', opacity: 0.5 }}>/</span>
-                  <span style={{ opacity: 0.7 }}>&gt;</span>
-                </div>
-                <span>Code Editor</span>
-              </div>
-            </div>
-
-            {/* Editor Content with File Explorer */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              {/* File Explorer Sidebar - Hidden on mobile */}
-              {!isMobile && (
-                <div style={{ width: '220px', height: '100%', overflow: 'hidden' }}>
-                  <FileExplorer
-                    files={files}
-                    activeFile={activeFile}
-                    onFileSelect={setActiveFile}
-                    onFileCreate={handleFileCreate}
-                    onFileDelete={handleFileDelete}
-                  />
-                </div>
-              )}
-
-              {/* Editor Area */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                {/* File Tabs */}
-                <FileTabs
-                  files={files}
-                  activeFile={activeFile}
-                  onFileSelect={setActiveFile}
-                />
-
-                {/* Monaco Editor */}
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <EditorPanel
-                    files={files}
-                    activeFile={activeFile}
-                    onFileChange={handleFileChange}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-              )}
-
-              {/* Preview Panel - Only show when there's an active artifact */}
-              {activeArtifact && showPreview && (
-                <div style={{
-                  width: panelWidth,
-                  height: '100%',
-                  background: theme.colors.bg.primary,
-                  borderRadius: theme.radius.lg,
-                  boxShadow: theme.shadows.md,
-                  overflow: 'hidden',
-                }}>
-                  <PreviewPanel files={files} onError={handlePreviewError} />
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </div>
     </div>
   );
 }
