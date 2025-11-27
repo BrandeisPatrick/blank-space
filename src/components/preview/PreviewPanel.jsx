@@ -4,14 +4,18 @@ import { getTheme } from '../../styles/theme'
 import { parse } from '@babel/parser'
 import { GlobeIcon } from '../icons'
 
-export const PreviewPanel = ({ files, onError }) => {
+export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = false }) => {
   const iframeRef = useRef(null)
   const containerRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const [errors, setErrors] = useState([])
   const [showErrors, setShowErrors] = useState(false)
-  const [zoom, setZoom] = useState(100)
+  const [internalZoom, setInternalZoom] = useState(100)
+
+  // Use external zoom if provided, otherwise use internal
+  const zoom = externalZoom !== undefined ? externalZoom : internalZoom
+  const setZoom = setInternalZoom
 
   // Helper function to strip ES6 imports from React code
   const stripImports = (code) => {
@@ -429,102 +433,106 @@ export const PreviewPanel = ({ files, onError }) => {
       overflow: 'hidden',
       boxShadow: theme.shadows.md,
     }}>
-      {/* Preview header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-        background: theme.colors.bg.secondary,
-        borderBottom: `1px solid ${theme.colors.bg.border}`,
-      }}>
+      {/* Preview header - hidden when used in FloatingBrowserWindow */}
+      {!hideHeader && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing.sm,
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
+          justifyContent: 'space-between',
+          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+          background: theme.colors.bg.secondary,
+          borderBottom: `1px solid ${theme.colors.bg.border}`,
         }}>
           <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: theme.radius.full,
-            background: theme.colors.accent.success || '#10b981',
-            boxShadow: `0 0 8px ${theme.colors.accent.success || '#10b981'}40`,
-          }}></div>
-          Live Preview
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            color: theme.colors.text.primary,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.semibold,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            letterSpacing: '-0.01em',
+          }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: theme.radius.full,
+              background: theme.colors.accent.success || '#10b981',
+              boxShadow: `0 0 8px ${theme.colors.accent.success || '#10b981'}40`,
+            }}></div>
+            Live Preview
+          </div>
+
+          {/* Zoom controls */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+          }}>
+            <button
+              onClick={handleZoomOut}
+              disabled={zoom <= 25}
+              style={{
+                background: theme.colors.bg.secondary,
+                border: `1px solid ${theme.colors.bg.border}`,
+                color: zoom <= 25 ? theme.colors.text.tertiary : theme.colors.text.primary,
+                cursor: zoom <= 25 ? 'not-allowed' : 'pointer',
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.radius.md,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.normal}`,
+                opacity: zoom <= 25 ? 0.5 : 1,
+              }}
+              title="Zoom out (Ctrl/Cmd + Scroll)"
+            >
+              −
+            </button>
+
+            <button
+              onClick={handleZoomReset}
+              style={{
+                background: theme.colors.bg.secondary,
+                border: `1px solid ${theme.colors.bg.border}`,
+                color: theme.colors.text.primary,
+                cursor: 'pointer',
+                padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+                borderRadius: theme.radius.md,
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.normal}`,
+                minWidth: '60px',
+              }}
+              title="Reset zoom"
+            >
+              {zoom}%
+            </button>
+
+            <button
+              onClick={handleZoomIn}
+              disabled={zoom >= 200}
+              style={{
+                background: theme.colors.bg.secondary,
+                border: `1px solid ${theme.colors.bg.border}`,
+                color: zoom >= 200 ? theme.colors.text.tertiary : theme.colors.text.primary,
+                cursor: zoom >= 200 ? 'not-allowed' : 'pointer',
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.radius.md,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.normal}`,
+                opacity: zoom >= 200 ? 0.5 : 1,
+              }}
+              title="Zoom in (Ctrl/Cmd + Scroll)"
+            >
+              +
+            </button>
+          </div>
         </div>
-
-        {/* Zoom controls */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing.sm,
-        }}>
-          <button
-            onClick={handleZoomOut}
-            disabled={zoom <= 25}
-            style={{
-              background: theme.colors.bg.secondary,
-              border: `1px solid ${theme.colors.bg.border}`,
-              color: zoom <= 25 ? theme.colors.text.tertiary : theme.colors.text.primary,
-              cursor: zoom <= 25 ? 'not-allowed' : 'pointer',
-              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              borderRadius: theme.radius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.sans,
-              transition: `all ${theme.animation.normal}`,
-              opacity: zoom <= 25 ? 0.5 : 1,
-            }}
-            title="Zoom out (Ctrl/Cmd + Scroll)"
-          >
-            −
-          </button>
-
-          <button
-            onClick={handleZoomReset}
-            style={{
-              background: theme.colors.bg.secondary,
-              border: `1px solid ${theme.colors.bg.border}`,
-              color: theme.colors.text.primary,
-              cursor: 'pointer',
-              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-              borderRadius: theme.radius.md,
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.sans,
-              transition: `all ${theme.animation.normal}`,
-              minWidth: '60px',
-            }}
-            title="Reset zoom"
-          >
-            {zoom}%
-          </button>
-
-          <button
-            onClick={handleZoomIn}
-            disabled={zoom >= 200}
-            style={{
-              background: theme.colors.bg.secondary,
-              border: `1px solid ${theme.colors.bg.border}`,
-              color: zoom >= 200 ? theme.colors.text.tertiary : theme.colors.text.primary,
-              cursor: zoom >= 200 ? 'not-allowed' : 'pointer',
-              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              borderRadius: theme.radius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.sans,
-              transition: `all ${theme.animation.normal}`,
-              opacity: zoom >= 200 ? 0.5 : 1,
-            }}
-            title="Zoom in (Ctrl/Cmd + Scroll)"
-          >
-            +
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Preview iframe */}
       <div

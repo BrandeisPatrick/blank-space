@@ -24,8 +24,14 @@ export const FloatingBrowserWindow = ({
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
+  const [zoom, setZoom] = useState(100)
   const { mode } = useTheme()
   const theme = getTheme(mode)
+
+  // Zoom controls
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200))
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50))
+  const handleZoomReset = () => setZoom(100)
 
   // Get the current icon component and color
   const CurrentIcon = getIconById(artifact?.icon || 'app')
@@ -149,7 +155,9 @@ export const FloatingBrowserWindow = ({
                 maxWidth: '300px',
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
                 fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
+                fontWeight: theme.typography.fontWeight.semibold,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                letterSpacing: '-0.01em',
                 color: theme.colors.text.primary,
                 background: theme.colors.bg.primary,
                 border: `1px solid ${theme.colors.border}`,
@@ -168,7 +176,9 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
+                fontWeight: theme.typography.fontWeight.semibold,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                letterSpacing: '-0.01em',
                 color: theme.colors.text.primary,
                 cursor: 'text',
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
@@ -188,12 +198,79 @@ export const FloatingBrowserWindow = ({
           )}
         </div>
 
-        {/* Right: Icon Picker + View Toggle */}
+        {/* Right: Zoom + Icon Picker + View Toggle */}
         <div style={{
           display: 'flex',
           gap: theme.spacing.sm,
           alignItems: 'center',
         }}>
+          {/* Zoom Controls - Only show in preview mode */}
+          {view === 'preview' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              background: theme.colors.bg.primary,
+              borderRadius: theme.radius.md,
+              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+              border: `1px solid ${theme.colors.border}`,
+            }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.sm,
+                  cursor: 'pointer',
+                  color: theme.colors.text.secondary,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}
+              >
+                −
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleZoomReset(); }}
+                style={{
+                  padding: `0 ${theme.spacing.xs}`,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: theme.colors.text.primary,
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  minWidth: '40px',
+                }}
+              >
+                {zoom}%
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.sm,
+                  cursor: 'pointer',
+                  color: theme.colors.text.secondary,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}
+              >
+                +
+              </button>
+            </div>
+          )}
+
           {/* Category Icon Button */}
           <div style={{ position: 'relative' }}>
             <button
@@ -307,7 +384,7 @@ export const FloatingBrowserWindow = ({
         background: theme.colors.bg.primary,
       }}>
         {view === 'preview' ? (
-          <PreviewPanel files={files} onError={onError} />
+          <PreviewPanel files={files} onError={onError} zoom={zoom} hideHeader={true} />
         ) : (
           <EditorPanel
             files={files}
