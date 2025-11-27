@@ -7,7 +7,6 @@ import { BinaIcon } from '../icons'
 export const FloatingChatPanel = ({
   visible = false,
   messages = [],
-  thinkingState = null,
   onFixBug
 }) => {
   const { mode } = useTheme()
@@ -65,7 +64,6 @@ export const FloatingChatPanel = ({
         }}>
           <ChatPanel
             messages={messages}
-            thinkingState={thinkingState}
             onFixBug={onFixBug}
           />
         </div>

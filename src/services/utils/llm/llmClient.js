@@ -394,6 +394,7 @@ export async function callLLMForJSON(options) {
  * @param {number} [options.timeout=60000] - Timeout for LLM calls
  * @param {number} [options.maxToolLoops=10] - Maximum number of tool calling loops
  * @param {number} [options.baseDelay=1000] - Base delay for exponential backoff
+ * @param {Function} [options.onToolAction] - Callback for tool action events: (tool, params, status) => void
  * @returns {Promise<Object>} Final LLM response after tool calling loop completes
  * @throws {Error} If tool execution fails or max loops exceeded
  */
@@ -408,7 +409,8 @@ export async function callLLMWithTools({
   maxRetries = 3,
   timeout = 60000,
   maxToolLoops = 10,
-  baseDelay = 1000
+  baseDelay = 1000,
+  onToolAction = null
 }) {
   // Validate inputs
   if (!toolRegistry) {
@@ -484,8 +486,18 @@ export async function callLLMWithTools({
             throw new Error(`Failed to parse tool arguments: ${parseError.message}`);
           }
 
+          // Notify about tool execution start
+          if (onToolAction) {
+            onToolAction(toolName, params, 'start');
+          }
+
           // Execute the tool
           const toolResult = await executor.execute(toolName, params, context);
+
+          // Notify about tool execution complete
+          if (onToolAction) {
+            onToolAction(toolName, params, toolResult.success ? 'complete' : 'error');
+          }
 
           // Add tool result to messages
           conversationMessages.push({
