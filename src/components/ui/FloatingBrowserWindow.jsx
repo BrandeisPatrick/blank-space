@@ -7,6 +7,7 @@ import { useResizable } from '../../hooks/useResizable'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
 import { XIcon, EyeIcon, CodeIcon } from '../icons'
+import { IconPicker, getIconById } from '../artifact/IconPicker'
 
 export const FloatingBrowserWindow = ({
   visible = false,
@@ -14,12 +15,17 @@ export const FloatingBrowserWindow = ({
   files = {},
   onClose,
   onFileChange,
-  onError
+  onError,
+  onIconChange
 }) => {
   const [view, setView] = useState('preview') // 'preview' or 'code'
   const [activeFile, setActiveFile] = useState('App.jsx')
+  const [showIconPicker, setShowIconPicker] = useState(false)
   const { mode } = useTheme()
   const theme = getTheme(mode)
+
+  // Get the current icon component
+  const CurrentIcon = getIconById(artifact?.icon || 'app')
 
   // Update active file when files change
   useEffect(() => {
@@ -81,8 +87,8 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Close Button */}
-        <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+        {/* Left: Close Button + Icon Picker */}
+        <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -104,6 +110,52 @@ export const FloatingBrowserWindow = ({
               e.currentTarget.style.background = '#ff5f57'
             }}
           />
+
+          {/* Category Icon Button */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowIconPicker(!showIconPicker);
+              }}
+              style={{
+                width: '28px',
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: showIconPicker ? theme.colors.bg.tertiary : 'transparent',
+                border: `1px solid ${showIconPicker ? theme.colors.text.tertiary : 'transparent'}`,
+                borderRadius: theme.radius.md,
+                cursor: 'pointer',
+                transition: `all ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                if (!showIconPicker) {
+                  e.currentTarget.style.background = theme.colors.bg.primary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showIconPicker) {
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+              title="Change icon"
+            >
+              <CurrentIcon size={18} color={theme.colors.text.secondary} />
+            </button>
+
+            {/* Icon Picker Dropdown */}
+            {showIconPicker && (
+              <IconPicker
+                currentIcon={artifact?.icon || 'app'}
+                onSelect={(iconId) => {
+                  onIconChange?.(iconId);
+                }}
+                onClose={() => setShowIconPicker(false)}
+              />
+            )}
+          </div>
         </div>
 
         {/* Center: Title */}

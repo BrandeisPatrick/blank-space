@@ -20,7 +20,7 @@ function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state
@@ -691,6 +691,11 @@ function App() {
         }}
         onFileChange={handleFileChange}
         onError={handlePreviewError}
+        onIconChange={(iconId) => {
+          if (activeArtifactId) {
+            updateArtifactIcon(activeArtifactId, iconId);
+          }
+        }}
       />
 
       {/* Artifact Sidebar (still available) */}

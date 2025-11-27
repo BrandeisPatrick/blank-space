@@ -14,6 +14,7 @@ const generateArtifactId = () => {
 const createEmptyArtifact = () => ({
   id: generateArtifactId(),
   name: 'Untitled Project',
+  icon: 'app', // Default icon category
   files: {},
   chatHistory: [], // Each artifact has its own chat history
   createdAt: Date.now(),
@@ -164,12 +165,13 @@ export const ArtifactProvider = ({ children }) => {
   };
 
   // Create new artifact
-  const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = []) => {
+  const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = [], icon = 'app') => {
     // Guest mode: Create artifact in localStorage
     if (!user) {
       const newArtifact = {
         id: generateArtifactId(),
         name,
+        icon,
         files: files ?? {},
         chatHistory: chatHistory ?? [],
         createdAt: Date.now(),
@@ -193,6 +195,7 @@ export const ArtifactProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify({
           name,
+          icon,
           files: files ?? {},
           chatHistory: chatHistory ?? [],
         }),
@@ -298,6 +301,11 @@ export const ArtifactProvider = ({ children }) => {
     updateArtifact(id, { name: newName });
   };
 
+  // Update artifact icon
+  const updateArtifactIcon = (id, icon) => {
+    updateArtifact(id, { icon });
+  };
+
   // Delete artifact
   const deleteArtifact = async (id) => {
     const remaining = artifacts.filter(a => a.id !== id);
@@ -355,6 +363,7 @@ export const ArtifactProvider = ({ children }) => {
       const newArtifact = {
         id: generateArtifactId(),
         name: `${artifact.name} (Copy)`,
+        icon: artifact.icon || 'app', // Copy icon from original
         files: { ...artifact.files },
         chatHistory: [], // Start with empty chat history for duplicates
         createdAt: Date.now(),
@@ -429,6 +438,7 @@ export const ArtifactProvider = ({ children }) => {
       updateArtifactFiles,
       updateChatHistory,
       renameArtifact,
+      updateArtifactIcon,
       deleteArtifact,
       loadArtifact,
       duplicateArtifact,
@@ -447,6 +457,7 @@ export const ArtifactProvider = ({ children }) => {
       updateArtifactFiles,
       updateChatHistory,
       renameArtifact,
+      updateArtifactIcon,
       deleteArtifact,
       loadArtifact,
       duplicateArtifact,

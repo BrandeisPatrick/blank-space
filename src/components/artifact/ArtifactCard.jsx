@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import { AppIcon } from '../icons/icons';
+import { getIconById } from './IconPicker';
 
 // Helper function to format relative time
 const formatDate = (timestamp) => {
@@ -25,6 +25,9 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Get the icon component based on artifact's icon category
+  const IconComponent = getIconById(artifact?.icon || 'app');
 
   return (
     <div
@@ -58,7 +61,7 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
           : '0 4px 12px rgba(0, 0, 0, 0.08)',
         transition: `all ${theme.animation.fast}`,
       }}>
-        <AppIcon size={48} color={theme.colors.text.secondary} />
+        <IconComponent size={48} color={theme.colors.text.secondary} />
       </div>
 
       {/* Artifact Name */}
