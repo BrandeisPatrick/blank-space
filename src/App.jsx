@@ -20,7 +20,7 @@ function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state
@@ -694,6 +694,11 @@ function App() {
         onIconChange={(iconId) => {
           if (activeArtifactId) {
             updateArtifactIcon(activeArtifactId, iconId);
+          }
+        }}
+        onRename={(newName) => {
+          if (activeArtifactId) {
+            renameArtifact(activeArtifactId, newName);
           }
         }}
       />

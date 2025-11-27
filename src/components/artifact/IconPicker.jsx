@@ -11,21 +11,27 @@ import {
   UsersIcon
 } from '../icons';
 
-// Icon category definitions
+// Icon category definitions with unique colors
 export const ICON_CATEGORIES = [
-  { id: 'app', name: 'App', Icon: AppIcon },
-  { id: 'productivity', name: 'Productivity', Icon: ChecklistIcon },
-  { id: 'game', name: 'Game', Icon: GamepadIcon },
-  { id: 'website', name: 'Website', Icon: GlobeIcon },
-  { id: 'research', name: 'Research', Icon: SearchIcon },
-  { id: 'dashboard', name: 'Dashboard', Icon: ChartIcon },
-  { id: 'social', name: 'Social', Icon: UsersIcon },
+  { id: 'app', name: 'App', Icon: AppIcon, color: '#6366f1' },           // Indigo
+  { id: 'productivity', name: 'Productivity', Icon: ChecklistIcon, color: '#22c55e' }, // Green
+  { id: 'game', name: 'Game', Icon: GamepadIcon, color: '#f43f5e' },     // Rose
+  { id: 'website', name: 'Website', Icon: GlobeIcon, color: '#3b82f6' }, // Blue
+  { id: 'research', name: 'Research', Icon: SearchIcon, color: '#f59e0b' }, // Amber
+  { id: 'dashboard', name: 'Dashboard', Icon: ChartIcon, color: '#8b5cf6' }, // Purple
+  { id: 'social', name: 'Social', Icon: UsersIcon, color: '#ec4899' },   // Pink
 ];
 
-// Helper to get icon component by id
+// Helper to get icon component and color by id
 export const getIconById = (iconId) => {
   const category = ICON_CATEGORIES.find(c => c.id === iconId);
   return category?.Icon || AppIcon;
+};
+
+// Helper to get icon color by id
+export const getIconColorById = (iconId) => {
+  const category = ICON_CATEGORIES.find(c => c.id === iconId);
+  return category?.color || '#6366f1';
 };
 
 export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
@@ -62,7 +68,7 @@ export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
       style={{
         position: 'absolute',
         top: '100%',
-        left: 0,
+        right: 0,
         marginTop: theme.spacing.sm,
         background: theme.colors.bg.secondary,
         borderRadius: theme.radius.lg,
@@ -79,7 +85,7 @@ export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: theme.spacing.sm,
       }}>
-        {ICON_CATEGORIES.map(({ id, name, Icon }) => {
+        {ICON_CATEGORIES.map(({ id, name, Icon, color }) => {
           const isSelected = currentIcon === id;
           const isHovered = hoveredIcon === id;
 
@@ -97,12 +103,12 @@ export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: isSelected
-                  ? theme.colors.bg.tertiary
+                  ? `${color}15`
                   : isHovered
                     ? theme.colors.bg.primary
                     : 'transparent',
                 border: isSelected
-                  ? `2px solid ${theme.colors.text.secondary}`
+                  ? `2px solid ${color}`
                   : '2px solid transparent',
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
@@ -111,7 +117,7 @@ export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
             >
               <Icon
                 size={24}
-                color={isSelected ? theme.colors.text.primary : theme.colors.text.secondary}
+                color={color}
               />
             </button>
           );
