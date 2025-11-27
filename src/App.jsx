@@ -11,7 +11,6 @@ import { PreviewPanel } from "./components/preview";
 import { ArtifactSidebar } from "./components/artifact";
 import { FloatingChatPanel } from "./components/ui/FloatingChatPanel";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
-import { useThinkingState } from "./hooks/useThinkingState";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { processMessage } from "./services/ToolOrchestrator.js";
 import { ROUTES, TIMING, MESSAGES, LABELS, PANELS, COLORS } from "./constants";
@@ -27,11 +26,8 @@ function App() {
   // Route state
   const [currentRoute, setCurrentRoute] = useState(ROUTES.LANDING);
 
-  // Thinking state for CompactThinkingPanel
-  const thinking = useThinkingState({
-    autoCollapse: true,
-    collapseDelay: TIMING.THINKING_COLLAPSE_DELAY_MS
-  });
+  // AI processing state
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
 
   // State management
   const [chatMessages, setChatMessages] = useState([]);
@@ -91,33 +87,31 @@ function App() {
 
   // Show browser window only when: user clicked artifact card OR AI completed work
   useEffect(() => {
-    console.log('[Browser Window Effect] activeArtifact:', activeArtifact?.name, 'thinking.isComplete:', thinking.isComplete, 'userRequestedBrowserWindow:', userRequestedBrowserWindow);
+    console.log('[Browser Window Effect] activeArtifact:', activeArtifact?.name, 'isAIProcessing:', isAIProcessing, 'userRequestedBrowserWindow:', userRequestedBrowserWindow);
 
-    if (activeArtifact && (userRequestedBrowserWindow || thinking.isComplete)) {
+    if (activeArtifact && (userRequestedBrowserWindow || !isAIProcessing)) {
       console.log('[Browser Window Effect] Opening browser window');
       setBrowserWindowVisible(true);
     }
-  }, [activeArtifact, userRequestedBrowserWindow, thinking.isComplete]);
+  }, [activeArtifact, userRequestedBrowserWindow, isAIProcessing]);
 
   // Auto-show/hide chat based on AI working state
   useEffect(() => {
-    console.log('[Chat Effect] thinking.isThinking:', thinking.isThinking, 'thinking.isComplete:', thinking.isComplete);
+    console.log('[Chat Effect] isAIProcessing:', isAIProcessing);
 
-    // Show chat when AI is thinking/working
-    if (thinking.isThinking) {
-      console.log('[Chat Effect] AI is thinking, showing chat');
+    // Show chat when AI is processing
+    if (isAIProcessing) {
+      console.log('[Chat Effect] AI is processing, showing chat');
       setFloatingChatVisible(true);
-    }
-
-    // Hide chat when AI is done (complete and not thinking)
-    if (thinking.isComplete && !thinking.isThinking) {
+    } else {
+      // Hide chat when AI is done
       console.log('[Chat Effect] AI is done, hiding chat');
-      // Add small delay so user can see the completion message
+      // Add small delay so user can see the completion
       setTimeout(() => {
         setFloatingChatVisible(false);
       }, 2000); // Hide after 2 seconds
     }
-  }, [thinking.isThinking, thinking.isComplete]);
+  }, [isAIProcessing]);
 
   // Clean up old guest banner localStorage key
   useEffect(() => {
@@ -128,7 +122,7 @@ function App() {
   const getUIState = useCallback(() => {
     const hasArtifact = !!activeArtifact;
     const hasMessages = chatMessages.length > 0;
-    const hasPendingWork = hasMessages || thinking.isThinking;
+    const hasPendingWork = hasMessages || isAIProcessing;
 
     if (!hasArtifact && !hasPendingWork) {
       return 'EMPTY'; // No artifacts, no activity
@@ -137,7 +131,7 @@ function App() {
     } else {
       return 'ACTIVE'; // Has artifact
     }
-  }, [activeArtifact, chatMessages.length, thinking.isThinking]);
+  }, [activeArtifact, chatMessages.length, isAIProcessing]);
 
   // Helper function to set panel visibility based on device type and UI state
   const setupPanelVisibility = useCallback(() => {
@@ -338,36 +332,42 @@ function App() {
       return newMessages;
     });
 
-    // Reset thinking state and start
-    thinking.reset();
-    thinking.startThinking();
+    // Set AI processing state
+    setIsAIProcessing(true);
 
-    // Track current step for updates
-    let currentStepId = null;
+    // Add a loading message that will be updated with tool actions
+    const loadingMessageId = Date.now();
+    setChatMessages(prev => {
+      const newMessages = [...prev, {
+        id: loadingMessageId,
+        type: 'assistant',
+        content: '',
+        isLoading: true,
+        timestamp: loadingMessageId
+      }];
+      chatMessagesRef.current = newMessages;
+      return newMessages;
+    });
 
     // Callback for streaming updates from agent
     const onUpdate = (update) => {
-      // Handle different update types for thinking panel
-      if (update.type === 'thinking') {
-        // Add or update thinking step
-        if (!currentStepId) {
-          currentStepId = thinking.addStep(update.content, 'active');
-        } else {
-          thinking.updateStep(currentStepId, { label: update.content, status: 'active' });
-        }
-      } else if (update.type === 'intent') {
-        // Intent classification step
-        currentStepId = thinking.addStep('Understanding your request', 'active');
-        thinking.completeStep(currentStepId);
-        currentStepId = null;
-        return; // Don't add to chat messages
-      } else if (update.type === 'plan') {
-        // Planning step
-        currentStepId = thinking.addStep('Planning solution', 'active');
-        thinking.completeStep(currentStepId);
-        thinking.startStreaming();
-        currentStepId = null;
-        return; // Don't add to chat messages
+      // Handle tool_action - update the loading message with current action
+      if (update.type === 'tool_action') {
+        setChatMessages(prev => {
+          const newMessages = prev.map(msg =>
+            msg.id === loadingMessageId
+              ? { ...msg, content: update.action }
+              : msg
+          );
+          chatMessagesRef.current = newMessages;
+          return newMessages;
+        });
+        return; // Don't add new messages for tool actions
+      }
+
+      // Handle thinking/intent/plan - just update loading message
+      if (update.type === 'thinking' || update.type === 'intent' || update.type === 'plan') {
+        return; // Skip these, we show tool actions instead
       }
 
       setChatMessages(prev => {
@@ -378,16 +378,23 @@ function App() {
       });
     };
 
+    // Helper to remove the loading message
+    const removeLoadingMessage = () => {
+      setChatMessages(prev => {
+        const newMessages = prev.filter(msg => msg.id !== loadingMessageId);
+        chatMessagesRef.current = newMessages;
+        return newMessages;
+      });
+    };
+
     try {
       // Process message with AI agents
       const result = await processMessage(message, files, onUpdate);
 
       if (result.success && result.fileOperations) {
-        // Add generating steps for each file
-        result.fileOperations.forEach((op, index) => {
-          const stepId = thinking.addStep(`Generating ${op.filename}`, 'active');
-          setTimeout(() => thinking.completeStep(stepId), TIMING.FILE_GENERATION_DELAY_MS * (index + 1));
-        });
+        // Remove loading message and mark processing complete
+        removeLoadingMessage();
+        setIsAIProcessing(false);
 
         // Create or update artifact with generated files
         const newFiles = { ...files };
@@ -416,7 +423,6 @@ function App() {
               content: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
               timestamp: Date.now()
             }]);
-            thinking.complete();
             return;
           }
         } else {
@@ -435,33 +441,41 @@ function App() {
         // Ensure panels are visible based on device
         setupPanelVisibility();
 
-        // Complete thinking process
-        setTimeout(() => thinking.complete(), TIMING.THINKING_COMPLETION_DELAY_MS);
-
         // Check for rate limit info in result and show warnings
         if (result.rateLimit) {
           addRateLimitWarning(result.rateLimit);
         }
       } else {
-        // Handle error or incomplete result
-        thinking.error('Failed to generate code');
+        // Handle error or incomplete result - remove loading and show error
+        removeLoadingMessage();
+        setIsAIProcessing(false);
+        setChatMessages(prev => [...prev, {
+          type: 'error',
+          content: 'Failed to generate code. Please try again.',
+          timestamp: Date.now()
+        }]);
       }
     } catch (error) {
       console.error('Error processing message:', error);
+      removeLoadingMessage();
+      setIsAIProcessing(false);
 
       // Handle rate limit error specifically
       if (error.isRateLimit && error.rateLimit) {
-        thinking.error('Rate limit reached');
         setChatMessages(prev => [...prev, {
           type: 'error',
           content: MESSAGES.RATE_LIMIT_EXCEEDED(error.rateLimit.used, error.rateLimit.limit),
           timestamp: Date.now()
         }]);
       } else {
-        thinking.error('An error occurred while processing your request');
+        setChatMessages(prev => [...prev, {
+          type: 'error',
+          content: 'An error occurred while processing your request. Please try again.',
+          timestamp: Date.now()
+        }]);
       }
     }
-  }, [files, activeArtifactId, thinking, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning]);
+  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning]);
   // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
 
   // Handle initial message from URL parameter (landing page → studio transition)
@@ -663,7 +677,6 @@ function App() {
       <FloatingChatPanel
         visible={floatingChatVisible}
         messages={chatMessages}
-        thinkingState={thinking}
         onFixBug={handleSendMessage}
       />
 

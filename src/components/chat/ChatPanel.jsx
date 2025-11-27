@@ -1,11 +1,10 @@
 import { useRef, useEffect } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
-import { LightningIcon, BinaIcon } from '../icons'
-import { CompactThinkingPanel } from './CompactThinkingPanel'
+import { LightningIcon } from '../icons'
 import { ErrorMessage } from './ErrorMessage'
 
-export const ChatPanel = ({ messages = [], thinkingState = null, onFixBug }) => {
+export const ChatPanel = ({ messages = [], onFixBug }) => {
   const messagesEndRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -78,33 +77,41 @@ export const ChatPanel = ({ messages = [], thinkingState = null, onFixBug }) => 
             {messages
               .filter(message => {
                 // Show user, assistant, complete, and error messages
-                // Exclude 'thinking', 'intent', and 'plan' messages (handled separately)
+                // Exclude 'thinking', 'intent', and 'plan' messages
                 const visibleTypes = ['user', 'assistant', 'complete', 'error']
                 return visibleTypes.includes(message.type)
               })
               .map((message, index) => (
-                <ChatMessage key={index} message={message} onFixBug={onFixBug} />
+                <ChatMessage key={message.id || index} message={message} onFixBug={onFixBug} />
               ))}
-
-            {/* Thinking Panel - simplified, no avatar */}
-            {thinkingState && thinkingState.isActive && (
-              <div style={{
-                width: '100%',
-              }}>
-                <CompactThinkingPanel
-                  phase={thinkingState.phase}
-                  steps={thinkingState.steps}
-                  answer={thinkingState.answer}
-                  isVisible={thinkingState.isVisible}
-                  onToggleVisibility={thinkingState.toggleVisibility}
-                />
-              </div>
-            )}
           </>
         )}
         <div ref={messagesEndRef} />
       </div>
     </div>
+  )
+}
+
+// Animated dots component for loading state
+const LoadingDots = () => {
+  return (
+    <span style={{ display: 'inline-flex', gap: '4px' }}>
+      <span className="loading-dot" style={{ animationDelay: '0ms' }}>.</span>
+      <span className="loading-dot" style={{ animationDelay: '200ms' }}>.</span>
+      <span className="loading-dot" style={{ animationDelay: '400ms' }}>.</span>
+      <style>{`
+        @keyframes loadingDot {
+          0%, 20% { opacity: 0.3; }
+          50% { opacity: 1; }
+          80%, 100% { opacity: 0.3; }
+        }
+        .loading-dot {
+          animation: loadingDot 1.4s ease-in-out infinite;
+          font-size: 1.5em;
+          line-height: 0.5;
+        }
+      `}</style>
+    </span>
   )
 }
 
@@ -114,6 +121,7 @@ const ChatMessage = ({ message, onFixBug }) => {
 
   const isUser = message.type === 'user'
   const isError = message.type === 'error'
+  const isLoading = message.isLoading
 
   // Error messages with error object (from preview/runtime errors)
   if (isError && message.error) {
@@ -143,6 +151,25 @@ const ChatMessage = ({ message, onFixBug }) => {
         color: '#dc2626',
       }}>
         ⚠️ {message.content}
+      </div>
+    )
+  }
+
+  // Loading message with animated dots or action text
+  if (isLoading) {
+    return (
+      <div style={{
+        background: theme.colors.bg.secondary,
+        color: theme.colors.text.secondary,
+        padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+        borderRadius: theme.radius.lg,
+        fontSize: theme.typography.fontSize.sm,
+        lineHeight: theme.typography.lineHeight.relaxed,
+        width: '100%',
+        border: `1px solid ${theme.colors.border}`,
+        fontStyle: 'italic',
+      }}>
+        {message.content ? message.content : <LoadingDots />}
       </div>
     )
   }

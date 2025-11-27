@@ -199,12 +199,39 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       }
     ];
 
-    // Call LLM with tools
-    sendUpdate({
-      type: 'thinking',
-      content: 'Generating code using tool-based orchestration...'
-    });
+    // Helper to format tool action into human-readable text
+    const formatToolAction = (tool, params) => {
+      switch (tool) {
+        case 'read':
+          return `Reading ${params.path}...`;
+        case 'write':
+          return `Writing ${params.path}...`;
+        case 'edit':
+          return `Editing ${params.path}...`;
+        case 'glob':
+          return `Searching files...`;
+        case 'grep':
+          return `Searching for "${params.pattern}"...`;
+        case 'validate':
+          return `Validating ${params.filename}...`;
+        default:
+          return `Running ${tool}...`;
+      }
+    };
 
+    // Callback for tool actions
+    const onToolAction = (tool, params, status) => {
+      if (status === 'start') {
+        sendUpdate({
+          type: 'tool_action',
+          action: formatToolAction(tool, params),
+          tool,
+          params
+        });
+      }
+    };
+
+    // Call LLM with tools
     const llmResponse = await callLLMWithTools({
       model: 'gpt-4o-mini',
       systemPrompt: CODE_GENERATION_SYSTEM_PROMPT,
@@ -213,7 +240,8 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       context: { fs: vfs },
       maxTokens: 4000,
       maxToolLoops: 15,
-      timeout: 120000
+      timeout: 120000,
+      onToolAction
     });
 
     // Extract final response content
