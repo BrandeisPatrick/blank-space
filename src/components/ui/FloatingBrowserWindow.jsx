@@ -7,7 +7,7 @@ import { useResizable } from '../../hooks/useResizable'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
 import { XIcon, EyeIcon, CodeIcon } from '../icons'
-import { IconPicker, getIconById } from '../artifact/IconPicker'
+import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
 
 export const FloatingBrowserWindow = ({
   visible = false,
@@ -16,16 +16,20 @@ export const FloatingBrowserWindow = ({
   onClose,
   onFileChange,
   onError,
-  onIconChange
+  onIconChange,
+  onRename
 }) => {
   const [view, setView] = useState('preview') // 'preview' or 'code'
   const [activeFile, setActiveFile] = useState('App.jsx')
   const [showIconPicker, setShowIconPicker] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState('')
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
-  // Get the current icon component
+  // Get the current icon component and color
   const CurrentIcon = getIconById(artifact?.icon || 'app')
+  const currentIconColor = getIconColorById(artifact?.icon || 'app')
 
   // Update active file when files change
   useEffect(() => {
@@ -87,8 +91,8 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Close Button + Icon Picker */}
-        <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
+        {/* Left: Close Button */}
+        <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -110,7 +114,86 @@ export const FloatingBrowserWindow = ({
               e.currentTarget.style.background = '#ff5f57'
             }}
           />
+        </div>
 
+        {/* Center: Title (Editable) */}
+        <div style={{
+          flex: 1,
+          textAlign: 'center',
+          marginLeft: theme.spacing.lg,
+        }}>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={() => {
+                if (editedName.trim() && editedName !== artifact?.name) {
+                  onRename?.(editedName.trim());
+                }
+                setIsEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (editedName.trim() && editedName !== artifact?.name) {
+                    onRename?.(editedName.trim());
+                  }
+                  setIsEditingName(false);
+                } else if (e.key === 'Escape') {
+                  setIsEditingName(false);
+                }
+              }}
+              autoFocus
+              style={{
+                width: '100%',
+                maxWidth: '300px',
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.text.primary,
+                background: theme.colors.bg.primary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.md,
+                textAlign: 'center',
+                outline: 'none',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditedName(artifact?.name || 'Untitled');
+                setIsEditingName(true);
+              }}
+              style={{
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.text.primary,
+                cursor: 'text',
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.radius.md,
+                transition: `all ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.primary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+              title="Click to rename"
+            >
+              {artifact?.name || 'Untitled'}
+            </span>
+          )}
+        </div>
+
+        {/* Right: Icon Picker + View Toggle */}
+        <div style={{
+          display: 'flex',
+          gap: theme.spacing.sm,
+          alignItems: 'center',
+        }}>
           {/* Category Icon Button */}
           <div style={{ position: 'relative' }}>
             <button
@@ -119,30 +202,26 @@ export const FloatingBrowserWindow = ({
                 setShowIconPicker(!showIconPicker);
               }}
               style={{
-                width: '28px',
-                height: '28px',
+                width: '32px',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: showIconPicker ? theme.colors.bg.tertiary : 'transparent',
-                border: `1px solid ${showIconPicker ? theme.colors.text.tertiary : 'transparent'}`,
+                background: theme.colors.bg.primary,
+                border: `1px solid ${theme.colors.border}`,
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 transition: `all ${theme.animation.fast}`,
               }}
               onMouseEnter={(e) => {
-                if (!showIconPicker) {
-                  e.currentTarget.style.background = theme.colors.bg.primary;
-                }
+                e.currentTarget.style.background = theme.colors.bg.tertiary;
               }}
               onMouseLeave={(e) => {
-                if (!showIconPicker) {
-                  e.currentTarget.style.background = 'transparent';
-                }
+                e.currentTarget.style.background = theme.colors.bg.primary;
               }}
               title="Change icon"
             >
-              <CurrentIcon size={18} color={theme.colors.text.secondary} />
+              <CurrentIcon size={18} color={currentIconColor} />
             </button>
 
             {/* Icon Picker Dropdown */}
@@ -156,80 +235,68 @@ export const FloatingBrowserWindow = ({
               />
             )}
           </div>
-        </div>
 
-        {/* Center: Title */}
-        <div style={{
-          flex: 1,
-          textAlign: 'center',
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: theme.colors.text.secondary,
-          marginLeft: theme.spacing.lg,
-        }}>
-          {artifact?.name || 'Untitled'}
-        </div>
-
-        {/* Right: View Toggle */}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing.xs,
-          background: theme.colors.bg.primary,
-          borderRadius: theme.radius.md,
-          padding: theme.spacing.xs,
-        }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setView('preview')
-            }}
-            style={{
-              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              background: view === 'preview' ? theme.colors.bg.tertiary : 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.sm,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              transition: `all ${theme.animation.fast}`,
-            }}
-          >
-            <EyeIcon size={16} color={view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary} />
-            <span style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              Preview
-            </span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setView('code')
-            }}
-            style={{
-              padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              background: view === 'code' ? theme.colors.bg.tertiary : 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.sm,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              transition: `all ${theme.animation.fast}`,
-            }}
-          >
-            <CodeIcon size={16} color={view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary} />
-            <span style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              Code
-            </span>
-          </button>
+          {/* View Toggle */}
+          <div style={{
+            display: 'flex',
+            gap: theme.spacing.xs,
+            background: theme.colors.bg.primary,
+            borderRadius: theme.radius.md,
+            padding: theme.spacing.xs,
+          }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setView('preview')
+              }}
+              style={{
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                background: view === 'preview' ? theme.colors.bg.tertiary : 'transparent',
+                border: 'none',
+                borderRadius: theme.radius.sm,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                transition: `all ${theme.animation.fast}`,
+              }}
+            >
+              <EyeIcon size={16} color={view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary} />
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary,
+                fontWeight: theme.typography.fontWeight.medium,
+              }}>
+                Preview
+              </span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setView('code')
+              }}
+              style={{
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                background: view === 'code' ? theme.colors.bg.tertiary : 'transparent',
+                border: 'none',
+                borderRadius: theme.radius.sm,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                transition: `all ${theme.animation.fast}`,
+              }}
+            >
+              <CodeIcon size={16} color={view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary} />
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary,
+                fontWeight: theme.typography.fontWeight.medium,
+              }}>
+                Code
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
