@@ -68,7 +68,9 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
       {/* Artifact Name */}
       <div style={{
         fontSize: theme.typography.fontSize.base,
-        fontWeight: theme.typography.fontWeight.medium,
+        fontWeight: theme.typography.fontWeight.semibold,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        letterSpacing: '-0.01em',
         color: theme.colors.text.primary,
         textAlign: 'center',
         wordBreak: 'break-word',
