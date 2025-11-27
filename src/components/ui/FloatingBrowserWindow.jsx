@@ -77,7 +77,7 @@ export const FloatingBrowserWindow = ({
         display: 'flex',
         flexDirection: 'column',
         borderRadius: theme.radius['2xl'],
-        background: 'rgba(255, 255, 255, 0.75)',
+        background: 'rgba(255, 255, 255, 0.6)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
         border: '1px solid rgba(255, 255, 255, 0.4)',
@@ -90,9 +90,11 @@ export const FloatingBrowserWindow = ({
         className="window-titlebar"
         onMouseDown={handleDrag}
         style={{
-          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-          background: 'rgba(255, 255, 255, 0.5)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.3)',
+          padding: `2px ${theme.spacing.sm}`,
+          background: 'linear-gradient(135deg, rgba(200, 190, 220, 0.2) 0%, rgba(180, 200, 220, 0.15) 100%)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -213,7 +215,7 @@ export const FloatingBrowserWindow = ({
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing.xs,
-              background: 'rgba(255, 255, 255, 0.6)',
+              background: 'transparent',
               borderRadius: theme.radius.md,
               padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
               border: '1px solid rgba(255, 255, 255, 0.3)',
@@ -287,17 +289,17 @@ export const FloatingBrowserWindow = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(255, 255, 255, 0.6)',
+                background: 'transparent',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 transition: `all ${theme.animation.fast}`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)';
+                e.currentTarget.style.background = 'transparent';
               }}
               title="Change icon"
             >
@@ -320,7 +322,7 @@ export const FloatingBrowserWindow = ({
           <div style={{
             display: 'flex',
             gap: theme.spacing.xs,
-            background: 'rgba(255, 255, 255, 0.6)',
+            background: 'transparent',
             borderRadius: theme.radius.md,
             padding: theme.spacing.xs,
             border: '1px solid rgba(255, 255, 255, 0.3)',
@@ -332,7 +334,7 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'preview' ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+                background: view === 'preview' ? 'rgba(255, 255, 255, 0.3)' : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
@@ -358,7 +360,7 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'code' ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+                background: view === 'code' ? 'rgba(255, 255, 255, 0.3)' : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
