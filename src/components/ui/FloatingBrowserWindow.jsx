@@ -77,19 +77,22 @@ export const FloatingBrowserWindow = ({
         display: 'flex',
         flexDirection: 'column',
         borderRadius: theme.radius['2xl'],
-        ...createGlassEffect(theme),
-        boxShadow: theme.shadows.xl,
+        background: 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
         overflow: 'hidden',
       }}
     >
-      {/* Window Chrome - Safari Style */}
+      {/* Window Chrome - Liquid Glass Style */}
       <div
         className="window-titlebar"
         onMouseDown={handleDrag}
         style={{
           padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-          background: theme.colors.bg.secondary,
-          borderBottom: `1px solid ${theme.colors.bg.border}`,
+          background: 'rgba(255, 255, 255, 0.5)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.3)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -210,10 +213,10 @@ export const FloatingBrowserWindow = ({
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing.xs,
-              background: theme.colors.bg.primary,
+              background: 'rgba(255, 255, 255, 0.6)',
               borderRadius: theme.radius.md,
               padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              border: `1px solid ${theme.colors.border}`,
+              border: '1px solid rgba(255, 255, 255, 0.3)',
             }}>
               <button
                 onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
@@ -284,17 +287,17 @@ export const FloatingBrowserWindow = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: theme.colors.bg.primary,
-                border: `1px solid ${theme.colors.border}`,
+                background: 'rgba(255, 255, 255, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 transition: `all ${theme.animation.fast}`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = theme.colors.bg.tertiary;
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = theme.colors.bg.primary;
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)';
               }}
               title="Change icon"
             >
@@ -317,9 +320,10 @@ export const FloatingBrowserWindow = ({
           <div style={{
             display: 'flex',
             gap: theme.spacing.xs,
-            background: theme.colors.bg.primary,
+            background: 'rgba(255, 255, 255, 0.6)',
             borderRadius: theme.radius.md,
             padding: theme.spacing.xs,
+            border: '1px solid rgba(255, 255, 255, 0.3)',
           }}>
             <button
               onClick={(e) => {
@@ -328,7 +332,7 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'preview' ? theme.colors.bg.tertiary : 'transparent',
+                background: view === 'preview' ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
@@ -354,7 +358,7 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'code' ? theme.colors.bg.tertiary : 'transparent',
+                background: view === 'code' ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
