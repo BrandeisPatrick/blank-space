@@ -6,7 +6,7 @@ import { useDraggable } from '../../hooks/useDraggable'
 import { useResizable } from '../../hooks/useResizable'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
-import { XIcon, EyeIcon, CodeIcon } from '../icons'
+import { XIcon, EyeIcon, CodeIcon, TrashIcon } from '../icons'
 import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
 
 export const FloatingBrowserWindow = ({
@@ -14,6 +14,7 @@ export const FloatingBrowserWindow = ({
   artifact = null,
   files = {},
   onClose,
+  onDelete,
   onFileChange,
   onError,
   onIconChange,
@@ -102,8 +103,9 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Close Button */}
+        {/* Left: Close & Delete Buttons */}
         <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+          {/* Close Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -124,7 +126,41 @@ export const FloatingBrowserWindow = ({
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#ff5f57'
             }}
+            title="Close window"
           />
+
+          {/* Delete Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm('Are you sure you want to delete this app? This cannot be undone.')) {
+                onDelete?.();
+              }
+            }}
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: theme.radius.md,
+              background: 'transparent',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: `all ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 59, 48, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(255, 59, 48, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }}
+            title="Delete app"
+          >
+            <TrashIcon size={14} color={theme.colors.text.secondary} />
+          </button>
         </div>
 
         {/* Center: Title (Editable) */}

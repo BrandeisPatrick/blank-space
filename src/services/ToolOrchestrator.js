@@ -8,7 +8,8 @@ import { VirtualFileSystem } from "./filesystem/VirtualFS.js";
 import { ToolRegistry } from "./tools/ToolRegistry.js";
 import { SessionManager } from "./session/SessionManager.js";
 import { coreTools } from "./tools/core/index.js";
-import { callLLMWithTools } from "./utils/llm/llmClient.js";
+import { callLLMWithTools, callLLM } from "./utils/llm/llmClient.js";
+import { classifyIntent } from "./intentClassifier.js";
 
 /**
  * System prompt for code generation
@@ -150,6 +151,28 @@ When you receive a user request:
 IMPORTANT: Your goal is to generate complete, working, VALIDATED React applications through tool calls only.`;
 
 /**
+ * System prompt for chat/conversational responses
+ */
+const CHAT_SYSTEM_PROMPT = `You are Bina, a friendly AI assistant for a web app builder called Blank Space.
+
+You help users understand what you can do and answer their questions. Keep responses concise and helpful.
+
+About Blank Space:
+- It's a tool that creates React web applications from natural language descriptions
+- Users can describe what they want to build, and you generate the code
+- You can create: landing pages, dashboards, games, tools, calculators, todo apps, and much more
+- The apps use React with Tailwind CSS for beautiful, modern styling
+
+When users ask what you can do, give them examples like:
+- "Create a todo list app with dark mode"
+- "Build a weather dashboard"
+- "Make a simple calculator"
+- "Design a landing page for a startup"
+- "Create a quiz game"
+
+Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest they try a simple example to get started.`;
+
+/**
  * Process a user message and generate code using tool-based orchestration
  *
  * @param {string} userMessage - User's request for code generation
@@ -168,6 +191,42 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
   };
 
   try {
+    // Classify intent first
+    const intentResult = classifyIntent(userMessage);
+    console.log(`[Intent] "${userMessage.slice(0, 50)}..." → ${intentResult.intent} (${intentResult.confidence}, ${intentResult.reason})`);
+
+    // Handle chat intent - return conversational response
+    if (intentResult.intent === 'chat') {
+      sendUpdate({
+        type: 'tool_action',
+        action: 'Thinking...'
+      });
+
+      const chatResponse = await callLLM({
+        model: 'gpt-4o-mini',
+        systemPrompt: CHAT_SYSTEM_PROMPT,
+        userPrompt: userMessage,
+        maxTokens: 500,
+        temperature: 0.7
+      });
+
+      const responseContent = chatResponse.choices[0]?.message?.content || 'I can help you build web apps! Try describing what you want to create.';
+
+      // Send the chat response as an assistant message
+      sendUpdate({
+        type: 'assistant',
+        content: responseContent
+      });
+
+      return {
+        success: true,
+        intent: 'chat',
+        fileOperations: [], // No file changes for chat
+        response: responseContent
+      };
+    }
+
+    // Create intent - proceed with code generation
     // Create session for tracking this conversation
     const sessionManager = new SessionManager();
     const sessionId = sessionManager.createSession('user-session').id;
@@ -274,6 +333,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
 
     return {
       success: true,
+      intent: 'create',
       fileOperations,
       plan: {
         summary: userMessage.slice(0, 100),
