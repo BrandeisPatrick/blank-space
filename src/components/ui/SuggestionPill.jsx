@@ -20,7 +20,7 @@ export const SuggestionPill = ({ text, onClick }) => {
         e.currentTarget.style.transform = 'scale(1)';
       }}
       style={{
-        padding: `${theme.spacing.lg} ${theme.spacing['2xl']}`,
+        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
         ...glassStyle,
         border: 'none',
         borderRadius: theme.radius.lg,
