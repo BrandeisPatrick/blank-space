@@ -299,77 +299,45 @@ export const EnhancedChatInput = ({
             <PlusIcon size={18} />
           </button>
 
-          {/* Pro Components Text + Chevron + X */}
+          {/* Pro Components - icon transforms to X on hover */}
           {useKnowledgeBase && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
+            <button
+              type="button"
+              onClick={() => {
+                if (isProComponentsHovered) {
+                  // Hovered = showing X, so disable
+                  onToggleKnowledgeBase && onToggleKnowledgeBase();
+                } else {
+                  // Not hovered, open dropdown
+                  toggleDropdown();
+                }
               }}
               onMouseEnter={() => setIsProComponentsHovered(true)}
               onMouseLeave={() => setIsProComponentsHovered(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isProComponentsHovered ? theme.colors.bg.tertiary : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: proComponentsColor,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.radius.full,
+                transition: `all ${theme.animation.fast}`,
+              }}
             >
-              <button
-                type="button"
-                onClick={toggleDropdown}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: proComponentsColor,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  fontFamily: theme.typography.fontFamily.sans,
-                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                  borderRadius: theme.radius.md,
-                  transition: `background ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = theme.colors.bg.tertiary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
+              {isProComponentsHovered ? (
+                <span style={{ fontSize: '14px', lineHeight: 1 }}>×</span>
+              ) : (
                 <SparklesIcon size={14} color={proComponentsColor} />
-                <span>Pro Components</span>
-                <ChevronDownIcon size={14} color={proComponentsColor} />
-              </button>
-              {/* X button to disable - only visible on hover */}
-              <button
-                type="button"
-                onClick={() => onToggleKnowledgeBase && onToggleKnowledgeBase()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '20px',
-                  height: '20px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: theme.radius.full,
-                  cursor: 'pointer',
-                  color: theme.colors.text.tertiary,
-                  fontSize: '14px',
-                  opacity: isProComponentsHovered ? 1 : 0,
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = theme.colors.bg.tertiary;
-                  e.currentTarget.style.color = theme.colors.text.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = theme.colors.text.tertiary;
-                }}
-              >
-                ×
-              </button>
-            </div>
+              )}
+              <span>Pro Components</span>
+              <ChevronDownIcon size={14} color={proComponentsColor} />
+            </button>
           )}
 
           {/* Flex spacer */}
