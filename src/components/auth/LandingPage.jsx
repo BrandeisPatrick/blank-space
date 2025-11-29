@@ -159,7 +159,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           )}
         </div>
 
-        {/* Suggestion Pills - aligned with chat bubble */}
+        {/* Suggestion Pills - aligned with chat bubble text */}
         <div style={{
           position: 'fixed',
           bottom: LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET,
@@ -171,6 +171,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           justifyContent: 'flex-start',
           width: '90%',
           maxWidth: '800px',
+          paddingLeft: theme.spacing.xl,
+          boxSizing: 'border-box',
           zIndex: LAYOUT.SUGGESTION_PILLS_Z_INDEX,
         }}>
           {suggestionPills.map((pillText, index) => (
