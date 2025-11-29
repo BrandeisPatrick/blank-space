@@ -29,7 +29,8 @@ export const SuggestionPill = ({ text, onClick }) => {
         fontWeight: theme.typography.fontWeight.medium,
         fontFamily: theme.typography.fontFamily.sans,
         cursor: 'pointer',
-        whiteSpace: 'nowrap',
+        flex: 1,
+        textAlign: 'center',
         transition: `all ${theme.animation.fast}`,
       }}
     >
