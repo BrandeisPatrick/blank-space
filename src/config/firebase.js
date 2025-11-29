@@ -58,7 +58,7 @@ if (missingVars.length > 0) {
     //   connectFirestoreEmulator(db, 'localhost', 8080);
     // }
 
-    console.log('✅ Firebase initialized successfully');
+    // Firebase initialized successfully
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
     console.info('Running in guest mode only.');

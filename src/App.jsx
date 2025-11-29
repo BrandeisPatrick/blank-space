@@ -20,7 +20,7 @@ function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact, deleteArtifact } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state
@@ -87,29 +87,20 @@ function App() {
 
   // Show browser window only when: user clicked artifact card OR AI completed work
   useEffect(() => {
-    console.log('[Browser Window Effect] activeArtifact:', activeArtifact?.name, 'isAIProcessing:', isAIProcessing, 'userRequestedBrowserWindow:', userRequestedBrowserWindow);
-
     if (activeArtifact && (userRequestedBrowserWindow || !isAIProcessing)) {
-      console.log('[Browser Window Effect] Opening browser window');
       setBrowserWindowVisible(true);
     }
   }, [activeArtifact, userRequestedBrowserWindow, isAIProcessing]);
 
   // Auto-show/hide chat based on AI working state
   useEffect(() => {
-    console.log('[Chat Effect] isAIProcessing:', isAIProcessing);
-
-    // Show chat when AI is processing
     if (isAIProcessing) {
-      console.log('[Chat Effect] AI is processing, showing chat');
       setFloatingChatVisible(true);
     } else {
-      // Hide chat when AI is done
-      console.log('[Chat Effect] AI is done, hiding chat');
-      // Add small delay so user can see the completion
+      // Hide chat after 1 minute so user has time to read the response
       setTimeout(() => {
         setFloatingChatVisible(false);
-      }, 2000); // Hide after 2 seconds
+      }, 60000);
     }
   }, [isAIProcessing]);
 
@@ -193,13 +184,8 @@ function App() {
 
   // Navigation handlers
   const handleTryNow = (message) => {
-    console.log('[handleTryNow] Called with message:', message);
-    console.log('[handleTryNow] currentRoute:', currentRoute);
-    console.log('[handleTryNow] activeArtifact:', activeArtifact?.name);
-
     // Special case: empty string means user clicked artifact card (just open browser window)
     if (message === '') {
-      console.log('[handleTryNow] User clicked artifact card, opening browser window');
       setUserRequestedBrowserWindow(true);
       return;
     }
@@ -207,21 +193,13 @@ function App() {
     // Auto-submit the message if provided from landing page
     if (message?.trim()) {
       // Only clear artifact if starting completely fresh (no existing artifact)
-      // This prevents clearing messages on follow-up messages
       if (!activeArtifact) {
-        console.log('[handleTryNow] No active artifact, will create new one');
         clearActiveArtifact();
-      } else {
-        console.log('[handleTryNow] Active artifact exists, keeping it:', activeArtifact.name);
       }
 
-      // Show floating chat panel
+      // Show floating chat panel and send message
       setFloatingChatVisible(true);
-      console.log('[handleTryNow] Set floatingChatVisible to true');
-
-      // Send the message directly to AI
       handleSendMessage(message);
-      console.log('[handleTryNow] Called handleSendMessage');
     }
   };
 
@@ -316,8 +294,6 @@ function App() {
 
   // Handle chat message with AI agents
   const handleSendMessage = useCallback(async (message) => {
-    console.log('[handleSendMessage] Called with message:', message);
-
     // Add user message
     const userMessage = {
       type: 'user',
@@ -326,8 +302,6 @@ function App() {
     };
     setChatMessages(prev => {
       const newMessages = [...prev, userMessage];
-      console.log('[handleSendMessage] Updated chatMessages, new length:', newMessages.length);
-      // Sync ref immediately to ensure it's available for artifact creation
       chatMessagesRef.current = newMessages;
       return newMessages;
     });
@@ -391,55 +365,63 @@ function App() {
       // Process message with AI agents
       const result = await processMessage(message, files, onUpdate);
 
-      if (result.success && result.fileOperations) {
+      if (result.success) {
         // Remove loading message and mark processing complete
         removeLoadingMessage();
         setIsAIProcessing(false);
 
-        // Create or update artifact with generated files
-        const newFiles = { ...files };
+        // Handle chat intent - no file operations, just conversation
+        if (result.intent === 'chat') {
+          // Chat response already sent via onUpdate callback
+          // No artifact or file changes needed
+          return;
+        }
 
-        result.fileOperations.forEach(op => {
-          newFiles[op.filename] = op.content;
-        });
+        // Handle create intent - generate files and create/update artifact
+        if (result.fileOperations && result.fileOperations.length > 0) {
+          // Create or update artifact with generated files
+          const newFiles = { ...files };
 
-        // If no active artifact, create a new one
-        if (!activeArtifactId) {
-          const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
-          try {
-            // Use ref to get current chat messages (includes user message + AI responses)
-            // Ref always has the latest state, avoiding duplicate messages
-            const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
-            if (!newArtifactId) {
-              throw new Error('Failed to create artifact');
+          result.fileOperations.forEach(op => {
+            newFiles[op.filename] = op.content;
+          });
+
+          // If no active artifact, create a new one
+          if (!activeArtifactId) {
+            const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
+            try {
+              // Use ref to get current chat messages (includes user message + AI responses)
+              // Ref always has the latest state, avoiding duplicate messages
+              const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
+              if (!newArtifactId) {
+                throw new Error('Failed to create artifact');
+              }
+            } catch (error) {
+              console.error('Error creating artifact:', error);
+              // Save files to state even if artifact creation fails
+              // User doesn't lose their generated content
+              setFiles(newFiles);
+              setChatMessages(prev => [...prev, {
+                type: 'error',
+                content: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
+                timestamp: Date.now()
+              }]);
+              return;
             }
-          } catch (error) {
-            console.error('Error creating artifact:', error);
-            // Save files to state even if artifact creation fails
-            // User doesn't lose their generated content
+          } else {
+            // Update existing artifact with files and chat history
             setFiles(newFiles);
-            setChatMessages(prev => [...prev, {
-              type: 'error',
-              content: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
-              timestamp: Date.now()
-            }]);
-            return;
+            updateArtifactFiles(activeArtifactId, newFiles);
+            // Explicitly save chat history using ref (includes all messages)
+            updateChatHistory(activeArtifactId, chatMessagesRef.current);
           }
-        } else {
-          // Update existing artifact with files and chat history
-          setFiles(newFiles);
-          updateArtifactFiles(activeArtifactId, newFiles);
-          // Explicitly save chat history using ref (includes all messages)
-          updateChatHistory(activeArtifactId, chatMessagesRef.current);
-        }
 
-        // Switch to the first created/modified file
-        if (result.fileOperations.length > 0) {
+          // Switch to the first created/modified file
           setActiveFile(result.fileOperations[0].filename);
-        }
 
-        // Ensure panels are visible based on device
-        setupPanelVisibility();
+          // Ensure panels are visible based on device
+          setupPanelVisibility();
+        }
 
         // Check for rate limit info in result and show warnings
         if (result.rateLimit) {
@@ -699,6 +681,13 @@ function App() {
         onRename={(newName) => {
           if (activeArtifactId) {
             renameArtifact(activeArtifactId, newName);
+          }
+        }}
+        onDelete={() => {
+          if (activeArtifactId) {
+            deleteArtifact(activeArtifactId);
+            setBrowserWindowVisible(false);
+            setUserRequestedBrowserWindow(false);
           }
         }}
       />

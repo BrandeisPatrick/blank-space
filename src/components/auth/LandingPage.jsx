@@ -184,7 +184,10 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
         {/* Enhanced Chat Input - Fixed at bottom */}
         <EnhancedChatInput
           placeholder="Let's make something"
-          onSend={onTryNow}
+          onSend={(message) => {
+            onTryNow(message);
+            setSelectedSuggestionPillText(''); // Reset so same pill can be clicked again
+          }}
           initialMessage={selectedSuggestionPillText}
         />
       </main>
