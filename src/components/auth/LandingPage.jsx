@@ -32,6 +32,11 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
     setSelectedSuggestionPillText(suggestionPillText);
   };
 
+  // Calculate dynamic pills offset based on whether chip row is shown
+  const pillsBottomOffset = useKnowledgeBase
+    ? LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET + LAYOUT.CHIP_ROW_HEIGHT
+    : LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET;
+
   // Suggestion pill prompts
   const suggestionPills = [
     "Create a browser with a functional nav bar",
@@ -162,7 +167,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         {/* Suggestion Pills */}
         <div style={{
           position: 'fixed',
-          bottom: LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET,
+          bottom: pillsBottomOffset,
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
