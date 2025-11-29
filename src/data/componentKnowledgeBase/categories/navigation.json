@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "category": "navigation",
+  "categoryDescription": "Modern navigation components including navbars, sidebars, and menus",
+  "components": [
+    {
+      "id": "navbar-glass",
+      "name": "Glassmorphism Navbar",
+      "description": "Floating navbar with glassmorphism effect that becomes solid on scroll",
+      "source": "Aceternity UI",
+      "tags": ["navbar", "navigation", "glass", "floating", "scroll", "header"],
+      "useCases": ["landing pages", "portfolios", "marketing sites", "modern websites"],
+      "code": "function NavbarGlass() {\n  const [scrolled, setScrolled] = useState(false);\n\n  useEffect(() => {\n    const handleScroll = () => setScrolled(window.scrollY > 20);\n    window.addEventListener('scroll', handleScroll);\n    return () => window.removeEventListener('scroll', handleScroll);\n  }, []);\n\n  return (\n    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-transparent'}`}>\n      <div className=\"max-w-7xl mx-auto px-6\">\n        <div className=\"flex items-center justify-between h-16\">\n          {/* Logo */}\n          <a href=\"#\" className={`text-xl font-bold ${scrolled ? 'text-gray-900' : 'text-white'}`}>\n            Brand\n          </a>\n          {/* Nav Links */}\n          <div className=\"hidden md:flex items-center gap-8\">\n            {['Features', 'Pricing', 'About', 'Contact'].map(item => (\n              <a \n                key={item} \n                href={`#${item.toLowerCase()}`}\n                className={`text-sm font-medium transition-colors ${scrolled ? 'text-gray-600 hover:text-gray-900' : 'text-white/80 hover:text-white'}`}\n              >\n                {item}\n              </a>\n            ))}\n          </div>\n          {/* CTA */}\n          <button className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${scrolled ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-100'}`}>\n            Get Started\n          </button>\n        </div>\n      </div>\n    </nav>\n  );\n}"
+    },
+    {
+      "id": "navbar-centered",
+      "name": "Centered Navbar",
+      "description": "Clean navbar with centered logo and navigation links on sides",
+      "source": "Shadcn UI",
+      "tags": ["navbar", "navigation", "centered", "clean", "minimal", "header"],
+      "useCases": ["brand sites", "portfolios", "luxury brands", "minimal designs"],
+      "code": "function NavbarCentered() {\n  return (\n    <nav className=\"border-b border-gray-100 bg-white\">\n      <div className=\"max-w-7xl mx-auto px-6\">\n        <div className=\"flex items-center justify-between h-20\">\n          {/* Left Links */}\n          <div className=\"flex items-center gap-8\">\n            {['Products', 'Solutions'].map(item => (\n              <a key={item} href=\"#\" className=\"text-sm text-gray-600 hover:text-gray-900 transition-colors\">\n                {item}\n              </a>\n            ))}\n          </div>\n          {/* Center Logo */}\n          <a href=\"#\" className=\"text-2xl font-bold text-gray-900\">\n            BRAND\n          </a>\n          {/* Right Links */}\n          <div className=\"flex items-center gap-6\">\n            <a href=\"#\" className=\"text-sm text-gray-600 hover:text-gray-900 transition-colors\">\n              About\n            </a>\n            <button className=\"px-5 py-2 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors\">\n              Contact\n            </button>\n          </div>\n        </div>\n      </div>\n    </nav>\n  );\n}"
+    },
+    {
+      "id": "navbar-mobile-menu",
+      "name": "Responsive Navbar with Mobile Menu",
+      "description": "Full-featured responsive navbar with animated mobile hamburger menu",
+      "source": "Custom",
+      "tags": ["navbar", "navigation", "responsive", "mobile", "hamburger", "menu"],
+      "useCases": ["all websites", "responsive designs", "mobile-first sites"],
+      "code": "function NavbarResponsive() {\n  const [isOpen, setIsOpen] = useState(false);\n\n  return (\n    <nav className=\"bg-white shadow-sm\">\n      <div className=\"max-w-7xl mx-auto px-6\">\n        <div className=\"flex items-center justify-between h-16\">\n          {/* Logo */}\n          <a href=\"#\" className=\"text-xl font-bold text-gray-900\">Brand</a>\n          {/* Desktop Nav */}\n          <div className=\"hidden md:flex items-center gap-8\">\n            {['Features', 'Pricing', 'About'].map(item => (\n              <a key={item} href=\"#\" className=\"text-gray-600 hover:text-gray-900 transition-colors\">{item}</a>\n            ))}\n            <button className=\"px-5 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors\">\n              Sign Up\n            </button>\n          </div>\n          {/* Mobile Menu Button */}\n          <button \n            className=\"md:hidden p-2\"\n            onClick={() => setIsOpen(!isOpen)}\n          >\n            <svg className=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              {isOpen ? (\n                <path strokeLinecap=\"round\" strokeLinejoin=\"round\" strokeWidth={2} d=\"M6 18L18 6M6 6l12 12\" />\n              ) : (\n                <path strokeLinecap=\"round\" strokeLinejoin=\"round\" strokeWidth={2} d=\"M4 6h16M4 12h16M4 18h16\" />\n              )}\n            </svg>\n          </button>\n        </div>\n        {/* Mobile Menu */}\n        {isOpen && (\n          <div className=\"md:hidden py-4 border-t border-gray-100\">\n            {['Features', 'Pricing', 'About'].map(item => (\n              <a key={item} href=\"#\" className=\"block py-3 text-gray-600 hover:text-gray-900\">{item}</a>\n            ))}\n            <button className=\"w-full mt-4 px-5 py-3 bg-blue-600 text-white font-medium rounded-lg\">\n              Sign Up\n            </button>\n          </div>\n        )}\n      </div>\n    </nav>\n  );\n}"
+    }
+  ]
+}

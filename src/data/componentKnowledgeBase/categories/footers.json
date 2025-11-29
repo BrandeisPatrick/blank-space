@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "category": "footers",
+  "categoryDescription": "Professional footer components with various layouts and styles",
+  "components": [
+    {
+      "id": "footer-modern",
+      "name": "Modern Footer",
+      "description": "Full-featured footer with multiple columns, newsletter signup, and social links",
+      "source": "Shadcn UI",
+      "tags": ["footer", "modern", "columns", "newsletter", "social", "comprehensive"],
+      "useCases": ["company sites", "SaaS products", "marketing sites", "professional"],
+      "code": "function FooterModern() {\n  const links = {\n    Product: ['Features', 'Pricing', 'Integrations', 'Changelog'],\n    Company: ['About', 'Blog', 'Careers', 'Press'],\n    Resources: ['Documentation', 'Help Center', 'Community', 'API'],\n    Legal: ['Privacy', 'Terms', 'Security', 'Cookies']\n  };\n\n  return (\n    <footer className=\"bg-gray-900 text-white\">\n      <div className=\"max-w-7xl mx-auto px-6 py-16\">\n        <div className=\"grid grid-cols-2 md:grid-cols-6 gap-8 mb-12\">\n          {/* Brand */}\n          <div className=\"col-span-2\">\n            <h3 className=\"text-2xl font-bold mb-4\">Brand</h3>\n            <p className=\"text-gray-400 mb-6 max-w-xs\">Building the future of work, one feature at a time.</p>\n            {/* Newsletter */}\n            <div className=\"flex gap-2\">\n              <input type=\"email\" placeholder=\"Enter your email\" className=\"flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500\" />\n              <button className=\"px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors\">Subscribe</button>\n            </div>\n          </div>\n          {/* Links */}\n          {Object.entries(links).map(([title, items]) => (\n            <div key={title}>\n              <h4 className=\"font-semibold mb-4\">{title}</h4>\n              <ul className=\"space-y-3\">\n                {items.map(item => (\n                  <li key={item}><a href=\"#\" className=\"text-gray-400 hover:text-white transition-colors text-sm\">{item}</a></li>\n                ))}\n              </ul>\n            </div>\n          ))}\n        </div>\n        {/* Bottom */}\n        <div className=\"pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4\">\n          <p className=\"text-gray-400 text-sm\">© 2024 Brand. All rights reserved.</p>\n          <div className=\"flex items-center gap-4\">\n            {['Twitter', 'GitHub', 'LinkedIn'].map(social => (\n              <a key={social} href=\"#\" className=\"text-gray-400 hover:text-white transition-colors text-sm\">{social}</a>\n            ))}\n          </div>\n        </div>\n      </div>\n    </footer>\n  );\n}"
+    },
+    {
+      "id": "footer-minimal",
+      "name": "Minimal Footer",
+      "description": "Clean, simple footer with just the essentials",
+      "source": "Custom",
+      "tags": ["footer", "minimal", "simple", "clean", "small"],
+      "useCases": ["portfolios", "landing pages", "minimal sites", "single page apps"],
+      "code": "function FooterMinimal() {\n  return (\n    <footer className=\"bg-white border-t border-gray-100\">\n      <div className=\"max-w-7xl mx-auto px-6 py-8\">\n        <div className=\"flex flex-col md:flex-row items-center justify-between gap-4\">\n          <div className=\"flex items-center gap-6\">\n            <span className=\"font-bold text-gray-900\">Brand</span>\n            {['About', 'Privacy', 'Terms'].map(link => (\n              <a key={link} href=\"#\" className=\"text-gray-600 hover:text-gray-900 text-sm transition-colors\">{link}</a>\n            ))}\n          </div>\n          <p className=\"text-gray-500 text-sm\">© 2024 Brand. All rights reserved.</p>\n        </div>\n      </div>\n    </footer>\n  );\n}"
+    },
+    {
+      "id": "footer-cta",
+      "name": "Footer with CTA",
+      "description": "Footer with a prominent call-to-action section above the links",
+      "source": "Magic UI",
+      "tags": ["footer", "cta", "gradient", "newsletter", "prominent"],
+      "useCases": ["SaaS products", "marketing sites", "conversion focused", "lead generation"],
+      "code": "function FooterCTA() {\n  return (\n    <footer className=\"bg-neutral-950\">\n      {/* CTA Section */}\n      <div className=\"max-w-7xl mx-auto px-6 py-16\">\n        <div className=\"relative p-12 rounded-3xl bg-gradient-to-r from-purple-600 to-pink-600 text-center overflow-hidden\">\n          <div className=\"absolute inset-0 bg-[url('data:image/svg+xml,...')] opacity-10\" />\n          <div className=\"relative z-10\">\n            <h2 className=\"text-3xl md:text-4xl font-bold text-white mb-4\">Ready to get started?</h2>\n            <p className=\"text-white/80 mb-8 max-w-xl mx-auto\">Join thousands of teams already using our platform to build better products.</p>\n            <div className=\"flex items-center justify-center gap-4 flex-wrap\">\n              <button className=\"px-8 py-4 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-100 transition-colors\">Start Free Trial</button>\n              <button className=\"px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-colors\">Contact Sales</button>\n            </div>\n          </div>\n        </div>\n      </div>\n      {/* Footer Links */}\n      <div className=\"max-w-7xl mx-auto px-6 py-12 border-t border-neutral-800\">\n        <div className=\"flex flex-col md:flex-row items-center justify-between gap-6\">\n          <span className=\"text-xl font-bold text-white\">Brand</span>\n          <div className=\"flex items-center gap-8\">\n            {['Features', 'Pricing', 'About', 'Blog'].map(link => (\n              <a key={link} href=\"#\" className=\"text-neutral-400 hover:text-white transition-colors text-sm\">{link}</a>\n            ))}\n          </div>\n          <p className=\"text-neutral-500 text-sm\">© 2024 Brand</p>\n        </div>\n      </div>\n    </footer>\n  );\n}"
+    }
+  ]
+}

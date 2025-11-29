@@ -29,6 +29,21 @@ function App() {
   // AI processing state
   const [isAIProcessing, setIsAIProcessing] = useState(false);
 
+  // Knowledge Base state - enables professional component patterns
+  const [useKnowledgeBase, setUseKnowledgeBase] = useState(() => {
+    const saved = localStorage.getItem('useKnowledgeBase');
+    return saved !== null ? JSON.parse(saved) : true; // Default to enabled
+  });
+
+  // Persist knowledge base preference
+  const toggleKnowledgeBase = useCallback(() => {
+    setUseKnowledgeBase(prev => {
+      const newValue = !prev;
+      localStorage.setItem('useKnowledgeBase', JSON.stringify(newValue));
+      return newValue;
+    });
+  }, []);
+
   // State management
   const [chatMessages, setChatMessages] = useState([]);
   const [files, setFiles] = useState(activeArtifact?.files || {});
@@ -363,7 +378,7 @@ function App() {
 
     try {
       // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate);
+      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase });
 
       if (result.success) {
         // Remove loading message and mark processing complete
@@ -457,7 +472,7 @@ function App() {
         }]);
       }
     }
-  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning]);
+  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase]);
   // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
 
   // Handle initial message from URL parameter (landing page → studio transition)
@@ -653,6 +668,8 @@ function App() {
       <LandingPage
         onTryNow={handleTryNow}
         onSignIn={handleNavigateToSignIn}
+        useKnowledgeBase={useKnowledgeBase}
+        onToggleKnowledgeBase={toggleKnowledgeBase}
       />
 
       {/* Floating Chat Panel - Only shows when AI is working */}

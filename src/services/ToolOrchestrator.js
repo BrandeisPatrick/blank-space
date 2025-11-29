@@ -10,6 +10,7 @@ import { SessionManager } from "./session/SessionManager.js";
 import { coreTools } from "./tools/core/index.js";
 import { callLLMWithTools, callLLM } from "./utils/llm/llmClient.js";
 import { classifyIntent } from "./intentClassifier.js";
+import { buildKnowledgeBaseContext } from "./knowledgeBase/promptBuilder.js";
 
 /**
  * System prompt for code generation
@@ -178,9 +179,12 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @param {string} userMessage - User's request for code generation
  * @param {Object} currentFiles - Current file map {filename: content}
  * @param {Function} onUpdate - Callback for streaming updates
+ * @param {Object} options - Additional options
+ * @param {boolean} options.useKnowledgeBase - Whether to use the component knowledge base
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
-export async function processMessage(userMessage, currentFiles = {}, onUpdate = null) {
+export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
+  const { useKnowledgeBase = false } = options;
   const startTime = Date.now();
 
   // Callback wrapper for updates
@@ -290,10 +294,20 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       }
     };
 
+    // Build system prompt with optional knowledge base context
+    let systemPrompt = CODE_GENERATION_SYSTEM_PROMPT;
+    if (useKnowledgeBase) {
+      const knowledgeBaseContext = buildKnowledgeBaseContext(userMessage);
+      if (knowledgeBaseContext) {
+        systemPrompt += knowledgeBaseContext;
+        console.log('[KnowledgeBase] Injected component patterns into system prompt');
+      }
+    }
+
     // Call LLM with tools
     const llmResponse = await callLLMWithTools({
       model: 'gpt-4o-mini',
-      systemPrompt: CODE_GENERATION_SYSTEM_PROMPT,
+      systemPrompt,
       messages,
       toolRegistry,
       context: { fs: vfs },

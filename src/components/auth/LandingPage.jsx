@@ -9,9 +9,10 @@ import { BackgroundWaves } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
+import { KnowledgeBaseToggle } from '../ui/KnowledgeBaseToggle';
 import { LAYOUT, LABELS, COLORS } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn }) => {
+export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
@@ -159,26 +160,39 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
           )}
         </div>
 
-        {/* Suggestion Pills - Positioned closer to chat input */}
+        {/* Knowledge Base Toggle + Suggestion Pills */}
         <div style={{
           position: 'fixed',
           bottom: LAYOUT.LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET,
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           gap: theme.spacing.md,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          maxWidth: LAYOUT.LANDING_SUGGESTION_MAX_WIDTH,
           zIndex: LAYOUT.SUGGESTION_PILLS_Z_INDEX,
         }}>
-          {suggestionPills.map((pillText, index) => (
-            <SuggestionPill
-              key={index}
-              text={pillText}
-              onClick={() => handleSuggestionPillClick(pillText)}
-            />
-          ))}
+          {/* Toggle for Pro Components */}
+          <KnowledgeBaseToggle
+            enabled={useKnowledgeBase}
+            onToggle={onToggleKnowledgeBase}
+          />
+          {/* Suggestion Pills */}
+          <div style={{
+            display: 'flex',
+            gap: theme.spacing.md,
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            maxWidth: LAYOUT.LANDING_SUGGESTION_MAX_WIDTH,
+          }}>
+            {suggestionPills.map((pillText, index) => (
+              <SuggestionPill
+                key={index}
+                text={pillText}
+                onClick={() => handleSuggestionPillClick(pillText)}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Enhanced Chat Input - Fixed at bottom */}
@@ -197,5 +211,7 @@ export const LandingPage = ({ onTryNow, onSignIn }) => {
 
 LandingPage.propTypes = {
   onTryNow: PropTypes.func.isRequired,
-  onSignIn: PropTypes.func.isRequired
+  onSignIn: PropTypes.func.isRequired,
+  useKnowledgeBase: PropTypes.bool,
+  onToggleKnowledgeBase: PropTypes.func
 };
