@@ -30,7 +30,7 @@ export const SuggestionPill = ({ text, onClick }) => {
         fontFamily: theme.typography.fontFamily.sans,
         cursor: 'pointer',
         flex: 1,
-        textAlign: 'center',
+        textAlign: 'left',
         transition: `all ${theme.animation.fast}`,
       }}
     >
