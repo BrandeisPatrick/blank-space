@@ -91,12 +91,9 @@ export const LAYOUT = {
   // Landing page specific
   LANDING_MAX_WIDTH: '1200px',
   LANDING_CHAT_INPUT_BOTTOM_OFFSET: '100px',
-  LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET: 100, // Base offset in pixels (number for calculation)
+  LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET: 100,
   LANDING_MAIN_PADDING_BOTTOM: '120px',
   LANDING_SUGGESTION_MAX_WIDTH: '90%',
-
-  // Chat input chip row
-  CHIP_ROW_HEIGHT: 30, // Height added when Pro Components chip is shown
 
   // Grid dimensions
   ARTIFACT_GRID_MIN_MOBILE: '140px',

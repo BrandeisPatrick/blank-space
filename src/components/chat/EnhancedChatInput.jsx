@@ -21,37 +21,36 @@ const PlusIcon = ({ size = 20, color = "currentColor" }) => (
   </svg>
 );
 
-// Sparkles icon for Pro Components
-const SparklesIcon = ({ size = 16 }) => (
+// Chevron down icon for dropdown
+const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+// Sparkles icon for Pro Components
+const SparklesIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
     <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" />
     <path d="M19 15L20 18L23 19L20 20L19 23L18 20L15 19L18 18L19 15Z" />
-  </svg>
-);
-
-// X icon for removing chip
-const XSmallIcon = ({ size = 14 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
@@ -121,18 +120,14 @@ export const EnhancedChatInput = ({
   };
 
   const handleAddProComponents = () => {
-    if (onToggleKnowledgeBase && !useKnowledgeBase) {
+    if (onToggleKnowledgeBase) {
       onToggleKnowledgeBase();
     }
     setShowDropdown(false);
   };
 
-  const handleRemoveProComponents = (e) => {
-    e.stopPropagation();
-    if (onToggleKnowledgeBase && useKnowledgeBase) {
-      onToggleKnowledgeBase();
-    }
-  };
+  // Blue color for Pro Components text
+  const proComponentsColor = '#3b82f6';
 
   return (
     <div style={{
@@ -185,14 +180,11 @@ export const EnhancedChatInput = ({
               alignItems: 'center',
               gap: theme.spacing.md,
               padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-              cursor: useKnowledgeBase ? 'default' : 'pointer',
+              cursor: 'pointer',
               transition: `background ${theme.animation.fast}`,
-              opacity: useKnowledgeBase ? 0.5 : 1,
             }}
             onMouseEnter={(e) => {
-              if (!useKnowledgeBase) {
-                e.currentTarget.style.background = theme.colors.bg.tertiary;
-              }
+              e.currentTarget.style.background = theme.colors.bg.tertiary;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -205,9 +197,9 @@ export const EnhancedChatInput = ({
               justifyContent: 'center',
               width: '20px',
               height: '20px',
-              color: '#a855f7',
+              color: proComponentsColor,
             }}>
-              <SparklesIcon size={18} />
+              <SparklesIcon size={18} color={proComponentsColor} />
             </div>
 
             {/* Label */}
@@ -220,14 +212,14 @@ export const EnhancedChatInput = ({
               Pro Components
             </span>
 
-            {/* Already added indicator */}
+            {/* Checkmark when enabled */}
             {useKnowledgeBase && (
               <span style={{
                 marginLeft: 'auto',
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.text.tertiary,
+                fontSize: theme.typography.fontSize.sm,
+                color: proComponentsColor,
               }}>
-                Added
+                ✓
               </span>
             )}
           </div>
@@ -238,68 +230,34 @@ export const EnhancedChatInput = ({
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: useKnowledgeBase ? theme.spacing.sm : 0,
-        padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+        gap: theme.spacing.sm,
+        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
         background: theme.colors.bg.secondary,
         border: `1px solid ${theme.colors.border}`,
         borderRadius: theme.radius.xl,
       }}>
-        {/* Chips Row - Shows when Pro Components is enabled */}
-        {useKnowledgeBase && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            paddingLeft: '48px', // Align with input text (after + button)
-          }}>
-            {/* Pro Components Chip */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 8px 4px 10px',
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.15))',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: theme.radius.full,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.medium,
-                color: '#a855f7',
-                fontFamily: theme.typography.fontFamily.sans,
-              }}
-            >
-              <SparklesIcon size={12} />
-              <span>Pro Components</span>
-              <button
-                onClick={handleRemoveProComponents}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '16px',
-                  height: '16px',
-                  padding: 0,
-                  background: 'rgba(168, 85, 247, 0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  color: '#a855f7',
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(168, 85, 247, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)';
-                }}
-              >
-                <XSmallIcon size={10} />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Input Row - TOP */}
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          style={{
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: theme.colors.text.primary,
+            fontSize: theme.typography.fontSize.base,
+            fontFamily: theme.typography.fontFamily.sans,
+            padding: `${theme.spacing.xs} 0`,
+          }}
+        />
 
-        {/* Input Row */}
+        {/* Controls Row - BOTTOM */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -314,8 +272,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '40px',
-              height: '40px',
+              width: '32px',
+              height: '32px',
               background: showDropdown ? theme.colors.bg.tertiary : 'transparent',
               border: 'none',
               borderRadius: theme.radius.full,
@@ -337,29 +295,44 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <PlusIcon size={20} />
+            <PlusIcon size={18} />
           </button>
 
-          {/* Text Input */}
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onFocus={handleFocus}
-            onBlur={() => setIsFocused(false)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: theme.colors.text.primary,
-              fontSize: theme.typography.fontSize.base,
-              fontFamily: theme.typography.fontFamily.sans,
-              padding: `${theme.spacing.sm} 0`,
-            }}
-          />
+          {/* Pro Components Text + Chevron */}
+          {useKnowledgeBase && (
+            <button
+              type="button"
+              onClick={toggleDropdown}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: proComponentsColor,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.radius.md,
+                transition: `background ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.tertiary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <SparklesIcon size={14} color={proComponentsColor} />
+              <span>Pro Components</span>
+              <ChevronDownIcon size={14} color={proComponentsColor} />
+            </button>
+          )}
+
+          {/* Flex spacer */}
+          <div style={{ flex: 1 }} />
 
           {/* Send Button */}
           <button
@@ -370,8 +343,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '40px',
-              height: '40px',
+              width: '32px',
+              height: '32px',
               background: message.trim() ? theme.colors.accent.primary : theme.colors.bg.tertiary,
               border: 'none',
               borderRadius: theme.radius.full,
@@ -383,7 +356,7 @@ export const EnhancedChatInput = ({
             }}
             onMouseEnter={(e) => {
               if (message.trim()) {
-                e.currentTarget.style.background = theme.colors.accent.warning;
+                e.currentTarget.style.background = theme.colorVariants?.accent?.primaryHover || theme.colors.accent.primary;
               }
             }}
             onMouseLeave={(e) => {
@@ -392,7 +365,7 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <ArrowUpIcon size={20} />
+            <ArrowUpIcon size={18} />
           </button>
         </div>
       </div>
