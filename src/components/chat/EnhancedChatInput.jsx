@@ -67,6 +67,7 @@ export const EnhancedChatInput = ({
   const [message, setMessage] = useState(initialMessage);
   const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -300,11 +301,15 @@ export const EnhancedChatInput = ({
 
           {/* Pro Components Text + Chevron + X */}
           {useKnowledgeBase && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+              }}
+              onMouseEnter={() => setIsProComponentsHovered(true)}
+              onMouseLeave={() => setIsProComponentsHovered(false)}
+            >
               <button
                 type="button"
                 onClick={toggleDropdown}
@@ -334,7 +339,7 @@ export const EnhancedChatInput = ({
                 <span>Pro Components</span>
                 <ChevronDownIcon size={14} color={proComponentsColor} />
               </button>
-              {/* X button to disable */}
+              {/* X button to disable - only visible on hover */}
               <button
                 type="button"
                 onClick={() => onToggleKnowledgeBase && onToggleKnowledgeBase()}
@@ -350,6 +355,7 @@ export const EnhancedChatInput = ({
                   cursor: 'pointer',
                   color: theme.colors.text.tertiary,
                   fontSize: '14px',
+                  opacity: isProComponentsHovered ? 1 : 0,
                   transition: `all ${theme.animation.fast}`,
                 }}
                 onMouseEnter={(e) => {
