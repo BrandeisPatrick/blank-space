@@ -235,7 +235,7 @@ export const EnhancedChatInput = ({
         padding: `${theme.spacing.md} ${theme.spacing.lg}`,
         background: theme.colors.bg.secondary,
         border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.radius.xl,
+        borderRadius: '28px',
       }}>
         {/* Input Row - TOP */}
         <input
