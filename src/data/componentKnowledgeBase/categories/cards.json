@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "category": "cards",
+  "categoryDescription": "Modern card components with hover effects, glassmorphism, and professional styling",
+  "components": [
+    {
+      "id": "card-glass-hover",
+      "name": "Glassmorphism Card",
+      "description": "Modern glass-effect card with subtle hover animation and gradient border",
+      "source": "Aceternity UI",
+      "tags": ["card", "glassmorphism", "hover", "modern", "gradient", "feature"],
+      "useCases": ["feature sections", "pricing cards", "service offerings", "portfolio items"],
+      "code": "function GlassCard({ title, description, icon }) {\n  return (\n    <div className=\"group relative p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1\">\n      {/* Gradient overlay on hover */}\n      <div className=\"absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity\" />\n      <div className=\"relative z-10\">\n        <div className=\"w-14 h-14 mb-6 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl\">\n          {icon || '✨'}\n        </div>\n        <h3 className=\"text-xl font-bold text-white mb-3\">{title || 'Feature Title'}</h3>\n        <p className=\"text-gray-400 leading-relaxed\">{description || 'Describe your amazing feature here with compelling copy that converts visitors.'}</p>\n      </div>\n    </div>\n  );\n}"
+    },
+    {
+      "id": "card-bento",
+      "name": "Bento Grid Card",
+      "description": "Flexible bento-style card that works in grid layouts with various sizes",
+      "source": "Magic UI",
+      "tags": ["card", "bento", "grid", "flexible", "modern", "dashboard"],
+      "useCases": ["feature grids", "dashboard layouts", "portfolio grids", "product showcases"],
+      "code": "function BentoCard({ title, description, className, children }) {\n  return (\n    <div className={`group relative overflow-hidden rounded-3xl bg-neutral-900 p-8 ${className || ''}`}>\n      {/* Gradient background */}\n      <div className=\"absolute inset-0 bg-gradient-to-br from-neutral-800/50 to-neutral-900/50\" />\n      {/* Hover glow */}\n      <div className=\"absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(600px_circle_at_var(--mouse-x)_var(--mouse-y),rgba(255,255,255,0.06),transparent_40%)]\" />\n      <div className=\"relative z-10\">\n        <h3 className=\"text-2xl font-bold text-white mb-2\">{title || 'Card Title'}</h3>\n        <p className=\"text-neutral-400 mb-6\">{description || 'Card description goes here'}</p>\n        {children}\n      </div>\n    </div>\n  );\n}"
+    },
+    {
+      "id": "card-product",
+      "name": "Product Card",
+      "description": "E-commerce style product card with image, price, and add to cart functionality",
+      "source": "Custom",
+      "tags": ["card", "product", "ecommerce", "shopping", "price", "image"],
+      "useCases": ["e-commerce sites", "product listings", "online stores", "marketplace"],
+      "code": "function ProductCard({ image, name, price, originalPrice, rating }) {\n  return (\n    <div className=\"group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300\">\n      {/* Image */}\n      <div className=\"relative aspect-square overflow-hidden bg-gray-100\">\n        <img \n          src={image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop'} \n          alt={name || 'Product'}\n          className=\"w-full h-full object-cover group-hover:scale-105 transition-transform duration-500\"\n        />\n        {originalPrice && (\n          <div className=\"absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-full\">\n            Sale\n          </div>\n        )}\n        <button className=\"absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100\">\n          <svg className=\"w-5 h-5 text-gray-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n            <path strokeLinecap=\"round\" strokeLinejoin=\"round\" strokeWidth={2} d=\"M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z\" />\n          </svg>\n        </button>\n      </div>\n      {/* Content */}\n      <div className=\"p-5\">\n        <h3 className=\"font-semibold text-gray-900 mb-2\">{name || 'Product Name'}</h3>\n        <div className=\"flex items-center gap-2 mb-3\">\n          <div className=\"flex items-center text-yellow-400\">\n            {'★'.repeat(Math.floor(rating || 5))}\n          </div>\n          <span className=\"text-sm text-gray-500\">({rating || '5.0'})</span>\n        </div>\n        <div className=\"flex items-center justify-between\">\n          <div className=\"flex items-center gap-2\">\n            <span className=\"text-xl font-bold text-gray-900\">${price || '99'}</span>\n            {originalPrice && (\n              <span className=\"text-sm text-gray-400 line-through\">${originalPrice}</span>\n            )}\n          </div>\n          <button className=\"px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors\">\n            Add to Cart\n          </button>\n        </div>\n      </div>\n    </div>\n  );\n}"
+    },
+    {
+      "id": "card-testimonial",
+      "name": "Testimonial Card",
+      "description": "Customer testimonial card with avatar, quote, and rating",
+      "source": "Shadcn UI",
+      "tags": ["card", "testimonial", "review", "quote", "customer", "social-proof"],
+      "useCases": ["testimonial sections", "review pages", "social proof", "customer stories"],
+      "code": "function TestimonialCard({ quote, author, role, company, avatar, rating }) {\n  return (\n    <div className=\"bg-white p-8 rounded-2xl shadow-lg border border-gray-100\">\n      {/* Rating */}\n      <div className=\"flex items-center gap-1 mb-6 text-yellow-400\">\n        {'★'.repeat(rating || 5)}\n      </div>\n      {/* Quote */}\n      <blockquote className=\"text-gray-700 text-lg leading-relaxed mb-6\">\n        \"{quote || 'This product has completely transformed how we work. The team is incredibly responsive and the features are exactly what we needed.'}\"\n      </blockquote>\n      {/* Author */}\n      <div className=\"flex items-center gap-4\">\n        <img \n          src={avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'} \n          alt={author || 'Customer'}\n          className=\"w-12 h-12 rounded-full object-cover\"\n        />\n        <div>\n          <div className=\"font-semibold text-gray-900\">{author || 'John Smith'}</div>\n          <div className=\"text-sm text-gray-500\">{role || 'CEO'} at {company || 'Acme Inc'}</div>\n        </div>\n      </div>\n    </div>\n  );\n}"
+    }
+  ]
+}

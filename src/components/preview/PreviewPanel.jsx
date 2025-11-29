@@ -187,12 +187,19 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
+    <!-- Framer Motion for animations (Pro Components) -->
+    <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
+
     <!-- Babel Standalone for JSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <!-- Your App Code -->
     <script type="text/babel">
       const { useState, useEffect, useRef, useMemo, useCallback, useReducer, useContext, useTransition } = React;
+
+      // Framer Motion - expose if available
+      const motion = window.Motion?.motion || ((tag) => tag);
+      const AnimatePresence = window.Motion?.AnimatePresence || (({ children }) => children);
 
       ${allCode}
 
