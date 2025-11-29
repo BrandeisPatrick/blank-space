@@ -20,12 +20,12 @@ export const SuggestionPill = ({ text, onClick }) => {
         e.currentTarget.style.transform = 'scale(1)';
       }}
       style={{
-        padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+        padding: `${theme.spacing.lg} ${theme.spacing['2xl']}`,
         ...glassStyle,
         border: 'none',
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.lg,
         color: theme.colors.text.primary,
-        fontSize: theme.typography.fontSize.sm,
+        fontSize: theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.medium,
         fontFamily: theme.typography.fontFamily.sans,
         cursor: 'pointer',

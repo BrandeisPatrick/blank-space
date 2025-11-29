@@ -231,11 +231,11 @@ export const EnhancedChatInput = ({
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: theme.spacing.sm,
-        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+        gap: theme.spacing.md,
+        padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
         background: theme.colors.bg.secondary,
         border: `1px solid ${theme.colors.border}`,
-        borderRadius: '28px',
+        borderRadius: '36px',
       }}>
         {/* Input Row - TOP */}
         <input
@@ -252,9 +252,9 @@ export const EnhancedChatInput = ({
             border: 'none',
             outline: 'none',
             color: theme.colors.text.primary,
-            fontSize: theme.typography.fontSize.base,
+            fontSize: theme.typography.fontSize.lg,
             fontFamily: theme.typography.fontFamily.sans,
-            padding: `${theme.spacing.xs} 0`,
+            padding: `${theme.spacing.sm} 0`,
           }}
         />
 
@@ -273,8 +273,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '32px',
-              height: '32px',
+              width: '42px',
+              height: '42px',
               background: showDropdown ? theme.colors.bg.tertiary : 'transparent',
               border: 'none',
               borderRadius: theme.radius.full,
@@ -296,7 +296,7 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <PlusIcon size={18} />
+            <PlusIcon size={24} />
           </button>
 
           {/* Pro Components - icon transforms to X on hover */}
@@ -317,26 +317,26 @@ export const EnhancedChatInput = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 background: isProComponentsHovered ? theme.colors.bg.tertiary : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 color: proComponentsColor,
-                fontSize: theme.typography.fontSize.sm,
+                fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.medium,
                 fontFamily: theme.typography.fontFamily.sans,
-                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                 borderRadius: theme.radius.full,
                 transition: `all ${theme.animation.fast}`,
               }}
             >
               {isProComponentsHovered ? (
-                <span style={{ fontSize: '14px', lineHeight: 1 }}>×</span>
+                <span style={{ fontSize: '18px', lineHeight: 1 }}>×</span>
               ) : (
-                <SparklesIcon size={14} color={proComponentsColor} />
+                <SparklesIcon size={18} color={proComponentsColor} />
               )}
               <span>Pro Components</span>
-              <ChevronDownIcon size={14} color={proComponentsColor} />
+              <ChevronDownIcon size={18} color={proComponentsColor} />
             </button>
           )}
 
@@ -352,8 +352,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '32px',
-              height: '32px',
+              width: '42px',
+              height: '42px',
               background: message.trim() ? theme.colors.accent.primary : theme.colors.bg.tertiary,
               border: 'none',
               borderRadius: theme.radius.full,
@@ -374,7 +374,7 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <ArrowUpIcon size={18} />
+            <ArrowUpIcon size={24} />
           </button>
         </div>
       </div>
