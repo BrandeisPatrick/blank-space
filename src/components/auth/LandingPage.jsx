@@ -168,7 +168,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           display: 'flex',
           gap: theme.spacing.md,
           flexWrap: 'wrap',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           width: '90%',
           maxWidth: '800px',
           zIndex: LAYOUT.SUGGESTION_PILLS_Z_INDEX,
