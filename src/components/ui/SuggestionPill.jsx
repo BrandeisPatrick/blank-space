@@ -25,7 +25,7 @@ export const SuggestionPill = ({ text, onClick }) => {
         border: 'none',
         borderRadius: theme.radius.lg,
         color: theme.colors.text.primary,
-        fontSize: theme.typography.fontSize.sm,
+        fontSize: theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.medium,
         fontFamily: theme.typography.fontFamily.sans,
         cursor: 'pointer',
