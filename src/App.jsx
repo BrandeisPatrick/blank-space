@@ -12,6 +12,7 @@ import { ArtifactSidebar } from "./components/artifact";
 import { FloatingChatPanel } from "./components/ui/FloatingChatPanel";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import { useIsMobile } from "./hooks/useIsMobile";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import { processMessage } from "./services/ToolOrchestrator.js";
 import { ROUTES, TIMING, MESSAGES, LABELS, PANELS, COLORS } from "./constants";
 import "./styles/App.css";
@@ -30,19 +31,12 @@ function App() {
   const [isAIProcessing, setIsAIProcessing] = useState(false);
 
   // Knowledge Base state - enables professional component patterns
-  const [useKnowledgeBase, setUseKnowledgeBase] = useState(() => {
-    const saved = localStorage.getItem('useKnowledgeBase');
-    return saved !== null ? JSON.parse(saved) : true; // Default to enabled
-  });
+  const [useKnowledgeBase, setUseKnowledgeBase] = useLocalStorage('useKnowledgeBase', true);
 
-  // Persist knowledge base preference
+  // Toggle knowledge base preference
   const toggleKnowledgeBase = useCallback(() => {
-    setUseKnowledgeBase(prev => {
-      const newValue = !prev;
-      localStorage.setItem('useKnowledgeBase', JSON.stringify(newValue));
-      return newValue;
-    });
-  }, []);
+    setUseKnowledgeBase(prev => !prev);
+  }, [setUseKnowledgeBase]);
 
   // State management
   const [chatMessages, setChatMessages] = useState([]);
