@@ -34,8 +34,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 
   // Suggestion pill prompts
   const suggestionPills = [
-    "Create a browser with a functional nav bar",
-    "Show what you can do",
+    "Create a browser with a nav bar",
+    "Show me what you can do",
     "Choose your own adventure game"
   ];
 
@@ -167,8 +167,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           transform: 'translateX(-50%)',
           display: 'flex',
           gap: theme.spacing.md,
-          width: '90%',
-          maxWidth: '800px',
+          width: LAYOUT.CHAT_INPUT_WIDTH,
+          maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
           zIndex: LAYOUT.SUGGESTION_PILLS_Z_INDEX,
         }}>
           {suggestionPills.map((pillText, index) => (

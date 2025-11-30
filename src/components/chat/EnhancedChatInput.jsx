@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { ArrowUpIcon } from '../icons/icons';
+import { COLORS, LAYOUT } from '../../constants';
 
 // Plus icon for the dropdown trigger
 const PlusIcon = ({ size = 20, color = "currentColor" }) => (
@@ -128,7 +129,7 @@ export const EnhancedChatInput = ({
   };
 
   // Blue color for Pro Components text
-  const proComponentsColor = '#3b82f6';
+  const proComponentsColor = COLORS.PRO_COMPONENTS_BLUE;
 
   return (
     <div style={{
@@ -136,9 +137,9 @@ export const EnhancedChatInput = ({
       bottom: theme.spacing.xl,
       left: '50%',
       transform: 'translateX(-50%)',
-      width: '90%',
-      maxWidth: '800px',
-      zIndex: 100,
+      width: LAYOUT.CHAT_INPUT_WIDTH,
+      maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
+      zIndex: LAYOUT.CHAT_INPUT_Z_INDEX,
     }}>
       {/* Dropdown Menu - Positioned above the input */}
       {showDropdown && (
@@ -235,7 +236,7 @@ export const EnhancedChatInput = ({
         padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
         background: theme.colors.bg.secondary,
         border: `1px solid ${theme.colors.border}`,
-        borderRadius: '36px',
+        borderRadius: LAYOUT.CHAT_INPUT_BORDER_RADIUS,
       }}>
         {/* Input Row - TOP */}
         <input
@@ -317,7 +318,7 @@ export const EnhancedChatInput = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: theme.spacing.sm,
                 background: isProComponentsHovered ? theme.colors.bg.tertiary : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
