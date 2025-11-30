@@ -3,6 +3,8 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
 import { ErrorMessage } from './ErrorMessage'
+import { LoadingDots } from '../ui/LoadingDots'
+import { filterVisibleMessages } from '../../utils/messageUtils'
 
 export const ChatPanel = ({ messages = [], onFixBug }) => {
   const messagesEndRef = useRef(null)
@@ -74,13 +76,7 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
         ) : (
           <>
             {/* Regular messages */}
-            {messages
-              .filter(message => {
-                // Show user, assistant, complete, and error messages
-                // Exclude 'thinking', 'intent', and 'plan' messages
-                const visibleTypes = ['user', 'assistant', 'complete', 'error']
-                return visibleTypes.includes(message.type)
-              })
+            {filterVisibleMessages(messages)
               .map((message, index) => (
                 <ChatMessage key={message.id || index} message={message} onFixBug={onFixBug} />
               ))}
@@ -89,29 +85,6 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
         <div ref={messagesEndRef} />
       </div>
     </div>
-  )
-}
-
-// Animated dots component for loading state
-const LoadingDots = () => {
-  return (
-    <span style={{ display: 'inline-flex', gap: '4px' }}>
-      <span className="loading-dot" style={{ animationDelay: '0ms' }}>.</span>
-      <span className="loading-dot" style={{ animationDelay: '200ms' }}>.</span>
-      <span className="loading-dot" style={{ animationDelay: '400ms' }}>.</span>
-      <style>{`
-        @keyframes loadingDot {
-          0%, 20% { opacity: 0.3; }
-          50% { opacity: 1; }
-          80%, 100% { opacity: 0.3; }
-        }
-        .loading-dot {
-          animation: loadingDot 1.4s ease-in-out infinite;
-          font-size: 1.5em;
-          line-height: 0.5;
-        }
-      `}</style>
-    </span>
   )
 }
 

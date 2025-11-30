@@ -2,29 +2,9 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { createGlassEffect } from '../../styles/componentStyles'
 import { BinaIcon } from '../icons'
-
-// Animated dots component for loading state
-const LoadingDots = () => {
-  return (
-    <span style={{ display: 'inline-flex', gap: '4px' }}>
-      <span className="loading-dot" style={{ animationDelay: '0ms' }}>.</span>
-      <span className="loading-dot" style={{ animationDelay: '200ms' }}>.</span>
-      <span className="loading-dot" style={{ animationDelay: '400ms' }}>.</span>
-      <style>{`
-        @keyframes loadingDot {
-          0%, 20% { opacity: 0.3; }
-          50% { opacity: 1; }
-          80%, 100% { opacity: 0.3; }
-        }
-        .loading-dot {
-          animation: loadingDot 1.4s ease-in-out infinite;
-          font-size: 1.5em;
-          line-height: 0.5;
-        }
-      `}</style>
-    </span>
-  )
-}
+import { LoadingDots } from './LoadingDots'
+import { filterVisibleMessages } from '../../utils/messageUtils'
+import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
 
 export const FloatingChatPanel = ({
   visible = false,
@@ -39,9 +19,7 @@ export const FloatingChatPanel = ({
 
   // Get only the current message to display
   // Priority: loading message > last assistant response > last user message
-  const visibleMessages = messages.filter(msg =>
-    ['user', 'assistant', 'complete', 'error'].includes(msg.type)
-  )
+  const visibleMessages = filterVisibleMessages(messages)
 
   // Find the loading message (if any)
   const loadingMessage = visibleMessages.find(msg => msg.isLoading)
@@ -64,16 +42,16 @@ export const FloatingChatPanel = ({
       <div
         style={{
           position: 'fixed',
-          top: '100px',
-          right: '20px',
-          width: '60px',
-          height: '60px',
+          top: FLOATING_WINDOWS.CHAT_PANEL.ICON_TOP,
+          right: FLOATING_WINDOWS.CHAT_PANEL.ICON_RIGHT,
+          width: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
+          height: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
           borderRadius: theme.radius.full,
           ...createGlassEffect(theme),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 101,
+          zIndex: Z_INDEX.FLOATING_CHAT_ICON,
           boxShadow: theme.shadows.xl,
         }}
       >
@@ -84,16 +62,16 @@ export const FloatingChatPanel = ({
       <div
         style={{
           position: 'fixed',
-          top: '170px',
-          right: '20px',
-          width: '400px',
-          maxHeight: '60vh',
+          top: FLOATING_WINDOWS.CHAT_PANEL.PANEL_TOP,
+          right: FLOATING_WINDOWS.CHAT_PANEL.PANEL_RIGHT,
+          width: FLOATING_WINDOWS.CHAT_PANEL.PANEL_WIDTH,
+          maxHeight: FLOATING_WINDOWS.CHAT_PANEL.PANEL_MAX_HEIGHT,
           borderRadius: theme.radius['2xl'],
           ...createGlassEffect(theme),
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          zIndex: 100,
+          zIndex: Z_INDEX.FLOATING_CHAT_PANEL,
           boxShadow: theme.shadows.xl,
         }}
       >

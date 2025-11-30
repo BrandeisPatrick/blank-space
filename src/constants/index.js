@@ -90,10 +90,14 @@ export const LABELS = {
 export const LAYOUT = {
   // Landing page specific
   LANDING_MAX_WIDTH: '1200px',
-  LANDING_CHAT_INPUT_BOTTOM_OFFSET: '100px',
   LANDING_SUGGESTION_PILLS_BOTTOM_OFFSET: 160,
   LANDING_MAIN_PADDING_BOTTOM: '120px',
-  LANDING_SUGGESTION_MAX_WIDTH: '90%',
+
+  // Chat input dimensions (shared with suggestion pills)
+  CHAT_INPUT_WIDTH: '90%',
+  CHAT_INPUT_MAX_WIDTH: '800px',
+  CHAT_INPUT_BORDER_RADIUS: '36px',
+  CHAT_INPUT_Z_INDEX: 100,
 
   // Grid dimensions
   ARTIFACT_GRID_MIN_MOBILE: '140px',
@@ -108,5 +112,51 @@ export const LAYOUT = {
  * Color constants for UI elements
  */
 export const COLORS = {
-  WHITE: '#ffffff'
+  WHITE: '#ffffff',
+  PRO_COMPONENTS_BLUE: '#3b82f6'
+};
+
+/**
+ * Z-index layering system
+ * Centralized z-index values for consistent stacking order
+ */
+export const Z_INDEX = {
+  CONTENT: 1,
+  FLOATING_BROWSER_WINDOW: 50,
+  SUGGESTION_PILLS: 99,
+  CHAT_INPUT: 100,
+  FLOATING_CHAT_PANEL: 100,
+  FLOATING_CHAT_ICON: 101,
+  DROPDOWN: 99,
+  MODALS: 1000
+};
+
+/**
+ * Floating window dimensions and positioning
+ */
+export const FLOATING_WINDOWS = {
+  BROWSER: {
+    DEFAULT_WIDTH: 800,
+    DEFAULT_HEIGHT: 600,
+    MIN_WIDTH: 400,
+    MIN_HEIGHT: 300
+  },
+  CHAT_PANEL: {
+    ICON_SIZE: 60,
+    ICON_TOP: '100px',
+    ICON_RIGHT: '20px',
+    PANEL_TOP: '170px',
+    PANEL_RIGHT: '20px',
+    PANEL_WIDTH: '400px',
+    PANEL_MAX_HEIGHT: '60vh'
+  }
+};
+
+/**
+ * Error message templates
+ */
+export const ERROR_MESSAGES = {
+  ARTIFACT_SAVE_FAILED: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
+  CODE_GENERATION_FAILED: 'Failed to generate code. Please try again.',
+  GENERAL_ERROR: 'An error occurred while processing your request. Please try again.'
 };
