@@ -6,7 +6,7 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { BackgroundWaves } from '../wallpaper';
+import { BackgroundWaves, StarryBackground } from '../wallpaper';
 import { wallpaperPresets } from '../wallpaper/presets/wallpaperPresets';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
@@ -128,7 +128,11 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
       }}>
         {/* Background Decorations */}
-        <BackgroundWaves variant="diagonal" preset={wallpaperPreset} />
+        {currentWallpaper.variant === 'stars' ? (
+          <StarryBackground />
+        ) : (
+          <BackgroundWaves variant="diagonal" preset={wallpaperPreset} />
+        )}
 
         {/* Content Container */}
         <div style={{

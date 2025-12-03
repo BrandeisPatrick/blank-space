@@ -20,22 +20,6 @@ const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
   </svg>
 );
 
-// Check icon for selected state
-const CheckIcon = ({ size = 20, color = '#3B82F6' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
 export const SettingsPanel = () => {
   const { mode } = useTheme();
   const { isSettingsOpen, closeSettings, wallpaperPreset, updateWallpaperPreset } = useSettings();
@@ -150,9 +134,9 @@ export const SettingsPanel = () => {
             </h3>
 
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing.sm,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: theme.spacing.md,
             }}>
               {presetEntries.map(([key, preset]) => {
                 const isSelected = wallpaperPreset === key;
@@ -162,67 +146,101 @@ export const SettingsPanel = () => {
                     onClick={() => updateWallpaperPreset(key)}
                     style={{
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: theme.spacing.md,
-                      padding: theme.spacing.md,
-                      background: isSelected
-                        ? (mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)')
-                        : 'transparent',
-                      border: isSelected
-                        ? '1px solid rgba(59, 130, 246, 0.5)'
-                        : '1px solid transparent',
+                      gap: theme.spacing.sm,
+                      padding: theme.spacing.sm,
+                      background: 'transparent',
+                      border: 'none',
                       borderRadius: theme.radius.lg,
                       cursor: 'pointer',
                       transition: `all ${theme.animation.fast}`,
-                      textAlign: 'left',
-                      width: '100%',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = mode === 'dark'
-                          ? 'rgba(255, 255, 255, 0.05)'
-                          : 'rgba(0, 0, 0, 0.03)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = 'transparent';
-                      }
                     }}
                   >
-                    {/* Color swatch */}
+                    {/* Wallpaper preview */}
                     <div style={{
-                      width: '48px',
-                      height: '32px',
+                      width: '100%',
+                      aspectRatio: '16 / 10',
                       borderRadius: theme.radius.md,
                       background: preset.gradient || preset.backgroundColor,
-                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                      flexShrink: 0,
-                    }} />
-
-                    {/* Text */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: theme.typography.fontWeight.medium,
-                        fontFamily: theme.typography.fontFamily.sans,
-                        color: theme.colors.text.primary,
-                      }}>
-                        {preset.name}
-                      </div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        fontFamily: theme.typography.fontFamily.sans,
-                        color: theme.colors.text.secondary,
-                      }}>
-                        {preset.description}
-                      </div>
+                      border: isSelected
+                        ? '2px solid #3B82F6'
+                        : '1px solid rgba(0, 0, 0, 0.1)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: `all ${theme.animation.fast}`,
+                      boxShadow: isSelected
+                        ? '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                        : 'none',
+                    }}>
+                      {preset.variant === 'stars' ? (
+                        /* Star preview */
+                        <svg
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                          }}
+                          viewBox="0 0 100 70"
+                          preserveAspectRatio="xMidYMid slice"
+                        >
+                          {/* 4-point stars */}
+                          <path d="M20,15 L21,18 L24,18 L21.5,20 L22.5,23 L20,21 L17.5,23 L18.5,20 L16,18 L19,18 Z" fill="#4ADE80" />
+                          <path d="M75,45 L76,48 L79,48 L76.5,50 L77.5,53 L75,51 L72.5,53 L73.5,50 L71,48 L74,48 Z" fill="#60A5FA" />
+                          <path d="M50,25 L51.5,29 L56,29 L52.5,32 L54,36 L50,33 L46,36 L47.5,32 L44,29 L48.5,29 Z" fill="#F9A8D4" />
+                          {/* Small dots */}
+                          <circle cx="85" cy="12" r="2" fill="#A78BFA" />
+                          <circle cx="15" cy="55" r="2" fill="#FCD34D" />
+                          <circle cx="60" cy="58" r="2" fill="#67E8F9" />
+                          {/* Tiny sparkle */}
+                          <path d="M35,45 L35.5,47 L37.5,47 L36,48.5 L36.5,50.5 L35,49 L33.5,50.5 L34,48.5 L32.5,47 L34.5,47 Z" fill="#FBBF24" />
+                        </svg>
+                      ) : (
+                        /* Wave preview */
+                        <svg
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                          }}
+                          viewBox="0 0 100 70"
+                          preserveAspectRatio="xMidYMid slice"
+                        >
+                          <path
+                            d="M-10,60 Q20,45 40,55 T80,45 T120,50"
+                            fill="none"
+                            stroke={`rgba(255,255,255,${preset.waveOpacities[0]})`}
+                            strokeWidth="8"
+                          />
+                          <path
+                            d="M-10,45 Q25,30 50,40 T90,30 T120,35"
+                            fill="none"
+                            stroke={`rgba(255,255,255,${preset.waveOpacities[1]})`}
+                            strokeWidth="8"
+                          />
+                          <path
+                            d="M-10,30 Q30,15 55,25 T95,15 T120,20"
+                            fill="none"
+                            stroke={`rgba(255,255,255,${preset.waveOpacities[2]})`}
+                            strokeWidth="8"
+                          />
+                        </svg>
+                      )}
                     </div>
 
-                    {/* Check mark */}
-                    {isSelected && (
-                      <CheckIcon size={20} color="#3B82F6" />
-                    )}
+                    {/* Name only */}
+                    <span style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                    }}>
+                      {preset.name}
+                    </span>
                   </button>
                 );
               })}
