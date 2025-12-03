@@ -106,10 +106,10 @@ export const themePresets = {
   },
   cream: {
     name: 'Cream',
-    description: 'Soft ivory white',
-    backgroundColor: '#F5F5F0',
-    gradient: 'linear-gradient(145deg, #F5F5F0, #FAFAF7)',
-    waveOpacities: [0.25, 0.2, 0.3, 0.25, 0.2],
+    description: 'Warm ivory tones',
+    backgroundColor: '#E8E4D9',
+    gradient: 'linear-gradient(145deg, #E8E4D9, #F0EDE4)',
+    waveOpacities: [0.35, 0.3, 0.4, 0.35, 0.3],
     isDark: false,
   },
 };
