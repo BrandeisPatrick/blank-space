@@ -182,16 +182,16 @@ export const SettingsPanel = () => {
                           viewBox="0 0 100 70"
                           preserveAspectRatio="xMidYMid slice"
                         >
-                          {/* 4-point stars */}
-                          <path d="M20,15 L21,18 L24,18 L21.5,20 L22.5,23 L20,21 L17.5,23 L18.5,20 L16,18 L19,18 Z" fill="#4ADE80" />
-                          <path d="M75,45 L76,48 L79,48 L76.5,50 L77.5,53 L75,51 L72.5,53 L73.5,50 L71,48 L74,48 Z" fill="#60A5FA" />
-                          <path d="M50,25 L51.5,29 L56,29 L52.5,32 L54,36 L50,33 L46,36 L47.5,32 L44,29 L48.5,29 Z" fill="#F9A8D4" />
+                          {/* 4-point stars - use theme's starColors */}
+                          <path d="M20,15 L21,18 L24,18 L21.5,20 L22.5,23 L20,21 L17.5,23 L18.5,20 L16,18 L19,18 Z" fill={preset.starColors?.[0] || '#4ADE80'} />
+                          <path d="M75,45 L76,48 L79,48 L76.5,50 L77.5,53 L75,51 L72.5,53 L73.5,50 L71,48 L74,48 Z" fill={preset.starColors?.[2] || '#60A5FA'} />
+                          <path d="M50,25 L51.5,29 L56,29 L52.5,32 L54,36 L50,33 L46,36 L47.5,32 L44,29 L48.5,29 Z" fill={preset.starColors?.[3] || '#F9A8D4'} />
                           {/* Small dots */}
-                          <circle cx="85" cy="12" r="2" fill="#A78BFA" />
-                          <circle cx="15" cy="55" r="2" fill="#FCD34D" />
-                          <circle cx="60" cy="58" r="2" fill="#67E8F9" />
+                          <circle cx="85" cy="12" r="2" fill={preset.starColors?.[4] || '#A78BFA'} />
+                          <circle cx="15" cy="55" r="2" fill={preset.starColors?.[5] || '#FCD34D'} />
+                          <circle cx="60" cy="58" r="2" fill={preset.starColors?.[1] || '#67E8F9'} />
                           {/* Tiny sparkle */}
-                          <path d="M35,45 L35.5,47 L37.5,47 L36,48.5 L36.5,50.5 L35,49 L33.5,50.5 L34,48.5 L32.5,47 L34.5,47 Z" fill="#FBBF24" />
+                          <path d="M35,45 L35.5,47 L37.5,47 L36,48.5 L36.5,50.5 L35,49 L33.5,50.5 L34,48.5 L32.5,47 L34.5,47 Z" fill={preset.starColors?.[3] || '#FBBF24'} />
                         </svg>
                       ) : (
                         /* Wave preview */

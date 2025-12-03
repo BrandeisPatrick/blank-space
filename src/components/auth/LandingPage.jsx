@@ -123,7 +123,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
       }}>
         {/* Background Decorations */}
         {currentTheme.variant === 'stars' ? (
-          <StarryBackground />
+          <StarryBackground starColors={currentTheme.starColors} />
         ) : (
           <BackgroundWaves variant="diagonal" preset={selectedTheme} />
         )}
