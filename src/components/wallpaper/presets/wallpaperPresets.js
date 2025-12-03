@@ -4,6 +4,14 @@
  */
 
 export const wallpaperPresets = {
+  starry: {
+    name: 'Starry',
+    description: 'Night sky with stars',
+    backgroundColor: '#0f1729',
+    gradient: 'linear-gradient(145deg, #0f1729, #1a2744)',
+    waveOpacities: [0, 0, 0, 0, 0],
+    variant: 'stars',
+  },
   lavender: {
     name: 'Lavender',
     description: 'Soft purple tones',
