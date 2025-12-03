@@ -1,9 +1,9 @@
 /**
- * Wallpaper preset configurations
+ * Theme preset configurations
  * Different color themes for the background
  */
 
-export const wallpaperPresets = {
+export const themePresets = {
   starry: {
     name: 'Starry',
     description: 'Night sky with stars',
@@ -11,6 +11,7 @@ export const wallpaperPresets = {
     gradient: 'linear-gradient(145deg, #0f1729, #1a2744)',
     waveOpacities: [0, 0, 0, 0, 0],
     variant: 'stars',
+    isDark: true,
   },
   lavender: {
     name: 'Lavender',
@@ -18,6 +19,7 @@ export const wallpaperPresets = {
     backgroundColor: '#C9CAD8',
     gradient: 'linear-gradient(145deg, #C9CAD8, #D1D2DE)',
     waveOpacities: [0.4, 0.35, 0.45, 0.4, 0.35],
+    isDark: false,
   },
   rose: {
     name: 'Rose',
@@ -25,6 +27,7 @@ export const wallpaperPresets = {
     backgroundColor: '#D8C9C9',
     gradient: 'linear-gradient(145deg, #D8C9C9, #DED1D1)',
     waveOpacities: [0.4, 0.35, 0.45, 0.4, 0.35],
+    isDark: false,
   },
   mint: {
     name: 'Mint',
@@ -32,6 +35,7 @@ export const wallpaperPresets = {
     backgroundColor: '#C9D8CE',
     gradient: 'linear-gradient(145deg, #C9D8CE, #D1DED6)',
     waveOpacities: [0.4, 0.35, 0.45, 0.4, 0.35],
+    isDark: false,
   },
   sky: {
     name: 'Sky',
@@ -39,6 +43,7 @@ export const wallpaperPresets = {
     backgroundColor: '#C9D4D8',
     gradient: 'linear-gradient(145deg, #C9D4D8, #D1DCDE)',
     waveOpacities: [0.4, 0.35, 0.45, 0.4, 0.35],
+    isDark: false,
   },
   sand: {
     name: 'Sand',
@@ -46,12 +51,13 @@ export const wallpaperPresets = {
     backgroundColor: '#D8D4C9',
     gradient: 'linear-gradient(145deg, #D8D4C9, #DED9D1)',
     waveOpacities: [0.4, 0.35, 0.45, 0.4, 0.35],
+    isDark: false,
   },
 };
 
-// Default preset key
-export const DEFAULT_WALLPAPER = 'lavender';
+// Backwards compatibility alias
+export const wallpaperPresets = themePresets;
 
-export const getWavePresetsForTheme = (theme) => {
-  return wallpaperPresets;
-};
+// Default preset key
+export const DEFAULT_THEME = 'lavender';
+export const DEFAULT_WALLPAPER = DEFAULT_THEME;

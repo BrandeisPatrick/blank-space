@@ -1,34 +1,23 @@
 import { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const SettingsContext = createContext();
 
 export const SettingsProvider = ({ children }) => {
-  // Persisted settings
-  const [wallpaperPreset, setWallpaperPreset] = useLocalStorage('wallpaperPreset', 'lavender');
-
-  // UI state
+  // UI state for settings modal
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const openSettings = useCallback(() => setIsSettingsOpen(true), []);
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
-  const updateWallpaperPreset = useCallback((preset) => {
-    setWallpaperPreset(preset);
-  }, [setWallpaperPreset]);
-
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
-      // Settings
-      wallpaperPreset,
-      updateWallpaperPreset,
       // UI state
       isSettingsOpen,
       openSettings,
       closeSettings,
     }),
-    [wallpaperPreset, updateWallpaperPreset, isSettingsOpen, openSettings, closeSettings]
+    [isSettingsOpen, openSettings, closeSettings]
   );
 
   return (

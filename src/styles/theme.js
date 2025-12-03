@@ -220,15 +220,20 @@ export const getTheme = (mode) => {
     // Unified effect tokens for common patterns
     effects: {
       glass: {
-        // Liquid glass/glassmorphism effect with enhanced blur for modern Apple aesthetic
+        // Enhanced liquid glass/glassmorphism with saturation and inner glow
         default: {
           background: mode === 'light' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(180%)',
           border: mode === 'light' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.18)',
+          boxShadow: mode === 'light'
+            ? 'inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.05)'
+            : 'inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.2)',
         },
         hover: {
-          background: mode === 'light' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.18)',
+          background: mode === 'light' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(20px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(200%)',
         },
       },
       overlay: {

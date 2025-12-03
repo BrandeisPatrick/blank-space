@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { BackgroundWaves, StarryBackground } from '../wallpaper';
-import { wallpaperPresets } from '../wallpaper/presets/wallpaperPresets';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
@@ -16,8 +14,7 @@ import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
-  const { mode } = useTheme();
-  const { wallpaperPreset } = useSettings();
+  const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
@@ -44,17 +41,14 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
     "Choose your own adventure game"
   ];
 
-  // Get current wallpaper colors
-  const currentWallpaper = wallpaperPresets[wallpaperPreset] || wallpaperPresets.lavender;
-
   return (
     <div style={{
       minHeight: '100vh',
       width: '100vw',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: currentWallpaper.backgroundColor,
-      backgroundImage: currentWallpaper.gradient,
+      backgroundColor: currentTheme.backgroundColor,
+      backgroundImage: currentTheme.gradient,
       color: theme.colors.text.primary,
       fontFamily: theme.typography.fontFamily.sans,
     }}>
@@ -91,8 +85,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         <button
           onClick={onSignIn}
           style={{
-            background: theme.colors.accent.primary,
-            border: `1px solid ${theme.colors.border}`,
+            background: '#C97D63',
+            border: 'none',
             color: COLORS.WHITE,
             cursor: 'pointer',
             padding: theme.sizes.button.padding.md,
@@ -106,10 +100,10 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             alignItems: 'center',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = theme.colorVariants.accent.primaryHover;
+            e.currentTarget.style.background = '#d89077';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = theme.colors.accent.primary;
+            e.currentTarget.style.background = '#C97D63';
           }}
         >
           {LABELS.SIGN_IN}
@@ -128,10 +122,10 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
       }}>
         {/* Background Decorations */}
-        {currentWallpaper.variant === 'stars' ? (
+        {currentTheme.variant === 'stars' ? (
           <StarryBackground />
         ) : (
-          <BackgroundWaves variant="diagonal" preset={wallpaperPreset} />
+          <BackgroundWaves variant="diagonal" preset={selectedTheme} />
         )}
 
         {/* Content Container */}
