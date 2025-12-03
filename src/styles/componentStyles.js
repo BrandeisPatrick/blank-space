@@ -21,7 +21,7 @@ export const createGlassEffect = (theme, options = {}) => {
 
   return {
     ...glassConfig,
-    transition: `all ${theme.animation.fast}`,
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 };
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 
 // Gear icon component
 const GearIcon = ({ size = 48, color = '#6B7280' }) => (
@@ -43,22 +44,24 @@ export const SettingsAppCard = () => {
         width: '100%',
       }}
     >
-      {/* App Icon - Mobile App Style */}
+      {/* App Icon - Liquid Glass Style */}
       <div style={{
         width: '80px',
         height: '80px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #F5F5F5 0%, #E0E0E0 100%)',
+        ...createGlassEffect(theme),
+        background: mode === 'dark'
+          ? 'rgba(255, 255, 255, 0.15)'
+          : 'rgba(255, 255, 255, 0.65)',
         borderRadius: theme.radius['2.5xl'],
-        border: '1px solid rgba(255, 255, 255, 0.5)',
         boxShadow: isHovered
-          ? '0 8px 16px rgba(0, 0, 0, 0.1)'
-          : '0 4px 12px rgba(0, 0, 0, 0.08)',
+          ? '0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+          : '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
         transition: `all ${theme.animation.fast}`,
       }}>
-        <GearIcon size={40} color="#6B7280" />
+        <GearIcon size={40} color={mode === 'dark' ? '#ffffff' : '#6B7280'} />
       </div>
 
       {/* Settings Label */}

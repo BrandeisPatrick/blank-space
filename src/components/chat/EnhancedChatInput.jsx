@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
 
@@ -150,21 +151,17 @@ export const EnhancedChatInput = ({
             bottom: '100%',
             left: 0,
             marginBottom: theme.spacing.sm,
+            ...createGlassEffect(theme),
             background: mode === 'dark'
-              ? 'rgba(30, 30, 35, 0.35)'
-              : 'rgba(255, 255, 255, 0.35)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: mode === 'dark'
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(0, 0, 0, 0.08)',
+              ? 'rgba(30, 30, 35, 0.6)'
+              : 'rgba(255, 255, 255, 0.65)',
             borderRadius: theme.radius.xl,
             boxShadow: mode === 'dark'
-              ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+              ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
             minWidth: '200px',
             overflow: 'hidden',
-            animation: 'dropdownFadeIn 0.15s ease-out',
+            animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           <style>
@@ -242,9 +239,14 @@ export const EnhancedChatInput = ({
         flexDirection: 'column',
         gap: theme.spacing.md,
         padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-        background: theme.colors.bg.secondary,
-        border: `1px solid ${theme.colors.border}`,
+        ...createGlassEffect(theme),
+        background: mode === 'dark'
+          ? 'rgba(30, 30, 35, 0.6)'
+          : 'rgba(255, 255, 255, 0.65)',
         borderRadius: LAYOUT.CHAT_INPUT_BORDER_RADIUS,
+        boxShadow: mode === 'dark'
+          ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+          : '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
       }}>
         {/* Input Row - TOP */}
         <input

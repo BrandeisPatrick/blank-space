@@ -1,7 +1,7 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
-import { wallpaperPresets } from '../wallpaper/presets/wallpaperPresets';
+import { createGlassEffect } from '../../styles/componentStyles';
 
 // Close icon component
 const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
@@ -21,13 +21,13 @@ const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
 );
 
 export const SettingsPanel = () => {
-  const { mode } = useTheme();
-  const { isSettingsOpen, closeSettings, wallpaperPreset, updateWallpaperPreset } = useSettings();
+  const { mode, theme: selectedTheme, setTheme, themePresets } = useTheme();
+  const { isSettingsOpen, closeSettings } = useSettings();
   const theme = getTheme(mode);
 
   if (!isSettingsOpen) return null;
 
-  const presetEntries = Object.entries(wallpaperPresets);
+  const presetEntries = Object.entries(themePresets);
 
   return (
     <>
@@ -54,20 +54,16 @@ export const SettingsPanel = () => {
           transform: 'translate(-50%, -50%)',
           width: '90%',
           maxWidth: '400px',
+          ...createGlassEffect(theme),
           background: mode === 'dark'
-            ? 'rgba(30, 30, 35, 0.7)'
-            : 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: mode === 'dark'
-            ? '1px solid rgba(255, 255, 255, 0.1)'
-            : '1px solid rgba(0, 0, 0, 0.08)',
+            ? 'rgba(30, 30, 35, 0.75)'
+            : 'rgba(255, 255, 255, 0.75)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
-            ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-            : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+            ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+            : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.05)',
           zIndex: 1000,
-          animation: 'slideIn 0.2s ease-out',
+          animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'hidden',
         }}
       >
@@ -119,7 +115,7 @@ export const SettingsPanel = () => {
 
         {/* Content */}
         <div style={{ padding: theme.spacing.lg }}>
-          {/* Wallpaper Section */}
+          {/* Theme Section */}
           <div>
             <h3 style={{
               margin: `0 0 ${theme.spacing.md} 0`,
@@ -130,7 +126,7 @@ export const SettingsPanel = () => {
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}>
-              Wallpaper
+              Theme
             </h3>
 
             <div style={{
@@ -139,11 +135,11 @@ export const SettingsPanel = () => {
               gap: theme.spacing.md,
             }}>
               {presetEntries.map(([key, preset]) => {
-                const isSelected = wallpaperPreset === key;
+                const isSelected = selectedTheme === key;
                 return (
                   <button
                     key={key}
-                    onClick={() => updateWallpaperPreset(key)}
+                    onClick={() => setTheme(key)}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -258,11 +254,11 @@ export const SettingsPanel = () => {
             @keyframes slideIn {
               from {
                 opacity: 0;
-                transform: translate(-50%, -48%);
+                transform: translate(-50%, -48%) scale(0.98);
               }
               to {
                 opacity: 1;
-                transform: translate(-50%, -50%);
+                transform: translate(-50%, -50%) scale(1);
               }
             }
           `}
