@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { BackgroundWaves } from '../wallpaper';
+import { wallpaperPresets } from '../wallpaper/presets/wallpaperPresets';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
+import { SettingsAppCard } from '../settings/SettingsAppCard';
+import { SettingsPanel } from '../settings/SettingsPanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
   const { mode } = useTheme();
+  const { wallpaperPreset } = useSettings();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
@@ -39,14 +44,17 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
     "Choose your own adventure game"
   ];
 
+  // Get current wallpaper colors
+  const currentWallpaper = wallpaperPresets[wallpaperPreset] || wallpaperPresets.lavender;
+
   return (
     <div style={{
       minHeight: '100vh',
       width: '100vw',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: theme.colors.bg.primary,
-      backgroundImage: theme.colors.gradient.subtle,
+      backgroundColor: currentWallpaper.backgroundColor,
+      backgroundImage: currentWallpaper.gradient,
       color: theme.colors.text.primary,
       fontFamily: theme.typography.fontFamily.sans,
     }}>
@@ -120,7 +128,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
       }}>
         {/* Background Decorations */}
-        <BackgroundWaves variant="diagonal" preset="landing" />
+        <BackgroundWaves variant="diagonal" preset={wallpaperPreset} />
 
         {/* Content Container */}
         <div style={{
@@ -137,26 +145,28 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           paddingRight: theme.spacing.xl,
           paddingTop: theme.spacing['3xl'],
         }}>
-          {/* Artifact Grid - Shows at top if artifacts exist */}
-          {artifacts && artifacts.length > 0 && (
-            <div style={{
-              width: '100%',
-              display: 'grid',
-              gridTemplateColumns: isMobile
-                ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
-                : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
-              gap: theme.spacing.lg,
-              justifyContent: 'center',
-            }}>
-              {artifacts.map(artifact => (
-                <ArtifactCard
-                  key={artifact.id}
-                  artifact={artifact}
-                  onSelect={handleArtifactSelect}
-                />
-              ))}
-            </div>
-          )}
+          {/* App Grid - Always shows with Settings + Artifacts */}
+          <div style={{
+            width: '100%',
+            display: 'grid',
+            gridTemplateColumns: isMobile
+              ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
+              : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
+            gap: theme.spacing.lg,
+            justifyContent: 'center',
+          }}>
+            {/* Settings App - Always first */}
+            <SettingsAppCard />
+
+            {/* Artifact Cards */}
+            {artifacts && artifacts.map(artifact => (
+              <ArtifactCard
+                key={artifact.id}
+                artifact={artifact}
+                onSelect={handleArtifactSelect}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Suggestion Pills - 3 equal width pills aligned with chat bubble */}
@@ -192,6 +202,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           onToggleKnowledgeBase={onToggleKnowledgeBase}
         />
       </main>
+
+      {/* Settings Panel Modal */}
+      <SettingsPanel />
     </div>
   );
 };

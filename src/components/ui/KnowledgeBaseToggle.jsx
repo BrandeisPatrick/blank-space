@@ -35,7 +35,7 @@ export const KnowledgeBaseToggle = ({ enabled, onToggle }) => {
             ? '0 2px 8px rgba(139, 92, 246, 0.4)'
             : 'inset 0 1px 2px rgba(0,0,0,0.1)',
         }}
-        aria-label={`${enabled ? 'Disable' : 'Enable'} Pro Components`}
+        aria-label={`${enabled ? 'Disable' : 'Enable'} Knowledge Base`}
       >
         <div
           style={{
@@ -79,7 +79,7 @@ export const KnowledgeBaseToggle = ({ enabled, onToggle }) => {
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
-        Pro Components
+        Knowledge Base
       </span>
     </div>
   );
