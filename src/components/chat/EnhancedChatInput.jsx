@@ -38,7 +38,7 @@ const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
-// Sparkles icon for Pro Components
+// Sparkles icon for Knowledge Base
 const SparklesIcon = ({ size = 16, color = "currentColor" }) => (
   <svg
     width={size}
@@ -128,7 +128,7 @@ export const EnhancedChatInput = ({
     setShowDropdown(false);
   };
 
-  // Blue color for Pro Components text
+  // Blue color for Knowledge Base text
   const proComponentsColor = COLORS.PRO_COMPONENTS_BLUE;
 
   return (
@@ -150,10 +150,18 @@ export const EnhancedChatInput = ({
             bottom: '100%',
             left: 0,
             marginBottom: theme.spacing.sm,
-            background: theme.colors.bg.secondary,
-            border: `1px solid ${theme.colors.border}`,
+            background: mode === 'dark'
+              ? 'rgba(30, 30, 35, 0.35)'
+              : 'rgba(255, 255, 255, 0.35)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.08)',
             borderRadius: theme.radius.xl,
-            boxShadow: theme.shadows.xl,
+            boxShadow: mode === 'dark'
+              ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
             minWidth: '200px',
             overflow: 'hidden',
             animation: 'dropdownFadeIn 0.15s ease-out',
@@ -174,7 +182,7 @@ export const EnhancedChatInput = ({
             `}
           </style>
 
-          {/* Pro Components Option */}
+          {/* Knowledge Base Option */}
           <div
             onClick={handleAddProComponents}
             style={{
@@ -211,7 +219,7 @@ export const EnhancedChatInput = ({
               color: theme.colors.text.primary,
               fontFamily: theme.typography.fontFamily.sans,
             }}>
-              Pro Components
+              Knowledge Base
             </span>
 
             {/* Checkmark when enabled */}
@@ -300,7 +308,7 @@ export const EnhancedChatInput = ({
             <PlusIcon size={24} />
           </button>
 
-          {/* Pro Components - icon transforms to X on hover */}
+          {/* Knowledge Base - icon transforms to X on hover */}
           {useKnowledgeBase && (
             <button
               type="button"
@@ -336,7 +344,7 @@ export const EnhancedChatInput = ({
               ) : (
                 <SparklesIcon size={18} color={proComponentsColor} />
               )}
-              <span>Pro Components</span>
+              <span>Knowledge Base</span>
               <ChevronDownIcon size={18} color={proComponentsColor} />
             </button>
           )}
