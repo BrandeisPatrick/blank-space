@@ -182,200 +182,181 @@ export const AppStorePanel = () => {
           </button>
         </div>
 
-        {/* Main Content with Sidebar */}
+        {/* App List Content */}
         <div style={{
-          display: 'flex',
           flex: 1,
-          overflow: 'hidden',
+          padding: theme.spacing.lg,
+          overflowY: 'auto',
         }}>
-          {/* Category Sidebar */}
+          {/* Large Category Title */}
+          <h3 style={{
+            margin: `0 0 ${theme.spacing.lg} 0`,
+            fontSize: '28px',
+            fontWeight: theme.typography.fontWeight.bold,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: theme.colors.text.primary,
+          }}>
+            {CATEGORIES.find(c => c.id === selectedCategory)?.label}
+          </h3>
+
+          {/* App List */}
           <div style={{
-            width: '140px',
-            padding: theme.spacing.md,
-            borderRight: mode === 'dark'
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(0, 0, 0, 0.08)',
             display: 'flex',
             flexDirection: 'column',
-            gap: theme.spacing.xs,
+            gap: theme.spacing.md,
           }}>
-            {CATEGORIES.map((category) => {
-              const CategoryIcon = category.icon;
-              const isSelected = selectedCategory === category.id;
+            {filteredApps.map((prebuild) => {
+              const IconComponent = getIconById(prebuild.icon);
+              const iconColor = getIconColorById(prebuild.icon);
 
               return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                <div
+                  key={prebuild.id}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                    background: isSelected
-                      ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
-                      : 'transparent',
-                    border: 'none',
+                    gap: theme.spacing.md,
+                    padding: theme.spacing.md,
+                    background: mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : 'rgba(0, 0, 0, 0.03)',
                     borderRadius: theme.radius.lg,
-                    cursor: 'pointer',
-                    transition: `all ${theme.animation.fast}`,
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = mode === 'dark'
-                        ? 'rgba(255, 255, 255, 0.08)'
-                        : 'rgba(0, 0, 0, 0.04)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
+                    border: mode === 'dark'
+                      ? '1px solid rgba(255, 255, 255, 0.08)'
+                      : '1px solid rgba(0, 0, 0, 0.06)',
                   }}
                 >
-                  <CategoryIcon
-                    size={18}
-                    color={isSelected ? '#3B82F6' : theme.colors.text.secondary}
-                  />
-                  <span style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                    fontFamily: theme.typography.fontFamily.sans,
-                    color: isSelected ? theme.colors.text.primary : theme.colors.text.secondary,
+                  {/* App Icon */}
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '14px',
+                    background: `${iconColor}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}>
-                    {category.label}
-                  </span>
-                </button>
+                    <IconComponent size={32} color={iconColor} />
+                  </div>
+
+                  {/* App Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: theme.colors.text.primary,
+                      marginBottom: '4px',
+                    }}>
+                      {prebuild.name}
+                    </div>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: theme.colors.text.secondary,
+                      lineHeight: 1.4,
+                    }}>
+                      {prebuild.description}
+                    </div>
+                  </div>
+
+                  {/* Install Button */}
+                  <button
+                    onClick={() => handleInstall(prebuild)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      background: '#3B82F6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: theme.radius.lg,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      cursor: 'pointer',
+                      transition: `all ${theme.animation.fast}`,
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#2563EB';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#3B82F6';
+                    }}
+                  >
+                    <DownloadIcon size={16} />
+                    Get
+                  </button>
+                </div>
               );
             })}
           </div>
 
-          {/* App List Content */}
-          <div style={{
-            flex: 1,
-            padding: theme.spacing.lg,
-            overflowY: 'auto',
-          }}>
-            {/* Section Title */}
-            <h3 style={{
-              margin: `0 0 ${theme.spacing.md} 0`,
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              fontFamily: theme.typography.fontFamily.sans,
-              color: theme.colors.text.primary,
-            }}>
-              {CATEGORIES.find(c => c.id === selectedCategory)?.label}
-            </h3>
-
-            {/* App List */}
+          {/* Empty State */}
+          {filteredApps.length === 0 && (
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing.md,
+              textAlign: 'center',
+              padding: theme.spacing['2xl'],
+              color: theme.colors.text.tertiary,
             }}>
-              {filteredApps.map((prebuild) => {
-                const IconComponent = getIconById(prebuild.icon);
-                const iconColor = getIconColorById(prebuild.icon);
-
-                return (
-                  <div
-                    key={prebuild.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing.md,
-                      padding: theme.spacing.md,
-                      background: mode === 'dark'
-                        ? 'rgba(255, 255, 255, 0.05)'
-                        : 'rgba(0, 0, 0, 0.03)',
-                      borderRadius: theme.radius.lg,
-                      border: mode === 'dark'
-                        ? '1px solid rgba(255, 255, 255, 0.08)'
-                        : '1px solid rgba(0, 0, 0, 0.06)',
-                    }}
-                  >
-                    {/* App Icon */}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: theme.radius.lg,
-                      background: `${iconColor}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <IconComponent size={28} color={iconColor} />
-                    </div>
-
-                    {/* App Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                        fontFamily: theme.typography.fontFamily.sans,
-                        color: theme.colors.text.primary,
-                        marginBottom: '4px',
-                      }}>
-                        {prebuild.name}
-                      </div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        fontFamily: theme.typography.fontFamily.sans,
-                        color: theme.colors.text.secondary,
-                        lineHeight: 1.4,
-                      }}>
-                        {prebuild.description}
-                      </div>
-                    </div>
-
-                    {/* Install Button */}
-                    <button
-                      onClick={() => handleInstall(prebuild)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing.sm,
-                        padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                        background: '#3B82F6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: theme.radius.lg,
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: theme.typography.fontWeight.medium,
-                        fontFamily: theme.typography.fontFamily.sans,
-                        cursor: 'pointer',
-                        transition: `all ${theme.animation.fast}`,
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#2563EB';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#3B82F6';
-                      }}
-                    >
-                      <DownloadIcon size={16} />
-                      Get
-                    </button>
-                  </div>
-                );
-              })}
+              <p>No apps in this category yet.</p>
             </div>
+          )}
+        </div>
 
-            {/* Empty State */}
-            {filteredApps.length === 0 && (
-              <div style={{
-                textAlign: 'center',
-                padding: theme.spacing['2xl'],
-                color: theme.colors.text.tertiary,
-              }}>
-                <p>No apps in this category yet.</p>
-              </div>
-            )}
-          </div>
+        {/* Bottom Tab Bar */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: theme.spacing.xs,
+          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+          borderTop: mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+          background: mode === 'dark'
+            ? 'rgba(0, 0, 0, 0.2)'
+            : 'rgba(0, 0, 0, 0.02)',
+        }}>
+          {CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
+            const isSelected = selectedCategory === category.id;
+
+            return (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.lg,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                  minWidth: '70px',
+                }}
+              >
+                <CategoryIcon
+                  size={24}
+                  color={isSelected ? '#3B82F6' : theme.colors.text.tertiary}
+                />
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: isSelected ? '#3B82F6' : theme.colors.text.tertiary,
+                }}>
+                  {category.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Animations */}
