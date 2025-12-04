@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { ArtifactProvider } from './contexts/ArtifactContext.jsx'
 import { SettingsProvider } from './contexts/SettingsContext.jsx'
+import { ChatAppProvider } from './contexts/ChatAppContext.jsx'
 import './styles/index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <ThemeProvider>
         <SettingsProvider>
-          <ArtifactProvider>
-            <App />
-          </ArtifactProvider>
+          <ChatAppProvider>
+            <ArtifactProvider>
+              <App />
+            </ArtifactProvider>
+          </ChatAppProvider>
         </SettingsProvider>
       </ThemeProvider>
     </AuthProvider>
