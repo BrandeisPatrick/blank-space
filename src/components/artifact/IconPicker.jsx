@@ -66,16 +66,11 @@ export const IconPicker = ({ currentIcon = 'app', onSelect, onClose }) => {
     <div
       ref={pickerRef}
       style={{
-        position: 'absolute',
-        top: '100%',
-        right: 0,
-        marginTop: theme.spacing.sm,
         background: theme.colors.bg.secondary,
         borderRadius: theme.radius.lg,
         border: `1px solid ${theme.colors.border}`,
         boxShadow: theme.shadows.lg,
         padding: theme.spacing.md,
-        zIndex: 100,
         minWidth: '180px',
       }}
     >
