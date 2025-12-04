@@ -124,9 +124,38 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Close & Delete Buttons */}
+        {/* Left: Delete & Close Buttons */}
         <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
-          {/* Close Button */}
+          {/* Delete Button (Red) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm('Are you sure you want to delete this app? This cannot be undone.')) {
+                onDelete?.();
+              }
+            }}
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: '#ff5f57',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: `all ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#ff3b30';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ff5f57';
+            }}
+            title="Delete app"
+          />
+
+          {/* Close Button (Yellow) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -136,52 +165,19 @@ export const FloatingBrowserWindow = ({
               width: '12px',
               height: '12px',
               borderRadius: '50%',
-              background: '#ff5f57',
+              background: '#febc2e',
               border: 'none',
               cursor: 'pointer',
               transition: `all ${theme.animation.fast}`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ff3b30'
+              e.currentTarget.style.background = '#f5a623'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ff5f57'
+              e.currentTarget.style.background = '#febc2e'
             }}
             title="Close window"
           />
-
-          {/* Delete Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm('Are you sure you want to delete this app? This cannot be undone.')) {
-                onDelete?.();
-              }
-            }}
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: theme.radius.md,
-              background: 'transparent',
-              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: `all ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 59, 48, 0.15)';
-              e.currentTarget.style.borderColor = 'rgba(255, 59, 48, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.3)';
-            }}
-            title="Delete app"
-          >
-            <TrashIcon size={14} color={theme.colors.text.secondary} />
-          </button>
         </div>
 
         {/* Center: Title (Editable) */}
