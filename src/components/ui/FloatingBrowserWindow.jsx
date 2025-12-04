@@ -8,8 +8,9 @@ import { useResizable } from '../../hooks/useResizable'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
-import { XIcon, EyeIcon, CodeIcon, TrashIcon } from '../icons'
+import { XIcon, EyeIcon, CodeIcon, TrashIcon, SettingsIcon } from '../icons'
 import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
+import { AppSettingsModal } from './AppSettingsModal'
 
 export const FloatingBrowserWindow = ({
   visible = false,
@@ -30,6 +31,7 @@ export const FloatingBrowserWindow = ({
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
   const [zoom, setZoom] = useState(100)
+  const [showAppSettings, setShowAppSettings] = useState(false)
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const isMobile = useIsMobile()
@@ -59,7 +61,7 @@ export const FloatingBrowserWindow = ({
   const initialX = isMobile ? 0 : (window.innerWidth - windowWidth) / 2
   const initialY = isMobile ? 60 : (window.innerHeight - windowHeight) / 2
 
-  const { position, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
+  const { position, setPosition, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
     { x: initialX, y: initialY },
     '.window-titlebar' // Only allow dragging from titlebar
   )
@@ -69,14 +71,17 @@ export const FloatingBrowserWindow = ({
     { width: isMobile ? 280 : 400, height: 300 }
   )
 
-  // Reset size when mobile state changes or window becomes visible
+  // Reset size and position when mobile state changes or window becomes visible
   useEffect(() => {
     if (visible) {
       const newWidth = isMobile ? window.innerWidth : 800;
       const newHeight = isMobile ? Math.floor(window.innerHeight * 0.65) : 600;
+      const newX = isMobile ? 0 : (window.innerWidth - newWidth) / 2;
+      const newY = isMobile ? 60 : (window.innerHeight - newHeight) / 2;
       setSize({ width: newWidth, height: newHeight });
+      setPosition({ x: newX, y: newY });
     }
-  }, [isMobile, visible, setSize]);
+  }, [isMobile, visible, setSize, setPosition]);
 
   if (!visible || !artifact) {
     return null;
@@ -180,90 +185,122 @@ export const FloatingBrowserWindow = ({
           />
         </div>
 
-        {/* Center: Title (Editable) */}
-        <div style={{
-          flex: 1,
-          textAlign: 'center',
-          marginLeft: theme.spacing.lg,
-        }}>
-          {isEditingName ? (
-            <input
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onBlur={() => {
-                if (editedName.trim() && editedName !== artifact?.name) {
-                  onRename?.(editedName.trim());
-                }
-                setIsEditingName(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+        {/* Center: Title (Desktop only - on mobile everything is right-aligned) */}
+        {!isMobile && (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+            marginLeft: theme.spacing.lg,
+          }}>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={() => {
                   if (editedName.trim() && editedName !== artifact?.name) {
                     onRename?.(editedName.trim());
                   }
                   setIsEditingName(false);
-                } else if (e.key === 'Escape') {
-                  setIsEditingName(false);
-                }
-              }}
-              autoFocus
-              style={{
-                width: '100%',
-                maxWidth: '300px',
-                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                letterSpacing: '-0.01em',
-                color: theme.colors.text.primary,
-                background: theme.colors.bg.primary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.md,
-                textAlign: 'center',
-                outline: 'none',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditedName(artifact?.name || 'Untitled');
-                setIsEditingName(true);
-              }}
-              style={{
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                letterSpacing: '-0.01em',
-                color: theme.colors.text.primary,
-                cursor: 'text',
-                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                borderRadius: theme.radius.md,
-                transition: `all ${theme.animation.fast}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = theme.colors.bg.primary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-              title="Click to rename"
-            >
-              {artifact?.name || 'Untitled'}
-            </span>
-          )}
-        </div>
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (editedName.trim() && editedName !== artifact?.name) {
+                      onRename?.(editedName.trim());
+                    }
+                    setIsEditingName(false);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingName(false);
+                  }
+                }}
+                autoFocus
+                style={{
+                  width: '100%',
+                  maxWidth: '300px',
+                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  letterSpacing: '-0.01em',
+                  color: theme.colors.text.primary,
+                  background: theme.colors.bg.primary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radius.md,
+                  textAlign: 'center',
+                  outline: 'none',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditedName(artifact?.name || 'Untitled');
+                  setIsEditingName(true);
+                }}
+                style={{
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  letterSpacing: '-0.01em',
+                  color: theme.colors.text.primary,
+                  cursor: 'text',
+                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                  borderRadius: theme.radius.md,
+                  transition: `all ${theme.animation.fast}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = theme.colors.bg.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                title="Click to rename"
+              >
+                {artifact?.name || 'Untitled'}
+              </span>
+            )}
+          </div>
+        )}
 
-        {/* Right: Zoom + Icon Picker + View Toggle */}
+        {/* Right: Settings (mobile) + Zoom + Icon Picker + View Toggle */}
         <div style={{
           display: 'flex',
           gap: theme.spacing.sm,
           alignItems: 'center',
+          marginLeft: isMobile ? 'auto' : 0,
         }}>
-          {/* Zoom Controls - Only show in preview mode */}
-          {view === 'preview' && (
+          {/* Settings Button - Mobile only */}
+          {isMobile && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAppSettings(true);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: theme.radius.md,
+                cursor: 'pointer',
+                transition: `all ${theme.animation.fast}`,
+              }}
+              title="App settings"
+            >
+              <SettingsIcon size={16} color={theme.colors.text.secondary} />
+            </button>
+          )}
+
+          {/* Zoom Controls - Only show in preview mode on desktop */}
+          {view === 'preview' && !isMobile && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -329,41 +366,43 @@ export const FloatingBrowserWindow = ({
             </div>
           )}
 
-          {/* Category Icon Button */}
-          <button
-            ref={iconButtonRef}
-            onClick={(e) => {
-              e.stopPropagation();
-              // Get button position for portal
-              if (iconButtonRef.current) {
-                const rect = iconButtonRef.current.getBoundingClientRect();
-                setIconButtonRect(rect);
-              }
-              setShowIconPicker(!showIconPicker);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: theme.radius.md,
-              cursor: 'pointer',
-              transition: `all ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-            title="Change icon"
-          >
-            <CurrentIcon size={18} color={currentIconColor} />
-          </button>
+          {/* Category Icon Button - Desktop only */}
+          {!isMobile && (
+            <button
+              ref={iconButtonRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Get button position for portal
+                if (iconButtonRef.current) {
+                  const rect = iconButtonRef.current.getBoundingClientRect();
+                  setIconButtonRect(rect);
+                }
+                setShowIconPicker(!showIconPicker);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: theme.radius.md,
+                cursor: 'pointer',
+                transition: `all ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+              title="Change icon"
+            >
+              <CurrentIcon size={18} color={currentIconColor} />
+            </button>
+          )}
 
           {/* View Toggle */}
           <div style={{
@@ -394,13 +433,15 @@ export const FloatingBrowserWindow = ({
               }}
             >
               <EyeIcon size={16} color={view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary} />
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}>
-                Preview
-              </span>
+              {!isMobile && (
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}>
+                  Preview
+                </span>
+              )}
             </button>
             <button
               onClick={(e) => {
@@ -422,13 +463,15 @@ export const FloatingBrowserWindow = ({
               }}
             >
               <CodeIcon size={16} color={view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary} />
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}>
-                Code
-              </span>
+              {!isMobile && (
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}>
+                  Code
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -454,8 +497,8 @@ export const FloatingBrowserWindow = ({
       {/* Resize Handles */}
       <ResizeHandles />
 
-      {/* Icon Picker - Rendered via Portal to escape overflow:hidden */}
-      {showIconPicker && iconButtonRect && createPortal(
+      {/* Icon Picker - Rendered via Portal to escape overflow:hidden (Desktop only) */}
+      {!isMobile && showIconPicker && iconButtonRect && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -475,6 +518,16 @@ export const FloatingBrowserWindow = ({
         </div>,
         document.body
       )}
+
+      {/* App Settings Modal - Mobile only */}
+      <AppSettingsModal
+        isOpen={showAppSettings}
+        onClose={() => setShowAppSettings(false)}
+        name={artifact?.name || 'Untitled'}
+        icon={artifact?.icon || 'app'}
+        onNameChange={(newName) => onRename?.(newName)}
+        onIconChange={(iconId) => onIconChange?.(iconId)}
+      />
     </div>
   )
 }
