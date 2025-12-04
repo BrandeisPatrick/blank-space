@@ -139,8 +139,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           justifyContent: 'flex-start',
           position: 'relative',
           zIndex: LAYOUT.CONTENT_Z_INDEX,
-          paddingLeft: theme.spacing.xl,
-          paddingRight: theme.spacing.xl,
+          paddingLeft: isMobile ? theme.spacing.md : theme.spacing.xl,
+          paddingRight: isMobile ? theme.spacing.md : theme.spacing.xl,
           paddingTop: theme.spacing['3xl'],
         }}>
           {/* App Grid - Always shows with Settings + Artifacts */}
@@ -151,7 +151,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
               ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
               : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
             gap: theme.spacing.lg,
-            justifyContent: 'center',
+            justifyContent: isMobile ? 'start' : 'center',
           }}>
             {/* Settings App - Always first */}
             <SettingsAppCard />
