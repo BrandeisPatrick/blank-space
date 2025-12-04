@@ -12,8 +12,9 @@ export const useDraggable = (initialPosition = { x: 0, y: 0 }, handleSelector = 
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const handleMouseDown = useCallback((e) => {
-    // Don't start drag if clicking on interactive elements
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+    // Don't start drag if clicking on interactive elements (or their children like SVG icons)
+    const isInteractive = e.target.closest('button, input, select, a');
+    if (isInteractive) {
       return;
     }
 
