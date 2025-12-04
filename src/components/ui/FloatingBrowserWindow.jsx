@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { createGlassEffect, getFloatingWindowDimensions } from '../../styles/componentStyles'
-import { SIZES } from '../../constants'
+import { SIZES, Z_INDEX } from '../../constants'
 import { useDraggable } from '../../hooks/useDraggable'
 import { useResizable } from '../../hooks/useResizable'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -501,7 +501,7 @@ export const FloatingBrowserWindow = ({
             position: 'fixed',
             top: iconButtonRect.bottom + 8,
             left: iconButtonRect.left - 150 + iconButtonRect.width,
-            zIndex: 9999,
+            zIndex: Z_INDEX.ICON_PICKER,
           }}
         >
           <IconPicker

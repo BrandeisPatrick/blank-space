@@ -2,6 +2,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
+import { Z_INDEX } from '../../constants';
 
 // Close icon component
 const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
@@ -40,7 +41,7 @@ export const SettingsPanel = () => {
           background: 'rgba(0, 0, 0, 0.3)',
           backdropFilter: 'blur(4px)',
           WebkitBackdropFilter: 'blur(4px)',
-          zIndex: 999,
+          zIndex: Z_INDEX.MODAL_BACKDROP,
           animation: 'fadeIn 0.2s ease-out',
         }}
       />
@@ -62,7 +63,7 @@ export const SettingsPanel = () => {
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
             : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.05)',
-          zIndex: 1000,
+          zIndex: Z_INDEX.MODALS,
           animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'hidden',
         }}
