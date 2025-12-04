@@ -54,10 +54,10 @@ export const FloatingBrowserWindow = ({
   }, [files, activeFile])
 
   // Responsive window sizing
-  const windowWidth = isMobile ? Math.floor(window.innerWidth * 0.85) : 800
-  const windowHeight = isMobile ? Math.floor(window.innerHeight * 0.6) : 600
-  const initialX = (window.innerWidth - windowWidth) / 2
-  const initialY = isMobile ? 80 : (window.innerHeight - windowHeight) / 2
+  const windowWidth = isMobile ? window.innerWidth : 800
+  const windowHeight = isMobile ? Math.floor(window.innerHeight * 0.65) : 600
+  const initialX = isMobile ? 0 : (window.innerWidth - windowWidth) / 2
+  const initialY = isMobile ? 60 : (window.innerHeight - windowHeight) / 2
 
   const { position, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
     { x: initialX, y: initialY },
@@ -72,8 +72,8 @@ export const FloatingBrowserWindow = ({
   // Reset size when mobile state changes or window becomes visible
   useEffect(() => {
     if (visible) {
-      const newWidth = isMobile ? Math.floor(window.innerWidth * 0.85) : 800;
-      const newHeight = isMobile ? Math.floor(window.innerHeight * 0.6) : 600;
+      const newWidth = isMobile ? window.innerWidth : 800;
+      const newHeight = isMobile ? Math.floor(window.innerHeight * 0.65) : 600;
       setSize({ width: newWidth, height: newHeight });
     }
   }, [isMobile, visible, setSize]);
