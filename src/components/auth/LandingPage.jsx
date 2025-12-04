@@ -151,12 +151,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           <div style={{
             width: '100%',
             display: 'grid',
-            gridTemplateColumns: isMobile
-              ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
-              : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
+            gridTemplateColumns: 'repeat(4, 1fr)',
             gap: isMobile ? theme.spacing.md : theme.spacing.xl,
-            justifyContent: isMobile ? 'start' : 'center',
-            justifyItems: isMobile ? 'start' : 'center',
+            justifyItems: 'center',
           }}>
             {/* Settings App - Always first */}
             <SettingsAppCard />

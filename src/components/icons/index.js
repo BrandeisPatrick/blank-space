@@ -21,6 +21,7 @@ export {
   MinimizeIcon,
   PaperclipIcon,
   SearchIcon,
+  SettingsIcon,
   TrashIcon,
   UsersIcon,
   XIcon
