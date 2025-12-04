@@ -10,6 +10,8 @@ import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
 import { SettingsPanel } from '../settings/SettingsPanel';
+import { ChatAppCard } from '../chatapp/ChatAppCard';
+import { ChatPanel } from '../chatapp/ChatPanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS } from '../../constants';
 
@@ -159,6 +161,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             {/* Settings App - Always first */}
             <SettingsAppCard />
 
+            {/* Chat App - Second */}
+            <ChatAppCard />
+
             {/* Artifact Cards */}
             {artifacts && artifacts.map(artifact => (
               <ArtifactCard
@@ -206,6 +211,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 
       {/* Settings Panel Modal */}
       <SettingsPanel />
+
+      {/* Chat Panel Modal */}
+      <ChatPanel />
     </div>
   );
 };
