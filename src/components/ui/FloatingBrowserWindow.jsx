@@ -81,11 +81,13 @@ export const FloatingBrowserWindow = ({
         display: 'flex',
         flexDirection: 'column',
         borderRadius: theme.radius['2xl'],
-        background: 'rgba(255, 255, 255, 0.6)',
+        background: mode === 'dark' ? 'rgba(30, 30, 35, 0.85)' : 'rgba(255, 255, 255, 0.6)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.4)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+        border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: mode === 'dark'
+          ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)'
+          : '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
         overflow: 'hidden',
       }}
     >
@@ -95,10 +97,12 @@ export const FloatingBrowserWindow = ({
         onMouseDown={handleDrag}
         style={{
           padding: `2px ${theme.spacing.sm}`,
-          background: 'linear-gradient(135deg, rgba(200, 190, 220, 0.2) 0%, rgba(180, 200, 220, 0.15) 100%)',
+          background: mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(50, 50, 60, 0.3) 0%, rgba(40, 45, 55, 0.25) 100%)'
+            : 'linear-gradient(135deg, rgba(200, 190, 220, 0.2) 0%, rgba(180, 200, 220, 0.15) 100%)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+          borderBottom: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -145,7 +149,7 @@ export const FloatingBrowserWindow = ({
               height: '24px',
               borderRadius: theme.radius.md,
               background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -158,7 +162,7 @@ export const FloatingBrowserWindow = ({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.borderColor = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.3)';
             }}
             title="Delete app"
           >
@@ -257,7 +261,7 @@ export const FloatingBrowserWindow = ({
               background: 'transparent',
               borderRadius: theme.radius.md,
               padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
             }}>
               <button
                 onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
@@ -335,13 +339,13 @@ export const FloatingBrowserWindow = ({
               alignItems: 'center',
               justifyContent: 'center',
               background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
               borderRadius: theme.radius.md,
               cursor: 'pointer',
               transition: `all ${theme.animation.fast}`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -358,7 +362,7 @@ export const FloatingBrowserWindow = ({
             background: 'transparent',
             borderRadius: theme.radius.md,
             padding: theme.spacing.xs,
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
           }}>
             <button
               onClick={(e) => {
@@ -367,7 +371,9 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'preview' ? 'rgba(255, 255, 255, 0.3)' : 'transparent',
+                background: view === 'preview'
+                  ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)')
+                  : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
@@ -393,7 +399,9 @@ export const FloatingBrowserWindow = ({
               }}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: view === 'code' ? 'rgba(255, 255, 255, 0.3)' : 'transparent',
+                background: view === 'code'
+                  ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)')
+                  : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.sm,
                 cursor: 'pointer',
