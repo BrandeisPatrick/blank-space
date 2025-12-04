@@ -109,6 +109,24 @@ export const LAYOUT = {
 };
 
 /**
+ * Responsive component sizes
+ * Centralized mobile/desktop dimensions for UI components
+ */
+export const SIZES = {
+  // App card icon (Settings, Artifacts)
+  APP_CARD: {
+    ICON_CONTAINER: { mobile: 56, desktop: 80 },
+    ICON: { mobile: 28, desktop: 40 },
+    FONT_SIZE: { mobile: 'sm', desktop: 'base' },
+  },
+  // Suggestion pills
+  SUGGESTION_PILL: {
+    FONT_SIZE: { mobile: 'xs', desktop: 'base' },
+    PADDING: { mobile: ['sm', 'md'], desktop: ['md', 'lg'] },
+  },
+};
+
+/**
  * Color constants for UI elements
  */
 export const COLORS = {

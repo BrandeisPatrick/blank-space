@@ -3,6 +3,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { SIZES } from '../../constants';
 
 // Gear icon component
 const GearIcon = ({ size = 48, color = '#6B7280' }) => (
@@ -26,6 +28,7 @@ export const SettingsAppCard = () => {
   const { openSettings } = useSettings();
   const theme = getTheme(mode);
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -46,8 +49,8 @@ export const SettingsAppCard = () => {
     >
       {/* App Icon - Liquid Glass Style */}
       <div style={{
-        width: '80px',
-        height: '80px',
+        width: `${isMobile ? SIZES.APP_CARD.ICON_CONTAINER.mobile : SIZES.APP_CARD.ICON_CONTAINER.desktop}px`,
+        height: `${isMobile ? SIZES.APP_CARD.ICON_CONTAINER.mobile : SIZES.APP_CARD.ICON_CONTAINER.desktop}px`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -61,12 +64,12 @@ export const SettingsAppCard = () => {
           : '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
         transition: `all ${theme.animation.fast}`,
       }}>
-        <GearIcon size={40} color={mode === 'dark' ? '#ffffff' : '#6B7280'} />
+        <GearIcon size={isMobile ? SIZES.APP_CARD.ICON.mobile : SIZES.APP_CARD.ICON.desktop} color={mode === 'dark' ? '#ffffff' : '#6B7280'} />
       </div>
 
       {/* Settings Label */}
       <div style={{
-        fontSize: theme.typography.fontSize.base,
+        fontSize: theme.typography.fontSize[isMobile ? SIZES.APP_CARD.FONT_SIZE.mobile : SIZES.APP_CARD.FONT_SIZE.desktop],
         fontWeight: theme.typography.fontWeight.semibold,
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         letterSpacing: '-0.01em',
