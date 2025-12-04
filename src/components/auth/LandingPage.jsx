@@ -12,6 +12,8 @@ import { SettingsAppCard } from '../settings/SettingsAppCard';
 import { SettingsPanel } from '../settings/SettingsPanel';
 import { ChatAppCard } from '../chatapp/ChatAppCard';
 import { ChatPanel } from '../chatapp/ChatPanel';
+import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
+import { AppStorePanel } from '../appstore/AppStorePanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
@@ -158,7 +160,10 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             {/* Settings App - Always first */}
             <SettingsAppCard />
 
-            {/* Chat App - Second */}
+            {/* AppStore - Second */}
+            <AppStoreAppCard />
+
+            {/* Chat App - Third */}
             <ChatAppCard />
 
             {/* Artifact Cards */}
@@ -211,6 +216,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 
       {/* Chat Panel Modal */}
       <ChatPanel />
+
+      {/* AppStore Panel Modal */}
+      <AppStorePanel />
     </div>
   );
 };

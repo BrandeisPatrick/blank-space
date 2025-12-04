@@ -4,6 +4,7 @@
 
 export {
   AppIcon,
+  AppStoreIcon,
   ArrowUpIcon,
   BinaIcon,
   ChartIcon,
