@@ -107,10 +107,10 @@ function App() {
     if (isAIProcessing) {
       setFloatingChatVisible(true);
     } else {
-      // Hide chat after 1 minute so user has time to read the response
+      // Hide chat after 3 seconds
       timeoutId = setTimeout(() => {
         setFloatingChatVisible(false);
-      }, 60000);
+      }, 3000);
     }
     // Cleanup: clear pending timeout when effect re-runs or unmounts
     return () => {
