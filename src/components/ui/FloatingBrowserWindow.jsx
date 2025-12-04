@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { createGlassEffect } from '../../styles/componentStyles'
@@ -23,6 +24,8 @@ export const FloatingBrowserWindow = ({
   const [view, setView] = useState('preview') // 'preview' or 'code'
   const [activeFile, setActiveFile] = useState('App.jsx')
   const [showIconPicker, setShowIconPicker] = useState(false)
+  const [iconButtonRect, setIconButtonRect] = useState(null)
+  const iconButtonRef = useRef(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
   const [zoom, setZoom] = useState(100)
@@ -313,47 +316,40 @@ export const FloatingBrowserWindow = ({
           )}
 
           {/* Category Icon Button */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowIconPicker(!showIconPicker);
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: theme.radius.md,
-                cursor: 'pointer',
-                transition: `all ${theme.animation.fast}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-              title="Change icon"
-            >
-              <CurrentIcon size={18} color={currentIconColor} />
-            </button>
-
-            {/* Icon Picker Dropdown */}
-            {showIconPicker && (
-              <IconPicker
-                currentIcon={artifact?.icon || 'app'}
-                onSelect={(iconId) => {
-                  onIconChange?.(iconId);
-                }}
-                onClose={() => setShowIconPicker(false)}
-              />
-            )}
-          </div>
+          <button
+            ref={iconButtonRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Get button position for portal
+              if (iconButtonRef.current) {
+                const rect = iconButtonRef.current.getBoundingClientRect();
+                setIconButtonRect(rect);
+              }
+              setShowIconPicker(!showIconPicker);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: theme.radius.md,
+              cursor: 'pointer',
+              transition: `all ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title="Change icon"
+          >
+            <CurrentIcon size={18} color={currentIconColor} />
+          </button>
 
           {/* View Toggle */}
           <div style={{
@@ -439,6 +435,28 @@ export const FloatingBrowserWindow = ({
 
       {/* Resize Handles */}
       <ResizeHandles />
+
+      {/* Icon Picker - Rendered via Portal to escape overflow:hidden */}
+      {showIconPicker && iconButtonRect && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: iconButtonRect.bottom + 8,
+            left: iconButtonRect.left - 150 + iconButtonRect.width,
+            zIndex: 9999,
+          }}
+        >
+          <IconPicker
+            currentIcon={artifact?.icon || 'app'}
+            onSelect={(iconId) => {
+              onIconChange?.(iconId);
+              setShowIconPicker(false);
+            }}
+            onClose={() => setShowIconPicker(false)}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
