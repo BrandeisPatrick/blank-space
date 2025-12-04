@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
-import { createGlassEffect } from '../../styles/componentStyles'
+import { createGlassEffect, getFloatingWindowDimensions } from '../../styles/componentStyles'
+import { SIZES } from '../../constants'
 import { useDraggable } from '../../hooks/useDraggable'
 import { useResizable } from '../../hooks/useResizable'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -55,31 +56,27 @@ export const FloatingBrowserWindow = ({
     }
   }, [files, activeFile])
 
-  // Responsive window sizing
-  const windowWidth = isMobile ? window.innerWidth : 800
-  const windowHeight = isMobile ? Math.floor(window.innerHeight * 0.65) : 600
-  const initialX = isMobile ? 0 : (window.innerWidth - windowWidth) / 2
-  const initialY = isMobile ? 60 : (window.innerHeight - windowHeight) / 2
+  // Responsive window sizing using centralized values
+  const { width: windowWidth, height: windowHeight, x: initialX, y: initialY } =
+    getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
 
   const { position, setPosition, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
     { x: initialX, y: initialY },
     '.window-titlebar' // Only allow dragging from titlebar
   )
 
+  const minWidth = isMobile ? SIZES.FLOATING_WINDOW.MIN_WIDTH.mobile : SIZES.FLOATING_WINDOW.MIN_WIDTH.desktop;
   const { size, setSize, style: resizeStyle, ResizeHandles } = useResizable(
     { width: windowWidth, height: windowHeight },
-    { width: isMobile ? 280 : 400, height: 300 }
+    { width: minWidth, height: SIZES.FLOATING_WINDOW.MIN_HEIGHT }
   )
 
   // Reset size and position when mobile state changes or window becomes visible
   useEffect(() => {
     if (visible) {
-      const newWidth = isMobile ? window.innerWidth : 800;
-      const newHeight = isMobile ? Math.floor(window.innerHeight * 0.65) : 600;
-      const newX = isMobile ? 0 : (window.innerWidth - newWidth) / 2;
-      const newY = isMobile ? 60 : (window.innerHeight - newHeight) / 2;
-      setSize({ width: newWidth, height: newHeight });
-      setPosition({ x: newX, y: newY });
+      const dims = getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
+      setSize({ width: dims.width, height: dims.height });
+      setPosition({ x: dims.x, y: dims.y });
     }
   }, [isMobile, visible, setSize, setPosition]);
 

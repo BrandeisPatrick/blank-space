@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import { createGlassEffect } from '../../styles/componentStyles';
+import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { BackgroundWaves, StarryBackground } from '../wallpaper';
@@ -13,7 +13,7 @@ import { SettingsPanel } from '../settings/SettingsPanel';
 import { ChatAppCard } from '../chatapp/ChatAppCard';
 import { ChatPanel } from '../chatapp/ChatPanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
-import { LAYOUT, LABELS, COLORS } from '../../constants';
+import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
@@ -119,9 +119,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        paddingTop: isMobile ? theme.spacing.lg : theme.spacing['3xl'],
-        paddingLeft: isMobile ? theme.spacing.md : theme.spacing['3xl'],
-        paddingRight: isMobile ? theme.spacing.md : theme.spacing['3xl'],
+        paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
+        paddingLeft: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
+        paddingRight: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
         position: 'relative',
       }}>
@@ -143,16 +143,16 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           justifyContent: 'flex-start',
           position: 'relative',
           zIndex: LAYOUT.CONTENT_Z_INDEX,
-          paddingLeft: isMobile ? theme.spacing.md : theme.spacing['2xl'],
-          paddingRight: isMobile ? theme.spacing.md : theme.spacing['2xl'],
-          paddingTop: isMobile ? theme.spacing.lg : theme.spacing['3xl'],
+          paddingLeft: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
+          paddingRight: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
+          paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
         }}>
           {/* App Grid - Always shows with Settings + Artifacts */}
           <div style={{
             width: '100%',
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: isMobile ? theme.spacing.md : theme.spacing.xl,
+            gap: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.GRID_GAP.mobile, SIZES.SPACING.GRID_GAP.desktop),
             justifyItems: 'center',
           }}>
             {/* Settings App - Always first */}

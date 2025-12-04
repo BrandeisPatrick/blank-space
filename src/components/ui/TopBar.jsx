@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { getTheme } from '../../styles/theme';
-import { createGlassEffect } from '../../styles/componentStyles';
+import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { PANELS, LABELS } from '../../constants';
+import { PANELS, LABELS, SIZES } from '../../constants';
 
 export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggleArtifacts, onNavigateToHome }) => {
   const { mode } = useTheme();
@@ -96,14 +96,17 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggl
     };
   };
 
+  // Centralized topbar height from SIZES constants
+  const topbarHeight = isMobile ? SIZES.TOPBAR.HEIGHT.mobile : SIZES.TOPBAR.HEIGHT.desktop;
+
   return (
     <div style={{
-      height: isMobile ? theme.sizes.topbar.mobile : theme.sizes.topbar.desktop,
+      height: topbarHeight,
       ...glassEffectStyle,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: isMobile ? `0 ${theme.spacing.md}` : `0 ${theme.spacing.sm}`,
+      padding: `0 ${getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, 'sm')}`,
       fontSize: theme.typography.fontSize.sm,
       position: 'sticky',
       top: 0,
@@ -115,7 +118,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggl
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? theme.spacing.xs : theme.spacing.sm,
+        gap: getResponsiveSpacing(theme, isMobile, 'xs', SIZES.SPACING.SECTION_GAP.desktop),
         flex: isMobile ? 1 : 'auto',
       }}>
         {/* Artifacts Button */}

@@ -124,6 +124,27 @@ export const SIZES = {
     FONT_SIZE: { mobile: 'xs', desktop: 'base' },
     PADDING: { mobile: ['sm', 'md'], desktop: ['md', 'lg'] },
   },
+  // Floating browser window
+  FLOATING_WINDOW: {
+    WIDTH: { mobile: null, desktop: 800 }, // null means 100vw
+    HEIGHT_MULTIPLIER: { mobile: 0.65, desktop: null }, // mobile uses vh multiplier, desktop uses fixed
+    HEIGHT: { mobile: null, desktop: 600 }, // null means use multiplier
+    POSITION_X: { mobile: 0, desktop: null }, // null means centered
+    POSITION_Y: { mobile: 60, desktop: null }, // null means centered
+    MIN_WIDTH: { mobile: 280, desktop: 400 },
+    MIN_HEIGHT: 300,
+  },
+  // Top bar
+  TOPBAR: {
+    HEIGHT: { mobile: 60, desktop: 70 },
+  },
+  // Common responsive spacing keys (used with theme.spacing)
+  SPACING: {
+    CONTENT_PADDING_X: { mobile: 'md', desktop: '2xl' },
+    CONTENT_PADDING_Y: { mobile: 'lg', desktop: '3xl' },
+    GRID_GAP: { mobile: 'md', desktop: 'xl' },
+    SECTION_GAP: { mobile: 'sm', desktop: 'lg' },
+  },
 };
 
 /**
