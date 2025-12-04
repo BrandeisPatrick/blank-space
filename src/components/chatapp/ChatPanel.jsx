@@ -135,8 +135,8 @@ export const ChatPanel = () => {
           maxHeight: '700px',
           ...createGlassEffect(theme),
           background: mode === 'dark'
-            ? 'rgba(30, 30, 35, 0.95)'
-            : 'rgba(255, 255, 255, 0.95)',
+            ? 'rgba(30, 30, 35, 0.75)'
+            : 'rgba(255, 255, 255, 0.75)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
