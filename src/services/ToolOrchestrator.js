@@ -154,6 +154,34 @@ IMPORTANT: Your goal is to generate complete, working, VALIDATED React applicati
 /**
  * System prompt for chat/conversational responses
  */
+/**
+ * Generate a short app name from user request (max 3 words)
+ */
+async function generateAppName(userMessage) {
+  try {
+    const response = await callLLM({
+      model: 'gpt-4o-mini',
+      systemPrompt: 'Generate a short app name (1-3 words max) from the user request. Return ONLY the name, no quotes, no explanation. Examples: "Todo List", "Weather App", "Quiz Game", "Calculator"',
+      userPrompt: userMessage,
+      maxTokens: 20,
+      temperature: 0.3
+    });
+
+    const name = response.choices[0]?.message?.content?.trim() || 'New App';
+    // Ensure max 3 words and clean up
+    return name.split(/\s+/).slice(0, 3).join(' ');
+  } catch (error) {
+    console.error('Failed to generate app name:', error);
+    // Fallback: extract first 3 meaningful words
+    const words = userMessage
+      .replace(/^(create|build|make|design|generate)\s+(a|an|the)?\s*/i, '')
+      .split(/\s+/)
+      .slice(0, 3)
+      .join(' ');
+    return words || 'New App';
+  }
+}
+
 const CHAT_SYSTEM_PROMPT = `You are Bina, a friendly AI assistant for a web app builder called Blank Space.
 
 You help users understand what you can do and answer their questions. Keep responses concise and helpful.
@@ -345,12 +373,15 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       content: `Generated ${fileOperations.length} file(s)`
     });
 
+    // Generate a short app name (max 3 words)
+    const appName = await generateAppName(userMessage);
+
     return {
       success: true,
       intent: 'create',
       fileOperations,
       plan: {
-        summary: userMessage.slice(0, 100),
+        summary: appName,
         steps: [
           'Analyzed your request',
           'Generated React components',
