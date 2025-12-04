@@ -190,22 +190,50 @@ export const AppStorePanel = () => {
         }}>
           {/* Large Category Title */}
           <h3 style={{
-            margin: `0 0 ${theme.spacing.lg} 0`,
-            fontSize: '28px',
-            fontWeight: theme.typography.fontWeight.bold,
+            margin: `0 0 ${theme.spacing.sm} 0`,
+            fontSize: '32px',
+            fontWeight: 700,
             fontFamily: theme.typography.fontFamily.sans,
             color: theme.colors.text.primary,
+            letterSpacing: '-0.02em',
           }}>
             {CATEGORIES.find(c => c.id === selectedCategory)?.label}
           </h3>
+
+          {/* Section Header */}
+          <div style={{
+            marginBottom: theme.spacing.lg,
+          }}>
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              fontFamily: theme.typography.fontFamily.sans,
+              color: '#3B82F6',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}>
+              {selectedCategory === 'today' ? 'Featured' : selectedCategory === 'games' ? 'What We\'re Playing' : 'Top Apps'}
+            </span>
+            <p style={{
+              margin: '4px 0 0 0',
+              fontSize: '13px',
+              fontFamily: theme.typography.fontFamily.sans,
+              color: theme.colors.text.tertiary,
+            }}>
+              {selectedCategory === 'today' ? 'The best apps and games' : selectedCategory === 'games' ? 'These favorites are always a great choice' : 'Essential apps for everyone'}
+            </p>
+          </div>
 
           {/* App List */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: theme.spacing.md,
+            gap: '1px',
+            background: mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+            borderRadius: theme.radius.lg,
+            overflow: 'hidden',
           }}>
-            {filteredApps.map((prebuild) => {
+            {filteredApps.map((prebuild, index) => {
               const IconComponent = getIconById(prebuild.icon);
               const iconColor = getIconColorById(prebuild.icon);
 
@@ -216,78 +244,81 @@ export const AppStorePanel = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: theme.spacing.md,
-                    padding: theme.spacing.md,
+                    padding: '12px 16px',
                     background: mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.05)'
-                      : 'rgba(0, 0, 0, 0.03)',
-                    borderRadius: theme.radius.lg,
-                    border: mode === 'dark'
-                      ? '1px solid rgba(255, 255, 255, 0.08)'
-                      : '1px solid rgba(0, 0, 0, 0.06)',
+                      ? 'rgba(30, 30, 35, 0.95)'
+                      : 'rgba(255, 255, 255, 0.95)',
                   }}
                 >
-                  {/* App Icon */}
+                  {/* App Icon - iOS style rounded square */}
                   <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    background: `${iconColor}15`,
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '12px',
+                    background: `linear-gradient(135deg, ${iconColor}20 0%, ${iconColor}40 100%)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   }}>
-                    <IconComponent size={32} color={iconColor} />
+                    <IconComponent size={28} color={iconColor} />
                   </div>
 
                   {/* App Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
+                      fontSize: '15px',
+                      fontWeight: 500,
                       fontFamily: theme.typography.fontFamily.sans,
                       color: theme.colors.text.primary,
-                      marginBottom: '4px',
+                      marginBottom: '2px',
+                      letterSpacing: '-0.01em',
                     }}>
                       {prebuild.name}
                     </div>
                     <div style={{
-                      fontSize: theme.typography.fontSize.sm,
+                      fontSize: '13px',
                       fontFamily: theme.typography.fontFamily.sans,
-                      color: theme.colors.text.secondary,
-                      lineHeight: 1.4,
+                      color: theme.colors.text.tertiary,
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}>
                       {prebuild.description}
                     </div>
                   </div>
 
-                  {/* Install Button */}
+                  {/* Get Button - iOS pill style */}
                   <button
                     onClick={() => handleInstall(prebuild)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing.sm,
-                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                      background: '#3B82F6',
-                      color: 'white',
+                      padding: '6px 18px',
+                      background: mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.2)'
+                        : 'rgba(59, 130, 246, 0.12)',
+                      color: '#3B82F6',
                       border: 'none',
-                      borderRadius: theme.radius.lg,
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
+                      borderRadius: '16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
                       fontFamily: theme.typography.fontFamily.sans,
                       cursor: 'pointer',
                       transition: `all ${theme.animation.fast}`,
                       flexShrink: 0,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#2563EB';
+                      e.currentTarget.style.background = mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.3)'
+                        : 'rgba(59, 130, 246, 0.2)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#3B82F6';
+                      e.currentTarget.style.background = mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.2)'
+                        : 'rgba(59, 130, 246, 0.12)';
                     }}
                   >
-                    <DownloadIcon size={16} />
                     Get
                   </button>
                 </div>
