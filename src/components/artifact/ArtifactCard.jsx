@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 import { getIconById, getIconColorById } from './IconPicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { SIZES } from '../../constants';
@@ -25,26 +26,27 @@ export const ArtifactCard = ({ artifact, onSelect }) => {
         flexDirection: 'column',
         alignItems: 'center',
         gap: theme.spacing.sm,
-        padding: theme.spacing.md,
+        padding: isMobile ? theme.spacing.sm : theme.spacing.md,
         cursor: 'pointer',
         transition: `transform ${theme.animation.fast}`,
         transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-        width: '100%',
       }}
     >
-      {/* App Icon - Mobile App Style */}
+      {/* App Icon - Liquid Glass Style */}
       <div style={{
         width: `${isMobile ? SIZES.APP_CARD.ICON_CONTAINER.mobile : SIZES.APP_CARD.ICON_CONTAINER.desktop}px`,
         height: `${isMobile ? SIZES.APP_CARD.ICON_CONTAINER.mobile : SIZES.APP_CARD.ICON_CONTAINER.desktop}px`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #F9F8F5 0%, #E8E4F3 100%)',
+        ...createGlassEffect(theme),
+        background: mode === 'dark'
+          ? 'rgba(255, 255, 255, 0.15)'
+          : 'rgba(255, 255, 255, 0.65)',
         borderRadius: theme.radius['2.5xl'],
-        border: '1px solid rgba(255, 255, 255, 0.5)',
         boxShadow: isHovered
-          ? '0 8px 16px rgba(0, 0, 0, 0.1)'
-          : '0 4px 12px rgba(0, 0, 0, 0.08)',
+          ? '0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+          : '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
         transition: `all ${theme.animation.fast}`,
       }}>
         <IconComponent size={isMobile ? SIZES.APP_CARD.ICON.mobile : SIZES.APP_CARD.ICON.desktop} color={iconColor} />

@@ -40,11 +40,10 @@ export const SettingsAppCard = () => {
         flexDirection: 'column',
         alignItems: 'center',
         gap: theme.spacing.sm,
-        padding: theme.spacing.md,
+        padding: isMobile ? theme.spacing.sm : theme.spacing.md,
         cursor: 'pointer',
         transition: `transform ${theme.animation.fast}`,
         transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-        width: '100%',
       }}
     >
       {/* App Icon - Liquid Glass Style */}

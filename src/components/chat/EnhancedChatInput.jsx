@@ -365,7 +365,7 @@ export const EnhancedChatInput = ({
               justifyContent: 'center',
               width: '42px',
               height: '42px',
-              background: message.trim() ? theme.colors.accent.primary : theme.colors.bg.tertiary,
+              background: message.trim() ? '#C97D63' : theme.colors.bg.tertiary,
               border: 'none',
               borderRadius: theme.radius.full,
               cursor: message.trim() ? 'pointer' : 'not-allowed',
@@ -376,12 +376,12 @@ export const EnhancedChatInput = ({
             }}
             onMouseEnter={(e) => {
               if (message.trim()) {
-                e.currentTarget.style.background = theme.colorVariants?.accent?.primaryHover || theme.colors.accent.primary;
+                e.currentTarget.style.background = '#d89077';
               }
             }}
             onMouseLeave={(e) => {
               if (message.trim()) {
-                e.currentTarget.style.background = theme.colors.accent.primary;
+                e.currentTarget.style.background = '#C97D63';
               }
             }}
           >

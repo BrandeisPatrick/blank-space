@@ -89,10 +89,10 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             border: 'none',
             color: COLORS.WHITE,
             cursor: 'pointer',
-            padding: theme.sizes.button.padding.md,
-            height: theme.sizes.button.md,
+            padding: isMobile ? theme.sizes.button.padding.sm : theme.sizes.button.padding.md,
+            height: isMobile ? theme.sizes.button.sm : theme.sizes.button.md,
             borderRadius: theme.radius.md,
-            fontSize: theme.typography.fontSize.base,
+            fontSize: isMobile ? theme.typography.fontSize.sm : theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
             fontFamily: theme.typography.fontFamily.sans,
             transition: `background ${theme.animation.fast}`,
@@ -117,9 +117,11 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        padding: isMobile ? theme.spacing.xl : theme.spacing['3xl'],
-        position: 'relative',
+        paddingTop: isMobile ? theme.spacing.lg : theme.spacing['3xl'],
+        paddingLeft: isMobile ? theme.spacing.md : theme.spacing['3xl'],
+        paddingRight: isMobile ? theme.spacing.md : theme.spacing['3xl'],
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
+        position: 'relative',
       }}>
         {/* Background Decorations */}
         {currentTheme.variant === 'stars' ? (
@@ -139,9 +141,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           justifyContent: 'flex-start',
           position: 'relative',
           zIndex: LAYOUT.CONTENT_Z_INDEX,
-          paddingLeft: isMobile ? theme.spacing.md : theme.spacing.xl,
-          paddingRight: isMobile ? theme.spacing.md : theme.spacing.xl,
-          paddingTop: theme.spacing['3xl'],
+          paddingLeft: isMobile ? theme.spacing.md : theme.spacing['2xl'],
+          paddingRight: isMobile ? theme.spacing.md : theme.spacing['2xl'],
+          paddingTop: isMobile ? theme.spacing.lg : theme.spacing['3xl'],
         }}>
           {/* App Grid - Always shows with Settings + Artifacts */}
           <div style={{
@@ -150,8 +152,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             gridTemplateColumns: isMobile
               ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
               : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
-            gap: theme.spacing.lg,
+            gap: isMobile ? theme.spacing.md : theme.spacing.xl,
             justifyContent: isMobile ? 'start' : 'center',
+            justifyItems: isMobile ? 'start' : 'center',
           }}>
             {/* Settings App - Always first */}
             <SettingsAppCard />

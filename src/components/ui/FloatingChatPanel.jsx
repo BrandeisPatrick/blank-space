@@ -48,6 +48,7 @@ export const FloatingChatPanel = ({
           height: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
           borderRadius: theme.radius.full,
           ...createGlassEffect(theme),
+          background: mode === 'dark' ? 'rgba(30, 30, 35, 0.85)' : 'rgba(255, 255, 255, 0.85)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -68,6 +69,7 @@ export const FloatingChatPanel = ({
           maxHeight: FLOATING_WINDOWS.CHAT_PANEL.PANEL_MAX_HEIGHT,
           borderRadius: theme.radius['2xl'],
           ...createGlassEffect(theme),
+          background: mode === 'dark' ? 'rgba(30, 30, 35, 0.9)' : 'rgba(255, 255, 255, 0.9)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -87,7 +89,7 @@ export const FloatingChatPanel = ({
           {lastUserMessage && (
             <div style={{
               alignSelf: 'flex-end',
-              background: theme.colors.accent.primary,
+              background: '#C97D63',
               color: '#fff',
               padding: `${theme.spacing.sm} ${theme.spacing.md}`,
               borderRadius: theme.radius.lg,
