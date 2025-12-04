@@ -5,6 +5,7 @@ import { getTheme } from '../../styles/theme'
 import { createGlassEffect } from '../../styles/componentStyles'
 import { useDraggable } from '../../hooks/useDraggable'
 import { useResizable } from '../../hooks/useResizable'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
 import { XIcon, EyeIcon, CodeIcon, TrashIcon } from '../icons'
@@ -31,6 +32,7 @@ export const FloatingBrowserWindow = ({
   const [zoom, setZoom] = useState(100)
   const { mode } = useTheme()
   const theme = getTheme(mode)
+  const isMobile = useIsMobile()
 
   // Zoom controls
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200))
@@ -51,18 +53,20 @@ export const FloatingBrowserWindow = ({
     }
   }, [files, activeFile])
 
-  // Center window initially
-  const initialX = (window.innerWidth - 800) / 2
-  const initialY = (window.innerHeight - 600) / 2
+  // Responsive window sizing
+  const windowWidth = isMobile ? Math.floor(window.innerWidth * 0.85) : 800
+  const windowHeight = isMobile ? Math.floor(window.innerHeight * 0.6) : 600
+  const initialX = (window.innerWidth - windowWidth) / 2
+  const initialY = isMobile ? 80 : (window.innerHeight - windowHeight) / 2
 
-  const { position, isDragging, handleMouseDown: handleDrag, style: dragStyle } = useDraggable(
+  const { position, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
     { x: initialX, y: initialY },
     '.window-titlebar' // Only allow dragging from titlebar
   )
 
   const { size, style: resizeStyle, ResizeHandles } = useResizable(
-    { width: 800, height: 600 },
-    { width: 400, height: 300 }
+    { width: windowWidth, height: windowHeight },
+    { width: isMobile ? 280 : 400, height: 300 }
   )
 
   if (!visible || !artifact) {
@@ -95,6 +99,7 @@ export const FloatingBrowserWindow = ({
       <div
         className="window-titlebar"
         onMouseDown={handleDrag}
+        onTouchStart={handleTouchStart}
         style={{
           padding: `2px ${theme.spacing.sm}`,
           background: mode === 'dark'
