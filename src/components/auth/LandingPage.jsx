@@ -150,13 +150,10 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           {/* App Grid - Always shows with Settings + Artifacts */}
           <div style={{
             width: '100%',
-            display: 'grid',
-            gridTemplateColumns: isMobile
-              ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
-              : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
+            display: 'flex',
+            flexWrap: 'wrap',
             gap: isMobile ? theme.spacing.sm : theme.spacing.md,
-            justifyContent: isMobile ? 'start' : 'center',
-            justifyItems: isMobile ? 'start' : 'center',
+            justifyContent: 'flex-start',
           }}>
             {/* Settings App - Always first */}
             <SettingsAppCard />
