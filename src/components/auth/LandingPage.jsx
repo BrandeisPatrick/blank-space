@@ -152,7 +152,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             width: '100%',
             display: 'flex',
             flexWrap: 'wrap',
-            gap: isMobile ? theme.spacing.sm : theme.spacing.md,
+            gap: isMobile ? theme.spacing.md : theme.spacing.lg,
             justifyContent: 'flex-start',
           }}>
             {/* Settings App - Always first */}
