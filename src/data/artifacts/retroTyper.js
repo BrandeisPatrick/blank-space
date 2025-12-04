@@ -8,6 +8,7 @@ export const retroTyperArtifact = {
   name: 'Retro Typer',
   description: 'A retro-futuristic digital receipt printer. Type messages and print them as stylish thermal receipts.',
   icon: 'productivity',
+  category: 'apps',
   files: {
     'App.jsx': `// Retro Typer
 // A retro-futuristic digital receipt printer

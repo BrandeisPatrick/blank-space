@@ -8,6 +8,7 @@ export const cronusArtifact = {
   name: 'Cronus',
   description: 'An interactive 3D Saturn particle system. Pinch to zoom, drag to rotate.',
   icon: 'game',
+  category: 'games',
   files: {
     'App.jsx': `// Cronus - Saturn Particle System
 // Interactive 3D visualization with Three.js
