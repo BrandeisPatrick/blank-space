@@ -319,6 +319,7 @@ export const FloatingBrowserWindow = ({
                 e.stopPropagation();
                 setShowIconPicker(!showIconPicker);
               }}
+              onMouseDown={(e) => e.stopPropagation()}
               style={{
                 width: '32px',
                 height: '32px',
