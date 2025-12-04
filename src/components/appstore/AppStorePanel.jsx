@@ -1,0 +1,296 @@
+import { useTheme } from '../../contexts/ThemeContext';
+import { useAppStore } from '../../contexts/AppStoreContext';
+import { useArtifacts } from '../../contexts/ArtifactContext';
+import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
+import { PREBUILD_ARTIFACTS } from '../../data/prebuildArtifacts';
+import { getIconById, getIconColorById } from '../artifact/IconPicker';
+
+// Close icon component
+const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+// Download icon
+const DownloadIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+export const AppStorePanel = () => {
+  const { mode } = useTheme();
+  const { isAppStoreOpen, closeAppStore } = useAppStore();
+  const { createArtifact } = useArtifacts();
+  const theme = getTheme(mode);
+
+  if (!isAppStoreOpen) return null;
+
+  const handleInstall = (prebuild) => {
+    // Create a new artifact from the prebuild template
+    createArtifact(prebuild.name, prebuild.files, [], prebuild.icon);
+    closeAppStore();
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={closeAppStore}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: 999,
+          animation: 'fadeIn 0.2s ease-out',
+        }}
+      />
+
+      {/* Panel */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: '500px',
+          maxHeight: '80vh',
+          ...createGlassEffect(theme),
+          background: mode === 'dark'
+            ? 'rgba(30, 30, 35, 0.75)'
+            : 'rgba(255, 255, 255, 0.75)',
+          borderRadius: theme.radius['2xl'],
+          boxShadow: mode === 'dark'
+            ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+            : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.05)',
+          zIndex: 1000,
+          animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: theme.spacing.lg,
+          borderBottom: mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: theme.colors.text.primary,
+          }}>
+            AppStore
+          </h2>
+          <button
+            onClick={closeAppStore}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: theme.radius.full,
+              cursor: 'pointer',
+              transition: `background ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'rgba(0, 0, 0, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <CloseIcon size={20} color={theme.colors.text.secondary} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: theme.spacing.lg,
+          overflowY: 'auto',
+          flex: 1,
+        }}>
+          {/* Section Title */}
+          <h3 style={{
+            margin: `0 0 ${theme.spacing.md} 0`,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: theme.colors.text.secondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>
+            Prebuild Apps
+          </h3>
+
+          {/* App List */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing.md,
+          }}>
+            {PREBUILD_ARTIFACTS.map((prebuild) => {
+              const IconComponent = getIconById(prebuild.icon);
+              const iconColor = getIconColorById(prebuild.icon);
+
+              return (
+                <div
+                  key={prebuild.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    padding: theme.spacing.md,
+                    background: mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : 'rgba(0, 0, 0, 0.03)',
+                    borderRadius: theme.radius.lg,
+                    border: mode === 'dark'
+                      ? '1px solid rgba(255, 255, 255, 0.08)'
+                      : '1px solid rgba(0, 0, 0, 0.06)',
+                  }}
+                >
+                  {/* App Icon */}
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: theme.radius.lg,
+                    background: `${iconColor}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <IconComponent size={28} color={iconColor} />
+                  </div>
+
+                  {/* App Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: theme.colors.text.primary,
+                      marginBottom: '4px',
+                    }}>
+                      {prebuild.name}
+                    </div>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: theme.colors.text.secondary,
+                      lineHeight: 1.4,
+                    }}>
+                      {prebuild.description}
+                    </div>
+                  </div>
+
+                  {/* Install Button */}
+                  <button
+                    onClick={() => handleInstall(prebuild)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      background: '#3B82F6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: theme.radius.lg,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      cursor: 'pointer',
+                      transition: `all ${theme.animation.fast}`,
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#2563EB';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#3B82F6';
+                    }}
+                  >
+                    <DownloadIcon size={16} />
+                    Get
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Empty State (if no prebuilds) */}
+          {PREBUILD_ARTIFACTS.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: theme.spacing['2xl'],
+              color: theme.colors.text.tertiary,
+            }}>
+              <p>No prebuild apps available yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Animations */}
+        <style>
+          {`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translate(-50%, -48%) scale(0.98);
+              }
+              to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+              }
+            }
+          `}
+        </style>
+      </div>
+    </>
+  );
+};
+
+export default AppStorePanel;
