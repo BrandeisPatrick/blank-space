@@ -154,7 +154,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             gridTemplateColumns: isMobile
               ? `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_MOBILE}, 1fr))`
               : `repeat(auto-fill, minmax(${LAYOUT.ARTIFACT_GRID_MIN_DESKTOP}, 1fr))`,
-            gap: isMobile ? theme.spacing.md : theme.spacing.xl,
+            gap: isMobile ? theme.spacing.sm : theme.spacing.md,
             justifyContent: isMobile ? 'start' : 'center',
             justifyItems: isMobile ? 'start' : 'center',
           }}>
