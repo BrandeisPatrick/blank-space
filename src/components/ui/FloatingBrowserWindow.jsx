@@ -64,10 +64,19 @@ export const FloatingBrowserWindow = ({
     '.window-titlebar' // Only allow dragging from titlebar
   )
 
-  const { size, style: resizeStyle, ResizeHandles } = useResizable(
+  const { size, setSize, style: resizeStyle, ResizeHandles } = useResizable(
     { width: windowWidth, height: windowHeight },
     { width: isMobile ? 280 : 400, height: 300 }
   )
+
+  // Reset size when mobile state changes or window becomes visible
+  useEffect(() => {
+    if (visible) {
+      const newWidth = isMobile ? Math.floor(window.innerWidth * 0.85) : 800;
+      const newHeight = isMobile ? Math.floor(window.innerHeight * 0.6) : 600;
+      setSize({ width: newWidth, height: newHeight });
+    }
+  }, [isMobile, visible, setSize]);
 
   if (!visible || !artifact) {
     return null;
