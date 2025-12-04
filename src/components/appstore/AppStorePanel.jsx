@@ -123,8 +123,8 @@ export const AppStorePanel = () => {
           minHeight: '400px',
           ...createGlassEffect(theme),
           background: mode === 'dark'
-            ? 'rgba(30, 30, 35, 0.75)'
-            : 'rgba(255, 255, 255, 0.75)',
+            ? 'linear-gradient(135deg, rgba(30, 30, 45, 0.9) 0%, rgba(20, 20, 35, 0.95) 50%, rgba(40, 30, 50, 0.9) 100%)'
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 248, 255, 0.95) 50%, rgba(255, 245, 250, 0.9) 100%)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
@@ -307,56 +307,71 @@ export const AppStorePanel = () => {
           )}
         </div>
 
-        {/* Bottom Tab Bar */}
+        {/* Floating Bottom Tab Bar - Liquid Glass Effect */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: theme.spacing.xs,
-          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-          borderTop: mode === 'dark'
-            ? '1px solid rgba(255, 255, 255, 0.1)'
-            : '1px solid rgba(0, 0, 0, 0.08)',
-          background: mode === 'dark'
-            ? 'rgba(0, 0, 0, 0.2)'
-            : 'rgba(0, 0, 0, 0.02)',
+          padding: theme.spacing.md,
         }}>
-          {CATEGORIES.map((category) => {
-            const CategoryIcon = category.icon;
-            const isSelected = selectedCategory === category.id;
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '6px',
+            background: mode === 'dark'
+              ? 'rgba(60, 60, 65, 0.7)'
+              : 'rgba(200, 200, 200, 0.5)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '50px',
+            border: mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.6)',
+            boxShadow: mode === 'dark'
+              ? '0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              : '0 4px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+          }}>
+            {CATEGORIES.map((category) => {
+              const CategoryIcon = category.icon;
+              const isSelected = selectedCategory === category.id;
 
-            return (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: theme.radius.lg,
-                  cursor: 'pointer',
-                  transition: `all ${theme.animation.fast}`,
-                  minWidth: '70px',
-                }}
-              >
-                <CategoryIcon
-                  size={24}
-                  color={isSelected ? '#3B82F6' : theme.colors.text.tertiary}
-                />
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: theme.typography.fontWeight.medium,
-                  fontFamily: theme.typography.fontFamily.sans,
-                  color: isSelected ? '#3B82F6' : theme.colors.text.tertiary,
-                }}>
-                  {category.label}
-                </span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px',
+                    padding: '8px 16px',
+                    background: isSelected
+                      ? (mode === 'dark' ? 'rgba(80, 80, 85, 0.8)' : 'rgba(255, 255, 255, 0.7)')
+                      : 'transparent',
+                    border: 'none',
+                    borderRadius: '40px',
+                    cursor: 'pointer',
+                    transition: `all ${theme.animation.fast}`,
+                    minWidth: '60px',
+                  }}
+                >
+                  <CategoryIcon
+                    size={22}
+                    color={isSelected ? '#3B82F6' : (mode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)')}
+                  />
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: theme.typography.fontWeight.medium,
+                    fontFamily: theme.typography.fontFamily.sans,
+                    color: isSelected ? '#3B82F6' : (mode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'),
+                  }}>
+                    {category.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Animations */}

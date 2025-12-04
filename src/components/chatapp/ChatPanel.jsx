@@ -45,14 +45,32 @@ const AVAILABLE_MODELS = [
   { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable' },
 ];
 
+// Chevron icon for dropdown
+const ChevronDownIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 export const ChatPanel = () => {
   const { mode } = useTheme();
   const { isChatOpen, closeChat, messages, addMessage, clearMessages, selectedModel, setSelectedModel } = useChatApp();
   const theme = getTheme(mode);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -65,6 +83,19 @@ export const ChatPanel = () => {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isChatOpen]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsModelDropdownOpen(false);
+      }
+    };
+    if (isModelDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isModelDropdownOpen]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -170,27 +201,114 @@ export const ChatPanel = () => {
               Chat
             </h2>
 
-            {/* Model Selector */}
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              style={{
-                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                background: mode === 'dark' ? '#2a2a30' : '#f5f5f5',
-                border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
-                borderRadius: theme.radius.md,
-                color: mode === 'dark' ? '#fff' : '#000',
-                fontSize: theme.typography.fontSize.sm,
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {AVAILABLE_MODELS.map(model => (
-                <option key={model.id} value={model.id} style={{ background: mode === 'dark' ? '#2a2a30' : '#fff', color: mode === 'dark' ? '#fff' : '#000' }}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
+            {/* Model Selector - Custom Dropdown */}
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                  background: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  border: 'none',
+                  borderRadius: theme.radius.full,
+                  color: theme.colors.text.primary,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                }}
+              >
+                <span>{AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name}</span>
+                <ChevronDownIcon
+                  size={14}
+                  color={theme.colors.text.secondary}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isModelDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  minWidth: '180px',
+                  background: mode === 'dark' ? 'rgba(40, 40, 45, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  borderRadius: theme.radius.lg,
+                  border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.08)',
+                  boxShadow: mode === 'dark'
+                    ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+                    : '0 8px 32px rgba(0, 0, 0, 0.12)',
+                  padding: theme.spacing.xs,
+                  zIndex: Z_INDEX.DROPDOWN,
+                  animation: 'dropdownFadeIn 0.15s ease-out',
+                }}>
+                  {AVAILABLE_MODELS.map(model => {
+                    const isSelected = selectedModel === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setSelectedModel(model.id);
+                          setIsModelDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          width: '100%',
+                          padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                          background: isSelected
+                            ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)')
+                            : 'transparent',
+                          border: 'none',
+                          borderRadius: theme.radius.md,
+                          cursor: 'pointer',
+                          transition: `all ${theme.animation.fast}`,
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = 'transparent';
+                          }
+                        }}
+                      >
+                        <span style={{
+                          fontSize: theme.typography.fontSize.sm,
+                          fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                          fontFamily: theme.typography.fontFamily.sans,
+                          color: theme.colors.text.primary,
+                        }}>
+                          {model.name}
+                        </span>
+                        <span style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          fontFamily: theme.typography.fontFamily.sans,
+                          color: theme.colors.text.tertiary,
+                          marginTop: '2px',
+                        }}>
+                          {model.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
@@ -379,6 +497,16 @@ export const ChatPanel = () => {
               to {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1);
+              }
+            }
+            @keyframes dropdownFadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(-4px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
               }
             }
           `}
