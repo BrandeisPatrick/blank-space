@@ -103,14 +103,19 @@ function App() {
 
   // Auto-show/hide chat based on AI working state
   useEffect(() => {
+    let timeoutId;
     if (isAIProcessing) {
       setFloatingChatVisible(true);
     } else {
       // Hide chat after 1 minute so user has time to read the response
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setFloatingChatVisible(false);
       }, 60000);
     }
+    // Cleanup: clear pending timeout when effect re-runs or unmounts
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [isAIProcessing]);
 
   // Clean up old guest banner localStorage key
