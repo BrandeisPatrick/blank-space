@@ -59,13 +59,14 @@ const INITIAL_BOARD_SETUP = [
 const useGameLogic = () => {
   const [board, setBoard] = useState(INITIAL_BOARD_SETUP);
   const [currentPlayer, setCurrentPlayer] = useState(PLAYERS.GOLD);
-  const [selectedPiece, setSelectedPiece] = useState(null); // { row, col }
+  const [selectedPiece, setSelectedPiece] = useState(null);
   const [winner, setWinner] = useState(null);
   const [moveHistory, setMoveHistory] = useState([]);
+  const [isAIThinking, setIsAIThinking] = useState(false);
 
-  const getValidMoves = (row, col) => {
+  const getValidMoves = (row, col, currentBoard = board) => {
     const moves = [];
-    const piece = board[row][col];
+    const piece = currentBoard[row][col];
     if (!piece) return [];
 
     for (let r = -1; r <= 1; r++) {
@@ -76,8 +77,7 @@ const useGameLogic = () => {
         const newCol = col + c;
 
         if (newRow >= 0 && newRow < 6 && newCol >= 0 && newCol < 6) {
-          const targetCell = board[newRow][newCol];
-          // Can move to an empty cell or an opponent's cell
+          const targetCell = currentBoard[newRow][newCol];
           if (!targetCell || targetCell.player !== piece.player) {
             moves.push({ row: newRow, col: newCol });
           }
@@ -86,9 +86,94 @@ const useGameLogic = () => {
     }
     return moves;
   };
+
+  // AI Logic - Basic Tactical
+  const getAIMove = (currentBoard) => {
+    const allMoves = [];
+
+    // Find all Crimson pieces and their valid moves
+    for (let row = 0; row < 6; row++) {
+      for (let col = 0; col < 6; col++) {
+        const piece = currentBoard[row][col];
+        if (piece && piece.player === PLAYERS.CRIMSON) {
+          const moves = getValidMoves(row, col, currentBoard);
+          moves.forEach(move => {
+            const target = currentBoard[move.row][move.col];
+            let score = 0;
+
+            if (target && target.player === PLAYERS.GOLD) {
+              // Attack evaluation
+              if (ATTACK_RULES[piece.type] === target.type) {
+                score = 10; // Winning attack
+              } else if (ATTACK_RULES[target.type] === piece.type) {
+                score = -5; // Losing attack - avoid
+              } else {
+                score = 3; // Draw - trade pieces
+              }
+            } else {
+              // Empty cell - prefer moving forward (toward row 5)
+              score = move.row > row ? 2 : 1;
+            }
+
+            allMoves.push({ from: { row, col }, to: move, score, piece });
+          });
+        }
+      }
+    }
+
+    if (allMoves.length === 0) return null;
+
+    // Sort by score and pick best move (with some randomness among top moves)
+    allMoves.sort((a, b) => b.score - a.score);
+    const topScore = allMoves[0].score;
+    const topMoves = allMoves.filter(m => m.score === topScore);
+    return topMoves[Math.floor(Math.random() * topMoves.length)];
+  };
+
+  const executeMove = (from, to, currentBoard) => {
+    const newBoard = currentBoard.map(r => [...r]);
+    const attacker = newBoard[from.row][from.col];
+    const defender = newBoard[to.row][to.col];
+
+    if (defender) {
+      if (ATTACK_RULES[attacker.type] === defender.type) {
+        newBoard[to.row][to.col] = attacker;
+        newBoard[from.row][from.col] = null;
+      } else if (ATTACK_RULES[defender.type] === attacker.type) {
+        newBoard[from.row][from.col] = null;
+      } else {
+        newBoard[to.row][to.col] = null;
+        newBoard[from.row][from.col] = null;
+      }
+    } else {
+      newBoard[to.row][to.col] = attacker;
+      newBoard[from.row][from.col] = null;
+    }
+
+    return newBoard;
+  };
+
+  // AI Turn Effect
+  useEffect(() => {
+    if (currentPlayer === PLAYERS.CRIMSON && !winner) {
+      setIsAIThinking(true);
+      const timer = setTimeout(() => {
+        const aiMove = getAIMove(board);
+        if (aiMove) {
+          const newBoard = executeMove(aiMove.from, aiMove.to, board);
+          setBoard(newBoard);
+          setMoveHistory([...moveHistory, { from: aiMove.from, to: aiMove.to }]);
+          checkWinner(newBoard);
+        }
+        setCurrentPlayer(PLAYERS.GOLD);
+        setIsAIThinking(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPlayer, winner]);
   
   const handleCellClick = (row, col) => {
-    if (winner) return;
+    if (winner || currentPlayer === PLAYERS.CRIMSON) return; // Block during AI turn
 
     const pieceAtClick = board[row][col];
 
@@ -153,7 +238,7 @@ const useGameLogic = () => {
     setMoveHistory([]);
   };
 
-  return { board, currentPlayer, selectedPiece, winner, handleCellClick, getValidMoves, resetGame };
+  return { board, currentPlayer, selectedPiece, winner, isAIThinking, handleCellClick, getValidMoves, resetGame };
 };
 
 
@@ -231,9 +316,10 @@ const GameBoard = ({ board, onCellClick, selectedPiece, validMoves }) => {
   );
 };
 
-const GameStatus = ({ currentPlayer, winner, onReset }) => {
+const GameStatus = ({ currentPlayer, winner, isAIThinking, onReset }) => {
   const getStatusText = () => {
     if (winner) return <span className="font-bold uppercase tracking-widest">{winner} VICTORY</span>;
+    if (isAIThinking) return <span className="text-red-400 animate-pulse">AI thinking...</span>;
     return <><span className="font-bold uppercase tracking-wide">{currentPlayer}</span> turn</>;
   };
 
@@ -255,7 +341,7 @@ const GameStatus = ({ currentPlayer, winner, onReset }) => {
    ======================================================================== */
 
 function App() {
-  const { board, currentPlayer, selectedPiece, winner, handleCellClick, getValidMoves, resetGame } = useGameLogic();
+  const { board, currentPlayer, selectedPiece, winner, isAIThinking, handleCellClick, getValidMoves, resetGame } = useGameLogic();
 
   const validMoves = selectedPiece ? getValidMoves(selectedPiece.row, selectedPiece.col) : [];
 
@@ -265,10 +351,11 @@ function App() {
         <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-zinc-100">
           WAR<span className="text-amber-500">GRID</span>
         </h1>
+        <p className="text-xs text-zinc-500">vs AI</p>
       </header>
 
       <main className="flex flex-col items-center gap-2 w-full max-w-sm">
-        <GameStatus currentPlayer={currentPlayer} winner={winner} onReset={resetGame} />
+        <GameStatus currentPlayer={currentPlayer} winner={winner} isAIThinking={isAIThinking} onReset={resetGame} />
         <GameBoard board={board} onCellClick={handleCellClick} selectedPiece={selectedPiece} validMoves={validMoves} />
 
         <div className="w-full bg-zinc-800/50 border border-zinc-700 p-2 rounded text-xs">
