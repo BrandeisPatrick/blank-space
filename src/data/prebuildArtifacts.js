@@ -7,8 +7,12 @@
 
 import { retroTyperArtifact } from './artifacts/retroTyper';
 import { cronusArtifact } from './artifacts/cronus';
+import { calendarTodoArtifact } from './artifacts/calendarTodo';
+import { strategyGameArtifact } from './artifacts/strategyGame';
 
 export const PREBUILD_ARTIFACTS = [
+  calendarTodoArtifact,
+  strategyGameArtifact,
   retroTyperArtifact,
   cronusArtifact
 ];
