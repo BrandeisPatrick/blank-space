@@ -131,8 +131,13 @@ export async function callLLM({
   let lastError = null;
   const startTime = Date.now();
 
+  console.log(`[LLM] Calling ${provider}/${model} with ${finalMessages.length} messages`);
+  console.log(`[LLM] Message roles: ${finalMessages.map(m => m.role).join(', ')}`);
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      console.log(`[LLM] Attempt ${attempt + 1}/${maxRetries}...`);
+
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout);
@@ -151,7 +156,10 @@ export async function callLLM({
       if (tools && Array.isArray(tools) && tools.length > 0) {
         apiParams.tools = tools;
         apiParams.tool_choice = 'auto';
+        console.log(`[LLM] Including ${tools.length} tools`);
       }
+
+      console.log(`[LLM] Sending request to ${provider}...`);
 
       // Create API call promise
       const apiPromise = client.chat.completions.create(apiParams);
@@ -159,28 +167,39 @@ export async function callLLM({
       // Race between API call and timeout
       const response = await Promise.race([apiPromise, timeoutPromise]);
 
+      console.log(`[LLM] Received response from ${provider}`);
+
       // Validate response structure
       if (!response || typeof response !== 'object') {
+        console.error(`[LLM] Invalid response: not an object`, response);
         throw new Error(`Invalid response from ${model}: response is not an object`);
       }
 
       if (!response.choices || !Array.isArray(response.choices)) {
+        console.error(`[LLM] Invalid response: missing choices`, response);
         throw new Error(`Invalid response from ${model}: missing or invalid 'choices' array`);
       }
 
       if (response.choices.length === 0) {
+        console.error(`[LLM] Invalid response: empty choices array`, response);
         throw new Error(`Invalid response from ${model}: 'choices' array is empty`);
       }
 
       if (!response.choices[0]?.message) {
+        console.error(`[LLM] Invalid response: missing message`, response);
         throw new Error(`Invalid response from ${model}: missing message in first choice`);
       }
+
+      const hasToolCalls = response.choices[0]?.message?.tool_calls?.length > 0;
+      const contentPreview = response.choices[0]?.message?.content?.substring(0, 100) || '(empty)';
+      console.log(`[LLM] Response OK - tool_calls: ${hasToolCalls}, content preview: ${contentPreview}...`);
 
       // Success - return response
       return response;
 
     } catch (error) {
       lastError = error;
+      console.error(`[LLM] Error on attempt ${attempt + 1}:`, error.message);
 
       // Check if error is retryable
       if (!isRetryableError(error)) {

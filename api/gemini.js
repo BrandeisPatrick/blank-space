@@ -69,21 +69,25 @@ export default async function handler(req, res) {
     // Filter out system messages for chat history (only user/assistant)
     const chatMessages = messages.filter(msg => msg.role !== 'system');
 
-    console.log('[Gemini] System instruction length:', systemInstruction.length);
-    console.log('[Gemini] Chat messages count:', chatMessages.length);
+    console.log('[Gemini API] System instruction length:', systemInstruction.length);
+    console.log('[Gemini API] Chat messages count:', chatMessages.length);
+    console.log('[Gemini API] Chat message roles:', chatMessages.map(m => m.role).join(', '));
 
     // Initialize Gemini client with system instruction
+    console.log('[Gemini API] Initializing GoogleGenerativeAI...');
     const genAI = new GoogleGenerativeAI(apiKey);
     const geminiModel = genAI.getGenerativeModel({
       model,
       systemInstruction: systemInstruction || undefined
     });
+    console.log('[Gemini API] Model initialized:', model);
 
     // Convert OpenAI-style messages to Gemini format (user/assistant only)
     const geminiContents = chatMessages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
+    console.log('[Gemini API] Converted to Gemini format:', geminiContents.length, 'messages');
 
     // Build generation config
     const generationConfig = {};
@@ -93,17 +97,23 @@ export default async function handler(req, res) {
     if (maxOutputTokens !== undefined) {
       generationConfig.maxOutputTokens = maxOutputTokens;
     }
+    console.log('[Gemini API] Generation config:', JSON.stringify(generationConfig));
 
     // Start chat and send message
+    console.log('[Gemini API] Starting chat with', geminiContents.length - 1, 'history messages');
     const chat = geminiModel.startChat({
       history: geminiContents.slice(0, -1),
       generationConfig
     });
 
     const lastMessage = geminiContents[geminiContents.length - 1];
+    console.log('[Gemini API] Sending message:', lastMessage.parts[0].text.substring(0, 100), '...');
     const result = await chat.sendMessage(lastMessage.parts[0].text);
+    console.log('[Gemini API] Received result, getting response...');
     const response = await result.response;
     const text = response.text();
+    console.log('[Gemini API] Response text length:', text.length);
+    console.log('[Gemini API] Response preview:', text.substring(0, 200), '...');
 
     // Return response in OpenAI-compatible format
     return res.status(200).json({
@@ -124,10 +134,13 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('[Gemini API] ERROR:', error.message);
+    console.error('[Gemini API] Error stack:', error.stack);
+    console.error('[Gemini API] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return res.status(500).json({
       error: 'Gemini API error',
-      message: error.message
+      message: error.message,
+      details: error.toString()
     });
   }
 }

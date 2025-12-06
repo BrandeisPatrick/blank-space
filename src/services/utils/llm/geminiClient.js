@@ -18,6 +18,11 @@ class SecureGeminiClient {
         create: async (options) => {
           // In browser: use our secure serverless function
           if (isBrowser) {
+            console.log('[GeminiClient] Sending request to /api/gemini');
+            console.log('[GeminiClient] Model:', options.model || 'gemini-3-pro-preview');
+            console.log('[GeminiClient] Messages count:', options.messages?.length);
+            console.log('[GeminiClient] Message roles:', options.messages?.map(m => m.role).join(', '));
+
             const response = await fetch('/api/gemini', {
               method: 'POST',
               headers: {
@@ -31,11 +36,14 @@ class SecureGeminiClient {
               }),
             });
 
+            console.log('[GeminiClient] Response status:', response.status);
+
             if (!response.ok) {
               const error = await response.json().catch(() => ({
                 error: 'Unknown error',
                 message: `HTTP ${response.status}`
               }));
+              console.error('[GeminiClient] Error response:', error);
 
               // Throw error with rate limit info if available
               const err = new Error(error.message || 'Gemini API request failed');
@@ -44,7 +52,9 @@ class SecureGeminiClient {
               throw err;
             }
 
-            return await response.json();
+            const jsonResponse = await response.json();
+            console.log('[GeminiClient] Success - has choices:', !!jsonResponse.choices);
+            return jsonResponse;
           }
 
           // In Node.js (for tests): use Gemini directly
