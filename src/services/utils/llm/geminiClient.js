@@ -22,6 +22,7 @@ class SecureGeminiClient {
             console.log('[GeminiClient] Model:', options.model || 'gemini-3-pro-preview');
             console.log('[GeminiClient] Messages count:', options.messages?.length);
             console.log('[GeminiClient] Message roles:', options.messages?.map(m => m.role).join(', '));
+            console.log('[GeminiClient] Tools count:', options.tools?.length || 0);
 
             const response = await fetch('/api/gemini', {
               method: 'POST',
@@ -31,6 +32,7 @@ class SecureGeminiClient {
               body: JSON.stringify({
                 model: options.model || 'gemini-3-pro-preview',
                 messages: options.messages,
+                tools: options.tools,
                 temperature: options.temperature,
                 maxOutputTokens: options.max_tokens,
               }),
