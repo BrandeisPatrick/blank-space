@@ -12,8 +12,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check rate limit
-  const rateLimit = checkRateLimit(req);
+  // Check rate limit (openai service)
+  const rateLimit = await checkRateLimit(req, 'openai');
 
   // Add rate limit headers to response
   res.setHeader('X-RateLimit-Limit', rateLimit.limit.toString());
@@ -22,14 +22,18 @@ export default async function handler(req, res) {
 
   // If rate limit exceeded, return 429
   if (!rateLimit.allowed) {
+    const isGlobalLimit = rateLimit.reason === 'global_limit_exceeded';
     return res.status(429).json({
       error: 'Rate limit exceeded',
-      message: 'Daily limit reached. Your quota will reset at midnight UTC.',
+      message: isGlobalLimit
+        ? 'Global daily limit reached. The free tier quota is exhausted for today.'
+        : 'Your daily limit reached. Your quota will reset at midnight UTC.',
       rateLimit: {
         limit: rateLimit.limit,
         remaining: rateLimit.remaining,
         reset: rateLimit.reset,
-        used: rateLimit.used
+        used: rateLimit.used,
+        global: rateLimit.global
       }
     });
   }

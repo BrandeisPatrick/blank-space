@@ -1,4 +1,5 @@
 import { openai } from "./openaiClient.js";
+import { gemini } from "./geminiClient.js";
 import { ToolExecutor } from "../../tools/ToolExecutor.js";
 
 /**
@@ -88,8 +89,11 @@ export async function callLLM({
   temperature = 0.7,
   maxRetries = 3,
   timeout = 45000,
-  baseDelay = 1000
+  baseDelay = 1000,
+  provider = 'openai'
 }) {
+  // Select client based on provider
+  const client = provider === 'gemini' ? gemini : openai;
   // Detect GPT-5 model
   const isGPT5 = model.includes('gpt-5');
 
@@ -150,7 +154,7 @@ export async function callLLM({
       }
 
       // Create API call promise
-      const apiPromise = openai.chat.completions.create(apiParams);
+      const apiPromise = client.chat.completions.create(apiParams);
 
       // Race between API call and timeout
       const response = await Promise.race([apiPromise, timeoutPromise]);
@@ -410,7 +414,8 @@ export async function callLLMWithTools({
   timeout = 60000,
   maxToolLoops = 10,
   baseDelay = 1000,
-  onToolAction = null
+  onToolAction = null,
+  provider = 'openai'
 }) {
   // Validate inputs
   if (!toolRegistry) {
@@ -451,7 +456,8 @@ export async function callLLMWithTools({
         temperature,
         maxRetries,
         timeout,
-        baseDelay
+        baseDelay,
+        provider
       });
 
       // Check if response has tool calls

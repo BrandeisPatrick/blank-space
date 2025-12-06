@@ -38,6 +38,14 @@ function App() {
     setUseKnowledgeBase(prev => !prev);
   }, [setUseKnowledgeBase]);
 
+  // Gemini state - enables Gemini AI model
+  const [useGemini, setUseGemini] = useLocalStorage('useGemini', false);
+
+  // Toggle Gemini preference
+  const toggleGemini = useCallback(() => {
+    setUseGemini(prev => !prev);
+  }, [setUseGemini]);
+
   // State management
   const [chatMessages, setChatMessages] = useState([]);
   const [files, setFiles] = useState(activeArtifact?.files || {});
@@ -377,7 +385,7 @@ function App() {
 
     try {
       // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase });
+      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase, useGemini });
 
       if (result.success) {
         // Remove loading message and mark processing complete
@@ -669,6 +677,8 @@ function App() {
         onSignIn={handleNavigateToSignIn}
         useKnowledgeBase={useKnowledgeBase}
         onToggleKnowledgeBase={toggleKnowledgeBase}
+        useGemini={useGemini}
+        onToggleGemini={toggleGemini}
       />
 
       {/* Floating Chat Panel - Only shows when AI is working */}

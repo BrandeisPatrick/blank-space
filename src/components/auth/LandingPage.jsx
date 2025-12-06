@@ -17,7 +17,7 @@ import { AppStorePanel } from '../appstore/AppStorePanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
+export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, useGemini, onToggleGemini }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact } = useArtifacts();
@@ -208,6 +208,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           initialMessage={selectedSuggestionPillText}
           useKnowledgeBase={useKnowledgeBase}
           onToggleKnowledgeBase={onToggleKnowledgeBase}
+          useGemini={useGemini}
+          onToggleGemini={onToggleGemini}
         />
       </main>
 
@@ -227,5 +229,7 @@ LandingPage.propTypes = {
   onTryNow: PropTypes.func.isRequired,
   onSignIn: PropTypes.func.isRequired,
   useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func
+  onToggleKnowledgeBase: PropTypes.func,
+  useGemini: PropTypes.bool,
+  onToggleGemini: PropTypes.func
 };

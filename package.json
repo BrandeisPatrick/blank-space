@@ -22,8 +22,10 @@
   "dependencies": {
     "@babel/parser": "^7.28.4",
     "@codesandbox/sandpack-react": "^2.19.12",
+    "@google/generative-ai": "^0.24.1",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/postcss": "^4.1.14",
+    "@vercel/kv": "^3.0.0",
     "firebase": "^12.4.0",
     "firebase-admin": "^13.5.0",
     "openai": "^6.5.0",

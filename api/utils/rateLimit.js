@@ -1,14 +1,21 @@
 /**
  * Rate Limiting Utility
- * Tracks daily request limits per IP address
+ * Uses Vercel KV (Redis) for persistent rate limiting across serverless instances
  */
 
-// In-memory storage for rate limiting
-const requestCounts = new Map();
+import { kv } from '@vercel/kv';
 
-// Configuration
+// Configuration - Per User
 const DAILY_LIMIT = 50;
-const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+
+// Configuration - Global (shared across all users) - Set to stay in free tier
+const GLOBAL_DAILY_LIMIT = 500;
+
+// Configuration - Per Service limits
+const SERVICE_LIMITS = {
+  openai: { perUser: 50, global: 500 },
+  gemini: { perUser: 50, global: 500 }
+};
 
 /**
  * Get client identifier (IP address)
@@ -43,58 +50,120 @@ function getNextMidnightUTC() {
 }
 
 /**
- * Check and update rate limit for a client
- * Returns: { allowed: boolean, remaining: number, limit: number, reset: string, used: number }
+ * Get seconds until midnight UTC (for Redis TTL)
  */
-export function checkRateLimit(req) {
-  const clientKey = getClientKey(req);
-  const dayKey = getCurrentDayKey();
-  const storageKey = `${clientKey}:${dayKey}`;
-
-  // Get current count for this client today
-  const currentCount = requestCounts.get(storageKey) || 0;
-
-  // Check if limit exceeded
-  if (currentCount >= DAILY_LIMIT) {
-    return {
-      allowed: false,
-      remaining: 0,
-      limit: DAILY_LIMIT,
-      reset: getNextMidnightUTC(),
-      used: currentCount
-    };
-  }
-
-  // Increment count
-  const newCount = currentCount + 1;
-  requestCounts.set(storageKey, newCount);
-
-  return {
-    allowed: true,
-    remaining: DAILY_LIMIT - newCount,
-    limit: DAILY_LIMIT,
-    reset: getNextMidnightUTC(),
-    used: newCount
-  };
+function getSecondsUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    0, 0, 0, 0
+  ));
+  return Math.ceil((midnight - now) / 1000);
 }
 
 /**
- * Cleanup old entries (run periodically)
+ * Check and update rate limit for a client
+ * @param {object} req - Request object
+ * @param {string} service - Service name ('openai' or 'gemini')
+ * Returns: { allowed: boolean, remaining: number, limit: number, reset: string, used: number, global: object }
  */
-function cleanupOldEntries() {
-  const currentDay = getCurrentDayKey();
+export async function checkRateLimit(req, service = 'openai') {
+  const clientKey = getClientKey(req);
+  const dayKey = getCurrentDayKey();
+  const userKey = `ratelimit:${service}:user:${clientKey}:${dayKey}`;
+  const globalKey = `ratelimit:${service}:global:${dayKey}`;
 
-  for (const [key] of requestCounts) {
-    // Extract day from key (format: "ip:YYYY-MM-DD")
-    const keyDay = key.split(':').slice(-1)[0];
+  // Get service-specific limits or defaults
+  const limits = SERVICE_LIMITS[service] || { perUser: DAILY_LIMIT, global: GLOBAL_DAILY_LIMIT };
+  const ttl = getSecondsUntilMidnight();
 
-    if (keyDay !== currentDay) {
-      requestCounts.delete(key);
+  try {
+    // Get current counts from Redis
+    const [currentCount, globalCount] = await Promise.all([
+      kv.get(userKey) || 0,
+      kv.get(globalKey) || 0
+    ]);
+
+    const userCount = currentCount || 0;
+    const totalCount = globalCount || 0;
+
+    // Check global limit first
+    if (totalCount >= limits.global) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: limits.perUser,
+        reset: getNextMidnightUTC(),
+        used: userCount,
+        global: {
+          remaining: 0,
+          limit: limits.global,
+          used: totalCount,
+          exceeded: true
+        },
+        reason: 'global_limit_exceeded'
+      };
     }
-  }
-}
 
-// Run cleanup every hour
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupOldEntries, CLEANUP_INTERVAL);
+    // Check per-user limit
+    if (userCount >= limits.perUser) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: limits.perUser,
+        reset: getNextMidnightUTC(),
+        used: userCount,
+        global: {
+          remaining: limits.global - totalCount,
+          limit: limits.global,
+          used: totalCount,
+          exceeded: false
+        },
+        reason: 'user_limit_exceeded'
+      };
+    }
+
+    // Increment both counts atomically with TTL (auto-expire at midnight)
+    await Promise.all([
+      kv.incr(userKey).then(() => kv.expire(userKey, ttl)),
+      kv.incr(globalKey).then(() => kv.expire(globalKey, ttl))
+    ]);
+
+    const newUserCount = userCount + 1;
+    const newGlobalCount = totalCount + 1;
+
+    return {
+      allowed: true,
+      remaining: limits.perUser - newUserCount,
+      limit: limits.perUser,
+      reset: getNextMidnightUTC(),
+      used: newUserCount,
+      global: {
+        remaining: limits.global - newGlobalCount,
+        limit: limits.global,
+        used: newGlobalCount,
+        exceeded: false
+      }
+    };
+
+  } catch (error) {
+    // If Redis fails, allow request but log error (fail open)
+    console.error('Rate limit Redis error:', error);
+    return {
+      allowed: true,
+      remaining: limits.perUser,
+      limit: limits.perUser,
+      reset: getNextMidnightUTC(),
+      used: 0,
+      global: {
+        remaining: limits.global,
+        limit: limits.global,
+        used: 0,
+        exceeded: false
+      },
+      error: 'Redis unavailable, allowing request'
+    };
+  }
 }

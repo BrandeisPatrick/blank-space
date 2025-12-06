@@ -56,13 +56,30 @@ const SparklesIcon = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
+// Gemini icon (Google AI four-pointed star)
+const GeminiIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+    <path
+      d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"
+      fill={color}
+    />
+  </svg>
+);
+
 export const EnhancedChatInput = ({
   placeholder = "Let's make something",
   onFocus,
   onSend,
   initialMessage = '',
   useKnowledgeBase = true,
-  onToggleKnowledgeBase
+  onToggleKnowledgeBase,
+  useGemini = false,
+  onToggleGemini
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
@@ -70,6 +87,7 @@ export const EnhancedChatInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
+  const [isGeminiHovered, setIsGeminiHovered] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -129,8 +147,17 @@ export const EnhancedChatInput = ({
     setShowDropdown(false);
   };
 
+  const handleToggleGemini = () => {
+    if (onToggleGemini) {
+      onToggleGemini();
+    }
+    setShowDropdown(false);
+  };
+
   // Blue color for Knowledge Base text
   const proComponentsColor = COLORS.PRO_COMPONENTS_BLUE;
+  // Purple gradient color for Gemini
+  const geminiColor = '#8B5CF6';
 
   return (
     <div style={{
@@ -225,6 +252,58 @@ export const EnhancedChatInput = ({
                 marginLeft: 'auto',
                 fontSize: theme.typography.fontSize.sm,
                 color: proComponentsColor,
+              }}>
+                ✓
+              </span>
+            )}
+          </div>
+
+          {/* Gemini Option */}
+          <div
+            onClick={handleToggleGemini}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+              cursor: 'pointer',
+              transition: `background ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = theme.colors.bg.tertiary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '20px',
+              height: '20px',
+              color: geminiColor,
+            }}>
+              <GeminiIcon size={18} color={geminiColor} />
+            </div>
+
+            {/* Label */}
+            <span style={{
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.text.primary,
+              fontFamily: theme.typography.fontFamily.sans,
+            }}>
+              Gemini
+            </span>
+
+            {/* Checkmark when enabled */}
+            {useGemini && (
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: theme.typography.fontSize.sm,
+                color: geminiColor,
               }}>
                 ✓
               </span>
@@ -351,6 +430,47 @@ export const EnhancedChatInput = ({
             </button>
           )}
 
+          {/* Gemini - icon transforms to X on hover */}
+          {useGemini && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isGeminiHovered) {
+                  // Hovered = showing X, so disable
+                  onToggleGemini && onToggleGemini();
+                } else {
+                  // Not hovered, open dropdown
+                  toggleDropdown();
+                }
+              }}
+              onMouseEnter={() => setIsGeminiHovered(true)}
+              onMouseLeave={() => setIsGeminiHovered(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                background: isGeminiHovered ? theme.colors.bg.tertiary : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: geminiColor,
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                borderRadius: theme.radius.full,
+                transition: `all ${theme.animation.fast}`,
+              }}
+            >
+              {isGeminiHovered ? (
+                <span style={{ fontSize: '18px', lineHeight: 1 }}>×</span>
+              ) : (
+                <GeminiIcon size={18} color={geminiColor} />
+              )}
+              <span>Gemini</span>
+              <ChevronDownIcon size={18} color={geminiColor} />
+            </button>
+          )}
+
           {/* Flex spacer */}
           <div style={{ flex: 1 }} />
 
@@ -399,5 +519,7 @@ EnhancedChatInput.propTypes = {
   onSend: PropTypes.func.isRequired,
   initialMessage: PropTypes.string,
   useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func
+  onToggleKnowledgeBase: PropTypes.func,
+  useGemini: PropTypes.bool,
+  onToggleGemini: PropTypes.func
 };

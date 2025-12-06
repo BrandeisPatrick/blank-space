@@ -212,7 +212,8 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { useKnowledgeBase = false } = options;
+  const { useKnowledgeBase = false, useGemini = false } = options;
+  const provider = useGemini ? 'gemini' : 'openai';
   const startTime = Date.now();
 
   // Callback wrapper for updates
@@ -234,12 +235,17 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
         action: 'Thinking...'
       });
 
+      const chatModel = provider === 'gemini' ? 'gemini-3-pro-preview' : 'gpt-4o-mini';
+      if (provider === 'gemini') {
+        console.log('[Gemini] Using Gemini 3 Pro Preview for chat');
+      }
       const chatResponse = await callLLM({
-        model: 'gpt-4o-mini',
+        model: chatModel,
         systemPrompt: CHAT_SYSTEM_PROMPT,
         userPrompt: userMessage,
         maxTokens: 500,
-        temperature: 0.7
+        temperature: 0.7,
+        provider
       });
 
       const responseContent = chatResponse.choices[0]?.message?.content || 'I can help you build web apps! Try describing what you want to create.';
@@ -333,8 +339,12 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     }
 
     // Call LLM with tools
+    const model = provider === 'gemini' ? 'gemini-3-pro-preview' : 'gpt-4o-mini';
+    if (provider === 'gemini') {
+      console.log('[Gemini] Using Gemini 3 Pro Preview');
+    }
     const llmResponse = await callLLMWithTools({
-      model: 'gpt-4o-mini',
+      model,
       systemPrompt,
       messages,
       toolRegistry,
@@ -342,7 +352,8 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       maxTokens: 4000,
       maxToolLoops: 15,
       timeout: 120000,
-      onToolAction
+      onToolAction,
+      provider
     });
 
     // Extract final response content
