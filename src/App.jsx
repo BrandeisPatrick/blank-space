@@ -699,13 +699,6 @@ function App() {
             renameArtifact(activeArtifactId, newName);
           }
         }}
-        onDelete={() => {
-          if (activeArtifactId) {
-            deleteArtifact(activeArtifactId);
-            setBrowserWindowVisible(false);
-            setUserRequestedBrowserWindow(false);
-          }
-        }}
       />
 
       {/* Artifact Sidebar (still available) */}

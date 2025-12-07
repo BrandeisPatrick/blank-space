@@ -20,9 +20,31 @@ import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
-  const { artifacts, loadArtifact } = useArtifacts();
+  const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
   const isMobile = useIsMobile();
+
+  // Enter edit mode (iOS-style jiggle mode for deletion)
+  const enterEditMode = () => {
+    setIsEditMode(true);
+  };
+
+  // Exit edit mode
+  const exitEditMode = () => {
+    setIsEditMode(false);
+  };
+
+  // Handle artifact deletion
+  const handleDeleteArtifact = (artifactId, artifactName) => {
+    if (window.confirm(`Delete "${artifactName}"? This cannot be undone.`)) {
+      deleteArtifact(artifactId);
+      // Exit edit mode if no more artifacts
+      if (artifacts.length <= 1) {
+        setIsEditMode(false);
+      }
+    }
+  };
 
   // Glass effect for header
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
@@ -149,6 +171,45 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           paddingRight: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
           paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
         }}>
+          {/* Done Button - Shows in edit mode, aligned with 4th column */}
+          {isEditMode && (
+            <div style={{
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.GRID_GAP.mobile, SIZES.SPACING.GRID_GAP.desktop),
+              marginBottom: theme.spacing.md,
+            }}>
+              {/* Empty columns 1-3 */}
+              <div />
+              <div />
+              <div />
+              {/* Done button in column 4 */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={exitEditMode}
+                  style={{
+                    ...glassEffectStyle,
+                    background: mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.15)'
+                      : 'rgba(255, 255, 255, 0.65)',
+                    border: 'none',
+                    color: theme.colors.text.primary,
+                    padding: '8px 20px',
+                    borderRadius: theme.radius['2.5xl'],
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    cursor: 'pointer',
+                    transition: `all ${theme.animation.fast}`,
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* App Grid - Always shows with Settings + Artifacts */}
           <div style={{
             width: '100%',
@@ -158,13 +219,22 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             justifyItems: 'center',
           }}>
             {/* Settings App - Always first */}
-            <SettingsAppCard />
+            <SettingsAppCard
+              isEditMode={isEditMode}
+              onEnterEditMode={enterEditMode}
+            />
 
             {/* AppStore - Second */}
-            <AppStoreAppCard />
+            <AppStoreAppCard
+              isEditMode={isEditMode}
+              onEnterEditMode={enterEditMode}
+            />
 
             {/* Chat App - Third */}
-            <ChatAppCard />
+            <ChatAppCard
+              isEditMode={isEditMode}
+              onEnterEditMode={enterEditMode}
+            />
 
             {/* Artifact Cards */}
             {artifacts && artifacts.map(artifact => (
@@ -172,6 +242,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
                 key={artifact.id}
                 artifact={artifact}
                 onSelect={handleArtifactSelect}
+                isEditMode={isEditMode}
+                onEnterEditMode={enterEditMode}
+                onDelete={() => handleDeleteArtifact(artifact.id, artifact.name)}
               />
             ))}
           </div>

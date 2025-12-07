@@ -9,7 +9,7 @@ import { useResizable } from '../../hooks/useResizable'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
-import { XIcon, EyeIcon, CodeIcon, TrashIcon, SettingsIcon } from '../icons'
+import { XIcon, EyeIcon, CodeIcon, SettingsIcon } from '../icons'
 import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
 import { AppSettingsModal } from './AppSettingsModal'
 
@@ -18,7 +18,6 @@ export const FloatingBrowserWindow = ({
   artifact = null,
   files = {},
   onClose,
-  onDelete,
   onFileChange,
   onError,
   onIconChange,
@@ -126,46 +125,17 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Delete & Close Buttons */}
+        {/* Left: Minimize Button */}
         <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
-          {/* Delete Button (Red) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm('Are you sure you want to delete this app? This cannot be undone.')) {
-                onDelete?.();
-              }
-            }}
-            style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#ff5f57',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: `all ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ff3b30';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ff5f57';
-            }}
-            title="Delete app"
-          />
-
-          {/* Close Button (Yellow) */}
+          {/* Minimize Button (Yellow) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
             style={{
-              width: '12px',
-              height: '12px',
+              width: '14px',
+              height: '14px',
               borderRadius: '50%',
               background: '#febc2e',
               border: 'none',
