@@ -67,7 +67,6 @@ export const EnhancedChatInput = ({
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const [message, setMessage] = useState(initialMessage);
-  const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
   const dropdownRef = useRef(null);
@@ -98,7 +97,6 @@ export const EnhancedChatInput = ({
   }, []);
 
   const handleFocus = () => {
-    setIsFocused(true);
     if (onFocus) {
       onFocus();
     }
@@ -254,7 +252,6 @@ export const EnhancedChatInput = ({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onFocus={handleFocus}
-          onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           style={{

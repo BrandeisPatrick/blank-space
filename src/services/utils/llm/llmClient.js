@@ -1,5 +1,5 @@
-import { openai } from "./openaiClient.js";
-import { ToolExecutor } from "../../tools/ToolExecutor.js";
+import { openai } from './openaiClient.js'
+import { ToolExecutor } from '../../tools/ToolExecutor.js'
 
 /**
  * Shared LLM Client
@@ -15,7 +15,7 @@ import { ToolExecutor } from "../../tools/ToolExecutor.js";
  * Sleep utility for retry delays
  */
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -32,14 +32,16 @@ function isRetryableError(error) {
     error.code === 'ECONNRESET' ||
     error.code === 'ETIMEDOUT' ||
     error.message?.includes('timeout')
-  );
+  )
 }
 
 /**
  * Check if error is rate limit
  */
 function isRateLimitError(error) {
-  return error.status === 429 || error.message?.toLowerCase().includes('rate limit');
+  return (
+    error.status === 429 || error.message?.toLowerCase().includes('rate limit')
+  )
 }
 
 /**
@@ -47,18 +49,18 @@ function isRateLimitError(error) {
  */
 function getUserFriendlyError(error) {
   if (isRateLimitError(error)) {
-    return 'API rate limit reached. Please wait a moment and try again.';
+    return 'API rate limit reached. Please wait a moment and try again.'
   }
   if (error.status === 401) {
-    return 'Authentication error. Please check your API key.';
+    return 'Authentication error. Please check your API key.'
   }
   if (error.status === 500 || error.status === 503) {
-    return 'OpenAI service temporarily unavailable. Please try again.';
+    return 'OpenAI service temporarily unavailable. Please try again.'
   }
   if (error.message?.includes('timeout')) {
-    return 'Request timed out. Please try again or simplify your request.';
+    return 'Request timed out. Please try again or simplify your request.'
   }
-  return `API error: ${error.message || 'Unknown error'}`;
+  return `API error: ${error.message || 'Unknown error'}`
 }
 
 /**
@@ -88,51 +90,57 @@ export async function callLLM({
   temperature = 0.7,
   maxRetries = 3,
   timeout = 45000,
-  baseDelay = 1000
+  baseDelay = 1000,
 }) {
   // Detect GPT-5 model
-  const isGPT5 = model.includes('gpt-5');
+  const isGPT5 = model.includes('gpt-5')
 
   // Warn if temperature is specified for GPT-5 (it doesn't support it)
   if (isGPT5 && temperature !== 0.7) {
-    console.warn(`⚠️  WARNING: Temperature parameter (${temperature}) specified for GPT-5 model "${model}"`);
-    console.warn(`   GPT-5 models do not support temperature parameter and will use their default.`);
-    console.warn(`   Consider adjusting prompts or model selection if deterministic output is required.`);
+    console.warn(
+      `⚠️  WARNING: Temperature parameter (${temperature}) specified for GPT-5 model "${model}"`
+    )
+    console.warn(
+      `   GPT-5 models do not support temperature parameter and will use their default.`
+    )
+    console.warn(
+      `   Consider adjusting prompts or model selection if deterministic output is required.`
+    )
   }
 
   // Increase timeout for GPT-5 models (they may be slower for complex tasks)
-  const effectiveTimeout = isGPT5 && timeout === 45000 ? 120000 : timeout;
+  const effectiveTimeout = isGPT5 && timeout === 45000 ? 120000 : timeout
 
   // Build parameters based on model type
   const tokenParam = isGPT5
     ? { max_completion_tokens: maxTokens }
-    : { max_tokens: maxTokens };
-  const tempParam = isGPT5 ? {} : { temperature };
+    : { max_tokens: maxTokens }
+  const tempParam = isGPT5 ? {} : { temperature }
 
   // Build messages array - use provided messages or fallback to systemPrompt/userPrompt
-  let finalMessages = [];
+  let finalMessages = []
   if (messages && Array.isArray(messages) && messages.length > 0) {
-    finalMessages = messages;
+    finalMessages = messages
   } else {
     // Backwards compatibility with systemPrompt/userPrompt
     if (systemPrompt) {
-      finalMessages.push({ role: 'system', content: systemPrompt });
+      finalMessages.push({ role: 'system', content: systemPrompt })
     }
     if (userPrompt) {
-      finalMessages.push({ role: 'user', content: userPrompt });
+      finalMessages.push({ role: 'user', content: userPrompt })
     }
   }
 
   // Retry loop with exponential backoff
-  let lastError = null;
-  const startTime = Date.now();
+  let lastError = null
+  const startTime = Date.now()
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout);
-      });
+        setTimeout(() => reject(new Error('Request timeout')), effectiveTimeout)
+      })
 
       // Build API request parameters
       const apiParams = {
@@ -140,71 +148,78 @@ export async function callLLM({
         messages: finalMessages,
         ...tempParam,
         ...tokenParam,
-        stream: false  // Explicitly disable streaming
-      };
+        stream: false, // Explicitly disable streaming
+      }
 
       // Add tools if provided
       if (tools && Array.isArray(tools) && tools.length > 0) {
-        apiParams.tools = tools;
-        apiParams.tool_choice = 'auto';
+        apiParams.tools = tools
+        apiParams.tool_choice = 'auto'
       }
 
       // Create API call promise
-      const apiPromise = openai.chat.completions.create(apiParams);
+      const apiPromise = openai.chat.completions.create(apiParams)
 
       // Race between API call and timeout
-      const response = await Promise.race([apiPromise, timeoutPromise]);
+      const response = await Promise.race([apiPromise, timeoutPromise])
 
       // Validate response structure
       if (!response || typeof response !== 'object') {
-        throw new Error(`Invalid response from ${model}: response is not an object`);
+        throw new Error(
+          `Invalid response from ${model}: response is not an object`
+        )
       }
 
       if (!response.choices || !Array.isArray(response.choices)) {
-        throw new Error(`Invalid response from ${model}: missing or invalid 'choices' array`);
+        throw new Error(
+          `Invalid response from ${model}: missing or invalid 'choices' array`
+        )
       }
 
       if (response.choices.length === 0) {
-        throw new Error(`Invalid response from ${model}: 'choices' array is empty`);
+        throw new Error(
+          `Invalid response from ${model}: 'choices' array is empty`
+        )
       }
 
       if (!response.choices[0]?.message) {
-        throw new Error(`Invalid response from ${model}: missing message in first choice`);
+        throw new Error(
+          `Invalid response from ${model}: missing message in first choice`
+        )
       }
 
       // Success - return response
-      return response;
-
+      return response
     } catch (error) {
-      lastError = error;
+      lastError = error
 
       // Check if error is retryable
       if (!isRetryableError(error)) {
         // Non-retryable error - throw immediately
-        throw new Error(getUserFriendlyError(error));
+        throw new Error(getUserFriendlyError(error))
       }
 
       // Last attempt - throw error
       if (attempt === maxRetries - 1) {
-        throw new Error(getUserFriendlyError(error));
+        throw new Error(getUserFriendlyError(error))
       }
 
       // Calculate delay with exponential backoff
-      const delay = baseDelay * Math.pow(2, attempt);
+      const delay = baseDelay * Math.pow(2, attempt)
 
       // Log retry attempt
       console.warn(
         `LLM call failed (attempt ${attempt + 1}/${maxRetries}): ${error.message}. ` +
-        `Retrying in ${delay}ms...`
-      );
+          `Retrying in ${delay}ms...`
+      )
 
       // Wait before retry
-      await sleep(delay);
+      await sleep(delay)
     }
   }
 
   // Should never reach here, but just in case
-  throw new Error(getUserFriendlyError(lastError));
+  throw new Error(getUserFriendlyError(lastError))
 }
 
 /**
@@ -214,11 +229,16 @@ export async function callLLM({
  * @returns {string} Extracted text content
  */
 export function extractContent(response) {
-  if (!response || !response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
-    console.error('Invalid response structure in extractContent:', response);
-    return '';
+  if (
+    !response ||
+    !response.choices ||
+    !Array.isArray(response.choices) ||
+    response.choices.length === 0
+  ) {
+    console.error('Invalid response structure in extractContent:', response)
+    return ''
   }
-  return response.choices[0]?.message?.content || '';
+  return response.choices[0]?.message?.content || ''
 }
 
 /**
@@ -228,20 +248,21 @@ export function extractContent(response) {
  * @returns {Promise<string>} Extracted text content
  */
 export async function callLLMAndExtract(options) {
-  const response = await callLLM(options);
-  const content = extractContent(response);
+  const response = await callLLM(options)
+  const content = extractContent(response)
 
   // Check for empty response
   if (!content || content.trim().length === 0) {
-    const reasoningTokens = response.usage?.completion_tokens_details?.reasoning_tokens || 0;
+    const reasoningTokens =
+      response.usage?.completion_tokens_details?.reasoning_tokens || 0
     throw new Error(
       `Empty response from ${options.model}. ` +
-      `Reasoning tokens used: ${reasoningTokens}. ` +
-      `This may indicate the token limit was exhausted by internal reasoning. Try increasing maxTokens.`
-    );
+        `Reasoning tokens used: ${reasoningTokens}. ` +
+        `This may indicate the token limit was exhausted by internal reasoning. Try increasing maxTokens.`
+    )
   }
 
-  return content;
+  return content
 }
 
 /**
@@ -249,25 +270,28 @@ export async function callLLMAndExtract(options) {
  */
 function extractJSONFromContent(content) {
   // Strategy 1: Extract JSON between delimiters <<<JSON>>> and <<</JSON>>>
-  const delimiterMatch = content.match(/<<<JSON>>>([\s\S]*?)<<<\/JSON>>>/);
+  const delimiterMatch = content.match(/<<<JSON>>>([\s\S]*?)<<<\/JSON>>>/)
   if (delimiterMatch) {
-    return delimiterMatch[1].trim();
+    return delimiterMatch[1].trim()
   }
 
   // Strategy 2: Extract from markdown code fences
-  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+    return codeBlockMatch[1].trim()
   }
 
   // Strategy 3: Find JSON-like content (starts with { or [)
-  const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
   if (jsonMatch) {
-    return jsonMatch[1].trim();
+    return jsonMatch[1].trim()
   }
 
   // Fallback: return cleaned content
-  return content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  return content
+    .replace(/```json\s*/g, '')
+    .replace(/```\s*/g, '')
+    .trim()
 }
 
 /**
@@ -276,79 +300,81 @@ function extractJSONFromContent(content) {
 function attemptJSONCompletion(jsonString) {
   try {
     // Try parsing as-is first
-    return JSON.parse(jsonString);
+    return JSON.parse(jsonString)
   } catch (error) {
     // Strategy 1: Try to extract just the JSON object/array if there's trailing content
     // Find the position where the first complete JSON object ends
-    let depth = 0;
-    let inString = false;
-    let escapeNext = false;
-    let startChar = jsonString.trim()[0];
+    let depth = 0
+    let inString = false
+    let escapeNext = false
+    let startChar = jsonString.trim()[0]
 
     if (startChar === '{' || startChar === '[') {
-      const closingChar = startChar === '{' ? '}' : ']';
+      const closingChar = startChar === '{' ? '}' : ']'
 
       for (let i = 0; i < jsonString.length; i++) {
-        const char = jsonString[i];
+        const char = jsonString[i]
 
         if (escapeNext) {
-          escapeNext = false;
-          continue;
+          escapeNext = false
+          continue
         }
 
         if (char === '\\') {
-          escapeNext = true;
-          continue;
+          escapeNext = true
+          continue
         }
 
         if (char === '"' && !escapeNext) {
-          inString = !inString;
-          continue;
+          inString = !inString
+          continue
         }
 
         if (!inString) {
-          if (char === startChar) depth++;
-          if (char === closingChar) depth--;
+          if (char === startChar) depth++
+          if (char === closingChar) depth--
 
           if (depth === 0 && i > 0) {
             // Found the end of the JSON - try parsing just this part
-            const cleanJson = jsonString.substring(0, i + 1);
+            const cleanJson = jsonString.substring(0, i + 1)
             try {
-              return JSON.parse(cleanJson);
+              return JSON.parse(cleanJson)
             } catch (e) {
               // Continue to next strategy
             }
-            break;
+            break
           }
         }
       }
     }
 
     // Strategy 2: Try auto-completing if truncated
-    let openBraces = (jsonString.match(/\{/g) || []).length;
-    let closeBraces = (jsonString.match(/\}/g) || []).length;
-    let openBrackets = (jsonString.match(/\[/g) || []).length;
-    let closeBrackets = (jsonString.match(/\]/g) || []).length;
+    let openBraces = (jsonString.match(/\{/g) || []).length
+    let closeBraces = (jsonString.match(/\}/g) || []).length
+    let openBrackets = (jsonString.match(/\[/g) || []).length
+    let closeBrackets = (jsonString.match(/\]/g) || []).length
 
     // Try adding missing closing characters
-    let completed = jsonString;
+    let completed = jsonString
 
     // Add missing closing brackets first (arrays)
     for (let i = 0; i < openBrackets - closeBrackets; i++) {
-      completed += ']';
+      completed += ']'
     }
 
     // Add missing closing braces (objects)
     for (let i = 0; i < openBraces - closeBraces; i++) {
-      completed += '}';
+      completed += '}'
     }
 
     // Try parsing completed version
     try {
-      return JSON.parse(completed);
+      return JSON.parse(completed)
     } catch (completionError) {
       // If auto-completion failed, throw original error with context
-      throw new Error(`JSON parsing failed. Missing ${openBraces - closeBraces} closing braces, ${openBrackets - closeBrackets} closing brackets. Original error: ${error.message}`);
+      throw new Error(
+        `JSON parsing failed. Missing ${openBraces - closeBraces} closing braces, ${openBrackets - closeBrackets} closing brackets. Original error: ${error.message}`
+      )
     }
   }
 }
@@ -361,20 +387,22 @@ function attemptJSONCompletion(jsonString) {
  * @throws {Error} If response is not valid JSON
  */
 export async function callLLMForJSON(options) {
-  const response = await callLLM(options);
-  let content = extractContent(response);
+  const response = await callLLM(options)
+  let content = extractContent(response)
 
   // Extract JSON using multiple strategies
-  const jsonContent = extractJSONFromContent(content);
+  const jsonContent = extractJSONFromContent(content)
 
   // Attempt to parse with auto-completion for truncated JSON
   try {
-    return attemptJSONCompletion(jsonContent);
+    return attemptJSONCompletion(jsonContent)
   } catch (error) {
     // Provide detailed error message
-    const preview = jsonContent.substring(0, 300);
-    const suffix = jsonContent.length > 300 ? '...' : '';
-    throw new Error(`Failed to parse JSON response: ${error.message}\nContent preview: ${preview}${suffix}`);
+    const preview = jsonContent.substring(0, 300)
+    const suffix = jsonContent.length > 300 ? '...' : ''
+    throw new Error(
+      `Failed to parse JSON response: ${error.message}\nContent preview: ${preview}${suffix}`
+    )
   }
 }
 
@@ -410,188 +438,196 @@ export async function callLLMWithTools({
   timeout = 60000,
   maxToolLoops = 10,
   baseDelay = 1000,
-  onToolAction = null
+  onToolAction = null,
 }) {
   // Validate inputs
   if (!toolRegistry) {
-    throw new Error('toolRegistry is required for callLLMWithTools');
+    throw new Error('toolRegistry is required for callLLMWithTools')
   }
   if (!context) {
-    throw new Error('context is required for callLLMWithTools');
+    throw new Error('context is required for callLLMWithTools')
   }
 
   // Build messages array with system prompt if provided
-  const conversationMessages = [];
+  const conversationMessages = []
   if (systemPrompt) {
-    conversationMessages.push({ role: 'system', content: systemPrompt });
+    conversationMessages.push({ role: 'system', content: systemPrompt })
   }
-  conversationMessages.push(...messages);
+  conversationMessages.push(...messages)
 
   // Get tools in OpenAI schema format
-  const tools = toolRegistry.toOpenAISchema();
-  const executor = new ToolExecutor(toolRegistry);
+  const tools = toolRegistry.toOpenAISchema()
+  const executor = new ToolExecutor(toolRegistry)
 
-  let loopCount = 0;
+  let loopCount = 0
 
   // Track recent tool calls for doom loop detection
-  const recentToolCalls = [];
-  const DOOM_LOOP_THRESHOLD = 3;
+  const recentToolCalls = []
+  const DOOM_LOOP_THRESHOLD = 3
 
   // Tool calling loop
   while (loopCount < maxToolLoops) {
-    loopCount++;
+    loopCount++
 
-    try {
-      // Call LLM with tools
-      const response = await callLLM({
-        model,
-        messages: conversationMessages,
-        tools,
-        maxTokens,
-        temperature,
-        maxRetries,
-        timeout,
-        baseDelay
-      });
+    // Call LLM with tools
+    const response = await callLLM({
+      model,
+      messages: conversationMessages,
+      tools,
+      maxTokens,
+      temperature,
+      maxRetries,
+      timeout,
+      baseDelay,
+    })
 
-      // Check if response has tool calls
-      const firstChoice = response.choices[0];
-      const toolCalls = firstChoice.message.tool_calls;
+    // Check if response has tool calls
+    const firstChoice = response.choices[0]
+    const toolCalls = firstChoice.message.tool_calls
 
-      if (!toolCalls || toolCalls.length === 0) {
-        // No tool calls - LLM is done, return final response
-        return response;
-      }
+    if (!toolCalls || toolCalls.length === 0) {
+      // No tool calls - LLM is done, return final response
+      return response
+    }
 
-      // Add assistant message to conversation
-      conversationMessages.push({
-        role: 'assistant',
-        content: firstChoice.message.content || '',
-        tool_calls: toolCalls
-      });
+    // Add assistant message to conversation
+    conversationMessages.push({
+      role: 'assistant',
+      content: firstChoice.message.content || '',
+      tool_calls: toolCalls,
+    })
 
-      // Execute each tool call
-      const toolResults = [];
-      for (const toolCall of toolCalls) {
-        const toolName = toolCall.function.name;
-        const toolCallId = toolCall.id;
-        const callSignature = `${toolName}:${toolCall.function.arguments}`;
+    // Execute each tool call
+    const toolResults = []
+    for (const toolCall of toolCalls) {
+      const toolName = toolCall.function.name
+      const toolCallId = toolCall.id
+      const callSignature = `${toolName}:${toolCall.function.arguments}`
 
+      try {
+        // Parse tool parameters
+        let params = {}
         try {
-          // Parse tool parameters
-          let params = {};
-          try {
-            params = JSON.parse(toolCall.function.arguments);
-          } catch (parseError) {
-            throw new Error(`Failed to parse tool arguments: ${parseError.message}`);
-          }
-
-          // Notify about tool execution start
-          if (onToolAction) {
-            onToolAction(toolName, params, 'start');
-          }
-
-          // Execute the tool
-          const toolResult = await executor.execute(toolName, params, context);
-
-          // Notify about tool execution complete
-          if (onToolAction) {
-            onToolAction(toolName, params, toolResult.success ? 'complete' : 'error');
-          }
-
-          // Add tool result to messages
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCallId,
-            content: JSON.stringify(toolResult)
-          });
-
-          toolResults.push({
-            toolName,
-            toolCallId,
-            success: toolResult.success
-          });
-
-          if (toolResult.success) {
-            // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
-            if (toolName === 'write' && params.path && params.content) {
-              try {
-                const validateResult = await executor.execute('validate', {
-                  filename: params.path,
-                  content: params.content
-                }, context);
-
-                if (!validateResult.success) {
-                  // Add validation error as tool result so LLM sees it
-                  conversationMessages.push({
-                    role: 'tool',
-                    tool_call_id: `validate_${toolCallId}`,
-                    content: JSON.stringify({
-                      tool: 'validate',
-                      filename: params.path,
-                      success: false,
-                      errors: validateResult.errors,
-                      guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.'
-                    })
-                  });
-                }
-              } catch (validateError) {
-                // Validation check skipped
-              }
-            }
-          }
-
-          // DOOM LOOP DETECTION: Track recent tool calls
-          recentToolCalls.push(callSignature);
-          if (recentToolCalls.length > DOOM_LOOP_THRESHOLD) {
-            recentToolCalls.shift(); // Keep only last N calls
-          }
-
-          // Check if last N calls are identical (doom loop)
-          if (recentToolCalls.length === DOOM_LOOP_THRESHOLD) {
-            const allSame = recentToolCalls.every(call => call === recentToolCalls[0]);
-            if (allSame) {
-              // Add feedback to conversation
-              conversationMessages.push({
-                role: 'user',
-                content: `⚠️ ATTENTION: You called the same tool with identical parameters ${DOOM_LOOP_THRESHOLD} times in a row. This indicates a loop. ` +
-                  `Try a different approach, use different parameters, or use a different tool. ` +
-                  `If the previous tool call failed with validation errors, fix those errors and try again with corrected code.`
-              });
-            }
-          }
-
-        } catch (error) {
-          // Add error result to messages
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCallId,
-            content: JSON.stringify({
-              success: false,
-              error: error.message
-            })
-          });
-
-          toolResults.push({
-            toolName,
-            toolCallId,
-            success: false,
-            error: error.message
-          });
+          params = JSON.parse(toolCall.function.arguments)
+        } catch (parseError) {
+          throw new Error(
+            `Failed to parse tool arguments: ${parseError.message}`
+          )
         }
-      }
 
-    } catch (error) {
-      // LLM call failed
-      throw error;
+        // Notify about tool execution start
+        if (onToolAction) {
+          onToolAction(toolName, params, 'start')
+        }
+
+        // Execute the tool
+        const toolResult = await executor.execute(toolName, params, context)
+
+        // Notify about tool execution complete
+        if (onToolAction) {
+          onToolAction(
+            toolName,
+            params,
+            toolResult.success ? 'complete' : 'error'
+          )
+        }
+
+        // Add tool result to messages
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCallId,
+          content: JSON.stringify(toolResult),
+        })
+
+        toolResults.push({
+          toolName,
+          toolCallId,
+          success: toolResult.success,
+        })
+
+        if (toolResult.success) {
+          // AUTO-VALIDATE: If write tool succeeded, auto-validate the file
+          if (toolName === 'write' && params.path && params.content) {
+            try {
+              const validateResult = await executor.execute(
+                'validate',
+                {
+                  filename: params.path,
+                  content: params.content,
+                },
+                context
+              )
+
+              if (!validateResult.success) {
+                // Add validation error as tool result so LLM sees it
+                conversationMessages.push({
+                  role: 'tool',
+                  tool_call_id: `validate_${toolCallId}`,
+                  content: JSON.stringify({
+                    tool: 'validate',
+                    filename: params.path,
+                    success: false,
+                    errors: validateResult.errors,
+                    guidance:
+                      validateResult.guidance ||
+                      'Fix the validation errors above before proceeding.',
+                  }),
+                })
+              }
+            } catch (validateError) {
+              // Validation check skipped
+            }
+          }
+        }
+
+        // DOOM LOOP DETECTION: Track recent tool calls
+        recentToolCalls.push(callSignature)
+        if (recentToolCalls.length > DOOM_LOOP_THRESHOLD) {
+          recentToolCalls.shift() // Keep only last N calls
+        }
+
+        // Check if last N calls are identical (doom loop)
+        if (recentToolCalls.length === DOOM_LOOP_THRESHOLD) {
+          const allSame = recentToolCalls.every(
+            (call) => call === recentToolCalls[0]
+          )
+          if (allSame) {
+            // Add feedback to conversation
+            conversationMessages.push({
+              role: 'user',
+              content:
+                `⚠️ ATTENTION: You called the same tool with identical parameters ${DOOM_LOOP_THRESHOLD} times in a row. This indicates a loop. ` +
+                `Try a different approach, use different parameters, or use a different tool. ` +
+                `If the previous tool call failed with validation errors, fix those errors and try again with corrected code.`,
+            })
+          }
+        }
+      } catch (error) {
+        // Add error result to messages
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCallId,
+          content: JSON.stringify({
+            success: false,
+            error: error.message,
+          }),
+        })
+
+        toolResults.push({
+          toolName,
+          toolCallId,
+          success: false,
+          error: error.message,
+        })
+      }
     }
   }
 
   // Max loops exceeded
   throw new Error(
     `Tool calling loop exceeded maximum iterations (${maxToolLoops}). ` +
-    `LLM may be stuck in a tool-calling loop. Consider adjusting prompts or max loop count.`
-  );
+      `LLM may be stuck in a tool-calling loop. Consider adjusting prompts or max loop count.`
+  )
 }
 
 /**
@@ -601,8 +637,8 @@ export async function callLLMWithTools({
  * @returns {Promise<string>} Extracted text content from final response
  */
 export async function callLLMWithToolsAndExtract(options) {
-  const response = await callLLMWithTools(options);
-  return extractContent(response);
+  const response = await callLLMWithTools(options)
+  return extractContent(response)
 }
 
 export default {
@@ -611,5 +647,5 @@ export default {
   callLLMWithToolsAndExtract,
   extractContent,
   callLLMAndExtract,
-  callLLMForJSON
-};
+  callLLMForJSON,
+}

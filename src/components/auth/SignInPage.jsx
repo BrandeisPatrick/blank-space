@@ -438,7 +438,7 @@ export const SignInPage = ({ onNavigateToMain, onNavigateToSignUp, onSignInSucce
             margin: 0,
             fontFamily: theme.typography.fontFamily.sans,
           }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               type="button"
               style={{

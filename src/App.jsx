@@ -4,24 +4,20 @@ import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
-import { TopBar } from "./components/ui";
-import { ChatPanel, ChatInput } from "./components/chat";
-import { EditorPanel, FileTabs, FileExplorer } from "./components/editor";
-import { PreviewPanel } from "./components/preview";
 import { ArtifactSidebar } from "./components/artifact";
 import { FloatingChatPanel } from "./components/ui/FloatingChatPanel";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { processMessage } from "./services/ToolOrchestrator.js";
-import { ROUTES, TIMING, MESSAGES, LABELS, PANELS, COLORS } from "./constants";
+import { ROUTES, TIMING, MESSAGES } from "./constants";
 import "./styles/App.css";
 
 function App() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact, deleteArtifact } = useArtifacts();
+  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
   const isMobile = useIsMobile();
 
   // Route state
@@ -530,42 +526,6 @@ function App() {
     }
   };
 
-  // Handle file creation
-  const handleFileCreate = (filename, content) => {
-    const updatedFiles = {
-      ...files,
-      [filename]: content
-    };
-    setFiles(updatedFiles);
-    setActiveFile(filename);
-    // Auto-save to artifact (only if there's an active artifact)
-    if (activeArtifactId) {
-      updateArtifactFiles(activeArtifactId, updatedFiles);
-    }
-  };
-
-  // Handle file deletion
-  const handleFileDelete = (filename) => {
-    const updatedFiles = { ...files };
-    delete updatedFiles[filename];
-    setFiles(updatedFiles);
-
-    // If deleting the active file, switch to another file
-    if (activeFile === filename) {
-      const remainingFiles = Object.keys(updatedFiles);
-      if (remainingFiles.length > 0) {
-        setActiveFile(remainingFiles[0]);
-      } else {
-        setActiveFile('');
-      }
-    }
-
-    // Auto-save to artifact (only if there's an active artifact)
-    if (activeArtifactId) {
-      updateArtifactFiles(activeArtifactId, updatedFiles);
-    }
-  };
-
   // Auto-navigate based on auth state
   useEffect(() => {
     if (!authLoading) {
@@ -577,10 +537,6 @@ function App() {
       // (removed redirect that sent guests back to landing)
     }
   }, [user, authLoading, currentRoute]);
-
-  // Calculate panel widths
-  const visiblePanels = [showChat, showCode, showPreview].filter(Boolean).length;
-  const panelWidth = isMobile ? '100%' : (visiblePanels > 0 ? `${100 / visiblePanels}%` : '100%');
 
   // Show loading while checking auth state
   if (authLoading) {
