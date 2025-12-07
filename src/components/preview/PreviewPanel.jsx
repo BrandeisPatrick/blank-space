@@ -6,7 +6,6 @@ import { GlobeIcon } from '../icons'
 
 export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = false }) => {
   const iframeRef = useRef(null)
-  const containerRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const [errors, setErrors] = useState([])
@@ -129,7 +128,10 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; overflow: hidden; }
+      html, body, #root { overflow: hidden; }
+      ::-webkit-scrollbar { display: none; }
+      * { scrollbar-width: none; -ms-overflow-style: none; }
       ${css}
     </style>
 </head>
@@ -257,7 +259,10 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview</title>
     <style>
-      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; overflow: hidden; }
+      html, body, #root { overflow: hidden; }
+      ::-webkit-scrollbar { display: none; }
+      * { scrollbar-width: none; -ms-overflow-style: none; }
       ${css}
     </style>
 </head>
@@ -376,24 +381,6 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     // Note: onError added to dependencies to avoid stale closures
   }, [onError])
 
-  // Mouse wheel zoom support
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const handleWheel = (e) => {
-      // Only zoom if Ctrl/Cmd is pressed
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
-
-        const delta = e.deltaY > 0 ? -25 : 25
-        setZoom(prev => Math.max(25, Math.min(200, prev + delta)))
-      }
-    }
-
-    container.addEventListener('wheel', handleWheel, { passive: false })
-    return () => container.removeEventListener('wheel', handleWheel)
-  }, [])
 
   if (!files || Object.keys(files).length === 0) {
     return (
@@ -543,12 +530,11 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
 
       {/* Preview iframe */}
       <div
-        ref={containerRef}
         style={{
           flex: 1,
           background: '#ffffff',
           borderRadius: errors.length > 0 ? '0' : `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
-          overflow: 'auto',
+          overflow: 'hidden',
           border: `2px solid ${theme.colors.bg.border}`,
           borderTop: 'none',
           borderBottom: errors.length > 0 ? 'none' : `2px solid ${theme.colors.bg.border}`,
@@ -562,6 +548,7 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
           transformOrigin: 'top left',
           minWidth: zoom !== 100 ? `${100 * 100 / zoom}%` : '100%',
           minHeight: zoom !== 100 ? `${100 * 100 / zoom}%` : '100%',
+          overflow: 'hidden',
         }}>
           <iframe
             ref={iframeRef}
