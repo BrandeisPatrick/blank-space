@@ -22,6 +22,9 @@ const lightTheme = {
       warning: '#ff9500',      // Orange
       error: '#ff3b30',        // Bright red
       info: '#C97D63',         // Terracotta for info
+      ios: '#007AFF',          // iOS system blue
+      iosHover: '#0066DD',     // iOS blue hover state
+      iosLight: 'rgba(0, 122, 255, 0.12)',  // iOS blue background (light)
     },
     status: {
       success: '#34c759',      // Bright green
@@ -71,6 +74,9 @@ const darkTheme = {
       warning: '#fbbf24',      // Bright yellow
       error: '#f87171',        // Bright red
       info: '#60a5fa',         // Bright blue for info
+      ios: '#0A84FF',          // iOS system blue (dark mode variant)
+      iosHover: '#409CFF',     // iOS blue hover state (dark mode)
+      iosLight: 'rgba(10, 132, 255, 0.25)',  // iOS blue background (dark)
     },
     status: {
       success: '#4ade80',      // Bright green

@@ -9,12 +9,24 @@ import { retroTyperArtifact } from './artifacts/retroTyper';
 import { cronusArtifact } from './artifacts/cronus';
 import { calendarTodoArtifact } from './artifacts/calendarTodo';
 import { strategyGameArtifact } from './artifacts/strategyGame';
+import { animatedCardsArtifact } from './artifacts/animatedCards';
+import { dataFetcherArtifact } from './artifacts/dataFetcher';
+import { interactiveDashboardArtifact } from './artifacts/interactiveDashboard';
+import { kanbanBoardArtifact } from './artifacts/kanbanBoard';
+import { musicPlayerArtifact } from './artifacts/musicPlayer';
+import { weatherAppArtifact } from './artifacts/weatherApp';
 
 export const PREBUILD_ARTIFACTS = [
   calendarTodoArtifact,
   strategyGameArtifact,
   retroTyperArtifact,
-  cronusArtifact
+  cronusArtifact,
+  animatedCardsArtifact,
+  dataFetcherArtifact,
+  interactiveDashboardArtifact,
+  kanbanBoardArtifact,
+  musicPlayerArtifact,
+  weatherAppArtifact
 ];
 
 /**
