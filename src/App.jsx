@@ -34,6 +34,14 @@ function App() {
     setUseKnowledgeBase(prev => !prev);
   }, [setUseKnowledgeBase]);
 
+  // GPT-5 model state - enables GPT-5 models instead of GPT-4
+  const [useGPT5, setUseGPT5] = useLocalStorage('useGPT5', false);
+
+  // Toggle GPT-5 model preference
+  const toggleGPT5 = useCallback(() => {
+    setUseGPT5(prev => !prev);
+  }, [setUseGPT5]);
+
   // State management
   const [chatMessages, setChatMessages] = useState([]);
   const [files, setFiles] = useState(activeArtifact?.files || {});
@@ -373,7 +381,7 @@ function App() {
 
     try {
       // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase });
+      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase, useGPT5 });
 
       if (result.success) {
         // Remove loading message and mark processing complete
@@ -467,7 +475,7 @@ function App() {
         }]);
       }
     }
-  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase]);
+  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase, useGPT5]);
   // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
 
   // Handle initial message from URL parameter (landing page → studio transition)
@@ -625,6 +633,8 @@ function App() {
         onSignIn={handleNavigateToSignIn}
         useKnowledgeBase={useKnowledgeBase}
         onToggleKnowledgeBase={toggleKnowledgeBase}
+        useGPT5={useGPT5}
+        onToggleGPT5={toggleGPT5}
       />
 
       {/* Floating Chat Panel - Only shows when AI is working */}

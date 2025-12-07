@@ -62,7 +62,9 @@ export const EnhancedChatInput = ({
   onSend,
   initialMessage = '',
   useKnowledgeBase = true,
-  onToggleKnowledgeBase
+  onToggleKnowledgeBase,
+  useGPT5 = false,
+  onToggleGPT5
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
@@ -307,6 +309,63 @@ export const EnhancedChatInput = ({
             <PlusIcon size={24} />
           </button>
 
+          {/* GPT-4/GPT-5 Toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleGPT5 && onToggleGPT5()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              background: theme.colors.bg.tertiary,
+              border: 'none',
+              cursor: 'pointer',
+              color: theme.colors.text.secondary,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              fontFamily: theme.typography.fontFamily.mono,
+              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+              borderRadius: theme.radius.full,
+              transition: `all ${theme.animation.fast}`,
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = theme.colors.bg.secondary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = theme.colors.bg.tertiary;
+            }}
+          >
+            <span style={{
+              color: useGPT5 ? theme.colors.text.tertiary : theme.colors.text.primary,
+              transition: `color ${theme.animation.fast}`,
+            }}>4</span>
+            <span style={{
+              width: '32px',
+              height: '18px',
+              background: useGPT5 ? '#10b981' : theme.colors.bg.secondary,
+              borderRadius: '9px',
+              position: 'relative',
+              transition: `background ${theme.animation.fast}`,
+            }}>
+              <span style={{
+                position: 'absolute',
+                top: '2px',
+                left: useGPT5 ? '16px' : '2px',
+                width: '14px',
+                height: '14px',
+                background: '#fff',
+                borderRadius: '50%',
+                transition: `left ${theme.animation.fast}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </span>
+            <span style={{
+              color: useGPT5 ? theme.colors.text.primary : theme.colors.text.tertiary,
+              transition: `color ${theme.animation.fast}`,
+            }}>5</span>
+          </button>
+
           {/* Knowledge Base - icon transforms to X on hover */}
           {useKnowledgeBase && (
             <button
@@ -396,5 +455,7 @@ EnhancedChatInput.propTypes = {
   onSend: PropTypes.func.isRequired,
   initialMessage: PropTypes.string,
   useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func
+  onToggleKnowledgeBase: PropTypes.func,
+  useGPT5: PropTypes.bool,
+  onToggleGPT5: PropTypes.func
 };

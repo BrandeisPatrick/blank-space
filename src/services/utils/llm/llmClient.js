@@ -111,9 +111,13 @@ export async function callLLM({
   // Increase timeout for GPT-5 models (they may be slower for complex tasks)
   const effectiveTimeout = isGPT5 && timeout === 45000 ? 120000 : timeout
 
+  // GPT-5 models use reasoning tokens internally, so we need more tokens
+  // to ensure there's enough budget for both reasoning and output
+  const effectiveMaxTokens = isGPT5 ? Math.max(maxTokens * 4, 6000) : maxTokens
+
   // Build parameters based on model type
   const tokenParam = isGPT5
-    ? { max_completion_tokens: maxTokens }
+    ? { max_completion_tokens: effectiveMaxTokens }
     : { max_tokens: maxTokens }
   const tempParam = isGPT5 ? {} : { temperature }
 
