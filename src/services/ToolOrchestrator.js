@@ -209,10 +209,15 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @param {Function} onUpdate - Callback for streaming updates
  * @param {Object} options - Additional options
  * @param {boolean} options.useKnowledgeBase - Whether to use the component knowledge base
+ * @param {boolean} options.useGPT5 - Whether to use GPT-5 models instead of GPT-4
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { useKnowledgeBase = false } = options;
+  const { useKnowledgeBase = false, useGPT5 = false } = options;
+
+  // Select model based on user preference
+  const model = useGPT5 ? 'gpt-5-mini' : 'gpt-4o-mini';
+  console.log(`[ToolOrchestrator] Using model: ${model}`);
   const startTime = Date.now();
 
   // Callback wrapper for updates
@@ -235,7 +240,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       });
 
       const chatResponse = await callLLM({
-        model: 'gpt-4o-mini',
+        model,
         systemPrompt: CHAT_SYSTEM_PROMPT,
         userPrompt: userMessage,
         maxTokens: 500,
@@ -334,7 +339,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
 
     // Call LLM with tools
     const llmResponse = await callLLMWithTools({
-      model: 'gpt-4o-mini',
+      model,
       systemPrompt,
       messages,
       toolRegistry,

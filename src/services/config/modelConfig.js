@@ -8,6 +8,9 @@
 /**
  * Model Selection Strategy:
  *
+ * - o4-mini: OpenAI's reasoning model - excellent for code generation and complex tasks
+ *   Best balance of quality and cost for most tasks
+ * - gpt-4o-mini: Fast, cost-effective for lightweight tasks
  * - gpt-5-mini: Major agents (Generator, Modifier, Planner) - advanced reasoning and generation
  *   FALLBACK: gpt-4o if gpt-5-mini is not available
  * - gpt-5-nano: Lightweight agents (Analyzer, Intent Classifier) - fast, cost-effective tasks

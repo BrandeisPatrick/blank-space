@@ -17,7 +17,7 @@ import { AppStorePanel } from '../appstore/AppStorePanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase }) => {
+export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, useGPT5, onToggleGPT5 }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
@@ -281,6 +281,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           initialMessage={selectedSuggestionPillText}
           useKnowledgeBase={useKnowledgeBase}
           onToggleKnowledgeBase={onToggleKnowledgeBase}
+          useGPT5={useGPT5}
+          onToggleGPT5={onToggleGPT5}
         />
       </main>
 
@@ -300,5 +302,7 @@ LandingPage.propTypes = {
   onTryNow: PropTypes.func.isRequired,
   onSignIn: PropTypes.func.isRequired,
   useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func
+  onToggleKnowledgeBase: PropTypes.func,
+  useGPT5: PropTypes.bool,
+  onToggleGPT5: PropTypes.func
 };
