@@ -68,7 +68,6 @@ export const AuthProvider = ({ children }) => {
     }
     // Force token refresh to ensure we get a valid, non-expired token
     const token = await auth.currentUser.getIdToken(true);
-    console.log('Got ID token (length:', token.length, ')');
     return token;
   };
 

@@ -6,7 +6,7 @@ const ArtifactContext = createContext();
 // Generate unique artifact ID
 const generateArtifactId = () => {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 9);
+  const random = crypto.randomUUID().substring(0, 7);
   return `artifact_${timestamp}_${random}`;
 };
 
@@ -259,12 +259,6 @@ export const ArtifactProvider = ({ children }) => {
 
   // Update artifact files (with debouncing to reduce API calls)
   const updateArtifactFiles = (id, files) => {
-    // DEBUG: Log artifact file updates
-    console.log('🗄️  updateArtifactFiles called');
-    console.log('   Artifact ID:', id);
-    console.log('   Files being saved:', Object.keys(files));
-    console.log('   Total file count:', Object.keys(files).length);
-
     // Optimistically update UI immediately
     setArtifacts(prev => {
       const updated = prev.map(artifact =>
@@ -272,7 +266,6 @@ export const ArtifactProvider = ({ children }) => {
           ? { ...artifact, files, updatedAt: new Date().toISOString() }
           : artifact
       );
-      console.log('   ✓ Artifact state updated (optimistic)');
       return updated;
     });
 
