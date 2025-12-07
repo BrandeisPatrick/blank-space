@@ -54,7 +54,7 @@ const SandpackLoadingWrapper = ({ children }) => {
       const retryTimeout = setTimeout(handleRetry, 1000);
       return () => clearTimeout(retryTimeout);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hasError, retryCount]);
 
   return (
@@ -73,7 +73,7 @@ const SandpackLoadingWrapper = ({ children }) => {
           justifyContent: 'center',
           gap: '20px',
           zIndex: 1000,
-          borderRadius: appTheme.radius.xl
+          borderRadius: '12px'
         }}>
           <div style={{
             width: '50px',
@@ -118,7 +118,7 @@ const ErrorListener = ({ onError }) => {
       };
 
       // Try to extract file/line info from error message
-      const fileMatch = latestError.data?.[0]?.match(/([^\/]+\.(jsx?|tsx?)):(\d+):(\d+)/);
+      const fileMatch = latestError.data?.[0]?.match(/([^/]+\.(jsx?|tsx?)):(\d+):(\d+)/);
       if (fileMatch) {
         errorData.file = fileMatch[1];
         errorData.line = parseInt(fileMatch[3]);

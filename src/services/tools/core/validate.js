@@ -50,7 +50,7 @@ export const validateTool = new Tool({
       }
 
       // 2. Check for forbidden patterns
-      checkForbiddenPatterns(content, filename, errors);
+      checkForbiddenPatterns(content, filename, errors, warnings);
 
       // 3. Check import rules
       checkImportRules(content, filename, errors);
@@ -100,7 +100,7 @@ export const validateTool = new Tool({
 /**
  * Check for forbidden patterns in code
  */
-function checkForbiddenPatterns(content, filename, errors) {
+function checkForbiddenPatterns(content, filename, errors, warnings) {
   const lines = content.split('\n');
 
   lines.forEach((line, index) => {
