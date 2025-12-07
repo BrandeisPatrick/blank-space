@@ -66,11 +66,6 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
   }
 
   useEffect(() => {
-    // DEBUG: Log when files prop changes
-    console.log('🖼️  PreviewPanel: files prop changed');
-    console.log('   Files received:', Object.keys(files));
-    console.log('   Total files:', Object.keys(files).length);
-
     if (!files || Object.keys(files).length === 0 || !iframeRef.current) return
 
     setErrors([])
@@ -96,8 +91,6 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     }
 
     const generatePreview = () => {
-      console.log('   🎬 Generating preview from files...');
-
       // Check if this is a React artifact
       const isReact = files['App.jsx'] || files['App.js']
 

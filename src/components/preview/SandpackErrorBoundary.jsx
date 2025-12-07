@@ -12,7 +12,7 @@ class SandpackErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Sandpack Error:', error, errorInfo);
-    this.state = { hasError: true, error, errorInfo };
+    this.setState({ hasError: true, error, errorInfo });
   }
 
   handleRetry = () => {

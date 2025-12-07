@@ -26,7 +26,6 @@ export class SessionManager {
     };
 
     this.sessions.set(sessionId, session);
-    console.log(`📝 Created session: ${sessionId}`);
 
     return session;
   }
@@ -64,8 +63,6 @@ export class SessionManager {
     session.messages.push(message);
     session.updatedAt = Date.now();
 
-    console.log(`💬 [${sessionId}] ${role}: ${content.substring(0, 50)}...`);
-
     return message;
   }
 
@@ -93,8 +90,6 @@ export class SessionManager {
 
     session.toolCalls.push(toolCall);
     session.updatedAt = Date.now();
-
-    console.log(`🔧 [${sessionId}] Tool: ${toolName} - ${result.success ? '✓' : '✗'}`);
 
     return toolCall;
   }
@@ -172,7 +167,6 @@ export class SessionManager {
    */
   clearSession(sessionId) {
     this.sessions.delete(sessionId);
-    console.log(`🗑️  Cleared session: ${sessionId}`);
   }
 
   /**
@@ -188,7 +182,7 @@ export class SessionManager {
    * @private
    */
   _generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${crypto.randomUUID().substring(0, 9)}`;
   }
 
   /**
@@ -196,7 +190,7 @@ export class SessionManager {
    * @private
    */
   _generateMessageId() {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `msg_${Date.now()}_${crypto.randomUUID().substring(0, 9)}`;
   }
 
   /**
@@ -204,7 +198,7 @@ export class SessionManager {
    * @private
    */
   _generateToolCallId() {
-    return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `call_${Date.now()}_${crypto.randomUUID().substring(0, 9)}`;
   }
 }
 
