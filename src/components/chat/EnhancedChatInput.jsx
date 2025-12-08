@@ -5,6 +5,7 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
+import { MODEL_TIERS } from '../../services/config/modelConfig';
 
 // Plus icon for the dropdown trigger
 const PlusIcon = ({ size = 20, color = "currentColor" }) => (
@@ -63,16 +64,19 @@ export const EnhancedChatInput = ({
   initialMessage = '',
   useKnowledgeBase = true,
   onToggleKnowledgeBase,
-  useGPT5 = false,
-  onToggleGPT5
+  modelTier = 'regular',
+  onChangeModelTier
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const modelDropdownRef = useRef(null);
+  const modelButtonRef = useRef(null);
 
   // Update message when initialMessage prop changes
   useEffect(() => {
@@ -81,7 +85,7 @@ export const EnhancedChatInput = ({
     }
   }, [initialMessage]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -91,6 +95,14 @@ export const EnhancedChatInput = ({
         !buttonRef.current.contains(event.target)
       ) {
         setShowDropdown(false);
+      }
+      if (
+        modelDropdownRef.current &&
+        !modelDropdownRef.current.contains(event.target) &&
+        modelButtonRef.current &&
+        !modelButtonRef.current.contains(event.target)
+      ) {
+        setShowModelDropdown(false);
       }
     };
 
@@ -309,62 +321,118 @@ export const EnhancedChatInput = ({
             <PlusIcon size={24} />
           </button>
 
-          {/* GPT-4/GPT-5 Toggle */}
-          <button
-            type="button"
-            onClick={() => onToggleGPT5 && onToggleGPT5()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              background: theme.colors.bg.tertiary,
-              border: 'none',
-              cursor: 'pointer',
-              color: theme.colors.text.secondary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.mono,
-              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-              borderRadius: theme.radius.full,
-              transition: `all ${theme.animation.fast}`,
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = theme.colors.bg.secondary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = theme.colors.bg.tertiary;
-            }}
-          >
-            <span style={{
-              color: useGPT5 ? theme.colors.text.tertiary : theme.colors.text.primary,
-              transition: `color ${theme.animation.fast}`,
-            }}>4</span>
-            <span style={{
-              width: '32px',
-              height: '18px',
-              background: useGPT5 ? '#10b981' : theme.colors.bg.secondary,
-              borderRadius: '9px',
-              position: 'relative',
-              transition: `background ${theme.animation.fast}`,
-            }}>
-              <span style={{
-                position: 'absolute',
-                top: '2px',
-                left: useGPT5 ? '16px' : '2px',
-                width: '14px',
-                height: '14px',
-                background: '#fff',
-                borderRadius: '50%',
-                transition: `left ${theme.animation.fast}`,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-              }} />
-            </span>
-            <span style={{
-              color: useGPT5 ? theme.colors.text.primary : theme.colors.text.tertiary,
-              transition: `color ${theme.animation.fast}`,
-            }}>5</span>
-          </button>
+          {/* Model Tier Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={modelButtonRef}
+              type="button"
+              onClick={() => setShowModelDropdown(!showModelDropdown)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                background: showModelDropdown ? theme.colors.bg.secondary : theme.colors.bg.tertiary,
+                border: 'none',
+                cursor: 'pointer',
+                color: theme.colors.text.secondary,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+                padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+                borderRadius: theme.radius.full,
+                transition: `all ${theme.animation.fast}`,
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.secondary;
+              }}
+              onMouseLeave={(e) => {
+                if (!showModelDropdown) {
+                  e.currentTarget.style.background = theme.colors.bg.tertiary;
+                }
+              }}
+            >
+              <span>{MODEL_TIERS[modelTier]?.name || 'Regular'}</span>
+              <ChevronDownIcon size={14} color={theme.colors.text.secondary} />
+            </button>
+
+            {/* Model Dropdown Menu */}
+            {showModelDropdown && (
+              <div
+                ref={modelDropdownRef}
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  marginBottom: theme.spacing.sm,
+                  ...createGlassEffect(theme),
+                  background: mode === 'dark'
+                    ? 'rgba(30, 30, 35, 0.95)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                  borderRadius: theme.radius.lg,
+                  boxShadow: mode === 'dark'
+                    ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+                    : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                  minWidth: '140px',
+                  overflow: 'hidden',
+                  animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: 100,
+                }}
+              >
+                {Object.entries(MODEL_TIERS).map(([key, tier]) => (
+                  <div
+                    key={key}
+                    onClick={() => {
+                      onChangeModelTier && onChangeModelTier(key);
+                      setShowModelDropdown(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      cursor: 'pointer',
+                      background: modelTier === key
+                        ? (mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
+                        : 'transparent',
+                      transition: `background ${theme.animation.fast}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (modelTier !== key) {
+                        e.currentTarget.style.background = mode === 'dark'
+                          ? 'rgba(255,255,255,0.05)'
+                          : 'rgba(0,0,0,0.03)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (modelTier !== key) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    <div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        color: theme.colors.text.primary,
+                      }}>
+                        {tier.name}
+                      </div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.text.tertiary,
+                      }}>
+                        {tier.description}
+                      </div>
+                    </div>
+                    {modelTier === key && (
+                      <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Knowledge Base - icon transforms to X on hover */}
           {useKnowledgeBase && (
@@ -456,6 +524,6 @@ EnhancedChatInput.propTypes = {
   initialMessage: PropTypes.string,
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
-  useGPT5: PropTypes.bool,
-  onToggleGPT5: PropTypes.func
+  modelTier: PropTypes.oneOf(['lite', 'regular', 'pro']),
+  onChangeModelTier: PropTypes.func
 };

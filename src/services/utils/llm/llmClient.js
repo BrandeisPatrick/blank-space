@@ -8,8 +8,25 @@ import { ToolExecutor } from '../../tools/ToolExecutor.js'
  * - Timeout handling
  * - Rate limit detection
  * - GPT-5 parameter handling
+ * - Responses API support for codex models
  * - Consistent error handling
  */
+
+/**
+ * Check if model requires Responses API instead of Chat Completions API
+ * Models like gpt-5.1-codex use the newer Responses API
+ */
+function isResponsesAPIModel(model) {
+  return model.includes('codex') || model.includes('5.1')
+}
+
+/**
+ * Check if model is a reasoning model (o1, o3, o4 series)
+ * These models don't support temperature and use reasoning tokens internally
+ */
+function isReasoningModel(model) {
+  return model.startsWith('o1') || model.startsWith('o3') || model.startsWith('o4')
+}
 
 /**
  * Sleep utility for retry delays
@@ -54,6 +71,9 @@ function getUserFriendlyError(error) {
   if (error.status === 401) {
     return 'Authentication error. Please check your API key.'
   }
+  if (error.status === 404) {
+    return `Model not found or API endpoint not available: ${error.message || 'Unknown error'}`
+  }
   if (error.status === 500 || error.status === 503) {
     return 'OpenAI service temporarily unavailable. Please try again.'
   }
@@ -61,6 +81,130 @@ function getUserFriendlyError(error) {
     return 'Request timed out. Please try again or simplify your request.'
   }
   return `API error: ${error.message || 'Unknown error'}`
+}
+
+/**
+ * Call OpenAI Responses API (for codex models like gpt-5.1-codex)
+ * The Responses API uses a different endpoint and structure than Chat Completions
+ *
+ * @param {Object} options - Configuration options
+ * @returns {Promise<Object>} Normalized response in Chat Completions format
+ */
+async function callResponsesAPI({
+  model,
+  systemPrompt,
+  userPrompt,
+  messages,
+  maxTokens,
+  timeout,
+}) {
+  // Build input from messages or prompts
+  let input = []
+
+  if (messages && Array.isArray(messages) && messages.length > 0) {
+    // Convert messages to Responses API format
+    input = messages.map(msg => ({
+      role: msg.role === 'system' ? 'developer' : msg.role, // Responses API uses 'developer' instead of 'system'
+      content: msg.content
+    }))
+  } else {
+    // Build from individual prompts
+    if (systemPrompt) {
+      input.push({ role: 'developer', content: systemPrompt })
+    }
+    if (userPrompt) {
+      input.push({ role: 'user', content: userPrompt })
+    }
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set')
+  }
+
+  // Create abort controller for timeout
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        input,
+        max_output_tokens: maxTokens,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const error = new Error(errorData.error?.message || `HTTP ${response.status}`)
+      error.status = response.status
+      throw error
+    }
+
+    const data = await response.json()
+
+    // Normalize to Chat Completions response format for compatibility
+    // Responses API uses input_tokens/output_tokens, normalize to prompt_tokens/completion_tokens
+    const normalizedUsage = data.usage ? {
+      prompt_tokens: data.usage.input_tokens || 0,
+      completion_tokens: data.usage.output_tokens || 0,
+      total_tokens: (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0),
+      completion_tokens_details: {
+        reasoning_tokens: data.usage.output_tokens_details?.reasoning_tokens || 0
+      }
+    } : {};
+
+    return {
+      id: data.id,
+      object: 'chat.completion',
+      created: data.created_at ? Math.floor(new Date(data.created_at).getTime() / 1000) : Date.now(),
+      model: data.model,
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: extractResponsesAPIContent(data),
+        },
+        finish_reason: data.status === 'completed' ? 'stop' : data.status,
+      }],
+      usage: normalizedUsage,
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout')
+    }
+    throw error
+  }
+}
+
+/**
+ * Extract text content from Responses API response
+ */
+function extractResponsesAPIContent(data) {
+  // Responses API returns output as an array of content blocks
+  if (data.output && Array.isArray(data.output)) {
+    return data.output
+      .filter(item => item.type === 'message' && item.content)
+      .flatMap(item => item.content)
+      .filter(block => block.type === 'output_text')
+      .map(block => block.text)
+      .join('')
+  }
+  // Fallback for simpler response format
+  if (data.output_text) {
+    return data.output_text
+  }
+  return ''
 }
 
 /**
@@ -92,34 +236,84 @@ export async function callLLM({
   timeout = 45000,
   baseDelay = 1000,
 }) {
-  // Detect GPT-5 model
+  // Detect GPT-5 model, reasoning models, and codex models
   const isGPT5 = model.includes('gpt-5')
+  const isReasoning = isReasoningModel(model)
+  const useResponsesAPI = isResponsesAPIModel(model)
+  const needsSpecialHandling = isGPT5 || isReasoning
 
-  // Warn if temperature is specified for GPT-5 (it doesn't support it)
-  if (isGPT5 && temperature !== 0.7) {
+  // Warn if temperature is specified for models that don't support it
+  if (needsSpecialHandling && temperature !== 0.7) {
     console.warn(
-      `⚠️  WARNING: Temperature parameter (${temperature}) specified for GPT-5 model "${model}"`
+      `⚠️  WARNING: Temperature parameter (${temperature}) specified for ${isReasoning ? 'reasoning' : 'GPT-5'} model "${model}"`
     )
     console.warn(
-      `   GPT-5 models do not support temperature parameter and will use their default.`
+      `   ${isReasoning ? 'Reasoning' : 'GPT-5'} models do not support temperature parameter and will use their default.`
     )
     console.warn(
       `   Consider adjusting prompts or model selection if deterministic output is required.`
     )
   }
 
-  // Increase timeout for GPT-5 models (they may be slower for complex tasks)
-  const effectiveTimeout = isGPT5 && timeout === 45000 ? 120000 : timeout
+  // Increase timeout for GPT-5 and reasoning models (they may be slower for complex tasks)
+  const effectiveTimeout = needsSpecialHandling && timeout === 45000 ? 120000 : timeout
 
-  // GPT-5 models use reasoning tokens internally, so we need more tokens
+  // GPT-5 and reasoning models use reasoning tokens internally, so we need more tokens
   // to ensure there's enough budget for both reasoning and output
-  const effectiveMaxTokens = isGPT5 ? Math.max(maxTokens * 4, 6000) : maxTokens
+  const effectiveMaxTokens = needsSpecialHandling ? Math.max(maxTokens * 4, 6000) : maxTokens
+
+  // Route to Responses API for codex models (they don't support Chat Completions)
+  if (useResponsesAPI) {
+    // Note: Responses API doesn't support tools yet, warn if tools provided
+    if (tools && tools.length > 0) {
+      console.warn(`⚠️  WARNING: Tools not supported for Responses API model "${model}"`)
+    }
+
+    // Build messages for Responses API
+    let responsesMessages = messages
+    if (!responsesMessages || responsesMessages.length === 0) {
+      responsesMessages = []
+      if (systemPrompt) {
+        responsesMessages.push({ role: 'system', content: systemPrompt })
+      }
+      if (userPrompt) {
+        responsesMessages.push({ role: 'user', content: userPrompt })
+      }
+    }
+
+    // Retry loop for Responses API
+    let lastError = null
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await callResponsesAPI({
+          model,
+          messages: responsesMessages,
+          maxTokens: effectiveMaxTokens,
+          timeout: effectiveTimeout,
+        })
+      } catch (error) {
+        lastError = error
+        if (!isRetryableError(error)) {
+          throw new Error(getUserFriendlyError(error))
+        }
+        if (attempt === maxRetries - 1) {
+          throw new Error(getUserFriendlyError(error))
+        }
+        const delay = baseDelay * Math.pow(2, attempt)
+        console.warn(
+          `LLM call failed (attempt ${attempt + 1}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`
+        )
+        await sleep(delay)
+      }
+    }
+    throw new Error(getUserFriendlyError(lastError))
+  }
 
   // Build parameters based on model type
-  const tokenParam = isGPT5
+  const tokenParam = needsSpecialHandling
     ? { max_completion_tokens: effectiveMaxTokens }
     : { max_tokens: maxTokens }
-  const tempParam = isGPT5 ? {} : { temperature }
+  const tempParam = needsSpecialHandling ? {} : { temperature }
 
   // Build messages array - use provided messages or fallback to systemPrompt/userPrompt
   let finalMessages = []
@@ -227,6 +421,23 @@ export async function callLLM({
 }
 
 /**
+ * Strip markdown code fences from content
+ * Models sometimes wrap code in ```jsx or ```javascript despite instructions
+ */
+function stripMarkdownFences(content) {
+  if (!content) return content
+
+  // Remove opening fence with optional language identifier
+  // Matches: ```jsx, ```javascript, ```js, ```tsx, ```html, ``` etc.
+  let stripped = content.replace(/^```(?:jsx?|tsx?|javascript|html|css|json)?\s*\n?/i, '')
+
+  // Remove closing fence
+  stripped = stripped.replace(/\n?```\s*$/i, '')
+
+  return stripped.trim()
+}
+
+/**
  * Extract text content from LLM response
  *
  * @param {Object} response - OpenAI API response
@@ -242,7 +453,8 @@ export function extractContent(response) {
     console.error('Invalid response structure in extractContent:', response)
     return ''
   }
-  return response.choices[0]?.message?.content || ''
+  const content = response.choices[0]?.message?.content || ''
+  return stripMarkdownFences(content)
 }
 
 /**

@@ -11,6 +11,28 @@ import { coreTools } from "./tools/core/index.js";
 import { callLLMWithTools, callLLM } from "./utils/llm/llmClient.js";
 import { classifyIntent } from "./intentClassifier.js";
 import { buildKnowledgeBaseContext } from "./knowledgeBase/promptBuilder.js";
+import { getModelForTier } from "./config/modelConfig.js";
+import promptGuidance from "./prompts.json";
+
+/**
+ * Get critical guidance rules from prompts.json
+ * These rules are essential for preventing runtime errors in the Sandpack preview
+ * Note: SANDPACK_NAVIGATION_RULES removed - validator now catches these issues
+ */
+const getCriticalGuidance = () => {
+  const criticalRules = [
+    // 'SANDPACK_NAVIGATION_RULES', // Removed - validator catches href="#" and mismatched tags
+    'BROWSER_RENDERABILITY_RULES',
+    'NO_INITIALIZATION_CODE',
+    'PACKAGE_MANAGEMENT_RULES',
+    'FRAMER_MOTION_USAGE'
+  ];
+
+  return criticalRules
+    .filter(key => promptGuidance[key])
+    .map(key => promptGuidance[key])
+    .join('\n\n');
+};
 
 /**
  * System prompt for code generation
@@ -57,6 +79,32 @@ This is a BROWSER-BASED preview system. Follow these STRICT rules:
 4. Use browser APIs: fetch, localStorage, crypto.randomUUID(), native Date
 5. Components in components/ folder (except App.jsx)
 6. Hooks in hooks/ folder
+
+# SANDBOX ENVIRONMENT LIMITATIONS
+This code runs in Sandpack - an isolated browser sandbox. Understand these constraints:
+
+1. **No External Network Access**
+   - fetch() to external APIs will fail (CORS blocked)
+   - External images may not load reliably
+   - ✅ Use mock data, static JSON, or placeholder content instead
+
+2. **No External Iframes or Embeds**
+   - <iframe src="https://..."> will cause CORS errors
+   - The sandbox has origin 'null' - external resources are blocked
+   - ✅ For "browser" apps: Simulate page content with React components
+   - ✅ Use mock HTML strings, placeholder divs, or rendered content
+
+3. **No Real Navigation**
+   - window.location changes don't work as expected
+   - Links to external sites won't actually navigate
+   - ✅ Use React state for "navigation" between views
+   - ✅ Simulate routing with conditional rendering
+
+4. **Self-Contained Apps Only**
+   - Everything must work offline with no external dependencies
+   - All data should be mocked/simulated
+   - ✅ Generate realistic fake data inline (users, posts, products, etc.)
+   - ✅ Use localStorage for persistence within the sandbox
 
 # STYLING REQUIREMENTS (MANDATORY)
 🎨 BEAUTIFUL BY DEFAULT - Every component must be visually polished
@@ -108,6 +156,27 @@ This is a BROWSER-BASED preview system. Follow these STRICT rules:
 
 ✅ LIST ITEMS (for todo lists, etc.):
 - "flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-all"
+
+# RESPONSIVE DESIGN (REQUIRED)
+All generated apps MUST be mobile-responsive using Tailwind breakpoints:
+
+✅ MOBILE-FIRST APPROACH:
+- Start with mobile styles, add md:/lg: for larger screens
+- Base: full-width, stacked layout
+- md: (768px+): side-by-side, larger spacing
+- lg: (1024px+): multi-column grids
+
+✅ RESPONSIVE PATTERNS:
+- Layout: "flex flex-col md:flex-row"
+- Grid: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+- Spacing: "p-4 md:p-6 lg:p-8", "gap-4 md:gap-6"
+- Text: "text-base md:text-lg", "text-2xl md:text-4xl"
+- Hidden elements: "hidden md:block", "md:hidden"
+
+✅ TOUCH-FRIENDLY (Mobile):
+- Buttons: min-height 44px, adequate tap targets
+- Links: sufficient spacing between tappable elements
+- Forms: large input fields (py-3 px-4), visible labels
 
 # VALIDATION & ERROR CORRECTION WORKFLOW
 When you write code, it will be automatically validated. If validation fails:
@@ -209,15 +278,15 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @param {Function} onUpdate - Callback for streaming updates
  * @param {Object} options - Additional options
  * @param {boolean} options.useKnowledgeBase - Whether to use the component knowledge base
- * @param {boolean} options.useGPT5 - Whether to use GPT-5 models instead of GPT-4
+ * @param {string} options.modelTier - Model tier ('lite', 'regular', or 'pro')
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { useKnowledgeBase = false, useGPT5 = false } = options;
+  const { useKnowledgeBase = false, modelTier = 'regular' } = options;
 
-  // Select model based on user preference
-  const model = useGPT5 ? 'gpt-5-mini' : 'gpt-4o-mini';
-  console.log(`[ToolOrchestrator] Using model: ${model}`);
+  // Select model based on user preference tier
+  const model = getModelForTier(modelTier);
+  console.log(`[ToolOrchestrator] Using model: ${model} (tier: ${modelTier})`);
   const startTime = Date.now();
 
   // Callback wrapper for updates
@@ -327,8 +396,17 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       }
     };
 
-    // Build system prompt with optional knowledge base context
+    // Build system prompt with critical guidance and optional knowledge base context
     let systemPrompt = CODE_GENERATION_SYSTEM_PROMPT;
+
+    // Always inject critical guidance rules from prompts.json
+    const criticalGuidance = getCriticalGuidance();
+    if (criticalGuidance) {
+      systemPrompt += '\n\n' + criticalGuidance;
+      console.log('[CriticalGuidance] Injected essential rules (navigation, renderability, initialization)');
+    }
+
+    // Add knowledge base context if enabled (Pro Mode)
     if (useKnowledgeBase) {
       const knowledgeBaseContext = buildKnowledgeBaseContext(userMessage);
       if (knowledgeBaseContext) {
