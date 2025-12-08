@@ -61,6 +61,12 @@ export const validateTool = new Tool({
       // 5. Check for class components
       checkClassComponents(content, filename, errors);
 
+      // 6. Check for navigation patterns that break Sandpack
+      checkNavigationPatterns(content, filename, errors);
+
+      // 7. Check for mismatched tags (e.g., <button>...</a>)
+      checkMismatchedTags(content, filename, errors);
+
       // If errors exist, return early
       if (errors.length > 0) {
         return {
@@ -267,6 +273,70 @@ function checkClassComponents(content, filename, errors) {
 }
 
 /**
+ * Check for problematic navigation patterns that break Sandpack
+ */
+function checkNavigationPatterns(content, filename, errors) {
+  const lines = content.split('\n');
+
+  lines.forEach((line, index) => {
+    const lineNum = index + 1;
+
+    // Check for <a href="#"> or <a href="#something"> patterns
+    // These cause page reload/white screen in Sandpack preview
+    if (/href\s*=\s*["']#[^"']*["']/.test(line) && !line.trim().startsWith('//')) {
+      errors.push({
+        type: 'NAVIGATION_ERROR',
+        message: 'href="#" causes page reload/white screen in Sandpack preview. Use button with onClick instead.',
+        line: lineNum,
+        pattern: 'href="#"',
+        fix: 'Replace <a href="#"> with: <button onClick={handleClick} className="...">Label</button>'
+      });
+    }
+
+    // Check for external URLs in href (will fail in Sandpack)
+    if (/href\s*=\s*["']https?:\/\//.test(line) && !line.trim().startsWith('//')) {
+      // This is a warning, not an error - external links don't crash, they just don't navigate
+      // We don't add to errors, but could add to warnings if needed
+    }
+  });
+}
+
+/**
+ * Check for mismatched opening/closing tags (common LLM error)
+ */
+function checkMismatchedTags(content, filename, errors) {
+  // Check for <button>...</a> pattern (button opened, anchor closed)
+  if (/<button[^>]*>(?:(?!<\/button>).)*?<\/a>/s.test(content)) {
+    errors.push({
+      type: 'MISMATCHED_TAGS',
+      message: 'Mismatched tags: <button> opened but </a> closed. Tags must match.',
+      pattern: '<button>...</a>',
+      fix: 'Use matching tags: <button onClick={handleClick}>Text</button>'
+    });
+  }
+
+  // Check for <a>...</button> pattern (anchor opened, button closed)
+  if (/<a[^>]*>(?:(?!<\/a>).)*?<\/button>/s.test(content)) {
+    errors.push({
+      type: 'MISMATCHED_TAGS',
+      message: 'Mismatched tags: <a> opened but </button> closed. Tags must match.',
+      pattern: '<a>...</button>',
+      fix: 'For navigation, use: <button onClick={handleClick}>Text</button>'
+    });
+  }
+
+  // Check for duplicate className attributes on same element
+  if (/className\s*=\s*["'][^"']*["']\s+className\s*=\s*["'][^"']*["']/.test(content)) {
+    errors.push({
+      type: 'DUPLICATE_ATTRIBUTE',
+      message: 'Duplicate className attributes on same element. Merge them into one.',
+      pattern: 'className="..." className="..."',
+      fix: 'Combine into single className: className="class1 class2 class3"'
+    });
+  }
+}
+
+/**
  * Check for code style warnings
  */
 function checkStyleWarnings(content, filename, warnings) {
@@ -308,6 +378,18 @@ function getGuidanceForErrors(errors) {
 
   if (errorTypes.has('COMPONENT_TYPE_ERROR')) {
     guidance.push('Rewrite class components as functional components using hooks (useState, useEffect, etc.)');
+  }
+
+  if (errorTypes.has('NAVIGATION_ERROR')) {
+    guidance.push('Use buttons with onClick handlers for navigation, not <a href="#">. Example: <button onClick={() => handleNav("page")} className="text-blue-600">Link</button>');
+  }
+
+  if (errorTypes.has('MISMATCHED_TAGS')) {
+    guidance.push('Fix mismatched tags - opening and closing tags must match. For navigation use: <button onClick={handler}>Text</button> (NOT <button>...</a>)');
+  }
+
+  if (errorTypes.has('DUPLICATE_ATTRIBUTE')) {
+    guidance.push('Merge duplicate className attributes into one: className="class1 class2 class3"');
   }
 
   return guidance.length > 0 ? guidance.join(' ') : undefined;

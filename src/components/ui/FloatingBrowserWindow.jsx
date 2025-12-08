@@ -266,8 +266,8 @@ export const FloatingBrowserWindow = ({
             </button>
           )}
 
-          {/* Zoom Controls - Only show in preview mode on desktop */}
-          {view === 'preview' && !isMobile && (
+          {/* Zoom Controls - Show in preview mode */}
+          {view === 'preview' && (
             <div style={{
               display: 'flex',
               alignItems: 'center',

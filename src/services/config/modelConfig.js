@@ -144,11 +144,47 @@ export function logModelConfig() {
 // Export individual model configs
 export const MODELS = MODEL_CONFIGS;
 
+/**
+ * Model Tiers for UI Selection
+ * Based on benchmark results:
+ * - Lite: gpt-4o-mini (8s avg, 67% first-pass, 5K tokens)
+ * - Regular: gpt-4.1-mini (14s avg, 100% success, 4K tokens)
+ * - Pro: codex-mini-latest (15s avg, 100% success, 14K tokens)
+ */
+export const MODEL_TIERS = {
+  lite: {
+    id: 'gpt-4o-mini',
+    name: 'Lite',
+    description: 'Fast & economical',
+  },
+  regular: {
+    id: 'gpt-4.1-mini',
+    name: 'Regular',
+    description: 'Balanced',
+  },
+  pro: {
+    id: 'gpt-4.1',
+    name: 'Pro',
+    description: 'Most capable',
+  },
+};
+
+/**
+ * Get model ID for a given tier
+ * @param {string} tier - 'lite', 'regular', or 'pro'
+ * @returns {string} Model identifier
+ */
+export function getModelForTier(tier) {
+  return MODEL_TIERS[tier]?.id || MODEL_TIERS.regular.id;
+}
+
 // Default export
 export default {
   getModel,
   getAllModels,
   logModelConfig,
+  getModelForTier,
   MODELS,
+  MODEL_TIERS,
   PRODUCTION_MODE
 };
