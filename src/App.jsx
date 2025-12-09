@@ -630,6 +630,8 @@ function App() {
         onToggleKnowledgeBase={toggleKnowledgeBase}
         modelTier={modelTier}
         onChangeModelTier={setModelTier}
+        activeArtifact={activeArtifact}
+        isEditingArtifact={browserWindowVisible && !!activeArtifact}
       />
 
       {/* Floating Chat Panel - Only shows when AI is working */}

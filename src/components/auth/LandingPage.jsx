@@ -17,7 +17,7 @@ import { AppStorePanel } from '../appstore/AppStorePanel';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier }) => {
+export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
@@ -283,6 +283,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           onToggleKnowledgeBase={onToggleKnowledgeBase}
           modelTier={modelTier}
           onChangeModelTier={onChangeModelTier}
+          activeArtifact={activeArtifact}
+          isEditingArtifact={isEditingArtifact}
         />
       </main>
 
@@ -304,5 +306,7 @@ LandingPage.propTypes = {
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
   modelTier: PropTypes.oneOf(['lite', 'pro']),
-  onChangeModelTier: PropTypes.func
+  onChangeModelTier: PropTypes.func,
+  activeArtifact: PropTypes.object,
+  isEditingArtifact: PropTypes.bool
 };
