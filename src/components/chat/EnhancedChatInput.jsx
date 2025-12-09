@@ -288,30 +288,6 @@ export const EnhancedChatInput = ({
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
-          {/* Editing Indicator - Shows when artifact is open */}
-          {isEditingArtifact && activeArtifact && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              fontSize: theme.typography.fontSize.sm,
-              fontFamily: theme.typography.fontFamily.sans,
-              marginRight: theme.spacing.xs,
-            }}>
-              <span style={{
-                color: theme.colors.text.tertiary,
-              }}>
-                Editing
-              </span>
-              <span style={{
-                color: '#3B82F6',
-                fontWeight: theme.typography.fontWeight.medium,
-              }}>
-                {activeArtifact.name}
-              </span>
-            </div>
-          )}
-
           {/* Plus Button (Dropdown Trigger) */}
           <button
             ref={buttonRef}
@@ -468,6 +444,29 @@ export const EnhancedChatInput = ({
               </div>
             )}
           </div>
+
+          {/* Editing Indicator - Shows when artifact is open */}
+          {isEditingArtifact && activeArtifact && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              fontSize: theme.typography.fontSize.sm,
+              fontFamily: theme.typography.fontFamily.sans,
+            }}>
+              <span style={{
+                color: theme.colors.text.tertiary,
+              }}>
+                Editing
+              </span>
+              <span style={{
+                color: '#3B82F6',
+                fontWeight: theme.typography.fontWeight.medium,
+              }}>
+                {activeArtifact.name}
+              </span>
+            </div>
+          )}
 
           {/* Knowledge Base - icon transforms to X on hover */}
           {useKnowledgeBase && (
