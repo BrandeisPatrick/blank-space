@@ -278,11 +278,11 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @param {Function} onUpdate - Callback for streaming updates
  * @param {Object} options - Additional options
  * @param {boolean} options.useKnowledgeBase - Whether to use the component knowledge base
- * @param {string} options.modelTier - Model tier ('lite', 'regular', or 'pro')
+ * @param {string} options.modelTier - Model tier ('lite' or 'pro')
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { useKnowledgeBase = false, modelTier = 'regular' } = options;
+  const { useKnowledgeBase = false, modelTier = 'lite' } = options;
 
   // Select model based on user preference tier
   const model = getModelForTier(modelTier);

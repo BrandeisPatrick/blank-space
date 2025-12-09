@@ -64,7 +64,7 @@ export const EnhancedChatInput = ({
   initialMessage = '',
   useKnowledgeBase = true,
   onToggleKnowledgeBase,
-  modelTier = 'regular',
+  modelTier = 'lite',
   onChangeModelTier
 }) => {
   const { mode } = useTheme();
@@ -331,8 +331,13 @@ export const EnhancedChatInput = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.spacing.xs,
-                background: showModelDropdown ? theme.colors.bg.secondary : theme.colors.bg.tertiary,
-                border: 'none',
+                ...createGlassEffect(theme),
+                background: mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : 'rgba(255, 255, 255, 0.5)',
+                boxShadow: mode === 'dark'
+                  ? 'inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+                  : 'inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
                 cursor: 'pointer',
                 color: theme.colors.text.secondary,
                 fontSize: theme.typography.fontSize.sm,
@@ -344,11 +349,15 @@ export const EnhancedChatInput = ({
                 flexShrink: 0,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = theme.colors.bg.secondary;
+                e.currentTarget.style.background = mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.15)'
+                  : 'rgba(255, 255, 255, 0.7)';
               }}
               onMouseLeave={(e) => {
                 if (!showModelDropdown) {
-                  e.currentTarget.style.background = theme.colors.bg.tertiary;
+                  e.currentTarget.style.background = mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.08)'
+                    : 'rgba(255, 255, 255, 0.5)';
                 }
               }}
             >
@@ -367,12 +376,12 @@ export const EnhancedChatInput = ({
                   marginBottom: theme.spacing.sm,
                   ...createGlassEffect(theme),
                   background: mode === 'dark'
-                    ? 'rgba(30, 30, 35, 0.95)'
-                    : 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: theme.radius.lg,
+                    ? 'rgba(30, 30, 35, 0.6)'
+                    : 'rgba(255, 255, 255, 0.65)',
+                  borderRadius: theme.radius.xl,
                   boxShadow: mode === 'dark'
-                    ? '0 8px 32px rgba(0, 0, 0, 0.4)'
-                    : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+                    : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
                   minWidth: '140px',
                   overflow: 'hidden',
                   animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -524,6 +533,6 @@ EnhancedChatInput.propTypes = {
   initialMessage: PropTypes.string,
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
-  modelTier: PropTypes.oneOf(['lite', 'regular', 'pro']),
+  modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func
 };
