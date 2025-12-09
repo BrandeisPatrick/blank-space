@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
+import { useSettings } from "./contexts/SettingsContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
 import { ArtifactSidebar } from "./components/artifact";
@@ -14,10 +15,11 @@ import { ROUTES, TIMING, MESSAGES } from "./constants";
 import "./styles/App.css";
 
 function App() {
-  const { mode } = useTheme();
+  const { mode, theme: wallpaperTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
   const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
+  const { aiColorPalette, aiUIStyle } = useSettings();
   const isMobile = useIsMobile();
 
   // Route state
@@ -376,7 +378,14 @@ function App() {
 
     try {
       // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate, { useKnowledgeBase, modelTier });
+      const result = await processMessage(message, files, onUpdate, {
+        useKnowledgeBase,
+        modelTier,
+        aiColorPalette,
+        aiUIStyle,
+        wallpaperTheme,
+        isDarkTheme: currentTheme?.isDark ?? mode === 'dark'
+      });
 
       if (result.success) {
         // Remove loading message and mark processing complete
