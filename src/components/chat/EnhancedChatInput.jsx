@@ -445,30 +445,6 @@ export const EnhancedChatInput = ({
             )}
           </div>
 
-          {/* Editing Indicator - Shows when artifact is open */}
-          {isEditingArtifact && activeArtifact && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.sans,
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-            }}>
-              <span style={{
-                color: theme.colors.text.tertiary,
-              }}>
-                Editing
-              </span>
-              <span style={{
-                color: '#3B82F6',
-              }}>
-                {activeArtifact.name}
-              </span>
-            </div>
-          )}
-
           {/* Knowledge Base - icon transforms to X on hover */}
           {useKnowledgeBase && (
             <button
@@ -508,6 +484,30 @@ export const EnhancedChatInput = ({
               <span>Knowledge Base</span>
               <ChevronDownIcon size={18} color={proComponentsColor} />
             </button>
+          )}
+
+          {/* Editing Indicator - Shows when artifact is open */}
+          {isEditingArtifact && activeArtifact && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.medium,
+              fontFamily: theme.typography.fontFamily.sans,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+            }}>
+              <span style={{
+                color: theme.colors.text.tertiary,
+              }}>
+                Editing
+              </span>
+              <span style={{
+                color: '#3B82F6',
+              }}>
+                {activeArtifact.name}
+              </span>
+            </div>
           )}
 
           {/* Flex spacer */}
