@@ -65,7 +65,9 @@ export const EnhancedChatInput = ({
   useKnowledgeBase = true,
   onToggleKnowledgeBase,
   modelTier = 'lite',
-  onChangeModelTier
+  onChangeModelTier,
+  activeArtifact = null,
+  isEditingArtifact = false
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
@@ -286,6 +288,30 @@ export const EnhancedChatInput = ({
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
+          {/* Editing Indicator - Shows when artifact is open */}
+          {isEditingArtifact && activeArtifact && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              fontSize: theme.typography.fontSize.sm,
+              fontFamily: theme.typography.fontFamily.sans,
+              marginRight: theme.spacing.xs,
+            }}>
+              <span style={{
+                color: theme.colors.text.tertiary,
+              }}>
+                Editing
+              </span>
+              <span style={{
+                color: '#3B82F6',
+                fontWeight: theme.typography.fontWeight.medium,
+              }}>
+                {activeArtifact.name}
+              </span>
+            </div>
+          )}
+
           {/* Plus Button (Dropdown Trigger) */}
           <button
             ref={buttonRef}
@@ -534,5 +560,7 @@ EnhancedChatInput.propTypes = {
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
   modelTier: PropTypes.oneOf(['lite', 'pro']),
-  onChangeModelTier: PropTypes.func
+  onChangeModelTier: PropTypes.func,
+  activeArtifact: PropTypes.object,
+  isEditingArtifact: PropTypes.bool
 };
