@@ -34,8 +34,8 @@ function App() {
     setUseKnowledgeBase(prev => !prev);
   }, [setUseKnowledgeBase]);
 
-  // Model tier state - 'lite', 'regular', or 'pro'
-  const [modelTier, setModelTier] = useLocalStorage('modelTier', 'regular');
+  // Model tier state - 'lite' or 'pro'
+  const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite');
 
   // State management
   const [chatMessages, setChatMessages] = useState([]);

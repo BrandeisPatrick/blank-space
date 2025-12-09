@@ -303,6 +303,6 @@ LandingPage.propTypes = {
   onSignIn: PropTypes.func.isRequired,
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
-  modelTier: PropTypes.oneOf(['lite', 'regular', 'pro']),
+  modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func
 };
