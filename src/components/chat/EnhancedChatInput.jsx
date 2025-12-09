@@ -476,11 +476,6 @@ export const EnhancedChatInput = ({
                 transition: `all ${theme.animation.fast}`,
               }}
             >
-              {isProComponentsHovered ? (
-                <span style={{ fontSize: '18px', lineHeight: 1 }}>×</span>
-              ) : (
-                <SparklesIcon size={18} color={proComponentsColor} />
-              )}
               <span>Knowledge Base</span>
               <ChevronDownIcon size={18} color={proComponentsColor} />
             </button>
