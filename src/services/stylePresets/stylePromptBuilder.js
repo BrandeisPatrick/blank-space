@@ -179,51 +179,40 @@ function formatHeroSection(hero, colors, styleName) {
     .join("\n");
 
   return `
-## HERO SECTION STYLING (CRITICAL - Make titles look professional!)
+## HERO SECTION STYLING (Compact & Modern)
 
-The hero/header section is the FIRST thing users see. It MUST look polished and professional.
-Use these ${styleName} style patterns for hero sections:
+Heroes should be **compact** - just an introduction, not the main content.
+Use Badge + Title only (no subtitle) for a clean, modern look.
 
-### Hero Component Classes
+### SIZE CONSTRAINTS (CRITICAL)
+- Section padding: py-8 md:py-12 (32px / 48px) - NOT py-20 or larger
+- Title: text-2xl md:text-3xl lg:text-4xl - NOT text-5xl or larger
+- Badge: text-xs - small and subtle
+- Content width: max-w-xl md:max-w-2xl - NOT max-w-4xl
+- Hero should be ~15-20% of viewport, NOT 50%+
+
+### Hero Component Classes (${styleName})
 \`\`\`
 ${heroEntries}
 \`\`\`
 
-### MANDATORY Hero Requirements
-1. **NEVER use plain text for titles** - always add visual flair
-2. **Include at least ONE decorative element**: badge, glow, icon, animation, or accent
-3. **Use the hero patterns above** - they are designed for ${styleName} style
-4. **Add depth and interest**: gradients, shadows, or background effects as appropriate
-5. **Consider adding**:
-   - A small badge/label above the title (e.g., "New", "Beta", category name)
-   - Animated background elements (subtle pulses, floating shapes)
-   - Icon or emoji that represents the app's purpose
-   - Gradient backgrounds or glow effects
-
-### Example Hero Structure
+### Hero Structure (Badge + Title only)
 \`\`\`jsx
 <section className={hero.section}>
-  {/* Background effects */}
-  <div className={hero.background} />
-  ${hero.glow ? `<div className={hero.glow} />` : ""}
-
-  {/* Content */}
+  {/* Optional: subtle background effects */}
   <div className={hero.content}>
-    ${hero.badge ? `<span className={hero.badge}>✨ App Category</span>` : ""}
-    ${hero.eyebrow ? `<p className={hero.eyebrow}>Welcome to</p>` : ""}
-    <h1 className={hero.title}>
-      Your Amazing Title
-      ${hero.titleAccent ? `<span className={hero.titleAccent}> Here</span>` : ""}
-    </h1>
-    <p className={hero.subtitle}>
-      A compelling subtitle that explains what this app does
-    </p>
-    <div className={hero.buttons}>
-      {/* CTA buttons */}
-    </div>
+    <span className={hero.badge}>✨ Category</span>
+    <h1 className={hero.title}>App Title Here</h1>
+    <div className={hero.buttons}>{/* Optional CTA */}</div>
   </div>
 </section>
 \`\`\`
+
+### DO NOT
+- Use subtitles (they add clutter)
+- Make titles larger than text-4xl on desktop
+- Use padding larger than py-12
+- Let hero take up more than 25% of viewport
 `;
 }
 
@@ -288,10 +277,11 @@ ${formatHeroSection(style.components.hero, colors, style.name)}
 3. **Apply the UI style consistently** - ${style.name} style across all elements
 4. **Use the component patterns** as templates - copy the class strings directly
 5. **Maintain the theme mode** - This is a ${colors.isDark ? "DARK" : "LIGHT"} theme design
-6. **HERO SECTIONS ARE CRITICAL** - Never generate plain boring titles. Always include:
-   - Visual decorations (badges, glows, icons, gradients)
-   - Background effects appropriate to the ${style.name} style
-   - Professional, polished appearance that impresses users
+6. **HEROES MUST BE COMPACT** - Keep hero sections small (15-20% viewport max):
+   - Badge + Title only (NO subtitles)
+   - Title: max text-4xl on desktop
+   - Padding: max py-12
+   - Leave room for actual app content below
 
 `;
 }
