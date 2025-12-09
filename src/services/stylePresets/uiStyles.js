@@ -46,6 +46,17 @@ export const UI_STYLES = {
       },
       input: "bg-{background.card}/50 backdrop-blur border border-{border}/50 text-{text.body} rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-{primary.base} transition-all placeholder:text-{text.muted}",
       listItem: "flex items-center gap-4 p-4 bg-{background.muted}/50 backdrop-blur border border-{border}/30 rounded-xl hover:bg-{background.muted}/70 transition-all",
+      hero: {
+        section: "relative overflow-hidden py-24 md:py-32",
+        background: "absolute inset-0 bg-gradient-to-br {background.page}",
+        glow: "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-{primary.base}/20 rounded-full blur-3xl animate-pulse",
+        glowSecondary: "absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-{secondary.base}/20 rounded-full blur-3xl animate-pulse delay-1000",
+        content: "relative z-10 text-center max-w-4xl mx-auto px-4",
+        badge: "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-{primary.base}/10 backdrop-blur-sm border border-{primary.base}/20 text-{primary.base} text-sm font-medium mb-8",
+        title: "text-5xl md:text-7xl font-bold bg-gradient-to-r from-{primary.base} via-{accent.base} to-{secondary.base} bg-clip-text text-transparent mb-6 leading-tight",
+        subtitle: "text-xl md:text-2xl text-{text.muted} max-w-2xl mx-auto mb-10 leading-relaxed",
+        buttons: "flex flex-col sm:flex-row gap-4 justify-center",
+      },
     },
 
     // Prompt snippet for AI
@@ -105,6 +116,17 @@ export const UI_STYLES = {
       },
       input: "bg-{background.card} border border-{border} text-{text.body} rounded-lg px-4 py-3 focus:outline-none focus:border-{primary.base} transition-colors placeholder:text-{text.muted}",
       listItem: "flex items-center gap-4 p-4 bg-{background.muted} border border-{border} rounded-lg hover:border-{primary.base} transition-colors",
+      hero: {
+        section: "py-20 md:py-28 bg-{background.muted}",
+        content: "text-center max-w-4xl mx-auto px-4",
+        badge: "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-{primary.base} text-white text-sm font-semibold mb-6",
+        eyebrow: "text-{primary.base} font-semibold tracking-wide uppercase text-sm mb-4",
+        title: "text-4xl md:text-6xl font-bold text-{text.heading} mb-6 leading-tight",
+        titleAccent: "text-{primary.base}",
+        subtitle: "text-xl text-{text.muted} max-w-2xl mx-auto mb-8",
+        divider: "w-24 h-1 bg-{primary.base} mx-auto mb-8",
+        buttons: "flex flex-col sm:flex-row gap-4 justify-center",
+      },
     },
 
     promptSnippet: `UI STYLE: FLAT
@@ -163,6 +185,16 @@ export const UI_STYLES = {
       },
       input: "bg-transparent border-b border-{border} text-{text.body} py-3 focus:outline-none focus:border-{text.heading} transition-colors placeholder:text-{text.muted}",
       listItem: "flex items-center gap-6 py-6 border-b border-{border} last:border-0",
+      hero: {
+        section: "py-32 md:py-48",
+        content: "text-center max-w-3xl mx-auto px-6",
+        eyebrow: "text-{text.muted} tracking-[0.3em] uppercase text-xs mb-8",
+        title: "text-5xl md:text-8xl font-light text-{text.heading} mb-8 leading-none tracking-tight",
+        titleEmphasis: "font-normal italic",
+        subtitle: "text-xl md:text-2xl font-light text-{text.muted} max-w-xl mx-auto leading-loose",
+        divider: "w-px h-16 bg-{border} mx-auto my-12",
+        buttons: "flex flex-col sm:flex-row gap-6 justify-center mt-12",
+      },
     },
 
     promptSnippet: `UI STYLE: MINIMAL
@@ -222,6 +254,16 @@ export const UI_STYLES = {
       },
       input: "bg-gray-100 text-{text.body} rounded-xl px-4 py-3 shadow-[inset_4px_4px_8px_#d1d1d1,inset_-4px_-4px_8px_#ffffff] focus:outline-none focus:ring-2 focus:ring-{primary.base}/30 placeholder:text-{text.muted}",
       listItem: "flex items-center gap-4 p-4 bg-gray-100 rounded-xl shadow-[4px_4px_8px_#d1d1d1,-4px_-4px_8px_#ffffff]",
+      hero: {
+        section: "py-24 md:py-32 bg-gray-100",
+        content: "text-center max-w-4xl mx-auto px-4",
+        badge: "inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gray-100 text-{primary.base} text-sm font-medium mb-8 shadow-[4px_4px_8px_#d1d1d1,-4px_-4px_8px_#ffffff]",
+        titleWrapper: "bg-gray-100 rounded-3xl shadow-[12px_12px_24px_#d1d1d1,-12px_-12px_24px_#ffffff] p-12 mb-8 inline-block",
+        title: "text-4xl md:text-6xl font-semibold text-{text.heading} leading-tight",
+        subtitle: "text-xl text-{text.muted} max-w-2xl mx-auto mb-10",
+        iconCircle: "w-20 h-20 rounded-full bg-gray-100 shadow-[8px_8px_16px_#d1d1d1,-8px_-8px_16px_#ffffff] flex items-center justify-center mx-auto mb-8",
+        buttons: "flex flex-col sm:flex-row gap-4 justify-center",
+      },
     },
 
     promptSnippet: `UI STYLE: NEUMORPHIC (Soft UI)
@@ -280,6 +322,18 @@ export const UI_STYLES = {
       },
       input: "bg-{background.card} border-4 border-{text.heading} text-{text.body} px-4 py-3 focus:outline-none focus:shadow-[4px_4px_0_0_black] placeholder:text-{text.muted}",
       listItem: "flex items-center gap-4 p-4 border-4 border-{text.heading} hover:shadow-[4px_4px_0_0_black] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all",
+      hero: {
+        section: "py-20 md:py-28 bg-{background.card} border-b-8 border-{text.heading}",
+        content: "max-w-5xl mx-auto px-4",
+        badge: "inline-block bg-{text.heading} text-{background.card} px-4 py-2 font-black uppercase tracking-widest text-sm mb-8",
+        eyebrow: "text-{primary.base} font-black uppercase tracking-[0.2em] text-sm mb-4",
+        title: "text-6xl md:text-9xl font-black uppercase leading-none tracking-tight text-{text.heading}",
+        titleAccent: "text-{primary.base}",
+        titleStroke: "-webkit-text-stroke-2 -webkit-text-stroke-{text.heading} text-transparent",
+        subtitle: "text-xl font-bold uppercase tracking-wider mt-8 pt-8 border-t-4 border-{text.heading} max-w-2xl",
+        decoration: "w-32 h-4 bg-{primary.base} mt-8",
+        buttons: "flex flex-col sm:flex-row gap-4 mt-12",
+      },
     },
 
     promptSnippet: `UI STYLE: BRUTALIST
