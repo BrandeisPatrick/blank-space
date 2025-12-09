@@ -496,17 +496,10 @@ export const EnhancedChatInput = ({
               fontWeight: theme.typography.fontWeight.medium,
               fontFamily: theme.typography.fontFamily.sans,
               padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              color: proComponentsColor,
             }}>
-              <span style={{
-                color: theme.colors.text.tertiary,
-              }}>
-                Editing
-              </span>
-              <span style={{
-                color: '#3B82F6',
-              }}>
-                {activeArtifact.name}
-              </span>
+              <span>Editing</span>
+              <span>{activeArtifact.name}</span>
             </div>
           )}
 
