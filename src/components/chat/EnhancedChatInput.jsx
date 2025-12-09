@@ -450,9 +450,11 @@ export const EnhancedChatInput = ({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: theme.spacing.xs,
-              fontSize: theme.typography.fontSize.sm,
+              gap: theme.spacing.sm,
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.medium,
               fontFamily: theme.typography.fontFamily.sans,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
             }}>
               <span style={{
                 color: theme.colors.text.tertiary,
@@ -461,7 +463,6 @@ export const EnhancedChatInput = ({
               </span>
               <span style={{
                 color: '#3B82F6',
-                fontWeight: theme.typography.fontWeight.medium,
               }}>
                 {activeArtifact.name}
               </span>
