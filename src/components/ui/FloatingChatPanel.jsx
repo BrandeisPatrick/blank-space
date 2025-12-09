@@ -48,12 +48,19 @@ export const FloatingChatPanel = ({
           height: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
           borderRadius: theme.radius.full,
           ...createGlassEffect(theme),
-          background: mode === 'dark' ? 'rgba(30, 30, 35, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          background: mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(30, 58, 95, 0.7) 0%, rgba(20, 40, 70, 0.8) 50%, rgba(15, 30, 55, 0.85) 100%)'
+            : 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: Z_INDEX.FLOATING_CHAT_ICON,
-          boxShadow: theme.shadows.xl,
+          boxShadow: mode === 'dark'
+            ? '0 8px 32px rgba(0, 20, 60, 0.5), inset 0 1px 0 rgba(100, 150, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.3)'
+            : theme.shadows.xl,
+          border: mode === 'dark' ? '1px solid rgba(80, 130, 200, 0.2)' : 'none',
         }}
       >
         <BinaIcon size={32} />
@@ -69,12 +76,19 @@ export const FloatingChatPanel = ({
           maxHeight: FLOATING_WINDOWS.CHAT_PANEL.PANEL_MAX_HEIGHT,
           borderRadius: theme.radius['2xl'],
           ...createGlassEffect(theme),
-          background: mode === 'dark' ? 'rgba(30, 30, 35, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+          background: mode === 'dark'
+            ? 'linear-gradient(145deg, rgba(25, 50, 85, 0.65) 0%, rgba(18, 38, 68, 0.75) 40%, rgba(12, 28, 52, 0.8) 100%)'
+            : 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           zIndex: Z_INDEX.FLOATING_CHAT_PANEL,
-          boxShadow: theme.shadows.xl,
+          boxShadow: mode === 'dark'
+            ? '0 12px 40px rgba(0, 15, 50, 0.6), inset 0 1px 0 rgba(100, 160, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.25)'
+            : theme.shadows.xl,
+          border: mode === 'dark' ? '1px solid rgba(70, 120, 190, 0.18)' : 'none',
         }}
       >
         {/* Messages container */}
