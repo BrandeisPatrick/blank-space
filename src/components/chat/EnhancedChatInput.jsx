@@ -286,7 +286,7 @@ export const EnhancedChatInput = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing.sm,
+          gap: theme.spacing.lg,
         }}>
           {/* Plus Button (Dropdown Trigger) */}
           <button
@@ -463,21 +463,20 @@ export const EnhancedChatInput = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: theme.spacing.sm,
-                background: isProComponentsHovered ? theme.colors.bg.tertiary : 'transparent',
+                gap: theme.spacing.xs,
+                background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 color: proComponentsColor,
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.medium,
                 fontFamily: theme.typography.fontFamily.sans,
-                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                borderRadius: theme.radius.full,
+                padding: 0,
                 transition: `all ${theme.animation.fast}`,
               }}
             >
               <span>Knowledge Base</span>
-              <ChevronDownIcon size={18} color={proComponentsColor} />
+              <ChevronDownIcon size={16} color={proComponentsColor} />
             </button>
           )}
 
@@ -486,11 +485,10 @@ export const EnhancedChatInput = ({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: theme.spacing.sm,
+              gap: theme.spacing.xs,
               fontSize: theme.typography.fontSize.base,
               fontWeight: theme.typography.fontWeight.medium,
               fontFamily: theme.typography.fontFamily.sans,
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
               color: proComponentsColor,
             }}>
               <span>Editing</span>
