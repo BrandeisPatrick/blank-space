@@ -11,6 +11,7 @@ import { coreTools } from "./tools/core/index.js";
 import { callLLMWithTools, callLLM } from "./utils/llm/llmClient.js";
 import { classifyIntent } from "./intentClassifier.js";
 import { buildKnowledgeBaseContext } from "./knowledgeBase/promptBuilder.js";
+import { buildStylePrompt } from "./stylePresets/stylePromptBuilder.js";
 import { getModelForTier } from "./config/modelConfig.js";
 import promptGuidance from "./prompts.json";
 
@@ -279,10 +280,21 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
  * @param {Object} options - Additional options
  * @param {boolean} options.useKnowledgeBase - Whether to use the component knowledge base
  * @param {string} options.modelTier - Model tier ('lite' or 'pro')
+ * @param {string} options.aiColorPalette - AI color palette preference
+ * @param {string} options.aiUIStyle - AI UI style preference
+ * @param {string} options.wallpaperTheme - Current wallpaper theme key
+ * @param {boolean} options.isDarkTheme - Whether current theme is dark
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { useKnowledgeBase = false, modelTier = 'lite' } = options;
+  const {
+    useKnowledgeBase = false,
+    modelTier = 'lite',
+    aiColorPalette = 'matchWallpaper',
+    aiUIStyle = 'glassmorphism',
+    wallpaperTheme = 'starry',
+    isDarkTheme = true
+  } = options;
 
   // Select model based on user preference tier
   const model = getModelForTier(modelTier);
@@ -413,6 +425,18 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
         systemPrompt += knowledgeBaseContext;
         console.log('[KnowledgeBase] Injected component patterns into system prompt');
       }
+    }
+
+    // Add AI style preferences
+    const styleContext = buildStylePrompt({
+      colorPaletteId: aiColorPalette,
+      uiStyleId: aiUIStyle,
+      wallpaperTheme,
+      isDarkTheme
+    });
+    if (styleContext) {
+      systemPrompt += styleContext;
+      console.log(`[StylePresets] Injected style preferences (palette: ${aiColorPalette}, style: ${aiUIStyle})`);
     }
 
     // Call LLM with tools
