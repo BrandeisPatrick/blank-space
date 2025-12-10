@@ -1,0 +1,311 @@
+import { useTheme } from '../../../contexts/ThemeContext';
+import { useSettings } from '../../../contexts/SettingsContext';
+import { getTheme } from '../../../styles/theme';
+import { COLOR_PALETTES } from '../../../services/stylePresets/colorPalettes';
+import { UI_STYLES } from '../../../services/stylePresets/uiStyles';
+
+// Palette icon for "Match Wallpaper" option
+const PaletteIcon = ({ size = 20, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="8" r="2" fill={color} />
+    <circle cx="8" cy="14" r="2" fill={color} />
+    <circle cx="16" cy="14" r="2" fill={color} />
+  </svg>
+);
+
+export const PreferencesTab = () => {
+  const { mode, theme: selectedTheme, setTheme, themePresets } = useTheme();
+  const { aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle } = useSettings();
+  const theme = getTheme(mode);
+
+  const presetEntries = Object.entries(themePresets);
+
+  return (
+    <>
+      {/* Theme Section */}
+      <div>
+        <h3 style={{
+          margin: `0 0 ${theme.spacing.md} 0`,
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: theme.typography.fontWeight.medium,
+          fontFamily: theme.typography.fontFamily.sans,
+          color: theme.colors.text.secondary,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}>
+          Theme
+        </h3>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: theme.spacing.md,
+        }}>
+          {presetEntries.map(([key, preset]) => {
+            const isSelected = selectedTheme === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTheme(key)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.sm,
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.lg,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                }}
+              >
+                {/* Wallpaper preview */}
+                <div style={{
+                  width: '100%',
+                  aspectRatio: '16 / 10',
+                  borderRadius: theme.radius.md,
+                  background: preset.gradient || preset.backgroundColor,
+                  border: isSelected
+                    ? '2px solid #3B82F6'
+                    : '1px solid rgba(0, 0, 0, 0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: `all ${theme.animation.fast}`,
+                  boxShadow: isSelected
+                    ? '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                    : 'none',
+                }}>
+                  {preset.variant === 'stars' ? (
+                    /* Star preview */
+                    <svg
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                      }}
+                      viewBox="0 0 100 70"
+                      preserveAspectRatio="xMidYMid slice"
+                    >
+                      {/* 4-point stars */}
+                      <path d="M20,15 L21,18 L24,18 L21.5,20 L22.5,23 L20,21 L17.5,23 L18.5,20 L16,18 L19,18 Z" fill={preset.starColors?.[0] || '#4ADE80'} />
+                      <path d="M75,45 L76,48 L79,48 L76.5,50 L77.5,53 L75,51 L72.5,53 L73.5,50 L71,48 L74,48 Z" fill={preset.starColors?.[2] || '#60A5FA'} />
+                      <path d="M50,25 L51.5,29 L56,29 L52.5,32 L54,36 L50,33 L46,36 L47.5,32 L44,29 L48.5,29 Z" fill={preset.starColors?.[3] || '#F9A8D4'} />
+                      {/* Small dots */}
+                      <circle cx="85" cy="12" r="2" fill={preset.starColors?.[4] || '#A78BFA'} />
+                      <circle cx="15" cy="55" r="2" fill={preset.starColors?.[5] || '#FCD34D'} />
+                      <circle cx="60" cy="58" r="2" fill={preset.starColors?.[1] || '#67E8F9'} />
+                      {/* Tiny sparkle */}
+                      <path d="M35,45 L35.5,47 L37.5,47 L36,48.5 L36.5,50.5 L35,49 L33.5,50.5 L34,48.5 L32.5,47 L34.5,47 Z" fill={preset.starColors?.[3] || '#FBBF24'} />
+                    </svg>
+                  ) : (
+                    /* Wave preview */
+                    <svg
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                      }}
+                      viewBox="0 0 100 70"
+                      preserveAspectRatio="xMidYMid slice"
+                    >
+                      <path
+                        d="M-10,60 Q20,45 40,55 T80,45 T120,50"
+                        fill="none"
+                        stroke={`rgba(255,255,255,${preset.waveOpacities[0]})`}
+                        strokeWidth="8"
+                      />
+                      <path
+                        d="M-10,45 Q25,30 50,40 T90,30 T120,35"
+                        fill="none"
+                        stroke={`rgba(255,255,255,${preset.waveOpacities[1]})`}
+                        strokeWidth="8"
+                      />
+                      <path
+                        d="M-10,30 Q30,15 55,25 T95,15 T120,20"
+                        fill="none"
+                        stroke={`rgba(255,255,255,${preset.waveOpacities[2]})`}
+                        strokeWidth="8"
+                      />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Name only */}
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                }}>
+                  {preset.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* AI Generation Style Section */}
+      <div style={{ marginTop: theme.spacing.xl }}>
+        <h3 style={{
+          margin: `0 0 ${theme.spacing.md} 0`,
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: theme.typography.fontWeight.medium,
+          fontFamily: theme.typography.fontFamily.sans,
+          color: theme.colors.text.secondary,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}>
+          AI Generation Style
+        </h3>
+
+        {/* Color Palette */}
+        <div style={{ marginBottom: theme.spacing.lg }}>
+          <label style={{
+            display: 'block',
+            fontSize: theme.typography.fontSize.xs,
+            color: theme.colors.text.tertiary,
+            marginBottom: theme.spacing.sm,
+            textTransform: 'uppercase',
+            letterSpacing: '0.03em',
+          }}>
+            Color Palette
+          </label>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: theme.spacing.sm,
+          }}>
+            {Object.entries(COLOR_PALETTES).map(([key, palette]) => {
+              const isSelected = aiColorPalette === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setAIColorPalette(key)}
+                  style={{
+                    padding: theme.spacing.sm,
+                    borderRadius: theme.radius.lg,
+                    border: isSelected
+                      ? '2px solid #3B82F6'
+                      : mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(0, 0, 0, 0.1)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: theme.spacing.xs,
+                    transition: `all ${theme.animation.fast}`,
+                    boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
+                  }}
+                >
+                  {/* Color preview */}
+                  {palette.preview ? (
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                      {palette.preview.map((color, i) => (
+                        <div key={i} style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: color,
+                          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                        }} />
+                      ))}
+                    </div>
+                  ) : (
+                    <PaletteIcon size={18} color={isSelected ? '#3B82F6' : theme.colors.text.secondary} />
+                  )}
+                  <span style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                    color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {palette.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* UI Style */}
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: theme.typography.fontSize.xs,
+            color: theme.colors.text.tertiary,
+            marginBottom: theme.spacing.sm,
+            textTransform: 'uppercase',
+            letterSpacing: '0.03em',
+          }}>
+            UI Style
+          </label>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: theme.spacing.sm,
+          }}>
+            {Object.entries(UI_STYLES).map(([key, style]) => {
+              const isSelected = aiUIStyle === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setAIUIStyle(key)}
+                  style={{
+                    padding: theme.spacing.md,
+                    borderRadius: theme.radius.lg,
+                    border: isSelected
+                      ? '2px solid #3B82F6'
+                      : mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(0, 0, 0, 0.1)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: `all ${theme.animation.fast}`,
+                    boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
+                  }}
+                >
+                  <div style={{
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                    fontSize: theme.typography.fontSize.sm,
+                    marginBottom: '2px',
+                  }}>
+                    {style.name}
+                  </div>
+                  <div style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.text.tertiary,
+                    lineHeight: 1.3,
+                  }}>
+                    {style.description}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default PreferencesTab;

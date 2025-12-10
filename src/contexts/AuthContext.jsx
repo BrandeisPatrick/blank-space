@@ -13,6 +13,11 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  sendEmailVerification,
+  deleteUser,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -36,14 +41,17 @@ export const AuthProvider = ({ children }) => {
       try {
         if (firebaseUser) {
           // User is signed in
+          console.log('✅ User signed in:', firebaseUser.email);
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified,
           });
         } else {
           // User is signed out
+          console.log('👤 User signed out');
           setUser(null);
         }
       } catch (error) {
@@ -166,6 +174,96 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Change password (requires current password for reauthentication)
+  const changePassword = async (currentPassword, newPassword) => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
+    if (!auth.currentUser) {
+      const error = new Error('No user logged in');
+      setError('You must be logged in to change your password.');
+      throw error;
+    }
+    try {
+      setError(null);
+      // Reauthenticate first
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email,
+        currentPassword
+      );
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      // Update password
+      await updatePassword(auth.currentUser, newPassword);
+    } catch (err) {
+      console.error('Change password error:', err);
+      setError(getErrorMessage(err.code));
+      throw err;
+    }
+  };
+
+  // Send email verification
+  const sendVerificationEmail = async () => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
+    if (!auth.currentUser) {
+      const error = new Error('No user logged in');
+      setError('You must be logged in to verify your email.');
+      throw error;
+    }
+    try {
+      setError(null);
+      await sendEmailVerification(auth.currentUser);
+    } catch (err) {
+      console.error('Send verification email error:', err);
+      setError(getErrorMessage(err.code));
+      throw err;
+    }
+  };
+
+  // Delete Firebase Auth account (call after deleting Firestore data)
+  const deleteAccount = async (password = null) => {
+    if (!auth) {
+      const error = new Error('Authentication not available in guest mode');
+      setError('Authentication is not configured. Please contact the administrator.');
+      throw error;
+    }
+    if (!auth.currentUser) {
+      const error = new Error('No user logged in');
+      setError('You must be logged in to delete your account.');
+      throw error;
+    }
+    try {
+      setError(null);
+      // If password provided, reauthenticate (for email/password users)
+      if (password) {
+        const credential = EmailAuthProvider.credential(
+          auth.currentUser.email,
+          password
+        );
+        await reauthenticateWithCredential(auth.currentUser, credential);
+      }
+      // Delete the Firebase Auth user
+      await deleteUser(auth.currentUser);
+    } catch (err) {
+      console.error('Delete account error:', err);
+      setError(getErrorMessage(err.code));
+      throw err;
+    }
+  };
+
+  // Check if user signed in with email/password (vs Google OAuth)
+  const isEmailUser = () => {
+    if (!auth?.currentUser) return false;
+    return auth.currentUser.providerData.some(
+      provider => provider.providerId === 'password'
+    );
+  };
+
   // Clear error
   const clearError = () => setError(null);
 
@@ -178,6 +276,10 @@ export const AuthProvider = ({ children }) => {
     signInWithGoogle,
     signOut,
     resetPassword,
+    changePassword,
+    sendVerificationEmail,
+    deleteAccount,
+    isEmailUser,
     getIdToken,
     clearError,
   };
@@ -221,7 +323,16 @@ const getErrorMessage = (errorCode) => {
       return 'Sign-in popup was closed before completing.';
     case 'auth/cancelled-popup-request':
       return 'Only one popup request is allowed at a time.';
+    case 'auth/popup-blocked':
+      return 'Popup was blocked by browser. Please allow popups for this site.';
+    case 'auth/unauthorized-domain':
+      return 'This domain is not authorized. Please add it in Firebase Console.';
+    case 'auth/internal-error':
+      return 'An internal error occurred. Please try again.';
+    case 'auth/account-exists-with-different-credential':
+      return 'An account already exists with this email using a different sign-in method.';
     default:
+      console.warn('Unhandled auth error code:', errorCode);
       return 'An error occurred. Please try again.';
   }
 };

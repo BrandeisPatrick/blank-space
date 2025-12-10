@@ -23,6 +23,9 @@ service cloud.firestore {
       // Allow users to update their own user document
       allow update: if isOwner(userId);
 
+      // Allow users to delete their own user document (for account deletion)
+      allow delete: if isOwner(userId);
+
       // Artifacts subcollection
       match /artifacts/{artifactId} {
         // Allow users to read their own artifacts
