@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
@@ -10,7 +11,7 @@ import { BackgroundWaves, StarryBackground } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
-import { SettingsPanel } from '../settings/SettingsPanel';
+import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
 import { ChatAppCard } from '../chatapp/ChatAppCard';
 import { ChatPanel } from '../chatapp/ChatPanel';
 import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
@@ -22,6 +23,7 @@ import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const { openAuthModal } = useSettings();
+  const { user, signOut } = useAuth();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
@@ -126,7 +128,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         </div>
 
         <button
-          onClick={openAuthModal}
+          onClick={user ? signOut : openAuthModal}
           style={{
             background: '#C97D63',
             border: 'none',
@@ -149,7 +151,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             e.currentTarget.style.background = '#C97D63';
           }}
         >
-          {LABELS.SIGN_IN}
+          {user ? 'Sign Out' : LABELS.SIGN_IN}
         </button>
       </header>
 
@@ -306,7 +308,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
       </main>
 
       {/* Settings Panel Modal */}
-      <SettingsPanel />
+      <TabbedSettingsPanel />
 
       {/* Chat Panel Modal */}
       <ChatPanel />
