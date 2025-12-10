@@ -105,6 +105,20 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
               color: theme.colors.text.primary,
               fontWeight: theme.typography.fontWeight.bold,
             }}>&gt;</span>
+            <span style={{
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'rgba(255,255,255,0.7)',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              padding: '6px 12px',
+              borderRadius: '16px',
+              marginLeft: '12px',
+              verticalAlign: 'middle',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}>early access</span>
           </h1>
         </div>
 
