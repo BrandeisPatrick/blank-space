@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
@@ -678,6 +679,9 @@ function App() {
         isOpen={showArtifacts}
         onClose={() => setShowArtifacts(false)}
       />
+
+      {/* Vercel Analytics */}
+      <Analytics />
     </div>
   );
 }
