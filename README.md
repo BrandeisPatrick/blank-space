@@ -27,11 +27,16 @@
 
 ## ✨ What is Blank Space?
 
-Blank Space is an open-source AI app builder focused on speed and simplicity:
-- **Visual flow to app** — create useful AI flows quickly.
-- **Composable agents** — orchestrate tools/functions with an extendable core.
-- **Bring your own UI** — drop in components or templates you already love.
-- **Self-hostable** — run locally or deploy to your favorite platform.
+Open-source AI app builder. Fast, simple, self-hostable (optimized for mobile).
+
+---
+
+## 📋 Roadmap
+
+- **Gemini 2.0 Flash support** — *why do you need special endpoints, Google? why?* 🥲
+- **OpenAI Codex support** — *same energy, different API* 😅
+- **Improved Knowledge Base** — better skill sets for our agents
+- **Your idea here?** — [open an issue](https://github.com/BrandeisPatrick/blank-space/issues)!
 
 ---
 
