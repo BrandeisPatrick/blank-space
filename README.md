@@ -1,10 +1,9 @@
-# Blank Space
-
-> Build AI apps fast — open source alternative to [v0](https://v0.dev), [Lovable](https://lovable.dev), and [Bolt](https://bolt.new).
+<p align="center">
+  <img src="./public/readme-banner.svg" width="100%" alt="blank space"/>
+</p>
 
 <p align="center">
-  <!-- Optional hero: replace with your own image or keep only the demo GIF below -->
-  <!-- <img src="docs/hero.png" alt="Blank Space Hero" width="100%" /> -->
+  🎄 <strong>Open source alternative to</strong> <a href="https://v0.dev">v0</a>, <a href="https://lovable.dev">Lovable</a>, and <a href="https://bolt.new">Bolt</a> 🎄
 </p>
 
 <p align="center">
