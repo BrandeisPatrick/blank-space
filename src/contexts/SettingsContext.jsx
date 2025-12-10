@@ -9,12 +9,18 @@ export const SettingsProvider = ({ children }) => {
   // UI state for settings modal
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // UI state for auth modal
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   // AI Generation Style settings (persisted to localStorage)
   const [aiColorPalette, setAIColorPalette] = useLocalStorage('aiColorPalette', DEFAULT_COLOR_PALETTE);
   const [aiUIStyle, setAIUIStyle] = useLocalStorage('aiUIStyle', DEFAULT_UI_STYLE);
 
   const openSettings = useCallback(() => setIsSettingsOpen(true), []);
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
+
+  const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+  const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
 
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
@@ -23,13 +29,17 @@ export const SettingsProvider = ({ children }) => {
       isSettingsOpen,
       openSettings,
       closeSettings,
+      // Auth modal state
+      isAuthModalOpen,
+      openAuthModal,
+      closeAuthModal,
       // AI Generation Style settings
       aiColorPalette,
       setAIColorPalette,
       aiUIStyle,
       setAIUIStyle,
     }),
-    [isSettingsOpen, openSettings, closeSettings, aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle]
+    [isSettingsOpen, openSettings, closeSettings, isAuthModalOpen, openAuthModal, closeAuthModal, aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle]
   );
 
   return (
