@@ -121,10 +121,16 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; overflow: hidden; }
-      html, body, #root { overflow: hidden; }
-      ::-webkit-scrollbar { display: none; }
-      * { scrollbar-width: none; -ms-overflow-style: none; }
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+      html { overflow-x: hidden; overflow-y: auto; }
+      body, #root { min-height: 100vh; }
+
+      /* Custom scrollbar styling */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.4); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.6); }
+      * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, 0.4) transparent; }
       ${css}
     </style>
 </head>
@@ -252,10 +258,16 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview</title>
     <style>
-      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; overflow: hidden; }
-      html, body, #root { overflow: hidden; }
-      ::-webkit-scrollbar { display: none; }
-      * { scrollbar-width: none; -ms-overflow-style: none; }
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+      html { overflow-x: hidden; overflow-y: auto; }
+      body, #root { min-height: 100vh; }
+
+      /* Custom scrollbar styling */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.4); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.6); }
+      * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, 0.4) transparent; }
       ${css}
     </style>
 </head>

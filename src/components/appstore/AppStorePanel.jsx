@@ -34,6 +34,14 @@ const AppsIcon = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
+const TemplatesIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="9" y1="21" x2="9" y2="9" />
+  </svg>
+);
+
 // Back arrow icon
 const ChevronLeftIcon = ({ size = 24, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -60,6 +68,7 @@ const CATEGORIES = [
   { id: 'today', label: 'Today', icon: TodayIcon },
   { id: 'games', label: 'Games', icon: GamesIcon },
   { id: 'apps', label: 'Apps', icon: AppsIcon },
+  { id: 'templates', label: 'Templates', icon: TemplatesIcon },
 ];
 
 // Close icon component
@@ -85,6 +94,7 @@ const getCategoryLabel = (category) => {
     'games': 'Games',
     'apps': 'Productivity',
     'demos': 'Demo',
+    'templates': 'Templates',
   };
   return labels[category] || 'App';
 };
@@ -440,6 +450,8 @@ export const AppStorePanel = () => {
   // Filter apps based on selected category (uses lightweight metadata)
   const filteredApps = selectedCategory === 'today'
     ? ARTIFACT_METADATA.slice(0, 3)  // Show only 3 featured apps in Today
+    : selectedCategory === 'templates'
+    ? ARTIFACT_METADATA.filter(app => app.category === 'demos' || app.category === 'templates')
     : ARTIFACT_METADATA.filter(app => app.category === selectedCategory);
 
   return (
@@ -578,7 +590,7 @@ export const AppStorePanel = () => {
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                 }}>
-                  {selectedCategory === 'today' ? 'Featured' : selectedCategory === 'games' ? 'What We\'re Playing' : 'Top Apps'}
+                  {selectedCategory === 'today' ? 'Featured' : selectedCategory === 'games' ? 'What We\'re Playing' : selectedCategory === 'templates' ? 'Start Building' : 'Top Apps'}
                 </span>
                 <p style={{
                   margin: '4px 0 0 0',
@@ -586,7 +598,7 @@ export const AppStorePanel = () => {
                   fontFamily: theme.typography.fontFamily.sans,
                   color: theme.colors.text.tertiary,
                 }}>
-                  {selectedCategory === 'today' ? 'The best apps and games' : selectedCategory === 'games' ? 'These favorites are always a great choice' : 'Essential apps for everyone'}
+                  {selectedCategory === 'today' ? 'The best apps and games' : selectedCategory === 'games' ? 'These favorites are always a great choice' : selectedCategory === 'templates' ? 'Pre-built components and demos' : 'Essential apps for everyone'}
                 </p>
               </div>
 
