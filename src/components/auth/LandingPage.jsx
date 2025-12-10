@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
@@ -14,11 +15,13 @@ import { ChatAppCard } from '../chatapp/ChatAppCard';
 import { ChatPanel } from '../chatapp/ChatPanel';
 import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
 import { AppStorePanel } from '../appstore/AppStorePanel';
+import { AuthModal } from './AuthModal';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
+  const { openAuthModal } = useSettings();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
@@ -123,7 +126,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
         </div>
 
         <button
-          onClick={onSignIn}
+          onClick={openAuthModal}
           style={{
             background: '#C97D63',
             border: 'none',
@@ -310,6 +313,9 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 
       {/* AppStore Panel Modal */}
       <AppStorePanel />
+
+      {/* Auth Modal */}
+      <AuthModal onAuthSuccess={onSignIn} />
     </div>
   );
 };
