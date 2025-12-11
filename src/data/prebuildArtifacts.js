@@ -15,6 +15,7 @@ import { interactiveDashboardArtifact } from './artifacts/interactiveDashboard';
 import { kanbanBoardArtifact } from './artifacts/kanbanBoard';
 import { musicPlayerArtifact } from './artifacts/musicPlayer';
 import { weatherAppArtifact } from './artifacts/weatherApp';
+import { spaceStationArtifact } from './artifacts/spaceStation';
 
 export const PREBUILD_ARTIFACTS = [
   calendarTodoArtifact,
@@ -26,7 +27,8 @@ export const PREBUILD_ARTIFACTS = [
   interactiveDashboardArtifact,
   kanbanBoardArtifact,
   musicPlayerArtifact,
-  weatherAppArtifact
+  weatherAppArtifact,
+  spaceStationArtifact
 ];
 
 /**

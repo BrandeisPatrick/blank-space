@@ -76,6 +76,13 @@ export const ARTIFACT_METADATA = [
     icon: "sun",
     category: "demos",
   },
+  {
+    id: "space-station",
+    name: "Space Station",
+    description: "An interactive isometric space station scene. Click tiles to place furniture and props. Built with Kenney's Space Station Kit assets.",
+    icon: "game",
+    category: "prototype",
+  },
 ];
 
 /**
@@ -94,6 +101,7 @@ export const loadArtifactById = async (id) => {
     "kanban-board": () => import("./artifacts/kanbanBoard").then(m => m.kanbanBoardArtifact),
     "music-player": () => import("./artifacts/musicPlayer").then(m => m.musicPlayerArtifact),
     "weather-app": () => import("./artifacts/weatherApp").then(m => m.weatherAppArtifact),
+    "space-station": () => import("./artifacts/spaceStation").then(m => m.spaceStationArtifact),
   };
 
   const loader = loaders[id];
