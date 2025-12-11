@@ -42,6 +42,14 @@ const TemplatesIcon = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
+const PrototypeIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
 // Back arrow icon
 const ChevronLeftIcon = ({ size = 24, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,6 +77,7 @@ const CATEGORIES = [
   { id: 'games', label: 'Games', icon: GamesIcon },
   { id: 'apps', label: 'Apps', icon: AppsIcon },
   { id: 'templates', label: 'Templates', icon: TemplatesIcon },
+  { id: 'prototype', label: 'Prototype', icon: PrototypeIcon },
 ];
 
 // Close icon component
@@ -95,6 +104,7 @@ const getCategoryLabel = (category) => {
     'apps': 'Productivity',
     'demos': 'Demo',
     'templates': 'Templates',
+    'prototype': 'Prototype',
   };
   return labels[category] || 'App';
 };
@@ -452,6 +462,8 @@ export const AppStorePanel = () => {
     ? ARTIFACT_METADATA.slice(0, 3)  // Show only 3 featured apps in Today
     : selectedCategory === 'templates'
     ? ARTIFACT_METADATA.filter(app => app.category === 'demos' || app.category === 'templates')
+    : selectedCategory === 'prototype'
+    ? ARTIFACT_METADATA.filter(app => app.category === 'prototype')
     : ARTIFACT_METADATA.filter(app => app.category === selectedCategory);
 
   return (
@@ -590,7 +602,7 @@ export const AppStorePanel = () => {
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                 }}>
-                  {selectedCategory === 'today' ? 'Featured' : selectedCategory === 'games' ? 'What We\'re Playing' : selectedCategory === 'templates' ? 'Start Building' : 'Top Apps'}
+                  {selectedCategory === 'today' ? 'Featured' : selectedCategory === 'games' ? 'What We\'re Playing' : selectedCategory === 'templates' ? 'Start Building' : selectedCategory === 'prototype' ? 'Work in Progress' : 'Top Apps'}
                 </span>
                 <p style={{
                   margin: '4px 0 0 0',
@@ -598,7 +610,7 @@ export const AppStorePanel = () => {
                   fontFamily: theme.typography.fontFamily.sans,
                   color: theme.colors.text.tertiary,
                 }}>
-                  {selectedCategory === 'today' ? 'The best apps and games' : selectedCategory === 'games' ? 'These favorites are always a great choice' : selectedCategory === 'templates' ? 'Pre-built components and demos' : 'Essential apps for everyone'}
+                  {selectedCategory === 'today' ? 'The best apps and games' : selectedCategory === 'games' ? 'These favorites are always a great choice' : selectedCategory === 'templates' ? 'Pre-built components and demos' : selectedCategory === 'prototype' ? 'Experimental features being developed' : 'Essential apps for everyone'}
                 </p>
               </div>
 
