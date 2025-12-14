@@ -93,15 +93,11 @@ function App() {
 
   // Floating window states
   const [floatingChatVisible, setFloatingChatVisible] = useState(false);
-  const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
   const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
 
-  // Show browser window only when: user clicked artifact card OR AI completed work
-  useEffect(() => {
-    if (activeArtifact && (userRequestedBrowserWindow || !isAIProcessing)) {
-      setBrowserWindowVisible(true);
-    }
-  }, [activeArtifact, userRequestedBrowserWindow, isAIProcessing]);
+  // Compute browser window visibility from source-of-truth states
+  // Window shows when: has active artifact AND (user requested OR AI finished processing)
+  const browserWindowVisible = !!activeArtifact && (userRequestedBrowserWindow || !isAIProcessing);
 
   // Auto-show/hide chat based on AI working state
   useEffect(() => {
@@ -223,7 +219,6 @@ function App() {
   const handleNavigateToSignUp = () => setCurrentRoute(ROUTES.SIGNUP);
   const handleNavigateToLanding = () => {
     clearActiveArtifact(); // Clear active artifact so landing page always creates new
-    setBrowserWindowVisible(false); // Close browser window
     setUserRequestedBrowserWindow(false); // Reset user request flag
     setCurrentRoute(ROUTES.LANDING);
   };
@@ -657,8 +652,8 @@ function App() {
         artifact={activeArtifact}
         files={files}
         onClose={() => {
-          setBrowserWindowVisible(false);
-          setUserRequestedBrowserWindow(false); // Reset flag so card can be clicked again
+          setUserRequestedBrowserWindow(false);
+          clearActiveArtifact(); // Clear artifact to fully exit editing mode (iOS-style)
         }}
         onFileChange={handleFileChange}
         onError={handlePreviewError}
