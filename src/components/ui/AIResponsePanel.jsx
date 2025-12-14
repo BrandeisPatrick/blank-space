@@ -6,7 +6,7 @@ import { LoadingDots } from './LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
 
-export const FloatingChatPanel = ({
+export const AIResponsePanel = ({
   visible = false,
   messages = [],
 }) => {
@@ -42,25 +42,16 @@ export const FloatingChatPanel = ({
       <div
         style={{
           position: 'fixed',
-          top: FLOATING_WINDOWS.CHAT_PANEL.ICON_TOP,
-          right: FLOATING_WINDOWS.CHAT_PANEL.ICON_RIGHT,
-          width: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
-          height: `${FLOATING_WINDOWS.CHAT_PANEL.ICON_SIZE}px`,
+          top: FLOATING_WINDOWS.AI_RESPONSE.ICON_TOP,
+          right: FLOATING_WINDOWS.AI_RESPONSE.ICON_RIGHT,
+          width: `${FLOATING_WINDOWS.AI_RESPONSE.ICON_SIZE}px`,
+          height: `${FLOATING_WINDOWS.AI_RESPONSE.ICON_SIZE}px`,
           borderRadius: theme.radius.full,
           ...createGlassEffect(theme),
-          background: mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(30, 58, 95, 0.7) 0%, rgba(20, 40, 70, 0.8) 50%, rgba(15, 30, 55, 0.85) 100%)'
-            : 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: Z_INDEX.FLOATING_CHAT_ICON,
-          boxShadow: mode === 'dark'
-            ? '0 8px 32px rgba(0, 20, 60, 0.5), inset 0 1px 0 rgba(100, 150, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.3)'
-            : theme.shadows.xl,
-          border: mode === 'dark' ? '1px solid rgba(80, 130, 200, 0.2)' : 'none',
+          zIndex: Z_INDEX.AI_RESPONSE_ICON,
         }}
       >
         <BinaIcon size={32} />
@@ -70,25 +61,16 @@ export const FloatingChatPanel = ({
       <div
         style={{
           position: 'fixed',
-          top: FLOATING_WINDOWS.CHAT_PANEL.PANEL_TOP,
-          right: FLOATING_WINDOWS.CHAT_PANEL.PANEL_RIGHT,
-          width: FLOATING_WINDOWS.CHAT_PANEL.PANEL_WIDTH,
-          maxHeight: FLOATING_WINDOWS.CHAT_PANEL.PANEL_MAX_HEIGHT,
+          top: FLOATING_WINDOWS.AI_RESPONSE.PANEL_TOP,
+          right: FLOATING_WINDOWS.AI_RESPONSE.PANEL_RIGHT,
+          width: FLOATING_WINDOWS.AI_RESPONSE.PANEL_WIDTH,
+          maxHeight: FLOATING_WINDOWS.AI_RESPONSE.PANEL_MAX_HEIGHT,
           borderRadius: theme.radius['2xl'],
           ...createGlassEffect(theme),
-          background: mode === 'dark'
-            ? 'linear-gradient(145deg, rgba(25, 50, 85, 0.65) 0%, rgba(18, 38, 68, 0.75) 40%, rgba(12, 28, 52, 0.8) 100%)'
-            : 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          zIndex: Z_INDEX.FLOATING_CHAT_PANEL,
-          boxShadow: mode === 'dark'
-            ? '0 12px 40px rgba(0, 15, 50, 0.6), inset 0 1px 0 rgba(100, 160, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.25)'
-            : theme.shadows.xl,
-          border: mode === 'dark' ? '1px solid rgba(70, 120, 190, 0.18)' : 'none',
+          zIndex: Z_INDEX.AI_RESPONSE_PANEL,
         }}
       >
         {/* Messages container */}
@@ -102,14 +84,10 @@ export const FloatingChatPanel = ({
           {/* User's message */}
           {lastUserMessage && (
             <div style={{
-              alignSelf: 'flex-end',
-              background: '#C97D63',
-              color: '#fff',
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              borderRadius: theme.radius.lg,
-              borderBottomRightRadius: theme.radius.sm,
-              fontSize: theme.typography.fontSize.sm,
-              maxWidth: '85%',
+              color: theme.colors.text.primary,
+              fontSize: theme.typography.fontSize.base,
+              lineHeight: theme.typography.lineHeight.relaxed,
+              fontFamily: theme.typography.fontFamily.sans,
             }}>
               {lastUserMessage.content}
             </div>
@@ -121,8 +99,8 @@ export const FloatingChatPanel = ({
               alignSelf: 'flex-start',
               color: theme.colors.text.secondary,
               padding: `${theme.spacing.sm} 0`,
-              fontSize: theme.typography.fontSize.sm,
-              fontStyle: 'italic',
+              fontSize: theme.typography.fontSize.base,
+              fontFamily: theme.typography.fontFamily.sans,
             }}>
               {loadingMessage.content ? loadingMessage.content : <LoadingDots />}
             </div>
@@ -133,8 +111,9 @@ export const FloatingChatPanel = ({
             <div style={{
               alignSelf: 'flex-start',
               color: theme.colors.text.primary,
-              fontSize: theme.typography.fontSize.sm,
+              fontSize: theme.typography.fontSize.base,
               lineHeight: theme.typography.lineHeight.relaxed,
+              fontFamily: theme.typography.fontFamily.sans,
               whiteSpace: 'pre-wrap',
               maxWidth: '95%',
             }}>
