@@ -16,6 +16,49 @@ import { getModelForTier } from "./config/modelConfig.js";
 import promptGuidance from "./prompts.json";
 
 /**
+ * Build edit mode instructions when modifying an existing app
+ * This is crucial to prevent the AI from changing the entire app type
+ * @param {Object} currentFiles - Current file map {filename: content}
+ * @returns {string} Edit mode instructions to inject into system prompt
+ */
+const buildEditModeInstructions = (currentFiles) => {
+  const fileList = Object.keys(currentFiles).map(f => `- ${f}`).join('\n');
+
+  return `
+# EDITING AN EXISTING APP (CRITICAL - READ THIS FIRST)
+You are modifying an EXISTING application, not creating a new one from scratch.
+
+## MANDATORY FIRST STEP:
+Before making ANY changes, you MUST use read() to read the existing files.
+This is NON-NEGOTIABLE. Do NOT skip this step.
+
+## CURRENT FILES (READ THESE FIRST):
+${fileList}
+
+## STRICT RULES FOR EDITING:
+1. READ FIRST: Use read('App.jsx') and read other files BEFORE writing anything
+2. PRESERVE APP TYPE: If it's a browser app, keep it as a browser. If it's a calculator, keep it as a calculator.
+3. TARGETED CHANGES ONLY: Make ONLY the specific changes the user requested
+4. KEEP ALL FEATURES: Do NOT remove or change existing features unless explicitly asked
+5. MAINTAIN STRUCTURE: Keep the existing code structure, imports, state variables, and handlers
+6. NO REWRITES: Do NOT rewrite files from scratch - modify the existing code
+
+## WHAT NOT TO DO:
+❌ Do NOT change the app's purpose or type
+❌ Do NOT remove existing functionality
+❌ Do NOT ignore the existing code structure
+❌ Do NOT start writing without reading first
+❌ Do NOT assume what the app does - READ IT
+
+## CORRECT WORKFLOW:
+1. read('App.jsx') - Understand the current app
+2. read() other files if they exist
+3. Identify what specific code needs to change
+4. write() only the modified file(s) with targeted changes
+`;
+};
+
+/**
  * Get critical guidance rules from prompts.json
  * These rules are essential for preventing runtime errors in the Sandpack preview
  * Note: SANDPACK_NAVIGATION_RULES removed - validator now catches these issues
@@ -212,14 +255,15 @@ Before calling write(), mentally verify:
 
 # EXECUTION PATTERN
 When you receive a user request:
-1. Call the write tool to create App.jsx with complete, working code
-2. Call write tool to create component files as needed
-3. Create style files if needed
-4. When validation errors occur, fix and rewrite immediately
-5. Continue until all code passes validation
-6. Return results, do NOT describe the code you created
+1. IF existing files exist: Use read() to read them FIRST before any changes
+2. Understand the current code structure before making modifications
+3. Call write() to create/modify files with targeted changes
+4. Create component files as needed
+5. When validation errors occur, fix and rewrite immediately
+6. Continue until all code passes validation
+7. Return results, do NOT describe the code you created
 
-IMPORTANT: Your goal is to generate complete, working, VALIDATED React applications through tool calls only.`;
+IMPORTANT: Your goal is to generate complete, working, VALIDATED React applications through tool calls only. When editing existing apps, preserve their purpose and functionality.`;
 
 /**
  * System prompt for chat/conversational responses
@@ -416,6 +460,14 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     if (criticalGuidance) {
       systemPrompt += '\n\n' + criticalGuidance;
       console.log('[CriticalGuidance] Injected essential rules (navigation, renderability, initialization)');
+    }
+
+    // CRITICAL: Inject edit mode instructions when modifying an existing app
+    const isEditing = Object.keys(currentFiles).length > 0;
+    if (isEditing) {
+      const editInstructions = buildEditModeInstructions(currentFiles);
+      systemPrompt = editInstructions + '\n\n' + systemPrompt; // Prepend to ensure it's read first
+      console.log(`[EditMode] Injected edit instructions for ${Object.keys(currentFiles).length} existing file(s)`);
     }
 
     // Add knowledge base context if enabled (Pro Mode)
