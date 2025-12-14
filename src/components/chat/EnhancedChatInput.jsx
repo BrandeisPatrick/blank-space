@@ -74,11 +74,14 @@ export const EnhancedChatInput = ({
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showKnowledgeDropdown, setShowKnowledgeDropdown] = useState(false);
   const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const modelDropdownRef = useRef(null);
   const modelButtonRef = useRef(null);
+  const knowledgeDropdownRef = useRef(null);
+  const knowledgeButtonRef = useRef(null);
 
   // Update message when initialMessage prop changes
   useEffect(() => {
@@ -105,6 +108,14 @@ export const EnhancedChatInput = ({
         !modelButtonRef.current.contains(event.target)
       ) {
         setShowModelDropdown(false);
+      }
+      if (
+        knowledgeDropdownRef.current &&
+        !knowledgeDropdownRef.current.contains(event.target) &&
+        knowledgeButtonRef.current &&
+        !knowledgeButtonRef.current.contains(event.target)
+      ) {
+        setShowKnowledgeDropdown(false);
       }
     };
 
@@ -445,39 +456,116 @@ export const EnhancedChatInput = ({
             )}
           </div>
 
-          {/* Knowledge Base - icon transforms to X on hover */}
+          {/* Knowledge Base with dropdown */}
           {useKnowledgeBase && (
-            <button
-              type="button"
-              onClick={() => {
-                if (isProComponentsHovered) {
-                  // Hovered = showing X, so disable
-                  onToggleKnowledgeBase && onToggleKnowledgeBase();
-                } else {
-                  // Not hovered, open dropdown
-                  toggleDropdown();
-                }
-              }}
-              onMouseEnter={() => setIsProComponentsHovered(true)}
-              onMouseLeave={() => setIsProComponentsHovered(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: proComponentsColor,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                fontFamily: theme.typography.fontFamily.sans,
-                padding: 0,
-                transition: `all ${theme.animation.fast}`,
-              }}
-            >
-              <span>Knowledge Base</span>
-              <ChevronDownIcon size={16} color={proComponentsColor} />
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={knowledgeButtonRef}
+                type="button"
+                onClick={() => setShowKnowledgeDropdown(!showKnowledgeDropdown)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.15)'
+                    : 'rgba(255, 255, 255, 0.7)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!showKnowledgeDropdown) {
+                    e.currentTarget.style.background = mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.08)'
+                      : 'rgba(255, 255, 255, 0.5)';
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  ...createGlassEffect(theme),
+                  background: mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.08)'
+                    : 'rgba(255, 255, 255, 0.5)',
+                  boxShadow: mode === 'dark'
+                    ? 'inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+                    : 'inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
+                  cursor: 'pointer',
+                  color: proComponentsColor,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+                  borderRadius: theme.radius.full,
+                  transition: `all ${theme.animation.fast}`,
+                  flexShrink: 0,
+                }}
+              >
+                <span>Knowledge</span>
+                <ChevronDownIcon size={14} color={proComponentsColor} />
+              </button>
+
+              {/* Knowledge Dropdown Menu */}
+              {showKnowledgeDropdown && (
+                <div
+                  ref={knowledgeDropdownRef}
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: 0,
+                    marginBottom: theme.spacing.sm,
+                    ...createGlassEffect(theme),
+                    background: mode === 'dark'
+                      ? 'rgba(30, 30, 35, 0.6)'
+                      : 'rgba(255, 255, 255, 0.65)',
+                    borderRadius: theme.radius.xl,
+                    boxShadow: mode === 'dark'
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
+                      : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
+                    minWidth: '140px',
+                    overflow: 'hidden',
+                    animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    zIndex: 100,
+                  }}
+                >
+                  <div
+                    onClick={() => {
+                      onToggleKnowledgeBase && onToggleKnowledgeBase();
+                      setShowKnowledgeDropdown(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      transition: `background ${theme.animation.fast}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = mode === 'dark'
+                        ? 'rgba(255,255,255,0.05)'
+                        : 'rgba(0,0,0,0.03)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        color: theme.colors.text.primary,
+                      }}>
+                        Remove
+                      </div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.text.tertiary,
+                      }}>
+                        Disable feature
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Editing Indicator - Shows when artifact is open */}
