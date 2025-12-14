@@ -119,27 +119,6 @@ export function getAllModels() {
   return { ...MODEL_CONFIGS };
 }
 
-/**
- * Log current model configuration
- */
-export function logModelConfig() {
-  console.log("\n🤖 Current Model Configuration:");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log(`Generator:         ${MODEL_CONFIGS.GENERATOR}`);
-  console.log(`Modifier:          ${MODEL_CONFIGS.MODIFIER}`);
-  console.log(`Planner:           ${MODEL_CONFIGS.PLANNER}`);
-  console.log(`Debugger:          ${MODEL_CONFIGS.DEBUGGER}`);
-  console.log(`Intent Classifier: ${MODEL_CONFIGS.INTENT_CLASSIFIER}`);
-  console.log(`Analyzer:          ${MODEL_CONFIGS.ANALYZER}`);
-  console.log(`Reviewer:          ${MODEL_CONFIGS.REVIEWER}`);
-  console.log(`Plan Reviewer:     ${MODEL_CONFIGS.PLAN_REVIEWER}`);
-  console.log(`Production Mode:   ${PRODUCTION_MODE ? "✅ Enabled" : "❌ Disabled"}`);
-  console.log(`GPT-5 Mode:        ${USE_GPT5 ? "✅ Enabled" : "❌ Disabled (using GPT-4 fallbacks)"}`);
-  if (!USE_GPT5) {
-    console.log(`⚠️  Note: Using GPT-4 fallbacks. Set USE_GPT5=true to use experimental GPT-5 models.`);
-  }
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-}
 
 // Export individual model configs
 export const MODELS = MODEL_CONFIGS;
@@ -176,7 +155,6 @@ export function getModelForTier(tier) {
 export default {
   getModel,
   getAllModels,
-  logModelConfig,
   getModelForTier,
   MODELS,
   MODEL_TIERS,

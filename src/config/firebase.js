@@ -36,16 +36,7 @@ let app = null;
 let auth = null;
 let db = null;
 
-if (missingVars.length > 0) {
-  console.info(
-    'ℹ️ Firebase not configured - running in guest mode only.',
-    '\nMissing variables:',
-    missingVars.join(', ')
-  );
-  console.info(
-    'To enable authentication, add Firebase credentials to your .env file.'
-  );
-} else {
+if (missingVars.length === 0) {
   try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -58,11 +49,8 @@ if (missingVars.length > 0) {
     //   connectFirestoreEmulator(db, 'localhost', 8080);
     // }
 
-    // Firebase initialized successfully
   } catch (error) {
-    console.error('❌ Firebase initialization error:', error);
-    console.info('Running in guest mode only.');
-    // Don't throw - allow app to continue without Firebase
+    console.error('Firebase initialization error:', error);
     app = null;
     auth = null;
     db = null;
