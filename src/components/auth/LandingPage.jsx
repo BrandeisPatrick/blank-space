@@ -113,8 +113,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             <span style={{
               fontSize: '12px',
               fontWeight: 500,
-              color: 'rgba(255,255,255,0.7)',
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              color: mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
+              backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
               padding: '6px 12px',
               borderRadius: '16px',
               marginLeft: '12px',
