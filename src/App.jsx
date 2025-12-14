@@ -7,7 +7,7 @@ import { useSettings } from "./contexts/SettingsContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
 import { ArtifactSidebar } from "./components/artifact";
-import { FloatingChatPanel } from "./components/ui/FloatingChatPanel";
+import { AIResponsePanel } from "./components/ui/AIResponsePanel";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -639,8 +639,8 @@ function App() {
         isEditingArtifact={browserWindowVisible && !!activeArtifact}
       />
 
-      {/* Floating Chat Panel - Only shows when AI is working */}
-      <FloatingChatPanel
+      {/* AI Response Panel - Only shows when AI is working */}
+      <AIResponsePanel
         visible={floatingChatVisible}
         messages={chatMessages}
         onFixBug={handleSendMessage}

@@ -16,7 +16,7 @@ export const LoadingDots = () => {
         }
         .loading-dot {
           animation: loadingDot 1.4s ease-in-out infinite;
-          font-size: 2.5em;
+          font-size: 4em;
           line-height: 0.5;
         }
       `}</style>

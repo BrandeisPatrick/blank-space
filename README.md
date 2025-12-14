@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/readme-banner.svg" width="100%" alt="blank space"/>
+  <img src="./public/blank-space-readme-banner.png" width="100%" alt="blank space"/>
 </p>
 
 <p align="center">

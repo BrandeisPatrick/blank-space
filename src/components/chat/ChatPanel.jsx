@@ -134,11 +134,11 @@ const ChatMessage = ({ message, onFixBug }) => {
       <div style={{
         background: theme.colors.bg.secondary,
         color: theme.colors.text.secondary,
-        padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
         borderRadius: theme.radius.lg,
         fontSize: theme.typography.fontSize.sm,
         lineHeight: theme.typography.lineHeight.relaxed,
-        width: '100%',
+        width: 'fit-content',
         border: `1px solid ${theme.colors.border}`,
         fontStyle: 'italic',
       }}>
