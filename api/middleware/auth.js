@@ -26,10 +26,8 @@ if (!admin.apps.length) {
         privateKey: privateKey.replace(/\\n/g, '\n'), // Handle newlines in private key
       }),
     });
-
-    console.log('✅ Firebase Admin initialized successfully');
   } catch (error) {
-    console.error('❌ Firebase Admin initialization error:', error);
+    console.error('Firebase Admin initialization error:', error);
     throw error;
   }
 }
@@ -61,16 +59,8 @@ export async function verifyAuth(req) {
       };
     }
 
-    console.log('Attempting to verify token:', {
-      length: token.length,
-      prefix: token.substring(0, 20) + '...',
-      firebaseProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-    });
-
     // Verify the token with Firebase Admin
     const decodedToken = await admin.auth().verifyIdToken(token);
-
-    console.log('Token verified successfully for user:', decodedToken.uid);
 
     // Return user info
     return {
@@ -79,12 +69,6 @@ export async function verifyAuth(req) {
       emailVerified: decodedToken.email_verified,
     };
   } catch (error) {
-    console.error('Auth verification error:', {
-      code: error.code,
-      message: error.message,
-      stack: error.stack,
-    });
-
     // Handle specific Firebase errors
     if (error.code === 'auth/id-token-expired') {
       return {

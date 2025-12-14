@@ -55,7 +55,6 @@ export const ArtifactProvider = ({ children }) => {
 
         // Validate parsedArtifacts is an array
         if (!Array.isArray(parsedArtifacts)) {
-          console.warn('Invalid artifacts data in localStorage (not an array). Resetting.');
           setArtifacts([]);
           setActiveArtifactId(null);
           return;

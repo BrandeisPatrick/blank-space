@@ -11,8 +11,7 @@ export function useLocalStorage(key, initialValue) {
     try {
       const item = localStorage.getItem(key);
       return item !== null ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
+    } catch {
       return initialValue;
     }
   });
@@ -22,8 +21,8 @@ export function useLocalStorage(key, initialValue) {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
       localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
+    } catch {
+      // Silent fail for localStorage errors
     }
   }, [key, storedValue]);
 

@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // If Firebase is not configured, set loading to false immediately
     if (!auth) {
-      console.info('ℹ️ Running in guest mode - authentication disabled');
       setLoading(false);
       return;
     }
@@ -40,8 +39,6 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
-          // User is signed in
-          console.log('✅ User signed in:', firebaseUser.email);
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -50,13 +47,11 @@ export const AuthProvider = ({ children }) => {
             emailVerified: firebaseUser.emailVerified,
           });
         } else {
-          // User is signed out
-          console.log('👤 User signed out');
           setUser(null);
         }
       } catch (error) {
         console.error('Error in auth state change handler:', error);
-        setUser(null); // Fail safely by setting user to null
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -332,7 +327,6 @@ const getErrorMessage = (errorCode) => {
     case 'auth/account-exists-with-different-credential':
       return 'An account already exists with this email using a different sign-in method.';
     default:
-      console.warn('Unhandled auth error code:', errorCode);
       return 'An error occurred. Please try again.';
   }
 };
