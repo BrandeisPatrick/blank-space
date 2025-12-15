@@ -1,7 +1,7 @@
 // Component Matcher Service
 // Finds relevant components from the knowledge base based on user input
 
-import { getAllComponents, getCategorySummary } from '../../data/componentKnowledgeBase';
+import { getAllComponents, getCategorySummary } from '../../knowledge/componentLibrary';
 
 // Keywords that map to component categories and types
 const COMPONENT_KEYWORDS = {

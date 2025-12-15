@@ -5,7 +5,7 @@ import { createGlassEffect } from '../../styles/componentStyles'
 import { LoadingDots } from './LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
-import { getRandomTip } from '../../data/tips'
+import { getRandomTip } from '../../knowledge/tips'
 
 export const AIResponsePanel = ({
   visible = false,

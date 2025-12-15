@@ -1,7 +1,7 @@
 // Prompt Builder Service
 // Builds LLM context from knowledge base components
 
-import { getCategorySummary } from '../../data/componentKnowledgeBase';
+import { getCategorySummary } from '../../knowledge/componentLibrary';
 import { findRelevantComponents } from './componentMatcher';
 
 /**
