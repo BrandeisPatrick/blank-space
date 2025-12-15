@@ -136,7 +136,7 @@ export const MODEL_TIERS = {
     description: 'Balanced',
   },
   pro: {
-    id: 'gpt-4.1',
+    id: 'gpt-5-mini',
     name: 'Pro',
     description: 'Most capable',
   },
