@@ -67,7 +67,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 
   // Suggestion pill prompts
   const suggestionPills = [
-    "Create a browser with a nav bar",
+    "Create a chess game with ai",
     "Show me what you can do",
     "Choose your own adventure game"
   ];
