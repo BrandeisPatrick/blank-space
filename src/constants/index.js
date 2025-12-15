@@ -166,7 +166,6 @@ export const Z_INDEX = {
   DROPDOWN: 30,
   CHAT_INPUT: 40,
   AI_RESPONSE_PANEL: 50,
-  AI_RESPONSE_ICON: 51,
   MODAL_BACKDROP: 100,
   MODALS: 110,
   ICON_PICKER: 200
@@ -183,10 +182,7 @@ export const FLOATING_WINDOWS = {
     MIN_HEIGHT: 300
   },
   AI_RESPONSE: {
-    ICON_SIZE: 60,
-    ICON_TOP: '100px',
-    ICON_RIGHT: '20px',
-    PANEL_TOP: '170px',
+    PANEL_TOP: '100px',
     PANEL_RIGHT: '20px',
     PANEL_WIDTH: '320px',
     PANEL_MAX_HEIGHT: '60vh'

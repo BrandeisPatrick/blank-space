@@ -1,10 +1,11 @@
+import { useState, useEffect } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { createGlassEffect } from '../../styles/componentStyles'
-import { BinaIcon } from '../icons'
 import { LoadingDots } from './LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
+import { getRandomTip } from '../../data/tips'
 
 export const AIResponsePanel = ({
   visible = false,
@@ -12,10 +13,7 @@ export const AIResponsePanel = ({
 }) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
-
-  if (!visible) {
-    return null;
-  }
+  const [tip, setTip] = useState(() => getRandomTip())
 
   // Get only the current message to display
   // Priority: loading message > last assistant response > last user message
@@ -23,6 +21,19 @@ export const AIResponsePanel = ({
 
   // Find the loading message (if any)
   const loadingMessage = visibleMessages.find(msg => msg.isLoading)
+
+  // Rotate tips every 5 seconds while loading
+  useEffect(() => {
+    if (!loadingMessage) return
+    const interval = setInterval(() => {
+      setTip(getRandomTip())
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [loadingMessage])
+
+  if (!visible) {
+    return null;
+  }
 
   // Find the last user message
   const lastUserMessage = [...visibleMessages].reverse().find(msg => msg.type === 'user')
@@ -35,44 +46,22 @@ export const AIResponsePanel = ({
   // Show loading message if AI is working, otherwise show last user message
   const currentMessage = loadingMessage || lastAssistantMessage || lastUserMessage
 
-  // Separate Bina icon + simplified current message display
   return (
-    <>
-      {/* Bina Icon - Separate floating indicator in top-right */}
-      <div
-        style={{
-          position: 'fixed',
-          top: FLOATING_WINDOWS.AI_RESPONSE.ICON_TOP,
-          right: FLOATING_WINDOWS.AI_RESPONSE.ICON_RIGHT,
-          width: `${FLOATING_WINDOWS.AI_RESPONSE.ICON_SIZE}px`,
-          height: `${FLOATING_WINDOWS.AI_RESPONSE.ICON_SIZE}px`,
-          borderRadius: theme.radius.full,
-          ...createGlassEffect(theme),
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: Z_INDEX.AI_RESPONSE_ICON,
-        }}
-      >
-        <BinaIcon size={32} />
-      </div>
-
-      {/* Chat Panel - Below the Bina icon */}
-      <div
-        style={{
-          position: 'fixed',
-          top: FLOATING_WINDOWS.AI_RESPONSE.PANEL_TOP,
-          right: FLOATING_WINDOWS.AI_RESPONSE.PANEL_RIGHT,
-          width: FLOATING_WINDOWS.AI_RESPONSE.PANEL_WIDTH,
-          maxHeight: FLOATING_WINDOWS.AI_RESPONSE.PANEL_MAX_HEIGHT,
-          borderRadius: theme.radius['2xl'],
-          ...createGlassEffect(theme),
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          zIndex: Z_INDEX.AI_RESPONSE_PANEL,
-        }}
-      >
+    <div
+      style={{
+        position: 'fixed',
+        top: FLOATING_WINDOWS.AI_RESPONSE.PANEL_TOP,
+        right: FLOATING_WINDOWS.AI_RESPONSE.PANEL_RIGHT,
+        width: FLOATING_WINDOWS.AI_RESPONSE.PANEL_WIDTH,
+        maxHeight: FLOATING_WINDOWS.AI_RESPONSE.PANEL_MAX_HEIGHT,
+        borderRadius: theme.radius['2xl'],
+        ...createGlassEffect(theme),
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        zIndex: Z_INDEX.AI_RESPONSE_PANEL,
+      }}
+    >
         {/* Messages container */}
         <div style={{
           padding: theme.spacing.lg,
@@ -93,7 +82,7 @@ export const AIResponsePanel = ({
             </div>
           )}
 
-          {/* Loading/status indicator */}
+          {/* Loading/status indicator with tip */}
           {loadingMessage && (
             <div style={{
               alignSelf: 'flex-start',
@@ -103,6 +92,13 @@ export const AIResponsePanel = ({
               fontFamily: theme.typography.fontFamily.sans,
             }}>
               {loadingMessage.content ? loadingMessage.content : <LoadingDots />}
+              <div style={{
+                marginTop: theme.spacing.md,
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text.secondary,
+              }}>
+                Tips: {tip}
+              </div>
             </div>
           )}
 
@@ -121,7 +117,6 @@ export const AIResponsePanel = ({
             </div>
           )}
         </div>
-      </div>
-    </>
+    </div>
   )
 }
