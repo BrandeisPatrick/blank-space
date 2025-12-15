@@ -10,6 +10,7 @@ export const LOADING_TIPS = [
   "Edit your app by describing changes",
   "Try the Christmas theme in Settings",
   "Long press app icon to delete",
+  "We're open source on GitHub",
 ]
 
 /**

@@ -355,6 +355,11 @@ export async function callLLM({
         apiParams.tool_choice = 'auto'
       }
 
+      // Add reasoning effort for GPT-5 models (controls thinking depth)
+      if (isGPT5) {
+        apiParams.reasoning_effort = 'medium'
+      }
+
       // Create API call promise
       const apiPromise = openai.chat.completions.create(apiParams)
 
