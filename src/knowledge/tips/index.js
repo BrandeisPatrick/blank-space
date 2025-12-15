@@ -11,6 +11,7 @@ export const LOADING_TIPS = [
   "Try the Christmas theme in Settings",
   "Long press app icon to delete",
   "We're open source on GitHub",
+  "Pro model takes 4x longer but is smarter",
 ]
 
 /**
