@@ -6,6 +6,58 @@ import { createGlassEffect } from '../../styles/componentStyles';
 import { callLLM } from '../../services/utils/llm/llmClient';
 import { Z_INDEX } from '../../constants';
 
+// Menu icon for sidebar toggle
+const MenuIcon = ({ size = 24, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
+
+// Plus icon for new chat
+const PlusIcon = ({ size = 20, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+// Trash icon for delete
+const TrashIcon = ({ size = 16, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
 // Close icon component
 const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
   <svg
@@ -41,8 +93,8 @@ const SendIcon = ({ size = 20, color = '#fff' }) => (
 );
 
 const AVAILABLE_MODELS = [
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast & efficient' },
-  { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable' },
+  { id: 'gpt-4.1-mini', name: 'Lite', description: 'Balanced' },
+  { id: 'gpt-5-mini', name: 'Pro', description: 'Most capable' },
 ];
 
 // Chevron icon for dropdown
@@ -63,11 +115,16 @@ const ChevronDownIcon = ({ size = 16, color = 'currentColor' }) => (
 
 export const ChatPanel = () => {
   const { mode } = useTheme();
-  const { isChatOpen, closeChat, messages, addMessage, clearMessages, selectedModel, setSelectedModel } = useChatApp();
+  const {
+    isChatOpen, closeChat, messages, addMessage, clearMessages,
+    selectedModel, setSelectedModel,
+    conversations, activeConversationId, createConversation, switchConversation, deleteConversation
+  } = useChatApp();
   const theme = getTheme(mode);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -162,7 +219,7 @@ export const ChatPanel = () => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '90%',
-          maxWidth: '600px',
+          maxWidth: isSidebarOpen ? '800px' : '600px',
           height: '80vh',
           maxHeight: '700px',
           ...createGlassEffect(theme),
@@ -176,22 +233,195 @@ export const ChatPanel = () => {
           zIndex: Z_INDEX.MODALS,
           animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           overflow: 'hidden',
+          transition: 'max-width 0.2s ease',
         }}
       >
-        {/* Header */}
+        {/* Sidebar */}
+        {isSidebarOpen && (
+          <div style={{
+            width: '200px',
+            minWidth: '200px',
+            borderRight: mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            background: mode === 'dark'
+              ? 'rgba(0, 0, 0, 0.2)'
+              : 'rgba(0, 0, 0, 0.02)',
+          }}>
+            {/* New Chat Button */}
+            <div style={{ padding: theme.spacing.sm }}>
+              <button
+                onClick={() => {
+                  createConversation();
+                  setIsSidebarOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  width: '100%',
+                  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                  background: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  color: theme.colors.text.primary,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                }}
+              >
+                <PlusIcon size={16} color={theme.colors.text.primary} />
+                New Chat
+              </button>
+            </div>
+
+            {/* Conversation List */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: `0 ${theme.spacing.sm}`,
+            }}>
+              {conversations.map(conv => {
+                const isActive = conv.id === activeConversationId;
+                return (
+                  <div
+                    key={conv.id}
+                    onClick={() => {
+                      switchConversation(conv.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                      marginBottom: theme.spacing.xs,
+                      background: isActive
+                        ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
+                        : 'transparent',
+                      borderRadius: theme.radius.md,
+                      cursor: 'pointer',
+                      transition: `all ${theme.animation.fast}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    <span style={{
+                      flex: 1,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.sans,
+                      color: theme.colors.text.primary,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {conv.title}
+                    </span>
+                    {conversations.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteConversation(conv.id);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: theme.radius.sm,
+                          cursor: 'pointer',
+                          opacity: 0.5,
+                          transition: `all ${theme.animation.fast}`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                          e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '0.5';
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        <TrashIcon size={14} color={theme.colors.text.secondary} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Main Chat Area */}
         <div style={{
+          flex: 1,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: theme.spacing.md,
-          borderBottom: mode === 'dark'
-            ? '1px solid rgba(255, 255, 255, 0.1)'
-            : '1px solid rgba(0, 0, 0, 0.08)',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
-            <h2 style={{
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: theme.spacing.md,
+            borderBottom: mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.08)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
+              {/* Sidebar Toggle */}
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  background: isSidebarOpen
+                    ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
+                    : 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSidebarOpen) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                <MenuIcon size={18} color={theme.colors.text.secondary} />
+              </button>
+
+              <h2 style={{
               margin: 0,
               fontSize: theme.typography.fontSize.lg,
               fontWeight: theme.typography.fontWeight.semibold,
@@ -511,6 +741,7 @@ export const ChatPanel = () => {
             }
           `}
         </style>
+        </div>
       </div>
     </>
   );
