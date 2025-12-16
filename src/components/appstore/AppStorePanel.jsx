@@ -8,6 +8,7 @@ import { ARTIFACT_METADATA, loadArtifactById } from '../../data/artifactMetadata
 import { getIconById, getIconColorById } from '../artifact/IconPicker';
 import { PreviewPanel } from '../preview/PreviewPanel';
 import { Z_INDEX } from '../../constants';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Category icons
 const TodayIcon = ({ size = 20, color = 'currentColor' }) => (
@@ -417,6 +418,7 @@ export const AppStorePanel = () => {
   const { isAppStoreOpen, closeAppStore } = useAppStore();
   const { createArtifact } = useArtifacts();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState('today');
   const [selectedApp, setSelectedApp] = useState(null);
   const [loadedArtifact, setLoadedArtifact] = useState(null);
@@ -495,8 +497,8 @@ export const AppStorePanel = () => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: '650px',
+          width: isMobile ? '100%' : '95%',
+          maxWidth: isMobile ? '100%' : '900px',
           maxHeight: '85vh',
           minHeight: '400px',
           ...createGlassEffect(theme),

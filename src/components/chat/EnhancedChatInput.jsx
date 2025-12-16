@@ -6,6 +6,7 @@ import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
 import { MODEL_TIERS } from '../../services/config/modelConfig';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Plus icon for the dropdown trigger
 const PlusIcon = ({ size = 20, color = "currentColor" }) => (
@@ -71,6 +72,7 @@ export const EnhancedChatInput = ({
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -297,7 +299,9 @@ export const EnhancedChatInput = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing.lg,
+          gap: theme.spacing.sm,
+          marginLeft: `-${theme.spacing.sm}`,
+          marginRight: `-${theme.spacing.sm}`,
         }}>
           {/* Plus Button (Dropdown Trigger) */}
           <button
@@ -568,8 +572,8 @@ export const EnhancedChatInput = ({
             </div>
           )}
 
-          {/* Editing Indicator - Shows when artifact is open */}
-          {isEditingArtifact && activeArtifact && (
+          {/* Editing Indicator - Shows when artifact is open (desktop only) */}
+          {!isMobile && isEditingArtifact && activeArtifact && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -621,6 +625,27 @@ export const EnhancedChatInput = ({
             <ArrowUpIcon size={24} />
           </button>
         </div>
+
+        {/* Editing Indicator - Mobile (separate row below controls) */}
+        {isMobile && isEditingArtifact && activeArtifact && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: proComponentsColor,
+            marginTop: `-${theme.spacing.xs}`,
+          }}>
+            <span>Editing</span>
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>{activeArtifact.name}</span>
+          </div>
+        )}
       </div>
     </div>
   );

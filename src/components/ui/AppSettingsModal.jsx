@@ -4,6 +4,7 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { IconPicker } from '../artifact/IconPicker';
 import { XIcon } from '../icons';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export const AppSettingsModal = ({
   isOpen,
@@ -15,6 +16,7 @@ export const AppSettingsModal = ({
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const [editedName, setEditedName] = useState(name || '');
 
   // Sync editedName when name prop changes
@@ -58,8 +60,9 @@ export const AppSettingsModal = ({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: '320px',
+          width: isMobile ? '100%' : '95%',
+          maxWidth: isMobile ? '100%' : '900px',
+          maxHeight: '85vh',
           ...createGlassEffect(theme),
           background: mode === 'dark'
             ? 'rgba(30, 30, 35, 0.85)'
