@@ -8,6 +8,7 @@ import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
 import { ArtifactSidebar } from "./components/artifact";
 import { AIResponsePanel } from "./components/ui/AIResponsePanel";
+import { CollapsedChatIcon } from "./components/ui/CollapsedChatIcon";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -93,28 +94,29 @@ function App() {
 
   // Floating window states
   const [floatingChatVisible, setFloatingChatVisible] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
 
   // Compute browser window visibility from source-of-truth states
   // Window shows when: has active artifact AND (user requested OR AI finished processing)
   const browserWindowVisible = !!activeArtifact && (userRequestedBrowserWindow || !isAIProcessing);
 
-  // Auto-show/hide chat based on AI working state
+  // Show panel when AI starts processing (and expand if collapsed)
   useEffect(() => {
-    let timeoutId;
     if (isAIProcessing) {
       setFloatingChatVisible(true);
-    } else {
-      // Hide chat after 3 seconds
-      timeoutId = setTimeout(() => {
-        setFloatingChatVisible(false);
-      }, 3000);
+      setIsPanelCollapsed(false); // Expand when new processing starts
     }
-    // Cleanup: clear pending timeout when effect re-runs or unmounts
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
   }, [isAIProcessing]);
+
+  // Handle panel collapse/expand
+  const handleCollapsePanel = () => {
+    setIsPanelCollapsed(true);
+  };
+
+  const handleExpandPanel = () => {
+    setIsPanelCollapsed(false);
+  };
 
   // Clean up old guest banner localStorage key
   useEffect(() => {
@@ -639,11 +641,18 @@ function App() {
         isEditingArtifact={browserWindowVisible && !!activeArtifact}
       />
 
-      {/* AI Response Panel - Only shows when AI is working */}
+      {/* AI Response Panel - Shows when visible and not collapsed */}
       <AIResponsePanel
-        visible={floatingChatVisible}
+        visible={floatingChatVisible && !isPanelCollapsed}
         messages={chatMessages}
         onFixBug={handleSendMessage}
+        onCollapse={handleCollapsePanel}
+      />
+
+      {/* Collapsed Chat Icon - Shows when panel is collapsed */}
+      <CollapsedChatIcon
+        visible={floatingChatVisible && isPanelCollapsed}
+        onClick={handleExpandPanel}
       />
 
       {/* Floating Browser Window */}
