@@ -7,9 +7,27 @@ import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
 import { getRandomTip } from '../../knowledge/tips'
 
+// Close/collapse icon
+const CloseIcon = ({ size = 20, color = '#6B7280' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 export const AIResponsePanel = ({
   visible = false,
   messages = [],
+  onCollapse,
 }) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -62,6 +80,37 @@ export const AIResponsePanel = ({
         zIndex: Z_INDEX.AI_RESPONSE_PANEL,
       }}
     >
+        {/* Collapse button */}
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            style={{
+              position: 'absolute',
+              top: theme.spacing.sm,
+              right: theme.spacing.sm,
+              width: '32px',
+              height: '32px',
+              borderRadius: theme.radius.full,
+              background: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: `all ${theme.animation.fast}`,
+              zIndex: 1,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+            }}
+          >
+            <CloseIcon size={16} color={theme.colors.text.secondary} />
+          </button>
+        )}
+
         {/* Messages container */}
         <div style={{
           padding: theme.spacing.lg,
