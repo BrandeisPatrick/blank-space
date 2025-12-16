@@ -5,23 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { Z_INDEX } from '../../constants';
-
-// Close icon component
-const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
+import { CloseIcon } from '../icons/icons';
 
 export const AuthModal = ({ onAuthSuccess }) => {
   const { mode } = useTheme();
@@ -168,6 +152,7 @@ export const AuthModal = ({ onAuthSuccess }) => {
           </h2>
           <button
             onClick={handleClose}
+            className={`hover-glass-${mode} hover-transition`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -178,15 +163,6 @@ export const AuthModal = ({ onAuthSuccess }) => {
               border: 'none',
               borderRadius: theme.radius.full,
               cursor: 'pointer',
-              transition: `background ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = mode === 'dark'
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'rgba(0, 0, 0, 0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
             }}
           >
             <CloseIcon size={20} color={theme.colors.text.secondary} />
@@ -287,6 +263,7 @@ export const AuthModal = ({ onAuthSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
+              className={`${!isLoading ? 'hover-elevate' : ''} hover-transition`}
               style={{
                 width: '100%',
                 padding: theme.spacing.md,
@@ -298,21 +275,8 @@ export const AuthModal = ({ onAuthSuccess }) => {
                 borderRadius: theme.radius.lg,
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 fontFamily: theme.typography.fontFamily.sans,
-                transition: `all ${theme.animation.normal}`,
                 opacity: isLoading ? 0.7 : 1,
                 marginTop: theme.spacing.sm,
-              }}
-              onMouseEnter={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
               }}
             >
               {isLoading ? (isSignUp ? 'Creating Account...' : 'Signing In...') : (isSignUp ? 'Create Account' : 'Sign In')}
@@ -334,6 +298,7 @@ export const AuthModal = ({ onAuthSuccess }) => {
               <button
                 type="button"
                 onClick={toggleMode}
+                className="hover-underline"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -343,12 +308,6 @@ export const AuthModal = ({ onAuthSuccess }) => {
                   cursor: 'pointer',
                   fontFamily: theme.typography.fontFamily.sans,
                   padding: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = 'none';
                 }}
               >
                 {isSignUp ? 'Sign in' : 'Create one'}

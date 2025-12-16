@@ -5,115 +5,21 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { callLLM } from '../../services/utils/llm/llmClient';
 import { Z_INDEX } from '../../constants';
-
-// Menu icon for sidebar toggle
-const MenuIcon = ({ size = 24, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-);
-
-// Plus icon for new chat
-const PlusIcon = ({ size = 20, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-// Trash icon for delete
-const TrashIcon = ({ size = 16, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-  </svg>
-);
-
-// Close icon component
-const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-// Send icon component
-const SendIcon = ({ size = 20, color = '#fff' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
+import {
+  MenuIcon,
+  PlusIcon,
+  TrashIcon,
+  CloseIcon,
+  SendIcon,
+  ChevronDownIcon,
+} from '../icons/icons';
 
 const AVAILABLE_MODELS = [
   { id: 'gpt-4.1-mini', name: 'Lite', description: 'Balanced' },
   { id: 'gpt-5-mini', name: 'Pro', description: 'Most capable' },
 ];
 
-// Chevron icon for dropdown
-const ChevronDownIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-export const ChatPanel = () => {
+export const ChatAppPanel = () => {
   const { mode } = useTheme();
   const {
     isChatOpen, closeChat, messages, addMessage, clearMessages,
@@ -129,10 +35,10 @@ export const ChatPanel = () => {
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or conversation switches
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, activeConversationId]);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -219,13 +125,13 @@ export const ChatPanel = () => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '90%',
-          maxWidth: isSidebarOpen ? '800px' : '600px',
+          maxWidth: '600px',
           height: '80vh',
           maxHeight: '700px',
           ...createGlassEffect(theme),
           background: mode === 'dark'
             ? 'rgba(30, 30, 35, 0.75)'
-            : 'rgba(255, 255, 255, 0.75)',
+            : 'rgba(255, 255, 255, 0.35)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
@@ -233,103 +139,104 @@ export const ChatPanel = () => {
           zIndex: Z_INDEX.MODALS,
           animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           display: 'flex',
-          flexDirection: 'row',
+          flexDirection: 'column',
           overflow: 'hidden',
-          transition: 'max-width 0.2s ease',
+          position: 'relative',
         }}
       >
-        {/* Sidebar */}
+        {/* Floating Pills Overlay */}
         {isSidebarOpen && (
-          <div style={{
-            width: '200px',
-            minWidth: '200px',
-            borderRight: mode === 'dark'
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(0, 0, 0, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            background: mode === 'dark'
-              ? 'rgba(0, 0, 0, 0.2)'
-              : 'rgba(0, 0, 0, 0.02)',
-          }}>
-            {/* New Chat Button */}
-            <div style={{ padding: theme.spacing.sm }}>
+          <>
+            {/* Overlay backdrop to close on click outside */}
+            <div
+              onClick={() => setIsSidebarOpen(false)}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 10,
+              }}
+            />
+            {/* Floating pills container */}
+            <div style={{
+              position: 'absolute',
+              top: '60px',
+              left: theme.spacing.md,
+              width: '50%',
+              maxWidth: '240px',
+              zIndex: 11,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing.sm,
+              animation: 'pillsFadeIn 0.2s ease-out',
+            }}>
+              {/* New Chat Pill */}
               <button
                 onClick={() => {
                   createConversation();
                   setIsSidebarOpen(false);
                 }}
+                className={`pill-new-${mode} hover-scale-md hover-transition`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: theme.spacing.sm,
-                  width: '100%',
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                  background: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                  border: 'none',
-                  borderRadius: theme.radius.md,
+                  backdropFilter: 'blur(40px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                  border: mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.08)'
+                    : '1px solid rgba(255, 255, 255, 0.5)',
+                  borderRadius: theme.radius.full,
                   color: theme.colors.text.primary,
                   fontSize: theme.typography.fontSize.sm,
                   fontFamily: theme.typography.fontFamily.sans,
                   cursor: 'pointer',
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                  boxShadow: mode === 'dark'
+                    ? '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                    : '0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+                  textAlign: 'left',
                 }}
               >
-                <PlusIcon size={16} color={theme.colors.text.primary} />
+                <PlusIcon size={14} color={theme.colors.text.primary} />
                 New Chat
               </button>
-            </div>
 
-            {/* Conversation List */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: `0 ${theme.spacing.sm}`,
-            }}>
-              {conversations.map(conv => {
+              {/* Conversation Pills - only show latest 7 */}
+              {conversations.slice(0, 7).map(conv => {
                 const isActive = conv.id === activeConversationId;
                 return (
-                  <div
+                  <button
                     key={conv.id}
                     onClick={() => {
                       switchConversation(conv.id);
                       setIsSidebarOpen(false);
                     }}
+                    className={`pill-${isActive ? 'active' : 'inactive'}-${mode} hover-scale-sm hover-transition`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      gap: theme.spacing.sm,
                       padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                      marginBottom: theme.spacing.xs,
-                      background: isActive
-                        ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
-                        : 'transparent',
-                      borderRadius: theme.radius.md,
+                      backdropFilter: 'blur(40px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                      border: isActive
+                        ? (mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(255, 255, 255, 0.6)')
+                        : (mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(255, 255, 255, 0.4)'),
+                      borderRadius: theme.radius.full,
+                      color: theme.colors.text.primary,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.sans,
                       cursor: 'pointer',
-                      transition: `all ${theme.animation.fast}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'transparent';
-                      }
+                      boxShadow: mode === 'dark'
+                        ? '0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
+                        : '0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                      textAlign: 'left',
                     }}
                   >
                     <span style={{
                       flex: 1,
-                      fontSize: theme.typography.fontSize.sm,
-                      fontFamily: theme.typography.fontFamily.sans,
-                      color: theme.colors.text.primary,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -337,50 +244,31 @@ export const ChatPanel = () => {
                       {conv.title}
                     </span>
                     {conversations.length > 1 && (
-                      <button
+                      <span
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteConversation(conv.id);
                         }}
+                        className="hover-icon"
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '24px',
-                          height: '24px',
-                          background: 'transparent',
-                          border: 'none',
-                          borderRadius: theme.radius.sm,
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: theme.radius.full,
                           cursor: 'pointer',
-                          opacity: 0.5,
-                          transition: `all ${theme.animation.fast}`,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.opacity = '1';
-                          e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = '0.5';
-                          e.currentTarget.style.background = 'transparent';
                         }}
                       >
-                        <TrashIcon size={14} color={theme.colors.text.secondary} />
-                      </button>
+                        <TrashIcon size={11} color={theme.colors.text.secondary} />
+                      </span>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </div>
+          </>
         )}
-
-        {/* Main Chat Area */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
           {/* Header */}
           <div style={{
             display: 'flex',
@@ -395,30 +283,31 @@ export const ChatPanel = () => {
               {/* Sidebar Toggle */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={`${isSidebarOpen ? `sidebar-toggle-open-${mode}` : `sidebar-toggle-closed ${mode}`} hover-transition`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: '32px',
                   height: '32px',
-                  background: isSidebarOpen
-                    ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
-                    : 'transparent',
                   border: 'none',
                   borderRadius: theme.radius.md,
                   cursor: 'pointer',
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSidebarOpen) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
                 }}
               >
-                <MenuIcon size={18} color={theme.colors.text.secondary} />
+  <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: isSidebarOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}>
+                  {isSidebarOpen ? (
+                    <CloseIcon size={18} color={theme.colors.text.secondary} />
+                  ) : (
+                    <MenuIcon size={18} color={theme.colors.text.secondary} />
+                  )}
+                </span>
               </button>
 
               <h2 style={{
@@ -435,25 +324,18 @@ export const ChatPanel = () => {
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                className={`model-selector-${mode} hover-transition`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.spacing.xs,
                   padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                  background: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
                   border: 'none',
                   borderRadius: theme.radius.full,
                   color: theme.colors.text.primary,
                   fontSize: theme.typography.fontSize.sm,
                   fontFamily: theme.typography.fontFamily.sans,
                   cursor: 'pointer',
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
                 }}
               >
                 <span>{AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name}</span>
@@ -491,30 +373,17 @@ export const ChatPanel = () => {
                           setSelectedModel(model.id);
                           setIsModelDropdownOpen(false);
                         }}
+                        className={`${isSelected ? `dropdown-item-selected-${mode}` : `dropdown-item-unselected ${mode}`} hover-transition`}
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'flex-start',
                           width: '100%',
                           padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                          background: isSelected
-                            ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)')
-                            : 'transparent',
                           border: 'none',
                           borderRadius: theme.radius.md,
                           cursor: 'pointer',
-                          transition: `all ${theme.animation.fast}`,
                           textAlign: 'left',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.background = 'transparent';
-                          }
                         }}
                       >
                         <span style={{
@@ -542,34 +411,10 @@ export const ChatPanel = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-            {/* Clear button */}
-            {messages.length > 0 && (
-              <button
-                onClick={clearMessages}
-                style={{
-                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                  background: 'transparent',
-                  border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
-                  borderRadius: theme.radius.md,
-                  color: theme.colors.text.secondary,
-                  fontSize: theme.typography.fontSize.sm,
-                  cursor: 'pointer',
-                  transition: `all ${theme.animation.fast}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                Clear
-              </button>
-            )}
-
             {/* Close button */}
             <button
               onClick={closeChat}
+              className={`hover-glass-${mode} hover-transition`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -580,15 +425,6 @@ export const ChatPanel = () => {
                 border: 'none',
                 borderRadius: theme.radius.full,
                 cursor: 'pointer',
-                transition: `background ${theme.animation.fast}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : 'rgba(0, 0, 0, 0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
               }}
             >
               <CloseIcon size={20} color={theme.colors.text.secondary} />
@@ -604,6 +440,9 @@ export const ChatPanel = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: theme.spacing.md,
+          filter: isSidebarOpen ? 'blur(3px)' : 'none',
+          opacity: isSidebarOpen ? 0.5 : 1,
+          transition: 'filter 0.2s ease, opacity 0.2s ease',
         }}>
           {messages.length === 0 ? (
             <div style={{
@@ -619,22 +458,20 @@ export const ChatPanel = () => {
               Start a conversation...
             </div>
           ) : (
-            messages.map((msg, idx) => (
+            messages.map((msg) => (
               <div
-                key={idx}
+                key={msg.id}
                 style={{
                   alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '80%',
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                   borderRadius: theme.radius.lg,
                   background: msg.role === 'user'
-                    ? '#C97D63'
+                    ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)')
                     : mode === 'dark'
                       ? 'rgba(255, 255, 255, 0.1)'
                       : 'rgba(0, 0, 0, 0.05)',
-                  color: msg.role === 'user'
-                    ? '#fff'
-                    : theme.colors.text.primary,
+                  color: theme.colors.text.primary,
                   fontSize: theme.typography.fontSize.sm,
                   lineHeight: theme.typography.lineHeight.relaxed,
                   whiteSpace: 'pre-wrap',
@@ -672,6 +509,9 @@ export const ChatPanel = () => {
             : '1px solid rgba(0, 0, 0, 0.08)',
           display: 'flex',
           gap: theme.spacing.sm,
+          filter: isSidebarOpen ? 'blur(3px)' : 'none',
+          opacity: isSidebarOpen ? 0.5 : 1,
+          transition: 'filter 0.2s ease, opacity 0.2s ease',
         }}>
           <input
             ref={inputRef}
@@ -701,14 +541,16 @@ export const ChatPanel = () => {
               justifyContent: 'center',
               width: '44px',
               height: '44px',
-              background: input.trim() && !isLoading ? '#C97D63' : mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+              background: input.trim() && !isLoading
+                ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)')
+                : (mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'),
               border: 'none',
               borderRadius: theme.radius.lg,
               cursor: input.trim() && !isLoading ? 'pointer' : 'not-allowed',
               transition: `all ${theme.animation.fast}`,
             }}
           >
-            <SendIcon size={20} color={input.trim() && !isLoading ? '#fff' : theme.colors.text.tertiary} />
+            <SendIcon size={20} color={input.trim() && !isLoading ? theme.colors.text.primary : theme.colors.text.tertiary} />
           </button>
         </div>
 
@@ -739,12 +581,21 @@ export const ChatPanel = () => {
                 transform: translateY(0);
               }
             }
+            @keyframes pillsFadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(-8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
           `}
         </style>
-        </div>
       </div>
     </>
   );
 };
 
-export default ChatPanel;
+export default ChatAppPanel;

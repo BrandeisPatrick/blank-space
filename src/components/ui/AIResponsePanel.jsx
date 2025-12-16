@@ -6,23 +6,7 @@ import { LoadingDots } from './LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
 import { getRandomTip } from '../../knowledge/tips'
-
-// Close/collapse icon
-const CloseIcon = ({ size = 20, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
+import { CloseIcon } from '../icons/icons'
 
 export const AIResponsePanel = ({
   visible = false,
@@ -84,6 +68,7 @@ export const AIResponsePanel = ({
         {onCollapse && (
           <button
             onClick={onCollapse}
+            className={`hover-glass-strong-${mode} hover-transition`}
             style={{
               position: 'absolute',
               top: theme.spacing.sm,
@@ -97,14 +82,7 @@ export const AIResponsePanel = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: `all ${theme.animation.fast}`,
               zIndex: 1,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
             }}
           >
             <CloseIcon size={16} color={theme.colors.text.secondary} />
