@@ -32,6 +32,8 @@ export const FloatingBrowserWindow = ({
   const [editedName, setEditedName] = useState('')
   const [zoom, setZoom] = useState(100)
   const [showAppSettings, setShowAppSettings] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [preFullscreenState, setPreFullscreenState] = useState(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const isMobile = useIsMobile()
@@ -40,6 +42,28 @@ export const FloatingBrowserWindow = ({
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200))
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50))
   const handleZoomReset = () => setZoom(100)
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    if (isFullscreen) {
+      // Restore previous state
+      if (preFullscreenState) {
+        setPosition(preFullscreenState.position)
+        setSize(preFullscreenState.size)
+      }
+      setIsFullscreen(false)
+      setPreFullscreenState(null)
+    } else {
+      // Save current state and go fullscreen
+      setPreFullscreenState({
+        position: { ...position },
+        size: { ...size }
+      })
+      setPosition({ x: 0, y: 0 })
+      setSize({ width: window.innerWidth, height: window.innerHeight })
+      setIsFullscreen(true)
+    }
+  }
 
   // Get the current icon component and color
   const CurrentIcon = getIconById(artifact?.icon || 'app')
@@ -94,15 +118,16 @@ export const FloatingBrowserWindow = ({
         zIndex: 50,
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: theme.radius['2xl'],
+        borderRadius: isFullscreen ? 0 : theme.radius['2xl'],
         background: mode === 'dark' ? 'rgba(30, 30, 35, 0.85)' : 'rgba(255, 255, 255, 0.6)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.4)',
-        boxShadow: mode === 'dark'
+        border: isFullscreen ? 'none' : (mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.4)'),
+        boxShadow: isFullscreen ? 'none' : (mode === 'dark'
           ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)'
-          : '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+          : '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)'),
         overflow: 'hidden',
+        transition: `border-radius ${theme.animation.fast}, border ${theme.animation.fast}, box-shadow ${theme.animation.fast}`,
       }}
     >
       {/* Window Chrome - Liquid Glass Style */}
@@ -125,8 +150,8 @@ export const FloatingBrowserWindow = ({
           userSelect: 'none',
         }}
       >
-        {/* Left: Minimize Button */}
-        <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+        {/* Left: Window Control Buttons */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* Minimize Button (Yellow) */}
           <button
             onClick={(e) => {
@@ -148,7 +173,30 @@ export const FloatingBrowserWindow = ({
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#febc2e'
             }}
-            title="Close window"
+            title="Minimize window"
+          />
+          {/* Fullscreen Button (Green) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFullscreen();
+            }}
+            style={{
+              width: '14px',
+              height: '14px',
+              borderRadius: '50%',
+              background: isFullscreen ? '#34c759' : '#28cd41',
+              border: 'none',
+              cursor: 'pointer',
+              transition: `all ${theme.animation.fast}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#2db640'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isFullscreen ? '#34c759' : '#28cd41'
+            }}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           />
         </div>
 
@@ -461,8 +509,8 @@ export const FloatingBrowserWindow = ({
         )}
       </div>
 
-      {/* Resize Handles */}
-      <ResizeHandles />
+      {/* Resize Handles - hidden in fullscreen mode */}
+      {!isFullscreen && <ResizeHandles />}
 
       {/* Icon Picker - Rendered via Portal to escape overflow:hidden (Desktop only) */}
       {!isMobile && showIconPicker && iconButtonRect && createPortal(
