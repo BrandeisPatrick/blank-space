@@ -88,3 +88,82 @@
     font-size: 1.5rem;
   }
 }
+
+/* ===========================================
+   Hover Utility Classes
+   =========================================== */
+
+/* Transitions */
+.hover-transition { transition: all 0.15s ease; }
+
+/* Glass hover backgrounds */
+.hover-glass-dark:hover { background: rgba(255,255,255,0.1) !important; }
+.hover-glass-light:hover { background: rgba(0,0,0,0.05) !important; }
+
+/* Stronger glass hover for sidebar toggle and model selector */
+.hover-glass-strong-dark:hover { background: rgba(255,255,255,0.15) !important; }
+.hover-glass-strong-light:hover { background: rgba(0,0,0,0.08) !important; }
+
+/* Dropdown item hover */
+.hover-dropdown-dark:hover { background: rgba(255,255,255,0.08); }
+.hover-dropdown-light:hover { background: rgba(0,0,0,0.03); }
+
+/* Pill/button scale transforms */
+.hover-scale-sm:hover { transform: scale(1.01); }
+.hover-scale-md:hover { transform: scale(1.02); }
+
+/* Icon opacity */
+.hover-icon { opacity: 0.4; transition: opacity 0.15s ease; }
+.hover-icon:hover { opacity: 1 !important; }
+
+/* Link color changes */
+.hover-linkedin:hover { color: #0A66C2 !important; }
+.hover-instagram:hover { color: #E4405F !important; }
+.hover-text-primary-dark:hover { color: #3B82F6 !important; }
+.hover-text-primary-light:hover { color: #3B82F6 !important; }
+
+/* Button elevation */
+.hover-elevate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+
+/* Text decoration */
+.hover-underline:hover { text-decoration: underline; }
+
+/* Pill backgrounds for chat sidebar */
+.pill-new-dark { background: rgba(255, 255, 255, 0.12); }
+.pill-new-light { background: rgba(255, 255, 255, 0.35); }
+.pill-new-dark:hover { background: rgba(255, 255, 255, 0.18) !important; }
+.pill-new-light:hover { background: rgba(255, 255, 255, 0.5) !important; }
+
+.pill-active-dark { background: rgba(255, 255, 255, 0.15); }
+.pill-active-light { background: rgba(255, 255, 255, 0.5); }
+.pill-inactive-dark { background: rgba(255, 255, 255, 0.1); }
+.pill-inactive-light { background: rgba(255, 255, 255, 0.3); }
+.pill-active-dark:hover, .pill-inactive-dark:hover { background: rgba(255, 255, 255, 0.18) !important; }
+.pill-active-light:hover, .pill-inactive-light:hover { background: rgba(255, 255, 255, 0.45) !important; }
+
+/* Sidebar toggle states */
+.sidebar-toggle-closed { background: transparent; }
+.sidebar-toggle-open-dark { background: rgba(255, 255, 255, 0.15); }
+.sidebar-toggle-open-light { background: rgba(0, 0, 0, 0.08); }
+.sidebar-toggle-closed:hover { background: rgba(255, 255, 255, 0.15); }
+.sidebar-toggle-closed.light:hover { background: rgba(0, 0, 0, 0.08); }
+
+/* Model selector base states */
+.model-selector-dark { background: rgba(255, 255, 255, 0.1); }
+.model-selector-light { background: rgba(0, 0, 0, 0.05); }
+.model-selector-dark:hover { background: rgba(255, 255, 255, 0.15) !important; }
+.model-selector-light:hover { background: rgba(0, 0, 0, 0.08) !important; }
+
+/* Dropdown item states */
+.dropdown-item-selected-dark { background: rgba(255, 255, 255, 0.1); }
+.dropdown-item-selected-light { background: rgba(0, 0, 0, 0.05); }
+.dropdown-item-unselected { background: transparent; }
+.dropdown-item-unselected.dark:hover { background: rgba(255, 255, 255, 0.08); }
+.dropdown-item-unselected.light:hover { background: rgba(0, 0, 0, 0.03); }
+
+/* Tab button hover (only for inactive tabs) */
+.tab-inactive-dark:hover { color: #FFFFFF !important; }
+.tab-inactive-light:hover { color: #1F2937 !important; }

@@ -501,8 +501,8 @@ export const AppStorePanel = () => {
           minHeight: '400px',
           ...createGlassEffect(theme),
           background: mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 50%, rgba(40, 30, 50, 0.95) 100%)'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 248, 255, 0.98) 50%, rgba(255, 245, 250, 0.95) 100%)',
+            ? 'rgba(30, 30, 35, 0.75)'
+            : 'rgba(255, 255, 255, 0.35)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
@@ -637,20 +637,20 @@ export const AppStorePanel = () => {
                         gap: theme.spacing.md,
                         padding: '14px 16px',
                         background: mode === 'dark'
-                          ? 'rgba(30, 30, 35, 0.95)'
-                          : 'rgba(255, 255, 255, 0.95)',
+                          ? 'rgba(40, 45, 65, 0.5)'
+                          : 'rgba(253, 251, 247, 0.65)',
                         cursor: 'pointer',
                         transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = mode === 'dark'
-                          ? 'rgba(50, 50, 55, 0.95)'
-                          : 'rgba(245, 245, 250, 0.95)';
+                          ? 'rgba(50, 55, 80, 0.65)'
+                          : 'rgba(253, 251, 247, 0.8)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = mode === 'dark'
-                          ? 'rgba(30, 30, 35, 0.95)'
-                          : 'rgba(255, 255, 255, 0.95)';
+                          ? 'rgba(40, 45, 65, 0.5)'
+                          : 'rgba(253, 251, 247, 0.65)';
                       }}
                     >
                       {/* App Icon - iOS style rounded square */}

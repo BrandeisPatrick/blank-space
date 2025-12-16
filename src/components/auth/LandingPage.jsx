@@ -13,7 +13,7 @@ import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
 import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
 import { ChatAppCard } from '../chatapp/ChatAppCard';
-import { ChatPanel } from '../chatapp/ChatPanel';
+import { ChatAppPanel } from '../chatapp/ChatAppPanel';
 import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
 import { AppStorePanel } from '../appstore/AppStorePanel';
 import { AuthModal } from './AuthModal';
@@ -310,8 +310,8 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
       {/* Settings Panel Modal */}
       <TabbedSettingsPanel />
 
-      {/* Chat Panel Modal */}
-      <ChatPanel />
+      {/* Chat App Modal */}
+      <ChatAppPanel />
 
       {/* AppStore Panel Modal */}
       <AppStorePanel />

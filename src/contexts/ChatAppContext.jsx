@@ -50,13 +50,17 @@ export const ChatAppProvider = ({ children }) => {
   // Selected model
   const [selectedModel, setSelectedModel] = useState('gpt-4.1-mini');
 
-  // Persist conversations to localStorage
+  // Persist conversations to localStorage (debounced to prevent excessive writes)
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-    } catch (e) {
-      console.error('Failed to save conversations:', e);
-    }
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+      } catch (e) {
+        console.error('Failed to save conversations:', e);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [conversations]);
 
   // Get current conversation's messages
@@ -69,9 +73,16 @@ export const ChatAppProvider = ({ children }) => {
   const closeChat = useCallback(() => setIsChatOpen(false), []);
 
   const addMessage = useCallback((message) => {
+    // Ensure every message has a unique ID and timestamp
+    const enrichedMessage = {
+      ...message,
+      id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: message.timestamp || Date.now(),
+    };
+
     setConversations(prev => prev.map(conv =>
       conv.id === activeConversationId
-        ? { ...conv, messages: [...conv.messages, message], updatedAt: Date.now() }
+        ? { ...conv, messages: [...conv.messages, enrichedMessage], updatedAt: Date.now() }
         : conv
     ));
   }, [activeConversationId]);

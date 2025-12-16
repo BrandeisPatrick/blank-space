@@ -7,15 +7,9 @@ import { Z_INDEX } from '../../constants';
 import { ThemeTab } from './tabs/ThemeTab';
 import { AIPreferenceTab } from './tabs/AIPreferenceTab';
 import { UsTab } from './tabs/UsTab';
+import { CloseIcon } from '../icons/icons';
 
-// Icons
-const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
+// Tab icons (specific to settings panel)
 const ThemeIcon = ({ size = 20, color = '#6B7280' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="5" />
@@ -103,7 +97,7 @@ export const TabbedSettingsPanel = () => {
           ...createGlassEffect(theme),
           background: mode === 'dark'
             ? 'rgba(30, 30, 35, 0.85)'
-            : 'rgba(255, 255, 255, 0.85)',
+            : 'rgba(255, 255, 255, 0.35)',
           borderRadius: theme.radius['2xl'],
           boxShadow: mode === 'dark'
             ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
@@ -136,6 +130,7 @@ export const TabbedSettingsPanel = () => {
           </h2>
           <button
             onClick={closeSettings}
+            className={`hover-glass-${mode} hover-transition`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -146,15 +141,6 @@ export const TabbedSettingsPanel = () => {
               border: 'none',
               borderRadius: theme.radius.full,
               cursor: 'pointer',
-              transition: `background ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = mode === 'dark'
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'rgba(0, 0, 0, 0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
             }}
           >
             <CloseIcon size={20} color={theme.colors.text.secondary} />
@@ -176,6 +162,7 @@ export const TabbedSettingsPanel = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  className={`${!isActive ? `tab-inactive-${mode}` : ''} hover-transition`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -191,18 +178,7 @@ export const TabbedSettingsPanel = () => {
                       : theme.typography.fontWeight.medium,
                     fontSize: theme.typography.fontSize.sm,
                     fontFamily: theme.typography.fontFamily.sans,
-                    transition: `all ${theme.animation.fast}`,
                     marginBottom: '-1px',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.color = theme.colors.text.primary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.color = theme.colors.text.secondary;
-                    }
                   }}
                 >
                   <Icon size={18} color={isActive ? '#3B82F6' : 'currentColor'} />
