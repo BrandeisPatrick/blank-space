@@ -5,6 +5,7 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { callLLM } from '../../services/utils/llm/llmClient';
 import { Z_INDEX } from '../../constants';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import {
   MenuIcon,
   PlusIcon,
@@ -27,6 +28,7 @@ export const ChatAppPanel = () => {
     conversations, activeConversationId, createConversation, switchConversation, deleteConversation
   } = useChatApp();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
@@ -124,10 +126,10 @@ export const ChatAppPanel = () => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: '600px',
-          height: '80vh',
-          maxHeight: '700px',
+          width: isMobile ? '100%' : '95%',
+          maxWidth: isMobile ? '100%' : '900px',
+          height: '85vh',
+          maxHeight: '85vh',
           ...createGlassEffect(theme),
           background: mode === 'dark'
             ? 'rgba(30, 30, 35, 0.75)'
@@ -141,7 +143,6 @@ export const ChatAppPanel = () => {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          position: 'relative',
         }}
       >
         {/* Floating Pills Overlay */}

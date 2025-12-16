@@ -4,6 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { Z_INDEX } from '../../constants';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { ThemeTab } from './tabs/ThemeTab';
 import { AIPreferenceTab } from './tabs/AIPreferenceTab';
 import { UsTab } from './tabs/UsTab';
@@ -51,6 +52,7 @@ export const TabbedSettingsPanel = () => {
   const { mode } = useTheme();
   const { isSettingsOpen, closeSettings } = useSettings();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('theme');
 
   if (!isSettingsOpen) return null;
@@ -91,8 +93,8 @@ export const TabbedSettingsPanel = () => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: '480px',
+          width: isMobile ? '100%' : '95%',
+          maxWidth: isMobile ? '100%' : '900px',
           maxHeight: '85vh',
           ...createGlassEffect(theme),
           background: mode === 'dark'
