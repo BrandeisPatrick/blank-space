@@ -15,7 +15,7 @@ import { kanbanBoardArtifact } from './artifacts/kanbanBoard';
 import { musicPlayerArtifact } from './artifacts/musicPlayer';
 import { weatherAppArtifact } from './artifacts/weatherApp';
 import { spaceStationArtifact } from './artifacts/spaceStation';
-import { promoGeneratorArtifact } from './artifacts/promoGenerator';
+import { contentStudioArtifact } from './artifacts/contentStudio';
 
 export const PREBUILD_ARTIFACTS = [
   calendarTodoArtifact,
@@ -28,7 +28,7 @@ export const PREBUILD_ARTIFACTS = [
   musicPlayerArtifact,
   weatherAppArtifact,
   spaceStationArtifact,
-  promoGeneratorArtifact
+  contentStudioArtifact
 ];
 
 /**
