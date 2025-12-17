@@ -160,7 +160,7 @@ const LockScreen = ({ onDismiss }) => {
       {/* Hint Text */}
       <div
         style={{
-          marginTop: theme.spacing['4xl'],
+          marginTop: theme.spacing.lg,
           fontSize: theme.typography.fontSize.sm,
           fontWeight: theme.typography.fontWeight.normal,
           fontFamily: theme.typography.fontFamily.sans,
