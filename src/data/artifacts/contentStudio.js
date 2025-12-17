@@ -1,10 +1,10 @@
 /**
- * Promo Image Generator
+ * Content Studio
  * Create promotional images with phone mockups, customizable text and colors
  */
 
-export const promoGeneratorArtifact = {
-  id: 'promo-generator',
+export const contentStudioArtifact = {
+  id: 'content-studio',
   name: 'Content Studio',
   description: 'Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.',
   icon: 'app',
@@ -21,6 +21,7 @@ function App() {
   const [subtitleSize, setSubtitleSize] = useState(27);
   const [canvasSize, setCanvasSize] = useState('instagram-portrait');
   const [panelOpen, setPanelOpen] = useState(true);
+  const [imageZoom, setImageZoom] = useState(1);
   const fileInputRef = useRef(null);
   const previewRef = useRef(null);
 
@@ -138,6 +139,34 @@ function App() {
     const screenHeight = phoneHeight - screenPadding * 2;
     const screenRadius = cornerRadius - screenPadding;
 
+    const saveImage = (dataUrl) => {
+      // Try Web Share API for mobile
+      if (navigator.share && navigator.canShare) {
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], 'content-studio.png', { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: 'Content Studio Image' });
+              return;
+            } catch (err) {
+              if (err.name !== 'AbortError') console.log('Share failed, falling back to download');
+            }
+          }
+          // Fallback to download
+          const link = document.createElement('a');
+          link.download = 'content-studio.png';
+          link.href = dataUrl;
+          link.click();
+        }, 'image/png');
+      } else {
+        // Desktop download
+        const link = document.createElement('a');
+        link.download = 'content-studio.png';
+        link.href = dataUrl;
+        link.click();
+      }
+    };
+
     if (image) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -147,31 +176,39 @@ function App() {
         ctx.roundRect(screenX, screenY, screenWidth, screenHeight, screenRadius);
         ctx.clip();
 
-        // Cover fit
+        // Fill screen area with black (for letterboxing)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
+
+        // Contain fit with zoom
         const imgRatio = img.width / img.height;
         const screenRatio = screenWidth / screenHeight;
         let drawWidth, drawHeight, drawX, drawY;
 
+        // Contain fit - show full image, may letterbox
         if (imgRatio > screenRatio) {
-          drawHeight = screenHeight;
-          drawWidth = drawHeight * imgRatio;
-          drawX = screenX - (drawWidth - screenWidth) / 2;
-          drawY = screenY;
-        } else {
+          // Image is wider - fit to width
           drawWidth = screenWidth;
           drawHeight = drawWidth / imgRatio;
-          drawX = screenX;
-          drawY = screenY - (drawHeight - screenHeight) / 2;
+        } else {
+          // Image is taller - fit to height
+          drawHeight = screenHeight;
+          drawWidth = drawHeight * imgRatio;
         }
+        // Center the image
+        drawX = screenX + (screenWidth - drawWidth) / 2;
+        drawY = screenY + (screenHeight - drawHeight) / 2;
+
+        // Apply zoom
+        drawWidth *= imageZoom;
+        drawHeight *= imageZoom;
+        drawX = screenX + (screenWidth - drawWidth) / 2;
+        drawY = screenY + (screenHeight - drawHeight) / 2;
 
         ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         ctx.restore();
 
-        // Trigger download
-        const link = document.createElement('a');
-        link.download = 'promo-image.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        saveImage(canvas.toDataURL('image/png'));
       };
       img.src = image;
     } else {
@@ -181,41 +218,8 @@ function App() {
       ctx.roundRect(screenX, screenY, screenWidth, screenHeight, screenRadius);
       ctx.fill();
 
-      const link = document.createElement('a');
-      link.download = 'promo-image.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      saveImage(canvas.toDataURL('image/png'));
     }
-  };
-
-  const handleImport = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const config = JSON.parse(event.target.result);
-        if (config.title) setTitle(config.title);
-        if (config.subtitle) setSubtitle(config.subtitle);
-        if (config.bgColor) setBgColor(config.bgColor);
-        if (config.textColor) setTextColor(config.textColor);
-        if (config.titleSize) setTitleSize(config.titleSize);
-        if (config.subtitleSize) setSubtitleSize(config.subtitleSize);
-        if (config.canvasSize) setCanvasSize(config.canvasSize);
-      } catch (err) {
-        console.error('Invalid config file');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleExportConfig = () => {
-    const config = { title, subtitle, bgColor, textColor, titleSize, subtitleSize, canvasSize };
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.download = 'promo-config.json';
-    link.href = URL.createObjectURL(blob);
-    link.click();
   };
 
   return (
@@ -300,7 +304,7 @@ function App() {
                 style={{ top: '8px', left: '8px', right: '8px', bottom: '8px', borderRadius: '28px' }}
               >
                 {image ? (
-                  <img src={image} alt="Screenshot" className="w-full h-full object-cover" />
+                  <img src={image} alt="Screenshot" className="w-full h-full object-contain" style={{ transform: \`scale(\${imageZoom})\` }} />
                 ) : (
                   <div className="text-center text-[#48484a] p-4">
                     <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,39 +386,76 @@ function App() {
               </div>
             </div>
 
-            {/* Typography Section */}
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-3">Typography</label>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-500">Title</span>
-                    <span className="text-xs text-gray-900 font-medium">{titleSize}px</span>
+            {/* Sliders Section */}
+            <div className="space-y-5">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Title</span>
+                  <span className="text-xs text-gray-900 font-medium">{titleSize}px</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-[2px]">
+                    {[16,18,20,22,24,26,28,30,32,34,36,38,40,42].map((v) => (
+                      <div key={v} className={\`w-1.5 h-1.5 rounded-full \${titleSize >= v ? 'bg-gray-900' : 'bg-gray-300'}\`} />
+                    ))}
                   </div>
                   <input
                     type="range"
                     min="16"
-                    max="58"
+                    max="42"
+                    step="2"
                     value={titleSize}
                     onChange={(e) => setTitleSize(Number(e.target.value))}
-                    className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                    className="relative w-full h-2 bg-transparent appearance-none cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
                   />
                 </div>
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-500">Subtitle</span>
-                    <span className="text-xs text-gray-900 font-medium">{subtitleSize}px</span>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Subtitle</span>
+                  <span className="text-xs text-gray-900 font-medium">{subtitleSize}px</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-[2px]">
+                    {[14,16,18,20,22,24,26,28,30].map((v) => (
+                      <div key={v} className={\`w-1.5 h-1.5 rounded-full \${subtitleSize >= v ? 'bg-gray-900' : 'bg-gray-300'}\`} />
+                    ))}
                   </div>
                   <input
                     type="range"
                     min="14"
-                    max="40"
+                    max="30"
+                    step="2"
                     value={subtitleSize}
                     onChange={(e) => setSubtitleSize(Number(e.target.value))}
-                    className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                    className="relative w-full h-2 bg-transparent appearance-none cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
                   />
                 </div>
               </div>
+              {image && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-500">Image</span>
+                    <span className="text-xs text-gray-900 font-medium">{Math.round(imageZoom * 100)}%</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-[2px]">
+                      {[0.5,0.75,1,1.25,1.5,1.75,2].map((v) => (
+                        <div key={v} className={\`w-1.5 h-1.5 rounded-full \${imageZoom >= v ? 'bg-gray-900' : 'bg-gray-300'}\`} />
+                      ))}
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.25"
+                      value={imageZoom}
+                      onChange={(e) => setImageZoom(Number(e.target.value))}
+                      className="relative w-full h-2 bg-transparent appearance-none cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Colors Section */}
@@ -474,26 +515,12 @@ function App() {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-gray-200 space-y-2">
-          <div className="flex gap-2">
-            <label className="flex-1 cursor-pointer">
-              <div className="w-full bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-2.5 text-gray-600 hover:text-gray-900 text-xs font-medium text-center transition-all">
-                Import
-              </div>
-              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-            </label>
-            <button
-              onClick={handleExportConfig}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-2.5 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all"
-            >
-              Save
-            </button>
-          </div>
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={exportAsPng}
             className="w-full bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-3 text-white text-sm font-semibold transition-all"
           >
-            Export PNG
+            Save
           </button>
         </div>
       </div>
