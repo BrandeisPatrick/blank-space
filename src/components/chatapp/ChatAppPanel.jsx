@@ -18,6 +18,7 @@ import {
 const AVAILABLE_MODELS = [
   { id: 'gpt-4.1-mini', name: 'Lite', description: 'Balanced' },
   { id: 'gpt-5-mini', name: 'Pro', description: 'Most capable' },
+  { id: 'gpt-5.2', name: 'Experiment', description: 'Latest checkpoint' },
 ];
 
 export const ChatAppPanel = () => {

@@ -140,6 +140,11 @@ export const MODEL_TIERS = {
     name: 'Pro',
     description: 'Most capable',
   },
+  experiment: {
+    id: 'gpt-5.2',
+    name: 'Experiment',
+    description: 'Latest checkpoint',
+  },
 };
 
 /**
