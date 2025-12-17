@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
+import { BackgroundWaves, StarryBackground } from '../wallpaper';
 
 /**
  * Mobile-style lock screen overlay
- * Displays current time and date, fades away on touch/click
+ * Displays current time and date with wallpaper background
+ * Fades away on touch/click
  */
 const LockScreen = ({ onDismiss }) => {
-  const { mode } = useTheme();
-  const theme = getTheme(mode || 'light'); // Fallback to light if mode not ready
+  const { mode, theme: selectedTheme, currentTheme } = useTheme();
+  const theme = getTheme(mode || 'light');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isFading, setIsFading] = useState(false);
 
@@ -22,29 +24,49 @@ const LockScreen = ({ onDismiss }) => {
 
   // Handle dismiss with fade animation
   const handleDismiss = useCallback(() => {
-    if (isFading) return; // Prevent double-trigger
+    if (isFading) return;
     setIsFading(true);
     setTimeout(() => {
       onDismiss();
-    }, 400); // Match animation duration
+    }, 400);
   }, [isFading, onDismiss]);
 
-  // Format time: "12:45"
-  const formatTime = (date) => {
-    return date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+  // Format hours and minutes separately for vertical display
+  const hours = currentTime.toLocaleTimeString([], {
+    hour: '2-digit',
+    hour12: false
+  }).split(':')[0];
+
+  const minutes = currentTime.toLocaleTimeString([], {
+    minute: '2-digit'
+  }).padStart(2, '0');
+
+  // Format date: "Mon Jun 23"
+  const formatDate = (date) => {
+    return date.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
-  // Format date: "Sunday, December 15"
-  const formatDate = (date) => {
-    return date.toLocaleDateString([], {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
+  // Determine if using dark theme (stars) or light theme (waves)
+  const isDarkTheme = currentTheme?.isDark ?? mode === 'dark';
+
+  // Glass effect styles for the time display
+  const glassStyle = {
+    background: isDarkTheme
+      ? 'rgba(255, 255, 255, 0.1)'
+      : 'rgba(255, 255, 255, 0.25)',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+    borderRadius: '40px',
+    border: isDarkTheme
+      ? '1px solid rgba(255, 255, 255, 0.15)'
+      : '1px solid rgba(255, 255, 255, 0.4)',
+    boxShadow: isDarkTheme
+      ? 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 20px 60px rgba(0, 0, 0, 0.3)'
+      : 'inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 20px 60px rgba(0, 0, 0, 0.15)',
   };
 
   return (
@@ -60,46 +82,79 @@ const LockScreen = ({ onDismiss }) => {
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        // Solid background with subtle glass effect
-        background: (mode || 'light') === 'light'
-          ? '#C9CAD8' // Solid lavender background
-          : '#1a1a1a', // Solid dark background
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        // Wallpaper background
+        backgroundColor: currentTheme?.backgroundColor || (isDarkTheme ? '#0f1729' : '#C9CAD8'),
+        backgroundImage: currentTheme?.gradient,
         // Fade animation
         opacity: isFading ? 0 : 1,
         transition: 'opacity 400ms ease-out',
         // Prevent text selection
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        overflow: 'hidden',
       }}
     >
-      {/* Time Display */}
-      <div
-        style={{
-          fontSize: 'clamp(72px, 20vw, 120px)',
-          fontWeight: theme.typography.fontWeight.normal,
-          fontFamily: theme.typography.fontFamily.sans,
-          color: theme.colors.text.primary,
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          marginBottom: theme.spacing.md,
-        }}
-      >
-        {formatTime(currentTime)}
-      </div>
+      {/* Wallpaper Background - Stars or Waves */}
+      {isDarkTheme ? (
+        <StarryBackground starColors={currentTheme?.starColors} />
+      ) : (
+        <BackgroundWaves variant="diagonal" preset={selectedTheme} />
+      )}
 
-      {/* Date Display */}
+      {/* Date Display - Above time */}
       <div
         style={{
-          fontSize: 'clamp(18px, 4vw, 24px)',
-          fontWeight: theme.typography.fontWeight.normal,
+          fontSize: 'clamp(16px, 4vw, 22px)',
+          fontWeight: theme.typography.fontWeight.medium,
           fontFamily: theme.typography.fontFamily.sans,
-          color: theme.colors.text.secondary,
-          letterSpacing: '0.01em',
+          color: isDarkTheme ? 'rgba(255, 255, 255, 0.9)' : theme.colors.text.primary,
+          letterSpacing: '0.02em',
+          marginBottom: theme.spacing.xl,
+          zIndex: 1,
         }}
       >
         {formatDate(currentTime)}
+      </div>
+
+      {/* Time Display - Vertical stacked with glass effect */}
+      <div
+        style={{
+          ...glassStyle,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'clamp(24px, 6vw, 48px) clamp(32px, 8vw, 64px)',
+          zIndex: 1,
+        }}
+      >
+        {/* Hours */}
+        <div
+          style={{
+            fontSize: 'clamp(100px, 28vw, 180px)',
+            fontWeight: theme.typography.fontWeight.bold,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: isDarkTheme ? 'rgba(255, 255, 255, 0.95)' : theme.colors.text.primary,
+            lineHeight: 0.85,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {hours}
+        </div>
+
+        {/* Minutes */}
+        <div
+          style={{
+            fontSize: 'clamp(100px, 28vw, 180px)',
+            fontWeight: theme.typography.fontWeight.bold,
+            fontFamily: theme.typography.fontFamily.sans,
+            color: isDarkTheme ? 'rgba(255, 255, 255, 0.95)' : theme.colors.text.primary,
+            lineHeight: 0.85,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {minutes}
+        </div>
       </div>
 
       {/* Hint Text */}
@@ -110,10 +165,9 @@ const LockScreen = ({ onDismiss }) => {
           fontSize: theme.typography.fontSize.sm,
           fontWeight: theme.typography.fontWeight.normal,
           fontFamily: theme.typography.fontFamily.sans,
-          color: theme.colors.text.tertiary,
-          opacity: 0.7,
-          // Subtle pulse animation
-          animation: 'pulse 2s ease-in-out infinite',
+          color: isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : theme.colors.text.tertiary,
+          zIndex: 1,
+          animation: 'lockScreenPulse 2s ease-in-out infinite',
         }}
       >
         Touch anywhere to continue
@@ -121,7 +175,7 @@ const LockScreen = ({ onDismiss }) => {
 
       {/* Pulse animation keyframes */}
       <style>{`
-        @keyframes pulse {
+        @keyframes lockScreenPulse {
           0%, 100% { opacity: 0.7; }
           50% { opacity: 0.4; }
         }
