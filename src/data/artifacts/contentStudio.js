@@ -156,14 +156,18 @@ function App() {
           const link = document.createElement('a');
           link.download = 'content-studio.png';
           link.href = dataUrl;
+          document.body.appendChild(link);
           link.click();
+          document.body.removeChild(link);
         }, 'image/png');
       } else {
         // Desktop download
         const link = document.createElement('a');
         link.download = 'content-studio.png';
         link.href = dataUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       }
     };
 
