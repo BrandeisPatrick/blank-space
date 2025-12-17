@@ -7,10 +7,24 @@
 
 export const ARTIFACT_METADATA = [
   {
+    id: "weather-app",
+    name: "Weather App",
+    description: "A beautiful weather app featuring custom SVG weather icons, animated floating clouds, temperature unit conversion, and glassmorphism cards.",
+    icon: "sun",
+    category: "demos",
+  },
+  {
     id: "calendar-todo",
     name: "Calendar",
     description: "A beautiful calendar with integrated todo list. Features month navigation, date selection, and task management with smooth animations.",
     icon: "calendar",
+    category: "apps",
+  },
+  {
+    id: "promo-generator",
+    name: "Content Studio",
+    description: "Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.",
+    icon: "app",
     category: "apps",
   },
   {
@@ -42,13 +56,6 @@ export const ARTIFACT_METADATA = [
     category: "demos",
   },
   {
-    id: "data-fetcher",
-    name: "API Data Fetcher",
-    description: "A user directory that fetches data from JSONPlaceholder API. Demonstrates native fetch() with async/await, skeleton loading states, and error handling.",
-    icon: "globe",
-    category: "demos",
-  },
-  {
     id: "interactive-dashboard",
     name: "Interactive Dashboard",
     description: "An analytics dashboard with animated bar charts, line graphs, and donut charts built entirely with pure SVG - no chart libraries needed.",
@@ -70,25 +77,11 @@ export const ARTIFACT_METADATA = [
     category: "demos",
   },
   {
-    id: "weather-app",
-    name: "Weather App",
-    description: "A beautiful weather app featuring custom SVG weather icons, animated floating clouds, temperature unit conversion, and glassmorphism cards.",
-    icon: "sun",
-    category: "demos",
-  },
-  {
     id: "space-station",
     name: "Space Station",
     description: "An interactive isometric space station scene. Click tiles to place furniture and props. Built with Kenney's Space Station Kit assets.",
     icon: "game",
     category: "prototype",
-  },
-  {
-    id: "promo-generator",
-    name: "Promo Generator",
-    description: "Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.",
-    icon: "app",
-    category: "apps",
   },
 ];
 
@@ -103,7 +96,6 @@ export const loadArtifactById = async (id) => {
     "retro-typer": () => import("./artifacts/retroTyper").then(m => m.retroTyperArtifact),
     "cronus": () => import("./artifacts/cronus").then(m => m.cronusArtifact),
     "animated-cards": () => import("./artifacts/animatedCards").then(m => m.animatedCardsArtifact),
-    "data-fetcher": () => import("./artifacts/dataFetcher").then(m => m.dataFetcherArtifact),
     "interactive-dashboard": () => import("./artifacts/interactiveDashboard").then(m => m.interactiveDashboardArtifact),
     "kanban-board": () => import("./artifacts/kanbanBoard").then(m => m.kanbanBoardArtifact),
     "music-player": () => import("./artifacts/musicPlayer").then(m => m.musicPlayerArtifact),
