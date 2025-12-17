@@ -300,7 +300,7 @@ function App() {
 
               {/* Screen */}
               <div
-                className="absolute bg-[#000] overflow-hidden flex items-center justify-start"
+                className="absolute bg-[#000] overflow-hidden flex flex-col items-center justify-start"
                 style={{ top: '8px', left: '8px', right: '8px', bottom: '8px', borderRadius: '28px' }}
               >
                 {image ? (
