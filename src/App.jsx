@@ -646,7 +646,7 @@ function App() {
 
   // Show landing page with floating windows (default route)
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', width: '100vw', height: '100dvh', minHeight: '100vh', overflow: 'hidden' }}>
       {/* Landing Page as Background */}
       <LandingPage
         onTryNow={handleTryNow}
