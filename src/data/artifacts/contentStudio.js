@@ -195,15 +195,15 @@ function App() {
           drawHeight = screenHeight;
           drawWidth = drawHeight * imgRatio;
         }
-        // Center the image
+        // Center horizontally, align to top
         drawX = screenX + (screenWidth - drawWidth) / 2;
-        drawY = screenY + (screenHeight - drawHeight) / 2;
+        drawY = screenY;
 
         // Apply zoom
         drawWidth *= imageZoom;
         drawHeight *= imageZoom;
         drawX = screenX + (screenWidth - drawWidth) / 2;
-        drawY = screenY + (screenHeight - drawHeight) / 2;
+        drawY = screenY;
 
         ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         ctx.restore();
@@ -300,11 +300,11 @@ function App() {
 
               {/* Screen */}
               <div
-                className="absolute bg-[#000] overflow-hidden flex items-center justify-center"
+                className="absolute bg-[#000] overflow-hidden flex items-center justify-start"
                 style={{ top: '8px', left: '8px', right: '8px', bottom: '8px', borderRadius: '28px' }}
               >
                 {image ? (
-                  <img src={image} alt="Screenshot" className="w-full h-full object-contain" style={{ transform: \`scale(\${imageZoom})\` }} />
+                  <img src={image} alt="Screenshot" className="w-full object-contain object-top" style={{ transform: \`scale(\${imageZoom})\`, transformOrigin: 'top center' }} />
                 ) : (
                   <div className="text-center text-[#48484a] p-4">
                     <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
