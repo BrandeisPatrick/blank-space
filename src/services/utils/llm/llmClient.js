@@ -238,6 +238,7 @@ export async function callLLM({
 }) {
   // Detect GPT-5 model, reasoning models, and codex models
   const isGPT5 = model.includes('gpt-5')
+  const isGPT52 = model.includes('gpt-5.2')
   const isReasoning = isReasoningModel(model)
   const useResponsesAPI = isResponsesAPIModel(model)
   const needsSpecialHandling = isGPT5 || isReasoning
@@ -256,7 +257,10 @@ export async function callLLM({
   }
 
   // Increase timeout for GPT-5 and reasoning models (they may be slower for complex tasks)
-  const effectiveTimeout = needsSpecialHandling && timeout === 45000 ? 120000 : timeout
+  // GPT-5.2 needs longer timeout (4 min), other GPT-5 models need 3 min minimum
+  const effectiveTimeout = needsSpecialHandling
+    ? Math.max(timeout, isGPT52 ? 240000 : 180000)
+    : timeout
 
   // GPT-5 and reasoning models use reasoning tokens internally, so we need more tokens
   // to ensure there's enough budget for both reasoning and output
@@ -356,8 +360,10 @@ export async function callLLM({
       }
 
       // Add reasoning effort for GPT-5 models (controls thinking depth)
+      // GPT-5.2 defaults to 'none', use 'low' for code generation balance
+      // GPT-5/5.1 use 'medium' as their default
       if (isGPT5) {
-        apiParams.reasoning_effort = 'medium'
+        apiParams.reasoning_effort = isGPT52 ? 'low' : 'medium'
       }
 
       // Create API call promise
