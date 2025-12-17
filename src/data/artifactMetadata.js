@@ -83,6 +83,13 @@ export const ARTIFACT_METADATA = [
     icon: "game",
     category: "prototype",
   },
+  {
+    id: "promo-generator",
+    name: "Promo Generator",
+    description: "Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.",
+    icon: "app",
+    category: "apps",
+  },
 ];
 
 /**
@@ -102,6 +109,7 @@ export const loadArtifactById = async (id) => {
     "music-player": () => import("./artifacts/musicPlayer").then(m => m.musicPlayerArtifact),
     "weather-app": () => import("./artifacts/weatherApp").then(m => m.weatherAppArtifact),
     "space-station": () => import("./artifacts/spaceStation").then(m => m.spaceStationArtifact),
+    "promo-generator": () => import("./artifacts/promoGenerator").then(m => m.promoGeneratorArtifact),
   };
 
   const loader = loaders[id];
