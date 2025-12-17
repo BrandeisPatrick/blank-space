@@ -10,6 +10,7 @@ import { ArtifactSidebar } from "./components/artifact";
 import { AIResponsePanel } from "./components/ui/AIResponsePanel";
 import { CollapsedChatIcon } from "./components/ui/CollapsedChatIcon";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
+import LockScreen from "./components/ui/LockScreen";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { processMessage } from "./services/ToolOrchestrator.js";
@@ -96,6 +97,17 @@ function App() {
   const [floatingChatVisible, setFloatingChatVisible] = useState(false);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
+
+  // Lock screen state - check sessionStorage on initial render
+  const [showLockScreen, setShowLockScreen] = useState(() => {
+    return sessionStorage.getItem('lockScreenDismissed') !== 'true';
+  });
+
+  // Handle lock screen dismiss
+  const handleLockScreenDismiss = useCallback(() => {
+    sessionStorage.setItem('lockScreenDismissed', 'true');
+    setShowLockScreen(false);
+  }, []);
 
   // Compute browser window visibility from source-of-truth states
   // Window shows when: has active artifact AND (user requested OR AI finished processing)
@@ -686,6 +698,11 @@ function App() {
 
       {/* Vercel Analytics */}
       <Analytics />
+
+      {/* Lock Screen Overlay */}
+      {showLockScreen && (
+        <LockScreen onDismiss={handleLockScreenDismiss} />
+      )}
     </div>
   );
 }
