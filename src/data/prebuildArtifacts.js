@@ -10,7 +10,6 @@ import { cronusArtifact } from './artifacts/cronus';
 import { calendarTodoArtifact } from './artifacts/calendarTodo';
 import { strategyGameArtifact } from './artifacts/strategyGame';
 import { animatedCardsArtifact } from './artifacts/animatedCards';
-import { dataFetcherArtifact } from './artifacts/dataFetcher';
 import { interactiveDashboardArtifact } from './artifacts/interactiveDashboard';
 import { kanbanBoardArtifact } from './artifacts/kanbanBoard';
 import { musicPlayerArtifact } from './artifacts/musicPlayer';
@@ -24,7 +23,6 @@ export const PREBUILD_ARTIFACTS = [
   retroTyperArtifact,
   cronusArtifact,
   animatedCardsArtifact,
-  dataFetcherArtifact,
   interactiveDashboardArtifact,
   kanbanBoardArtifact,
   musicPlayerArtifact,

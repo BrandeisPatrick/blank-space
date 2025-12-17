@@ -5,7 +5,7 @@
 
 export const promoGeneratorArtifact = {
   id: 'promo-generator',
-  name: 'Promo Generator',
+  name: 'Content Studio',
   description: 'Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.',
   icon: 'app',
   category: 'apps',
