@@ -12,6 +12,7 @@ export const LOADING_TIPS = [
   "Long press app icon to delete",
   "We're open source on GitHub",
   "Pro model takes 4x longer but is smarter",
+  "Click < blank space > logo to show lock screen",
 ]
 
 /**

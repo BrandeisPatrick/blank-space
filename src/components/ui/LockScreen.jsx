@@ -160,17 +160,17 @@ const LockScreen = ({ onDismiss }) => {
       {/* Hint Text */}
       <div
         style={{
-          marginTop: theme.spacing.lg,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.normal,
+          marginTop: theme.spacing.xl,
+          fontSize: theme.typography.fontSize.base,
+          fontWeight: theme.typography.fontWeight.medium,
           fontFamily: theme.typography.fontFamily.sans,
-          color: isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : theme.colors.text.tertiary,
+          color: isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : theme.colors.text.secondary,
           zIndex: 1,
           textAlign: 'center',
-          animation: 'lockScreenPulse 2s ease-in-out infinite',
+          animation: 'lockScreenPulse 2.5s ease-in-out infinite',
         }}
       >
-        Touch anywhere to continue
+        Touch anywhere to continue vibe coding
       </div>
 
       {/* Pulse animation keyframes */}
