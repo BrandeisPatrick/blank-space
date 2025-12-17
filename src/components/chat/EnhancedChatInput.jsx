@@ -7,6 +7,7 @@ import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
 import { MODEL_TIERS } from '../../services/config/modelConfig';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
 
 // Plus icon for the dropdown trigger
 const PlusIcon = ({ size = 20, color = "currentColor" }) => (
@@ -73,6 +74,7 @@ export const EnhancedChatInput = ({
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
+  const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -162,12 +164,15 @@ export const EnhancedChatInput = ({
   return (
     <div style={{
       position: 'fixed',
-      bottom: theme.spacing.xl,
+      bottom: isMobile && isKeyboardVisible
+        ? `${keyboardHeight + 10}px`
+        : theme.spacing.xl,
       left: '50%',
       transform: 'translateX(-50%)',
       width: LAYOUT.CHAT_INPUT_WIDTH,
       maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
       zIndex: LAYOUT.CHAT_INPUT_Z_INDEX,
+      transition: isMobile ? 'bottom 0.15s ease-out' : 'none',
     }}>
       {/* Dropdown Menu - Positioned above the input */}
       {showDropdown && (
