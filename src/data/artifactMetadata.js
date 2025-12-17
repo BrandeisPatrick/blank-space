@@ -21,7 +21,7 @@ export const ARTIFACT_METADATA = [
     category: "apps",
   },
   {
-    id: "promo-generator",
+    id: "content-studio",
     name: "Content Studio",
     description: "Create clean promotional images with phone mockups, customizable text and colors. Upload screenshots, edit marketing text, and export as PNG.",
     icon: "app",
@@ -101,7 +101,7 @@ export const loadArtifactById = async (id) => {
     "music-player": () => import("./artifacts/musicPlayer").then(m => m.musicPlayerArtifact),
     "weather-app": () => import("./artifacts/weatherApp").then(m => m.weatherAppArtifact),
     "space-station": () => import("./artifacts/spaceStation").then(m => m.spaceStationArtifact),
-    "promo-generator": () => import("./artifacts/promoGenerator").then(m => m.promoGeneratorArtifact),
+    "content-studio": () => import("./artifacts/contentStudio").then(m => m.contentStudioArtifact),
   };
 
   const loader = loaders[id];
