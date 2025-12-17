@@ -140,34 +140,49 @@ function App() {
     const screenRadius = cornerRadius - screenPadding;
 
     const saveImage = (dataUrl) => {
+      console.log('[ContentStudio] saveImage called');
+      console.log('[ContentStudio] dataUrl length:', dataUrl?.length || 0);
+      console.log('[ContentStudio] navigator.share:', !!navigator.share);
+      console.log('[ContentStudio] navigator.canShare:', !!navigator.canShare);
+
       // Try Web Share API for mobile
       if (navigator.share && navigator.canShare) {
+        console.log('[ContentStudio] Using Web Share API path');
         canvas.toBlob(async (blob) => {
+          console.log('[ContentStudio] Blob created:', blob?.size || 0, 'bytes');
           const file = new File([blob], 'content-studio.png', { type: 'image/png' });
           if (navigator.canShare({ files: [file] })) {
             try {
+              console.log('[ContentStudio] Attempting navigator.share');
               await navigator.share({ files: [file], title: 'Content Studio Image' });
+              console.log('[ContentStudio] Share successful');
               return;
             } catch (err) {
+              console.log('[ContentStudio] Share error:', err.name, err.message);
               if (err.name !== 'AbortError') console.log('Share failed, falling back to download');
             }
           }
           // Fallback to download
+          console.log('[ContentStudio] Fallback download (inside share path)');
           const link = document.createElement('a');
           link.download = 'content-studio.png';
           link.href = dataUrl;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          console.log('[ContentStudio] Download link clicked');
         }, 'image/png');
       } else {
         // Desktop download
+        console.log('[ContentStudio] Using desktop download path');
         const link = document.createElement('a');
         link.download = 'content-studio.png';
         link.href = dataUrl;
+        console.log('[ContentStudio] Link href set, length:', link.href?.length || 0);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        console.log('[ContentStudio] Desktop download link clicked');
       }
     };
 
