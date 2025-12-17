@@ -20,7 +20,7 @@ import { AuthModal } from './AuthModal';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact }) => {
+export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact, onShowLockScreen }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const { openAuthModal } = useSettings();
   const { user, signOut } = useAuth();
@@ -97,12 +97,19 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
           alignItems: 'center',
           gap: theme.spacing.md,
         }}>
-          <h1 style={{
+          <h1
+            onClick={onShowLockScreen}
+            style={{
             fontSize: theme.typography.fontSize.xl,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text.primary,
             margin: 0,
-          }}>
+            cursor: onShowLockScreen ? 'pointer' : 'default',
+            transition: 'opacity 0.15s ease',
+          }}
+            onMouseEnter={(e) => onShowLockScreen && (e.currentTarget.style.opacity = '0.7')}
+            onMouseLeave={(e) => onShowLockScreen && (e.currentTarget.style.opacity = '1')}
+          >
             <span style={{
               color: theme.colors.text.primary,
               fontWeight: theme.typography.fontWeight.bold,

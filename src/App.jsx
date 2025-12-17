@@ -109,6 +109,12 @@ function App() {
     setShowLockScreen(false);
   }, []);
 
+  // Handle showing lock screen (when user clicks logo)
+  const handleShowLockScreen = useCallback(() => {
+    sessionStorage.removeItem('lockScreenDismissed');
+    setShowLockScreen(true);
+  }, []);
+
   // Compute browser window visibility from source-of-truth states
   // Window shows when: has active artifact AND (user requested OR AI finished processing)
   const browserWindowVisible = !!activeArtifact && (userRequestedBrowserWindow || !isAIProcessing);
@@ -651,6 +657,7 @@ function App() {
         onChangeModelTier={setModelTier}
         activeArtifact={activeArtifact}
         isEditingArtifact={browserWindowVisible && !!activeArtifact}
+        onShowLockScreen={handleShowLockScreen}
       />
 
       {/* AI Response Panel - Shows when visible and not collapsed */}
