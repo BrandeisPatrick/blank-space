@@ -160,13 +160,13 @@ const LockScreen = ({ onDismiss }) => {
       {/* Hint Text */}
       <div
         style={{
-          position: 'absolute',
-          bottom: theme.spacing['5xl'],
+          marginTop: theme.spacing['4xl'],
           fontSize: theme.typography.fontSize.sm,
           fontWeight: theme.typography.fontWeight.normal,
           fontFamily: theme.typography.fontFamily.sans,
           color: isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : theme.colors.text.tertiary,
           zIndex: 1,
+          textAlign: 'center',
           animation: 'lockScreenPulse 2s ease-in-out infinite',
         }}
       >
