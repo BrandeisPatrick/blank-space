@@ -13,7 +13,6 @@ export const contentStudioArtifact = {
     'App.jsx': `
 function App() {
   const [image, setImage] = useState(null);
-  const [exportDataUrl, setExportDataUrl] = useState(null);
   const [title, setTitle] = useState('Type your title');
   const [subtitle, setSubtitle] = useState('Type your subtitle');
   const [bgColor, setBgColor] = useState('#f5f5f0');
@@ -68,132 +67,12 @@ function App() {
     '#c2410c', // Burnt orange
   ];
 
-  // Pre-render export canvas whenever state changes
-  useEffect(() => {
-    const currentCanvasConfig = canvasSizes[canvasSize];
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = currentCanvasConfig.width;
-    canvas.height = currentCanvasConfig.height;
-
-    // Draw background
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate scale factor
-    const scaleFactor = Math.min(canvas.width / 1080, canvas.height / 1350);
-    const scaledTitleSize = titleSize * scaleFactor;
-    const scaledSubtitleSize = subtitleSize * scaleFactor;
-
-    // Draw title
-    ctx.fillStyle = textColor;
-    ctx.font = \`800 \${scaledTitleSize}px Nunito, system-ui, sans-serif\`;
-    ctx.textAlign = 'center';
-    ctx.fillText(title, canvas.width / 2, 60 * scaleFactor + scaledTitleSize);
-
-    // Draw subtitle
-    ctx.font = \`600 \${scaledSubtitleSize}px Nunito, system-ui, sans-serif\`;
-    ctx.fillText(subtitle, canvas.width / 2, 60 * scaleFactor + scaledTitleSize + scaledSubtitleSize + 10);
-
-    // Phone frame dimensions
-    const phoneAspect = 380 / 780;
-    let phoneWidth = 380 * scaleFactor;
-    let phoneHeight = 780 * scaleFactor;
-    if (phoneWidth > canvas.width * 0.5) {
-      phoneWidth = canvas.width * 0.5;
-      phoneHeight = phoneWidth / phoneAspect;
-    }
-
-    const phoneX = (canvas.width - phoneWidth) / 2;
-    const phoneY = canvas.height - phoneHeight * 0.75;
-    const cornerRadius = 55 * (phoneWidth / 380);
-
-    // Draw phone frame
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath();
-    ctx.roundRect(phoneX, phoneY, phoneWidth, phoneHeight, cornerRadius);
-    ctx.fill();
-
-    // Draw Dynamic Island
-    const islandScale = phoneWidth / 380;
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.roundRect(phoneX + phoneWidth/2 - 60 * islandScale, phoneY + 15 * islandScale, 120 * islandScale, 35 * islandScale, 20 * islandScale);
-    ctx.fill();
-
-    // Screen area
-    const screenPadding = 12 * islandScale;
-    const screenX = phoneX + screenPadding;
-    const screenY = phoneY + screenPadding;
-    const screenWidth = phoneWidth - screenPadding * 2;
-    const screenHeight = phoneHeight - screenPadding * 2;
-    const screenRadius = cornerRadius - screenPadding;
-
-    const finishRender = (loadedImg) => {
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(screenX, screenY, screenWidth, screenHeight, screenRadius);
-      ctx.clip();
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
-
-      if (loadedImg) {
-        const imgRatio = loadedImg.width / loadedImg.height;
-        const screenRatio = screenWidth / screenHeight;
-        let drawWidth, drawHeight, drawX, drawY;
-
-        if (imgRatio > screenRatio) {
-          drawWidth = screenWidth;
-          drawHeight = drawWidth / imgRatio;
-        } else {
-          drawHeight = screenHeight;
-          drawWidth = drawHeight * imgRatio;
-        }
-        drawX = screenX + (screenWidth - drawWidth) / 2;
-        drawY = screenY;
-        drawWidth *= imageZoom;
-        drawHeight *= imageZoom;
-        drawX = screenX + (screenWidth - drawWidth) / 2;
-
-        ctx.drawImage(loadedImg, drawX, drawY, drawWidth, drawHeight);
-      } else {
-        ctx.fillStyle = '#2a2a2a';
-        ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
-      }
-
-      ctx.restore();
-      setExportDataUrl(canvas.toDataURL('image/png'));
-    };
-
-    if (image) {
-      const img = document.createElement('img');
-      img.crossOrigin = 'anonymous';
-      img.onload = () => finishRender(img);
-      img.src = image;
-    } else {
-      finishRender(null);
-    }
-  }, [image, title, subtitle, bgColor, textColor, titleSize, subtitleSize, canvasSize, imageZoom]);
-
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => setImage(event.target.result);
     reader.readAsDataURL(file);
-  };
-
-  const exportAsPng = () => {
-    if (!exportDataUrl) return;
-
-    // Synchronous download - preserves user gesture context
-    const link = document.createElement('a');
-    link.download = 'content-studio.png';
-    link.href = exportDataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -488,15 +367,6 @@ function App() {
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={exportAsPng}
-            className="w-full bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-3 text-white text-sm font-semibold transition-all"
-          >
-            Save
-          </button>
-        </div>
       </div>
     </div>
   );
