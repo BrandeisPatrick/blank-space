@@ -13,6 +13,7 @@ export const contentStudioArtifact = {
     'App.jsx': `
 function App() {
   const [image, setImage] = useState(null);
+  const [loadedImage, setLoadedImage] = useState(null);
   const [title, setTitle] = useState('Type your title');
   const [subtitle, setSubtitle] = useState('Type your subtitle');
   const [bgColor, setBgColor] = useState('#f5f5f0');
@@ -71,11 +72,19 @@ function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => setImage(event.target.result);
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      setImage(dataUrl);
+      // Pre-load the Image object for synchronous export
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => setLoadedImage(img);
+      img.src = dataUrl;
+    };
     reader.readAsDataURL(file);
   };
 
-  const exportAsPng = async () => {
+  const exportAsPng = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -169,50 +178,46 @@ function App() {
       }
     };
 
-    if (image) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(screenX, screenY, screenWidth, screenHeight, screenRadius);
-        ctx.clip();
+    if (loadedImage) {
+      // Use pre-loaded image for synchronous export (preserves user gesture)
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(screenX, screenY, screenWidth, screenHeight, screenRadius);
+      ctx.clip();
 
-        // Fill screen area with black (for letterboxing)
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
+      // Fill screen area with black (for letterboxing)
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
 
-        // Contain fit with zoom
-        const imgRatio = img.width / img.height;
-        const screenRatio = screenWidth / screenHeight;
-        let drawWidth, drawHeight, drawX, drawY;
+      // Contain fit with zoom
+      const imgRatio = loadedImage.width / loadedImage.height;
+      const screenRatio = screenWidth / screenHeight;
+      let drawWidth, drawHeight, drawX, drawY;
 
-        // Contain fit - show full image, may letterbox
-        if (imgRatio > screenRatio) {
-          // Image is wider - fit to width
-          drawWidth = screenWidth;
-          drawHeight = drawWidth / imgRatio;
-        } else {
-          // Image is taller - fit to height
-          drawHeight = screenHeight;
-          drawWidth = drawHeight * imgRatio;
-        }
-        // Center horizontally, align to top
-        drawX = screenX + (screenWidth - drawWidth) / 2;
-        drawY = screenY;
+      // Contain fit - show full image, may letterbox
+      if (imgRatio > screenRatio) {
+        // Image is wider - fit to width
+        drawWidth = screenWidth;
+        drawHeight = drawWidth / imgRatio;
+      } else {
+        // Image is taller - fit to height
+        drawHeight = screenHeight;
+        drawWidth = drawHeight * imgRatio;
+      }
+      // Center horizontally, align to top
+      drawX = screenX + (screenWidth - drawWidth) / 2;
+      drawY = screenY;
 
-        // Apply zoom
-        drawWidth *= imageZoom;
-        drawHeight *= imageZoom;
-        drawX = screenX + (screenWidth - drawWidth) / 2;
-        drawY = screenY;
+      // Apply zoom
+      drawWidth *= imageZoom;
+      drawHeight *= imageZoom;
+      drawX = screenX + (screenWidth - drawWidth) / 2;
+      drawY = screenY;
 
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-        ctx.restore();
+      ctx.drawImage(loadedImage, drawX, drawY, drawWidth, drawHeight);
+      ctx.restore();
 
-        saveImage(canvas.toDataURL('image/png'));
-      };
-      img.src = image;
+      saveImage(canvas.toDataURL('image/png'));
     } else {
       // No image - draw placeholder
       ctx.fillStyle = '#2a2a2a';
