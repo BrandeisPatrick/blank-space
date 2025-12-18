@@ -76,10 +76,10 @@ function App() {
       const dataUrl = event.target.result;
       setImage(dataUrl);
       // Pre-load the Image object for synchronous export
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => setLoadedImage(img);
-      img.src = dataUrl;
+      const imgElement = document.createElement('img');
+      imgElement.crossOrigin = 'anonymous';
+      imgElement.onload = () => setLoadedImage(imgElement);
+      imgElement.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
