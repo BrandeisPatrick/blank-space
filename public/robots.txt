@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://blankspace.build/sitemap.xml
