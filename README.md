@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="./public/blankspace-banner.png" width="100%" alt="blank space"/>
+  <img src="./public/blankspace-banner.png" width="50%" alt="blank space"/>
 </p>
 
 <p align="center">
-  🎄 <strong>Open source alternative to</strong> <a href="https://v0.dev">v0</a>, <a href="https://lovable.dev">Lovable</a>, and <a href="https://bolt.new">Bolt</a> 🎄
+  🎄 <strong>AI coding agent in your browser</strong> 🎄
 </p>
 
 <p align="center">
