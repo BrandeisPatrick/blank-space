@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <strong>Try it live:</strong> <a href="https://www.blankspace.build">www.blankspace.build</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/BrandeisPatrick/blank-space/stargazers">
     <img alt="GitHub stars" src="https://img.shields.io/github/stars/BrandeisPatrick/blank-space?logo=github">
   </a>
@@ -17,10 +21,6 @@
     <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue">
   </a>
   <img alt="Free tier" src="https://img.shields.io/badge/Free%20tier-50%20req%2Fday-brightgreen">
-</p>
-
-<p align="center">
-  <strong>Try it live:</strong> <a href="https://www.blankspace.build">www.blankspace.build</a>
 </p>
 
 ---
