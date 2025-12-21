@@ -20,7 +20,6 @@
   <a href="https://github.com/BrandeisPatrick/blank-space/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue">
   </a>
-  <img alt="Free tier" src="https://img.shields.io/badge/Free%20tier-50%20req%2Fday-brightgreen">
 </p>
 
 ---
