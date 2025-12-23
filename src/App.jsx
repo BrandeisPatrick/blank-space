@@ -463,8 +463,21 @@ function App() {
             newFiles[op.filename] = op.content;
           });
 
-          // Create success message
+          // Get app name for messages
           const appName = result.plan?.summary || 'Your app';
+
+          // Update loading message to show app is being created
+          setChatMessages(prev => {
+            const newMessages = prev.map(msg =>
+              msg.isLoading
+                ? { ...msg, content: `${appName} is being created...` }
+                : msg
+            );
+            chatMessagesRef.current = newMessages;
+            return newMessages;
+          });
+
+          // Create success message
           const fileCount = result.fileOperations.length;
           const successMessage = {
             type: 'assistant',

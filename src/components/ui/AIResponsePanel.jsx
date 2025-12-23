@@ -97,6 +97,18 @@ export const AIResponsePanel = ({
           flexDirection: 'column',
           gap: theme.spacing.md,
         }}>
+          {/* Empty state - no messages yet */}
+          {visibleMessages.length === 0 && (
+            <div style={{
+              color: theme.colors.text.secondary,
+              fontSize: theme.typography.fontSize.base,
+              fontFamily: theme.typography.fontFamily.sans,
+              padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+            }}>
+              What do you want to imagine today?
+            </div>
+          )}
+
           {/* User's message */}
           {lastUserMessage && (
             <div style={{
