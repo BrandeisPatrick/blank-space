@@ -8,7 +8,10 @@
 import Stripe from 'stripe';
 import { getFirestore } from '../middleware/auth.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if key is available
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Disable body parsing - we need raw body for signature verification
@@ -191,6 +194,13 @@ async function handlePaymentFailed(invoice) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!stripe) {
+    return res.status(503).json({
+      error: 'Stripe not configured',
+      message: 'Webhook processing is not available.',
+    });
   }
 
   const sig = req.headers['stripe-signature'];
