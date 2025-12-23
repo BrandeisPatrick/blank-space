@@ -8,7 +8,8 @@
  * 2. Chat with tools: { action: 'chat', model, message, history, tools, ... }
  */
 
-import { checkRateLimit } from './utils/rateLimit.js';
+import { verifyAuth } from './middleware/auth.js';
+import { checkQuota, canAccessModel, incrementUsage, getQuotaHeaders } from './middleware/quota.js';
 import { GoogleGenAI } from '@google/genai';
 
 export default async function handler(req, res) {
@@ -17,25 +18,51 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check rate limit
-  const rateLimit = checkRateLimit(req);
+  // Verify authentication
+  const authResult = await verifyAuth(req);
+  if (authResult.error) {
+    return res.status(authResult.status).json({
+      error: authResult.error,
+      requiresAuth: true,
+    });
+  }
 
-  // Add rate limit headers to response
-  res.setHeader('X-RateLimit-Limit', rateLimit.limit.toString());
-  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
-  res.setHeader('X-RateLimit-Reset', rateLimit.reset);
+  const { userId } = authResult;
 
-  // If rate limit exceeded, return 429
-  if (!rateLimit.allowed) {
+  // Check user quota
+  const quotaResult = await checkQuota(userId);
+
+  // Add quota headers
+  const quotaHeaders = getQuotaHeaders(quotaResult);
+  Object.entries(quotaHeaders).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+
+  // If quota exceeded, return 429
+  if (!quotaResult.allowed) {
     return res.status(429).json({
-      error: 'Rate limit exceeded',
-      message: 'Daily limit reached. Your quota will reset at midnight UTC.',
-      rateLimit: {
-        limit: rateLimit.limit,
-        remaining: rateLimit.remaining,
-        reset: rateLimit.reset,
-        used: rateLimit.used
-      }
+      error: 'Quota exceeded',
+      message: `${quotaResult.limitType} limit reached. Your quota will reset at ${new Date(quotaResult.resetAt).toLocaleString()}.`,
+      quota: {
+        tier: quotaResult.tier,
+        limitType: quotaResult.limitType,
+        remaining: quotaResult.remaining,
+        resetAt: quotaResult.resetAt,
+      },
+      upgradeUrl: '/pricing',
+    });
+  }
+
+  // Check model access
+  const { model = 'gemini-3-flash-preview' } = req.body;
+  const isProModel = model === 'gemini-3-pro-preview';
+
+  if (isProModel && !canAccessModel(quotaResult.tier, 'pro')) {
+    return res.status(403).json({
+      error: 'Model not available',
+      message: 'Pro model requires a Pro subscription.',
+      currentTier: quotaResult.tier,
+      upgradeUrl: '/pricing',
     });
   }
 
@@ -57,9 +84,9 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     if (action === 'chat') {
-      return handleChatRequest(req, res, ai, rateLimit);
+      return handleChatRequest(req, res, ai, quotaResult, userId);
     } else {
-      return handleGenerateRequest(req, res, ai, rateLimit);
+      return handleGenerateRequest(req, res, ai, quotaResult, userId);
     }
 
   } catch (error) {
@@ -71,7 +98,7 @@ export default async function handler(req, res) {
 /**
  * Handle simple content generation
  */
-async function handleGenerateRequest(req, res, ai, rateLimit) {
+async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
   const {
     model = 'gemini-3-flash-preview',
     contents,
@@ -99,12 +126,15 @@ async function handleGenerateRequest(req, res, ai, rateLimit) {
     config: Object.keys(config).length > 0 ? config : undefined,
   });
 
+  // Increment usage after successful generation
+  await incrementUsage(userId);
+
   return res.status(200).json({
     text: response.text || '',
     candidates: response.candidates,
     functionCalls: response.functionCalls || [],
     usageMetadata: response.usageMetadata,
-    rateLimit: formatRateLimit(rateLimit)
+    quota: formatQuota(quotaResult)
   });
 }
 
@@ -112,7 +142,7 @@ async function handleGenerateRequest(req, res, ai, rateLimit) {
  * Handle chat session with tools (for code generation)
  * Uses chat session to properly handle multi-turn with function calling
  */
-async function handleChatRequest(req, res, ai, rateLimit) {
+async function handleChatRequest(req, res, ai, quotaResult, userId) {
   const {
     model = 'gemini-3-flash-preview',
     message,
@@ -154,6 +184,9 @@ async function handleChatRequest(req, res, ai, rateLimit) {
     response = await chat.sendMessage({ message });
   }
 
+  // Increment usage after successful chat
+  await incrementUsage(userId);
+
   return res.status(200).json({
     text: response.text || '',
     candidates: response.candidates,
@@ -161,19 +194,18 @@ async function handleChatRequest(req, res, ai, rateLimit) {
     usageMetadata: response.usageMetadata,
     // Return updated history for client to use in next request
     history: chat.getHistory ? chat.getHistory() : history,
-    rateLimit: formatRateLimit(rateLimit)
+    quota: formatQuota(quotaResult)
   });
 }
 
 /**
- * Format rate limit for response
+ * Format quota for response
  */
-function formatRateLimit(rateLimit) {
+function formatQuota(quotaResult) {
   return {
-    limit: rateLimit.limit,
-    remaining: rateLimit.remaining,
-    reset: rateLimit.reset,
-    used: rateLimit.used
+    tier: quotaResult.tier,
+    remaining: quotaResult.remaining,
+    limits: quotaResult.limits,
   };
 }
 

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
@@ -93,6 +94,7 @@ export const EnhancedChatInput = ({
   const { mode } = useTheme();
   const { user } = useAuth();
   const { openAuthModal } = useSettings();
+  const { canUseModel, tier: subscriptionTier } = useSubscription();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
@@ -436,14 +438,19 @@ export const EnhancedChatInput = ({
                 }}
               >
                 {Object.entries(MODEL_TIERS).map(([key, tier]) => {
-                  const isLocked = !user; // Require auth for all tiers
+                  const needsAuth = !user;
+                  const needsUpgrade = user && key === 'pro' && !canUseModel('pro');
+                  const isLocked = needsAuth || needsUpgrade;
                   return (
                     <div
                       key={key}
                       onClick={() => {
-                        if (isLocked) {
+                        if (needsAuth) {
                           setShowModelDropdown(false);
                           openAuthModal();
+                        } else if (needsUpgrade) {
+                          setShowModelDropdown(false);
+                          window.location.href = '/pricing';
                         } else {
                           onChangeModelTier && onChangeModelTier(key);
                           setShowModelDropdown(false);
@@ -488,9 +495,9 @@ export const EnhancedChatInput = ({
                         </div>
                         <div style={{
                           fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.text.tertiary,
+                          color: needsUpgrade ? '#C97D63' : theme.colors.text.tertiary,
                         }}>
-                          {isLocked ? 'Sign in required' : tier.description}
+                          {needsAuth ? 'Sign in required' : needsUpgrade ? 'Upgrade to Pro' : tier.description}
                         </div>
                       </div>
                       {modelTier === key && !isLocked && (
