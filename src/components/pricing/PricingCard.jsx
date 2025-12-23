@@ -4,7 +4,9 @@
  * Displays a single pricing tier with features and action button.
  */
 
-import { useTheme, getTheme, createGlassEffect } from '../../styles/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 
 export const PricingCard = ({
   tier,

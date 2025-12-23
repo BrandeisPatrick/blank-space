@@ -7,7 +7,8 @@
 import { useState } from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme, getTheme } from '../../styles/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getTheme } from '../../styles/theme';
 import { PricingCard } from './PricingCard';
 
 const TIER_FEATURES = {
