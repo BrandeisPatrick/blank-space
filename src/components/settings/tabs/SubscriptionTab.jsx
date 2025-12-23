@@ -27,17 +27,17 @@ const TIER_INFO = {
   },
 };
 
-const UsageBar = ({ label, used, limit, theme }) => {
+const UsageBar = ({ label, used, limit, theme, mode }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));
   const isWarning = percent >= 75;
   const isExceeded = percent >= 100;
 
   return (
-    <div style={{ marginBottom: theme.spacing.md }}>
+    <div style={{ marginBottom: theme.spacing.lg }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: '4px',
+        marginBottom: '6px',
         fontSize: theme.typography.fontSize.sm,
       }}>
         <span style={{ color: theme.colors.foreground }}>{label}</span>
@@ -45,17 +45,26 @@ const UsageBar = ({ label, used, limit, theme }) => {
       </div>
       <div style={{
         width: '100%',
-        height: '8px',
-        background: theme.colors.muted,
-        borderRadius: '4px',
+        height: '10px',
+        background: mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+        borderRadius: '5px',
         overflow: 'hidden',
+        boxShadow: mode === 'dark'
+          ? 'inset 0 1px 2px rgba(0,0,0,0.3)'
+          : 'inset 0 1px 2px rgba(0,0,0,0.1)',
       }}>
         <div style={{
-          width: `${percent}%`,
+          width: `${Math.max(percent, 2)}%`,
+          minWidth: percent > 0 ? '8px' : '0',
           height: '100%',
-          background: isExceeded ? '#ef4444' : isWarning ? '#f59e0b' : '#C97D63',
-          borderRadius: '4px',
+          background: isExceeded
+            ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+            : isWarning
+              ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+              : 'linear-gradient(90deg, #C97D63, #b06b52)',
+          borderRadius: '5px',
           transition: 'width 0.3s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
         }} />
       </div>
     </div>
@@ -219,18 +228,21 @@ export const SubscriptionTab = () => {
           used={usage?.daily || 0}
           limit={tierConfig?.dailyRequests || 10}
           theme={theme}
+          mode={mode}
         />
         <UsageBar
           label="Weekly"
           used={usage?.weekly || 0}
           limit={tierConfig?.weeklyRequests || 50}
           theme={theme}
+          mode={mode}
         />
         <UsageBar
           label="Monthly"
           used={usage?.monthly || 0}
           limit={tierConfig?.monthlyRequests || 100}
           theme={theme}
+          mode={mode}
         />
       </div>
 
