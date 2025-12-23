@@ -126,12 +126,12 @@ export const MODELS = MODEL_CONFIGS;
 /**
  * Model Tiers for UI Selection
  * Using Google Gemini models:
- * - Lite: gemini-3-flash (fast, efficient)
+ * - Lite: gemini-3-flash-preview (fast, efficient)
  * - Pro: gemini-3-pro-preview (most capable)
  */
 export const MODEL_TIERS = {
   lite: {
-    id: 'gemini-3-flash',
+    id: 'gemini-3-flash-preview',
     name: 'Lite',
     description: 'Fast',
   },

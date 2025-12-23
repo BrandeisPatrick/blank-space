@@ -3,7 +3,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useChatApp } from '../../contexts/ChatAppContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
-import { callLLM } from '../../services/utils/llm/llmClient';
 import { Z_INDEX } from '../../constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import {
@@ -16,9 +15,8 @@ import {
 } from '../icons/icons';
 
 const AVAILABLE_MODELS = [
-  { id: 'gpt-4.1-mini', name: 'Lite', description: 'Balanced' },
-  { id: 'gpt-5-mini', name: 'Pro', description: 'Most capable' },
-  { id: 'gpt-5.2', name: 'Experiment', description: 'Latest checkpoint' },
+  { id: 'gpt-4o-mini', name: 'Lite', description: 'Fast & efficient' },
+  { id: 'gpt-4o', name: 'Pro', description: 'Most capable' },
 ];
 
 export const ChatAppPanel = () => {
