@@ -1,10 +1,9 @@
 /**
  * Gemini Provider
- * Handles code generation using Google Gemini models via @google/genai SDK
- * Uses Chat Session pattern for automatic thoughtSignature handling
+ * Handles code generation using Google Gemini models via /api/gemini serverless function
+ * API key is kept server-side for security - never exposed to browser
  */
 
-import { GoogleGenAI } from '@google/genai';
 import { VirtualFileSystem } from '../../../filesystem/VirtualFS.js';
 import { ToolRegistry } from '../../../tools/ToolRegistry.js';
 import { ToolExecutor } from '../../../tools/ToolExecutor.js';
@@ -13,37 +12,31 @@ import { coreTools } from '../../../tools/core/index.js';
 import { classifyIntent } from '../../../intentClassifier.js';
 import { convertToolsToGeminiFormat } from './toolAdapter.js';
 import { buildSystemPrompt, CHAT_SYSTEM_PROMPT } from '../../shared/prompts.js';
-import { normalizeGeminiResponse } from '../../shared/responseNormalizer.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
 
 /**
- * Get Google API key from environment
- */
-function getApiKey() {
-  // Browser environment (Vite)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.GOOGLE_API_KEY;
-  }
-  // Node.js environment
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.GOOGLE_API_KEY;
-  }
-  return null;
-}
-
-/**
  * Generate a short app name from user request (max 3 words)
- * Uses Gemini for name generation
+ * Uses Gemini API via serverless function
  */
-async function generateAppName(ai, userMessage, model) {
+async function generateAppName(userMessage, model) {
   try {
     const prompt = 'Generate a short app name (1-3 words max) from this user request. Return ONLY the name, no quotes, no explanation. Examples: "Todo List", "Weather App", "Quiz Game", "Calculator". User request: ' + userMessage;
-    const response = await ai.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generate',
+        model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      })
     });
 
-    const name = response.text?.trim() || 'New App';
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const name = data.text?.trim() || 'New App';
     // Ensure max 3 words and clean up
     return name.split(/\s+/).slice(0, 3).join(' ');
   } catch (error) {
@@ -105,27 +98,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     }
   };
 
-  // Check for API key - in browser, need VITE_GOOGLE_API_KEY
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    const isBrowser = typeof window !== 'undefined';
-    const envVarName = isBrowser ? 'VITE_GOOGLE_API_KEY' : 'GOOGLE_API_KEY';
-    console.error(`[Gemini Provider] ${envVarName} not configured`);
-    sendUpdate({
-      type: 'thinking',
-      content: `Error: Google API key not configured. Add ${envVarName} to your .env file.`
-    });
-    return {
-      success: false,
-      error: `Google API key not configured. Please set ${envVarName} in your .env file. Get a key from https://aistudio.google.com/app/apikey`,
-      fileOperations: []
-    };
-  }
-
   try {
-    // Initialize Gemini client
-    const ai = new GoogleGenAI({ apiKey });
-
     // Classify intent first
     const intentResult = classifyIntent(userMessage);
     console.log(`[Gemini Provider] Intent: "${userMessage.slice(0, 50)}..." → ${intentResult.intent}`);
@@ -137,15 +110,24 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'Thinking...'
       });
 
-      const chatResponse = await ai.models.generateContent({
-        model,
-        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-        config: {
-          systemInstruction: CHAT_SYSTEM_PROMPT,
-        },
+      const chatApiResponse = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate',
+          model,
+          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+          systemInstruction: CHAT_SYSTEM_PROMPT
+        })
       });
 
-      const responseContent = chatResponse.text || 'I can help you build web apps! Try describing what you want to create.';
+      if (!chatApiResponse.ok) {
+        const errorData = await chatApiResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `API error: ${chatApiResponse.status}`);
+      }
+
+      const chatData = await chatApiResponse.json();
+      const responseContent = chatData.text || 'I can help you build web apps! Try describing what you want to create.';
 
       sendUpdate({
         type: 'assistant',
@@ -206,22 +188,33 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       console.log(`[Gemini Provider] Edit mode for ${Object.keys(currentFiles).length} existing file(s)`);
     }
 
-    // Create Chat Session - SDK handles thoughtSignature automatically!
-    const chat = ai.chats.create({
-      model,
-      config: {
-        tools: geminiTools,
-        systemInstruction: systemPrompt,
-        thinkingConfig: { thinkingLevel: 'low' }, // Balance between speed and quality
-      },
-    });
-
-    // Tool calling loop using Chat Session
+    // Tool calling loop using /api/gemini serverless function
     let loopCount = 0;
     const maxLoops = 15;
+    let history = [];
 
-    // Send initial message - SDK expects {message: string}
-    let response = await chat.sendMessage({ message: userMessage });
+    // Send initial message to /api/gemini
+    let apiResponse = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'chat',
+        model,
+        message: userMessage,
+        history: [],
+        systemInstruction: systemPrompt,
+        tools: geminiTools,
+        thinkingConfig: { thinkingLevel: 'low' }
+      })
+    });
+
+    if (!apiResponse.ok) {
+      const errorData = await apiResponse.json().catch(() => ({}));
+      throw new Error(errorData.message || `API error: ${apiResponse.status}`);
+    }
+
+    let response = await apiResponse.json();
+    history = response.history || [];
 
     while (loopCount < maxLoops) {
       loopCount++;
@@ -236,7 +229,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
 
       console.log(`[Gemini Provider] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
 
-      // Execute function calls
+      // Execute function calls locally
       const functionResponses = [];
       for (const fc of functionCalls) {
         const toolName = fc.name;
@@ -281,14 +274,35 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         }
       }
 
-      // Send function responses back - format as functionResponse parts
+      // Send function responses back via /api/gemini
       const functionResponseParts = functionResponses.map(fr => ({
         functionResponse: {
           name: fr.name,
           response: fr.response
         }
       }));
-      response = await chat.sendMessage({ message: functionResponseParts });
+
+      apiResponse = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'chat',
+          model,
+          history,
+          functionResponses: functionResponseParts,
+          systemInstruction: systemPrompt,
+          tools: geminiTools,
+          thinkingConfig: { thinkingLevel: 'low' }
+        })
+      });
+
+      if (!apiResponse.ok) {
+        const errorData = await apiResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `API error: ${apiResponse.status}`);
+      }
+
+      response = await apiResponse.json();
+      history = response.history || history;
     }
 
     if (loopCount >= maxLoops) {
@@ -319,7 +333,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     });
 
     // Generate app name
-    const appName = await generateAppName(ai, userMessage, model);
+    const appName = await generateAppName(userMessage, model);
 
     return {
       success: true,
