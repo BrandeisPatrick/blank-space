@@ -9,11 +9,21 @@
 import Stripe from 'stripe';
 import { verifyAuth, getFirestore } from '../middleware/auth.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if key is available
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!stripe) {
+    return res.status(503).json({
+      error: 'Stripe not configured',
+      message: 'Payment processing is not available. Please configure STRIPE_SECRET_KEY.',
+    });
   }
 
   try {
