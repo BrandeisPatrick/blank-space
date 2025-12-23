@@ -65,34 +65,57 @@ function App() {
   // Prevents effect from re-running when handleSendMessage changes
   const initialMessageProcessedRef = useRef(false);
 
+  // Track previous artifact ID to detect actual switches
+  const previousArtifactIdRef = useRef(null);
+
   // Keep ref in sync with state
   useEffect(() => {
     chatMessagesRef.current = chatMessages;
   }, [chatMessages]);
 
-  // Sync files and chat history with active artifact (one-way only)
+  // Sync files and chat history when SWITCHING to a different artifact
+  // Smart sync: only loads from artifact when state doesn't have current data
   useEffect(() => {
     if (activeArtifact) {
-      setFiles(activeArtifact.files);
-      setChatMessages(activeArtifact.chatHistory || []);
+      // Determine if we should sync from artifact to state
+      // We should sync if:
+      // 1. Switching from one artifact to another (user clicked sidebar)
+      // 2. Initial page load with restored artifact (state is empty)
+      // We should NOT sync if:
+      // - We just created this artifact (state already has current data)
 
-      // Set active file to first available file
-      const fileNames = Object.keys(activeArtifact.files);
-      if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
-        setActiveFile(fileNames[0]);
+      const isSwitchingArtifacts = previousArtifactIdRef.current !== null &&
+                                    previousArtifactIdRef.current !== activeArtifactId;
+
+      // Check if state is empty (indicates page load, not creation)
+      const stateIsEmpty = Object.keys(files).length === 0 && chatMessages.length === 0;
+
+      // Sync if switching artifacts OR if state is empty (page load/refresh)
+      const shouldSync = isSwitchingArtifacts || stateIsEmpty;
+
+      if (shouldSync) {
+        setFiles(activeArtifact.files);
+        setChatMessages(activeArtifact.chatHistory || []);
+
+        // Set active file to first available file
+        const fileNames = Object.keys(activeArtifact.files);
+        if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
+          setActiveFile(fileNames[0]);
+        }
       }
     } else {
       // Empty state - no artifacts
       setFiles({});
       setChatMessages([]);
     }
+
+    // Update previous ID tracking
+    previousArtifactIdRef.current = activeArtifactId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeArtifactId]);
-  // Intentionally omitting activeArtifact and activeFile from dependencies:
-  // - activeArtifact is derived from activeArtifactId (changes when ID changes)
-  // - Including it would cause effect to run on file/chatHistory changes (unwanted)
-  // - activeFile is only used for validation check, not meant to trigger re-sync
-  // This implements one-way sync: artifact → UI (not UI → artifact)
+  // Intentionally omitting activeArtifact, activeFile, files, chatMessages from dependencies:
+  // - We only want this to run when activeArtifactId changes, not on every state update
+  // - Using stale files/chatMessages in condition is intentional (checking "before" state)
 
   // Panel visibility (legacy - keeping for compatibility)
   const [showChat, setShowChat] = useState(true);
@@ -434,14 +457,13 @@ function App() {
 
         // Handle create intent - generate files and create/update artifact
         if (result.fileOperations && result.fileOperations.length > 0) {
-          // Create or update artifact with generated files
+          // Build new files from operations
           const newFiles = { ...files };
-
           result.fileOperations.forEach(op => {
             newFiles[op.filename] = op.content;
           });
 
-          // Create success message first (before saving to artifact)
+          // Create success message
           const appName = result.plan?.summary || 'Your app';
           const fileCount = result.fileOperations.length;
           const successMessage = {
@@ -450,37 +472,37 @@ function App() {
             timestamp: Date.now()
           };
 
-          // Add success message to ref immediately so it's included in artifact save
-          const messagesWithSuccess = [...chatMessagesRef.current.filter(msg => !msg.isLoading), successMessage];
-          chatMessagesRef.current = messagesWithSuccess;
+          // Update local state first (this prevents useEffect from overwriting)
+          setFiles(newFiles);
+          setChatMessages(prev => {
+            const filtered = prev.filter(msg => !msg.isLoading);
+            const newMessages = [...filtered, successMessage];
+            chatMessagesRef.current = newMessages;
+            return newMessages;
+          });
 
-          // If no active artifact, create a new one
+          // Persist to artifact
           if (!activeArtifactId) {
+            // Create new artifact
             const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
             try {
-              const newArtifactId = await createArtifact(artifactName, newFiles, messagesWithSuccess);
+              const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
               if (!newArtifactId) {
                 throw new Error('Failed to create artifact');
               }
             } catch (error) {
               console.error('Error creating artifact:', error);
-              // Save files to state even if artifact creation fails
-              // User doesn't lose their generated content
-              setFiles(newFiles);
               setChatMessages(prev => [...prev, {
                 type: 'error',
-                content: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
+                content: 'Failed to save your project to the cloud, but files are available locally.',
                 timestamp: Date.now()
               }]);
               return;
             }
           } else {
-            // Update existing artifact with files and chat history
-            setFiles(newFiles);
+            // Update existing artifact
             updateArtifactFiles(activeArtifactId, newFiles);
-            updateChatHistory(activeArtifactId, messagesWithSuccess);
-            // Also update local state since no useEffect will trigger for existing artifacts
-            setChatMessages(messagesWithSuccess);
+            updateChatHistory(activeArtifactId, chatMessagesRef.current);
           }
 
           // Switch to the first created/modified file
