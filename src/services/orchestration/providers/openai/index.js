@@ -56,7 +56,9 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
     wallpaperTheme = 'starry',
-    isDarkTheme = true
+    isDarkTheme = true,
+    isDebugMode = false,
+    debugErrors = []
   } = options;
 
   // Select model based on user preference tier
@@ -178,7 +180,9 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
       aiColorPalette,
       aiUIStyle,
       wallpaperTheme,
-      isDarkTheme
+      isDarkTheme,
+      isDebugMode,
+      debugErrors
     });
 
     const isEditing = Object.keys(currentFiles).length > 0;

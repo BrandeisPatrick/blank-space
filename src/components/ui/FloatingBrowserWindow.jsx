@@ -20,6 +20,8 @@ export const FloatingBrowserWindow = ({
   onClose,
   onFileChange,
   onError,
+  onDebug,
+  isDebugging = false,
   onIconChange,
   onRename
 }) => {
@@ -499,7 +501,7 @@ export const FloatingBrowserWindow = ({
         background: theme.colors.bg.primary,
       }}>
         {view === 'preview' ? (
-          <PreviewPanel files={files} onError={onError} zoom={zoom} hideHeader={true} />
+          <PreviewPanel files={files} onError={onError} onDebug={onDebug} isDebugging={isDebugging} zoom={zoom} hideHeader={true} />
         ) : (
           <EditorPanel
             files={files}

@@ -89,7 +89,9 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
     wallpaperTheme = 'starry',
-    isDarkTheme = true
+    isDarkTheme = true,
+    isDebugMode = false,
+    debugErrors = []
   } = options;
 
   // Get the actual model ID from the tier
@@ -189,7 +191,9 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       aiColorPalette,
       aiUIStyle,
       wallpaperTheme,
-      isDarkTheme
+      isDarkTheme,
+      isDebugMode,
+      debugErrors
     });
 
     sendUpdate({

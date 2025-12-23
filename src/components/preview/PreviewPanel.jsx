@@ -4,7 +4,7 @@ import { getTheme } from '../../styles/theme'
 import { parse } from '@babel/parser'
 import { GlobeIcon } from '../icons'
 
-export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = false }) => {
+export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoom: externalZoom, hideHeader = false }) => {
   const iframeRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -16,13 +16,17 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
   const zoom = externalZoom !== undefined ? externalZoom : internalZoom
   const setZoom = setInternalZoom
 
-  // Helper function to strip ES6 imports from React code
+  // Helper function to strip ES6 imports and duplicate declarations from React code
   const stripImports = (code) => {
     return code
       // Remove ALL import statements
       .replace(/import\s+.*?from\s+['"][^'"]+['"];?\s*/g, '')
       // Remove all export statements (export default, export function, export const, etc.)
       .replace(/export\s+(default\s+)?/g, '')
+      // Remove duplicate AnimatePresence declarations (already provided by template)
+      .replace(/const\s+AnimatePresence\s*=\s*[^;]+;?\s*/g, '')
+      // Remove duplicate motion declarations (already provided by template)
+      .replace(/const\s+motion\s*=\s*[^;]+;?\s*/g, '')
       .trim()
   }
 
@@ -191,6 +195,31 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
     <!-- Framer Motion for animations (Knowledge Base) -->
     <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
 
+    <!-- Error handling - MUST be before Babel to catch transpilation errors -->
+    <script>
+      window.addEventListener('error', function(e) {
+        window.parent.postMessage({
+          type: 'preview-error',
+          error: {
+            message: e.message || 'Unknown error',
+            line: e.lineno,
+            source: e.filename,
+            timestamp: Date.now()
+          }
+        }, '*');
+      });
+
+      window.addEventListener('unhandledrejection', function(e) {
+        window.parent.postMessage({
+          type: 'preview-error',
+          error: {
+            message: 'Promise rejection: ' + (e.reason?.message || e.reason || 'Unknown'),
+            timestamp: Date.now()
+          }
+        }, '*');
+      });
+    </script>
+
     <!-- Babel Standalone for JSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
@@ -216,31 +245,6 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
           </div>
         );
       }
-    </script>
-
-    <!-- Error handling -->
-    <script>
-      window.addEventListener('error', function(e) {
-        window.parent.postMessage({
-          type: 'preview-error',
-          error: {
-            message: e.message,
-            line: e.lineno,
-            source: e.filename,
-            timestamp: Date.now()
-          }
-        }, '*');
-      });
-
-      window.addEventListener('unhandledrejection', function(e) {
-        window.parent.postMessage({
-          type: 'preview-error',
-          error: {
-            message: 'Promise rejection: ' + (e.reason?.message || e.reason),
-            timestamp: Date.now()
-          }
-        }, '*');
-      });
     </script>
 </body>
 </html>`
@@ -578,44 +582,102 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
           borderBottom: `2px solid ${theme.colors.bg.border}`,
           borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
         }}>
-          {/* Error Header */}
+          {/* Error Header with Debug Button */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              background: '#fee2e2',
+              background: mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2',
               borderBottom: showErrors ? `1px solid ${theme.colors.bg.border}` : 'none',
-              cursor: 'pointer',
             }}
-            onClick={() => setShowErrors(!showErrors)}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              color: '#dc2626',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
+            {/* Left: Error count (clickable to expand/collapse) */}
+            <div
+              onClick={() => setShowErrors(!showErrors)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                cursor: 'pointer',
+                flex: 1,
+              }}
+            >
               <div style={{
                 width: '8px',
                 height: '8px',
                 borderRadius: theme.radius.full,
-                background: '#dc2626',
-                boxShadow: '0 0 8px #dc262640',
-              }}></div>
-              {errors.length} Error{errors.length > 1 ? 's' : ''} Found
+                background: '#ef4444',
+                boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)',
+              }} />
+              <span style={{
+                color: mode === 'dark' ? '#fca5a5' : '#dc2626',
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.medium,
+                fontFamily: theme.typography.fontFamily.sans,
+              }}>
+                {errors.length} Error{errors.length > 1 ? 's' : ''} Found
+              </span>
+              <span style={{
+                transform: showErrors ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: `transform ${theme.animation.fast}`,
+                color: mode === 'dark' ? '#fca5a5' : '#dc2626',
+                fontSize: '12px',
+              }}>
+                ▼
+              </span>
             </div>
 
-            <div style={{
-              transform: showErrors ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              color: '#dc2626',
-            }}>
-              ▼
-            </div>
+            {/* Right: Debug Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onDebug) {
+                  onDebug(errors)
+                } else {
+                  setErrors([])
+                  setShowErrors(false)
+                }
+              }}
+              disabled={isDebugging}
+              style={{
+                background: isDebugging
+                  ? (mode === 'dark' ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)')
+                  : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                border: 'none',
+                color: '#ffffff',
+                cursor: isDebugging ? 'wait' : 'pointer',
+                padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+                borderRadius: theme.radius.lg,
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.semibold,
+                fontFamily: theme.typography.fontFamily.sans,
+                transition: `all ${theme.animation.fast}`,
+                boxShadow: isDebugging ? 'none' : '0 2px 8px rgba(99, 102, 241, 0.3)',
+                opacity: isDebugging ? 0.8 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isDebugging ? (
+                <>
+                  <span style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Fixing...
+                </>
+              ) : (
+                'Debug'
+              )}
+            </button>
           </div>
 
           {/* Error List */}
@@ -627,15 +689,16 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
             }}>
               {errors.map((error, index) => (
                 <div key={index} style={{
-                  padding: theme.spacing.md,
+                  padding: `${theme.spacing.md} ${theme.spacing.md}`,
                   borderBottom: index < errors.length - 1 ? `1px solid ${theme.colors.bg.border}` : 'none',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontFamily: 'Monaco, "Consolas", monospace',
                 }}>
                   <div style={{
-                    color: '#dc2626',
+                    color: mode === 'dark' ? '#fca5a5' : '#dc2626',
+                    fontSize: theme.typography.fontSize.sm,
                     fontWeight: theme.typography.fontWeight.medium,
-                    marginBottom: theme.spacing.xs,
+                    fontFamily: theme.typography.fontFamily.sans,
+                    marginBottom: '4px',
+                    lineHeight: 1.4,
                   }}>
                     {error.message}
                   </div>
@@ -643,42 +706,13 @@ export const PreviewPanel = ({ files, onError, zoom: externalZoom, hideHeader = 
                     <div style={{
                       color: theme.colors.text.tertiary,
                       fontSize: theme.typography.fontSize.xs,
+                      fontFamily: theme.typography.fontFamily.mono,
                     }}>
-                      Source: {error.source}{error.line ? `:${error.line}` : ''}
+                      {error.source}{error.line ? `:${error.line}` : ''}
                     </div>
                   )}
                 </div>
               ))}
-
-              <div style={{
-                padding: theme.spacing.sm,
-                borderTop: `1px solid ${theme.colors.bg.border}`,
-                display: 'flex',
-                justifyContent: 'flex-end',
-              }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setErrors([])
-                    setShowErrors(false)
-                  }}
-                  style={{
-                    background: theme.colors.bg.secondary,
-                    border: `1px solid ${theme.colors.bg.border}`,
-                    color: theme.colors.text.secondary,
-                    cursor: 'pointer',
-                    padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                    borderRadius: theme.radius.lg,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    fontFamily: theme.typography.fontFamily.sans,
-                    transition: `all ${theme.animation.normal}`,
-                    boxShadow: theme.shadows.outset,
-                  }}
-                >
-                  Clear Errors
-                </button>
-              </div>
             </div>
           )}
         </div>
