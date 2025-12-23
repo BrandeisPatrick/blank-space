@@ -8,6 +8,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { ThemeTab } from './tabs/ThemeTab';
 import { AIPreferenceTab } from './tabs/AIPreferenceTab';
 import { UsTab } from './tabs/UsTab';
+import { SubscriptionTab } from './tabs/SubscriptionTab';
 import { CloseIcon } from '../icons/icons';
 
 // Tab icons (specific to settings panel)
@@ -42,9 +43,17 @@ const UsIcon = ({ size = 20, color = '#6B7280' }) => (
   </svg>
 );
 
+const SubscriptionIcon = ({ size = 20, color = '#6B7280' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+    <line x1="1" y1="10" x2="23" y2="10" />
+  </svg>
+);
+
 const TABS = [
   { id: 'theme', label: 'Theme', icon: ThemeIcon },
   { id: 'ai', label: 'AI Preference', icon: AIIcon },
+  { id: 'subscription', label: 'Subscription', icon: SubscriptionIcon },
   { id: 'us', label: 'Us', icon: UsIcon },
 ];
 
@@ -63,6 +72,8 @@ export const TabbedSettingsPanel = () => {
         return <ThemeTab />;
       case 'ai':
         return <AIPreferenceTab />;
+      case 'subscription':
+        return <SubscriptionTab />;
       case 'us':
         return <UsTab />;
       default:
