@@ -663,7 +663,7 @@ EnhancedChatInput.propTypes = {
   initialMessage: PropTypes.string,
   useKnowledgeBase: PropTypes.bool,
   onToggleKnowledgeBase: PropTypes.func,
-  modelTier: PropTypes.oneOf(['lite', 'pro', 'experiment']),
+  modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func,
   activeArtifact: PropTypes.object,
   isEditingArtifact: PropTypes.bool

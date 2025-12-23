@@ -42,6 +42,13 @@ function App() {
   // Model tier state - 'lite' or 'pro'
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite');
 
+  // Migrate old tier values to valid ones
+  useEffect(() => {
+    if (modelTier !== 'lite' && modelTier !== 'pro') {
+      setModelTier('lite');
+    }
+  }, [modelTier, setModelTier]);
+
   // State management
   const [chatMessages, setChatMessages] = useState([]);
   const [files, setFiles] = useState(activeArtifact?.files || {});
@@ -120,12 +127,22 @@ function App() {
   const browserWindowVisible = !!activeArtifact && (userRequestedBrowserWindow || !isAIProcessing);
 
   // Show panel when AI starts processing (and expand if collapsed)
+  // Auto-collapse when AI finishes and artifact is created
+  const wasProcessingRef = useRef(false);
   useEffect(() => {
     if (isAIProcessing) {
       setFloatingChatVisible(true);
       setIsPanelCollapsed(false); // Expand when new processing starts
+      wasProcessingRef.current = true;
+    } else if (wasProcessingRef.current && activeArtifact) {
+      // AI just finished and we have an artifact - auto-collapse after brief delay
+      const timer = setTimeout(() => {
+        setIsPanelCollapsed(true);
+      }, 1500); // Brief delay so user can see completion
+      wasProcessingRef.current = false;
+      return () => clearTimeout(timer);
     }
-  }, [isAIProcessing]);
+  }, [isAIProcessing, activeArtifact]);
 
   // Handle panel collapse/expand
   const handleCollapsePanel = () => {
@@ -424,13 +441,24 @@ function App() {
             newFiles[op.filename] = op.content;
           });
 
+          // Create success message first (before saving to artifact)
+          const appName = result.plan?.summary || 'Your app';
+          const fileCount = result.fileOperations.length;
+          const successMessage = {
+            type: 'assistant',
+            content: `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
+            timestamp: Date.now()
+          };
+
+          // Add success message to ref immediately so it's included in artifact save
+          const messagesWithSuccess = [...chatMessagesRef.current.filter(msg => !msg.isLoading), successMessage];
+          chatMessagesRef.current = messagesWithSuccess;
+
           // If no active artifact, create a new one
           if (!activeArtifactId) {
             const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
             try {
-              // Use ref to get current chat messages (includes user message + AI responses)
-              // Ref always has the latest state, avoiding duplicate messages
-              const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
+              const newArtifactId = await createArtifact(artifactName, newFiles, messagesWithSuccess);
               if (!newArtifactId) {
                 throw new Error('Failed to create artifact');
               }
@@ -450,8 +478,9 @@ function App() {
             // Update existing artifact with files and chat history
             setFiles(newFiles);
             updateArtifactFiles(activeArtifactId, newFiles);
-            // Explicitly save chat history using ref (includes all messages)
-            updateChatHistory(activeArtifactId, chatMessagesRef.current);
+            updateChatHistory(activeArtifactId, messagesWithSuccess);
+            // Also update local state since no useEffect will trigger for existing artifacts
+            setChatMessages(messagesWithSuccess);
           }
 
           // Switch to the first created/modified file

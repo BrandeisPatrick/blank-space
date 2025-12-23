@@ -125,27 +125,31 @@ export const MODELS = MODEL_CONFIGS;
 
 /**
  * Model Tiers for UI Selection
- * Based on benchmark results:
- * - Lite: gpt-4.1-mini (14s avg, 100% success, 4K tokens)
- * - Pro: codex-mini-latest (15s avg, 100% success, 14K tokens)
+ * Using Google Gemini models:
+ * - Lite: gemini-3-flash (fast, efficient)
+ * - Pro: gemini-3-pro-preview (most capable)
  */
 export const MODEL_TIERS = {
   lite: {
-    id: 'gpt-4.1-mini',
+    id: 'gemini-3-flash',
     name: 'Lite',
-    description: 'Balanced',
+    description: 'Fast',
   },
   pro: {
-    id: 'gpt-5-mini',
+    id: 'gemini-3-pro-preview',
     name: 'Pro',
     description: 'Most capable',
   },
-  experiment: {
-    id: 'gpt-5.2',
-    name: 'Experiment',
-    description: 'Latest checkpoint',
-  },
 };
+
+/**
+ * Check if a model is a Gemini model
+ * @param {string} model - Model identifier
+ * @returns {boolean} True if model is a Gemini model
+ */
+export function isGeminiModel(model) {
+  return model && model.startsWith('gemini-');
+}
 
 /**
  * Get model ID for a given tier
@@ -161,6 +165,7 @@ export default {
   getModel,
   getAllModels,
   getModelForTier,
+  isGeminiModel,
   MODELS,
   MODEL_TIERS,
   PRODUCTION_MODE
