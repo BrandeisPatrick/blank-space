@@ -93,7 +93,7 @@ export const EnhancedChatInput = ({
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
-  const { openAuthModal } = useSettings();
+  const { openAuthModal, openPricingPage } = useSettings();
   const { canUseModel, tier: subscriptionTier } = useSubscription();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
@@ -450,7 +450,7 @@ export const EnhancedChatInput = ({
                           openAuthModal();
                         } else if (needsUpgrade) {
                           setShowModelDropdown(false);
-                          window.location.href = '/pricing';
+                          openPricingPage();
                         } else {
                           onChangeModelTier && onChangeModelTier(key);
                           setShowModelDropdown(false);

@@ -21,7 +21,8 @@ export const ROUTES = {
   LANDING: 'landing',
   SIGNIN: 'signin',
   SIGNUP: 'signup',
-  STUDIO: 'studio'
+  STUDIO: 'studio',
+  PRICING: 'pricing'
 };
 
 /**

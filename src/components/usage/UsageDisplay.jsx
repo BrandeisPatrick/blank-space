@@ -5,7 +5,9 @@
  */
 
 import { useSubscription } from '../../contexts/SubscriptionContext';
-import { useTheme, getTheme, createGlassEffect } from '../../styles/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getTheme } from '../../styles/theme';
+import { createGlassEffect } from '../../styles/componentStyles';
 
 const UsageBar = ({ label, used, limit, resetAt, theme }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));

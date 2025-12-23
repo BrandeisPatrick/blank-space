@@ -6,6 +6,7 @@ import { useArtifacts } from "./contexts/ArtifactContext";
 import { useSettings } from "./contexts/SettingsContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
+import { PricingPage } from "./components/pricing";
 import { ArtifactSidebar } from "./components/artifact";
 import { AIResponsePanel } from "./components/ui/AIResponsePanel";
 import { CollapsedChatIcon } from "./components/ui/CollapsedChatIcon";
@@ -22,7 +23,7 @@ function App() {
   const theme = getTheme(mode);
   const { user, loading: authLoading } = useAuth();
   const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
-  const { aiColorPalette, aiUIStyle } = useSettings();
+  const { aiColorPalette, aiUIStyle, shouldShowPricing, closePricingPage } = useSettings();
   const isMobile = useIsMobile();
 
   // Route state
@@ -828,6 +829,20 @@ function App() {
         onNavigateToMain={handleNavigateToLanding}
         onNavigateToSignIn={handleNavigateToSignIn}
         onSignUpSuccess={handleAuthSuccess}
+      />
+    );
+  }
+
+  // Show pricing page if route is PRICING or shouldShowPricing is true
+  if (currentRoute === ROUTES.PRICING || shouldShowPricing) {
+    return (
+      <PricingPage
+        onClose={() => {
+          closePricingPage();
+          if (currentRoute === ROUTES.PRICING) {
+            setCurrentRoute(ROUTES.LANDING);
+          }
+        }}
       />
     );
   }
