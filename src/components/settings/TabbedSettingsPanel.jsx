@@ -184,7 +184,7 @@ export const TabbedSettingsPanel = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: theme.spacing.xs,
-                    padding: `${theme.spacing.lg} ${theme.spacing.lg}`,
+                    padding: `${theme.spacing.xl} ${theme.spacing.lg}`,
                     background: 'transparent',
                     border: 'none',
                     borderBottom: isActive ? '2px solid #3B82F6' : '2px solid transparent',
