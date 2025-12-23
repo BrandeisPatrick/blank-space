@@ -291,9 +291,9 @@ export const SubscriptionTab = () => {
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.mutedForeground,
                 }}>
-                  <li>50 requests/day</li>
-                  <li>250 requests/week</li>
-                  <li>1,000 requests/month</li>
+                  <li>50 calls/day</li>
+                  <li>250 calls/week</li>
+                  <li>1,000 calls/month</li>
                 </ul>
                 <button
                   style={buttonStyle()}
@@ -332,9 +332,9 @@ export const SubscriptionTab = () => {
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.mutedForeground,
               }}>
-                <li>200 requests/day</li>
-                <li>1,000 requests/week</li>
-                <li>5,000 requests/month</li>
+                <li>200 calls/day</li>
+                <li>1,000 calls/week</li>
+                <li>5,000 calls/month</li>
                 <li style={{ color: '#C97D63', fontWeight: 500 }}>+ Pro Model Access</li>
               </ul>
               <button
