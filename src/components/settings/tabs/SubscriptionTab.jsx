@@ -267,6 +267,8 @@ export const SubscriptionTab = () => {
                 border: `1px solid ${theme.colors.border}`,
                 borderRadius: theme.radius.lg,
                 padding: theme.spacing.lg,
+                display: 'flex',
+                flexDirection: 'column',
               }}>
                 <h4 style={{
                   fontSize: theme.typography.fontSize.base,
@@ -290,6 +292,7 @@ export const SubscriptionTab = () => {
                   margin: `0 0 ${theme.spacing.md} 0`,
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.mutedForeground,
+                  flex: 1,
                 }}>
                   <li>50 calls/day</li>
                   <li>250 calls/week</li>
@@ -308,6 +311,8 @@ export const SubscriptionTab = () => {
               border: `1px solid ${theme.colors.border}`,
               borderRadius: theme.radius.lg,
               padding: theme.spacing.lg,
+              display: 'flex',
+              flexDirection: 'column',
             }}>
               <h4 style={{
                 fontSize: theme.typography.fontSize.base,
@@ -331,6 +336,7 @@ export const SubscriptionTab = () => {
                 margin: `0 0 ${theme.spacing.md} 0`,
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.mutedForeground,
+                flex: 1,
               }}>
                 <li>200 calls/day</li>
                 <li>1,000 calls/week</li>
