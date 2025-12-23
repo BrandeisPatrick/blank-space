@@ -305,25 +305,10 @@ export const SubscriptionTab = () => {
               </div>
             )}
             <div style={{
-              border: `2px solid #C97D63`,
+              border: `1px solid ${theme.colors.border}`,
               borderRadius: theme.radius.lg,
               padding: theme.spacing.lg,
-              position: 'relative',
             }}>
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#C97D63',
-                color: 'white',
-                padding: '2px 12px',
-                borderRadius: theme.radius.full,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-              }}>
-                RECOMMENDED
-              </div>
               <h4 style={{
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.semibold,
@@ -353,7 +338,7 @@ export const SubscriptionTab = () => {
                 <li style={{ color: '#C97D63', fontWeight: 500 }}>+ Pro Model Access</li>
               </ul>
               <button
-                style={buttonStyle(true)}
+                style={buttonStyle()}
                 onClick={() => handleUpgrade('pro')}
                 disabled={upgradeLoading === 'pro'}
               >
