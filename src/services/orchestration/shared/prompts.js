@@ -256,6 +256,83 @@ When you receive a user request:
 IMPORTANT: Your goal is to generate complete, working, VALIDATED React applications through tool calls only. When editing existing apps, preserve their purpose and functionality.`;
 
 /**
+ * Build debug-specific prompt for fixing runtime errors
+ * @param {Array} errors - Array of error objects {message, source, line}
+ * @param {Object} currentFiles - Current file map {filename: content}
+ * @returns {string} Debug-specific system prompt
+ */
+export function buildDebugPrompt(errors, currentFiles) {
+  const errorList = errors.map((err, i) =>
+    `${i + 1}. ${err.message}${err.source ? ` (in ${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
+  ).join('\n');
+
+  const fileList = Object.keys(currentFiles).map(f => `- ${f}`).join('\n');
+
+  return `You are debugging a React application that has runtime errors. Your job is to FIX the code so it WORKS.
+
+# ERRORS TO FIX:
+${errorList}
+
+# CURRENT FILES:
+${fileList}
+
+# CRITICAL: THIS IS A SANDBOXED BROWSER ENVIRONMENT
+You CANNOT install npm packages. You CANNOT use external libraries. Everything must work with:
+- React (pre-loaded)
+- Tailwind CSS (pre-loaded)
+- Native browser APIs only
+
+# HOW TO FIX COMMON ERRORS:
+
+## "X is not defined" (Missing External Library)
+When you see errors like "Chessboard is not defined", "Chart is not defined", "Moment is not defined":
+1. The code is trying to use an external library that doesn't exist in this sandbox
+2. You MUST create a working replacement component/function from scratch
+3. DO NOT try to import it - CREATE IT
+
+Example: If "Chessboard is not defined":
+- Create a functional <Chessboard /> component using divs and Tailwind CSS
+- Make it visually look like a chessboard with an 8x8 grid
+- Add pieces using Unicode chess symbols (♔♕♖♗♘♙♚♛♜♝♞♟)
+- Make it interactive if needed
+
+Example: If "Chart is not defined":
+- Create a simple chart using CSS/SVG
+- Use divs with varying heights for bar charts
+- Use SVG paths for line charts
+
+## "Cannot read property of undefined"
+- Add null checks: \`value?.property\` or \`value && value.property\`
+- Add default values: \`const items = data?.items || []\`
+- Check if state is initialized properly
+
+## "require is not defined"
+- Change: \`const X = require('x')\` → \`import X from 'x'\`
+- For React: hooks are already available, just use them directly
+
+## Syntax Errors
+- Fix missing brackets, quotes, semicolons
+- Ensure JSX is properly closed
+
+# YOUR TASK:
+1. Use read() to examine the file(s) with errors
+2. Identify what external library or undefined variable is causing the error
+3. CREATE a working replacement implementation from scratch using only React + Tailwind
+4. Use write() to save the fixed code
+5. The app MUST work after your fix - no placeholders that just show text
+
+# RULES:
+- DO NOT just add comments or placeholder text
+- DO NOT try to import unavailable libraries
+- CREATE functional replacements that actually work
+- Keep the app's original purpose and functionality
+- Use Tailwind CSS for all styling
+- Make it visually appealing
+
+Start by reading the file(s) with errors, then apply your fix.`;
+}
+
+/**
  * System prompt for chat/conversational responses
  */
 export const CHAT_SYSTEM_PROMPT = `You are Bina, a friendly AI assistant for a web app builder called Blank Space.
@@ -294,8 +371,15 @@ export function buildSystemPrompt(options = {}) {
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
     wallpaperTheme = 'starry',
-    isDarkTheme = true
+    isDarkTheme = true,
+    isDebugMode = false,
+    debugErrors = []
   } = options;
+
+  // Use debug-specific prompt when fixing errors
+  if (isDebugMode && debugErrors.length > 0) {
+    return buildDebugPrompt(debugErrors, currentFiles);
+  }
 
   let systemPrompt = CODE_GENERATION_SYSTEM_PROMPT;
 
@@ -339,5 +423,6 @@ export default {
   CHAT_SYSTEM_PROMPT,
   buildSystemPrompt,
   buildEditModeInstructions,
-  getCriticalGuidance
+  getCriticalGuidance,
+  buildDebugPrompt
 };

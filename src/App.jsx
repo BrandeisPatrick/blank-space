@@ -30,6 +30,7 @@ function App() {
 
   // AI processing state
   const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [isDebugging, setIsDebugging] = useState(false);
 
   // Knowledge Base state - enables professional component patterns
   const [useKnowledgeBase, setUseKnowledgeBase] = useLocalStorage('useKnowledgeBase', true);
@@ -362,6 +363,129 @@ function App() {
       }
     }
   }, []);
+
+  // Handle debug errors - AI auto-fix
+  const handleDebugErrors = useCallback(async (errors) => {
+    if (!errors || errors.length === 0 || isDebugging) return;
+
+    setIsDebugging(true);
+    setIsAIProcessing(true);
+    setFloatingChatVisible(true);
+    setIsPanelCollapsed(false);
+
+    // Create a loading message
+    const loadingMessageId = Date.now();
+    setChatMessages(prev => {
+      const newMessages = [...prev, {
+        id: loadingMessageId,
+        type: 'assistant',
+        content: 'Analyzing errors...',
+        isLoading: true,
+        timestamp: loadingMessageId
+      }];
+      chatMessagesRef.current = newMessages;
+      return newMessages;
+    });
+
+    // Build debug message from errors
+    const errorSummary = errors.map((err, i) =>
+      `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
+    ).join('\n');
+
+    const debugMessage = `Fix the following errors in my code:\n${errorSummary}`;
+
+    // Callback for streaming updates
+    const onUpdate = (update) => {
+      if (update.type === 'tool_action') {
+        setChatMessages(prev => {
+          const newMessages = prev.map(msg =>
+            msg.id === loadingMessageId
+              ? { ...msg, content: update.action }
+              : msg
+          );
+          chatMessagesRef.current = newMessages;
+          return newMessages;
+        });
+      }
+    };
+
+    // Helper to remove loading message
+    const removeLoadingMessage = () => {
+      setChatMessages(prev => {
+        const newMessages = prev.filter(msg => msg.id !== loadingMessageId);
+        chatMessagesRef.current = newMessages;
+        return newMessages;
+      });
+    };
+
+    try {
+      const result = await processMessage(debugMessage, files, onUpdate, {
+        useKnowledgeBase,
+        modelTier,
+        aiColorPalette,
+        aiUIStyle,
+        wallpaperTheme,
+        isDarkTheme: currentTheme?.isDark ?? mode === 'dark',
+        isDebugMode: true,
+        debugErrors: errors,
+      });
+
+      if (result.success && result.fileOperations?.length > 0) {
+        // Apply fixes
+        const fixedFiles = { ...files };
+        result.fileOperations.forEach(op => {
+          fixedFiles[op.filename] = op.content;
+        });
+
+        setFiles(fixedFiles);
+        removeLoadingMessage();
+
+        // Add success message
+        const fixedCount = result.fileOperations.length;
+        setChatMessages(prev => {
+          const newMessages = [...prev, {
+            type: 'assistant',
+            content: `Fixed ${fixedCount} file${fixedCount > 1 ? 's' : ''}. The errors should be resolved now.`,
+            timestamp: Date.now()
+          }];
+          chatMessagesRef.current = newMessages;
+          return newMessages;
+        });
+
+        // Update artifact
+        if (activeArtifactId) {
+          updateArtifactFiles(activeArtifactId, fixedFiles);
+          updateChatHistory(activeArtifactId, chatMessagesRef.current);
+        }
+      } else {
+        removeLoadingMessage();
+        setChatMessages(prev => {
+          const newMessages = [...prev, {
+            type: 'assistant',
+            content: result.response || 'I was unable to automatically fix the errors. Please check the code manually or describe the issue in more detail.',
+            timestamp: Date.now()
+          }];
+          chatMessagesRef.current = newMessages;
+          return newMessages;
+        });
+      }
+    } catch (error) {
+      console.error('Debug error:', error);
+      removeLoadingMessage();
+      setChatMessages(prev => {
+        const newMessages = [...prev, {
+          type: 'error',
+          content: 'An error occurred while trying to fix the code. Please try again.',
+          timestamp: Date.now()
+        }];
+        chatMessagesRef.current = newMessages;
+        return newMessages;
+      });
+    } finally {
+      setIsDebugging(false);
+      setIsAIProcessing(false);
+    }
+  }, [files, isDebugging, useKnowledgeBase, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory]);
 
   // Handle chat message with AI agents
   const handleSendMessage = useCallback(async (message) => {
@@ -749,6 +873,8 @@ function App() {
         }}
         onFileChange={handleFileChange}
         onError={handlePreviewError}
+        onDebug={handleDebugErrors}
+        isDebugging={isDebugging}
         onIconChange={(iconId) => {
           if (activeArtifactId) {
             updateArtifactIcon(activeArtifactId, iconId);
