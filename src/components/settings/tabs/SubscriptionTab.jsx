@@ -86,6 +86,7 @@ export const SubscriptionTab = () => {
   } = useSubscription();
 
   const [upgradeLoading, setUpgradeLoading] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState('lite');
 
   const handleUpgrade = async (targetTier) => {
     try {
@@ -257,100 +258,125 @@ export const SubscriptionTab = () => {
           }}>
             Upgrade
           </h3>
+
+          {/* Plan Tab Bar */}
+          {tier === 'free' && (
+            <div style={{
+              display: 'flex',
+              background: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              borderRadius: theme.radius.lg,
+              padding: '4px',
+              marginBottom: theme.spacing.lg,
+            }}>
+              <button
+                onClick={() => setSelectedPlan('lite')}
+                style={{
+                  flex: 1,
+                  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  background: selectedPlan === 'lite'
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'white')
+                    : 'transparent',
+                  color: selectedPlan === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
+                  fontWeight: selectedPlan === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                  fontSize: theme.typography.fontSize.sm,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: selectedPlan === 'lite' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                Lite
+              </button>
+              <button
+                onClick={() => setSelectedPlan('pro')}
+                style={{
+                  flex: 1,
+                  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  background: selectedPlan === 'pro'
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'white')
+                    : 'transparent',
+                  color: selectedPlan === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
+                  fontWeight: selectedPlan === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                  fontSize: theme.typography.fontSize.sm,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: selectedPlan === 'pro' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                Pro
+              </button>
+            </div>
+          )}
+
+          {/* Plan Card */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: tier === 'free' ? '1fr 1fr' : '1fr',
-            gap: theme.spacing.md,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radius.lg,
+            padding: theme.spacing.lg,
           }}>
-            {tier === 'free' && (
-              <div style={{
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.lg,
-                padding: theme.spacing.lg,
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
-                <h4 style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.foreground,
-                  marginBottom: theme.spacing.xs,
-                }}>
-                  Lite
-                </h4>
+            {(tier === 'lite' || selectedPlan === 'pro') ? (
+              <>
                 <p style={{
                   fontSize: theme.typography.fontSize['2xl'],
                   fontWeight: theme.typography.fontWeight.bold,
                   color: theme.colors.foreground,
-                  marginBottom: theme.spacing.sm,
+                  marginBottom: theme.spacing.md,
+                }}>
+                  $24.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
+                </p>
+                <ul style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: `0 0 ${theme.spacing.lg} 0`,
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.mutedForeground,
+                }}>
+                  <li style={{ marginBottom: theme.spacing.xs }}>200 calls/day</li>
+                  <li style={{ marginBottom: theme.spacing.xs }}>1,000 calls/week</li>
+                  <li style={{ marginBottom: theme.spacing.xs }}>5,000 calls/month</li>
+                  <li style={{ color: '#C97D63', fontWeight: 500 }}>+ Pro Model Access</li>
+                </ul>
+                <button
+                  style={buttonStyle(true)}
+                  onClick={() => handleUpgrade('pro')}
+                  disabled={upgradeLoading === 'pro'}
+                >
+                  {upgradeLoading === 'pro' ? 'Loading...' : 'Upgrade to Pro'}
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.foreground,
+                  marginBottom: theme.spacing.md,
                 }}>
                   $4.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
                 </p>
                 <ul style={{
                   listStyle: 'none',
                   padding: 0,
-                  margin: `0 0 ${theme.spacing.md} 0`,
+                  margin: `0 0 ${theme.spacing.lg} 0`,
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.mutedForeground,
-                  flex: 1,
                 }}>
-                  <li>50 calls/day</li>
-                  <li>250 calls/week</li>
-                  <li>1,000 calls/month</li>
+                  <li style={{ marginBottom: theme.spacing.xs }}>50 calls/day</li>
+                  <li style={{ marginBottom: theme.spacing.xs }}>250 calls/week</li>
+                  <li style={{ marginBottom: theme.spacing.xs }}>1,000 calls/month</li>
                 </ul>
                 <button
-                  style={buttonStyle()}
+                  style={buttonStyle(true)}
                   onClick={() => handleUpgrade('lite')}
                   disabled={upgradeLoading === 'lite'}
                 >
                   {upgradeLoading === 'lite' ? 'Loading...' : 'Upgrade to Lite'}
                 </button>
-              </div>
+              </>
             )}
-            <div style={{
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.lg,
-              padding: theme.spacing.lg,
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              <h4 style={{
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.foreground,
-                marginBottom: theme.spacing.xs,
-              }}>
-                Pro
-              </h4>
-              <p style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.foreground,
-                marginBottom: theme.spacing.sm,
-              }}>
-                $24.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
-              </p>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: `0 0 ${theme.spacing.md} 0`,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.mutedForeground,
-                flex: 1,
-              }}>
-                <li>200 calls/day</li>
-                <li>1,000 calls/week</li>
-                <li>5,000 calls/month</li>
-                <li style={{ color: '#C97D63', fontWeight: 500 }}>+ Pro Model Access</li>
-              </ul>
-              <button
-                style={buttonStyle()}
-                onClick={() => handleUpgrade('pro')}
-                disabled={upgradeLoading === 'pro'}
-              >
-                {upgradeLoading === 'pro' ? 'Loading...' : 'Upgrade to Pro'}
-              </button>
-            </div>
           </div>
         </div>
       )}
