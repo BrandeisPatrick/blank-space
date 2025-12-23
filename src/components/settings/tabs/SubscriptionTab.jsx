@@ -8,6 +8,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getTheme } from '../../../styles/theme';
+import { createGlassEffect } from '../../../styles/componentStyles';
 
 const TIER_INFO = {
   free: {
@@ -263,7 +264,7 @@ export const SubscriptionTab = () => {
           {tier === 'free' && (
             <div style={{
               display: 'flex',
-              background: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              ...createGlassEffect(theme),
               borderRadius: theme.radius.lg,
               padding: '4px',
               marginBottom: theme.spacing.lg,
@@ -275,15 +276,18 @@ export const SubscriptionTab = () => {
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                   border: 'none',
                   borderRadius: theme.radius.md,
+                  ...(selectedPlan === 'lite' ? createGlassEffect(theme) : {}),
                   background: selectedPlan === 'lite'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'white')
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)')
                     : 'transparent',
                   color: selectedPlan === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
                   fontWeight: selectedPlan === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   fontSize: theme.typography.fontSize.sm,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  boxShadow: selectedPlan === 'lite' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  boxShadow: selectedPlan === 'lite'
+                    ? '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    : 'none',
                 }}
               >
                 Lite
@@ -295,15 +299,18 @@ export const SubscriptionTab = () => {
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                   border: 'none',
                   borderRadius: theme.radius.md,
+                  ...(selectedPlan === 'pro' ? createGlassEffect(theme) : {}),
                   background: selectedPlan === 'pro'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'white')
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)')
                     : 'transparent',
                   color: selectedPlan === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
                   fontWeight: selectedPlan === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   fontSize: theme.typography.fontSize.sm,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  boxShadow: selectedPlan === 'pro' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  boxShadow: selectedPlan === 'pro'
+                    ? '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    : 'none',
                 }}
               >
                 Pro
