@@ -264,10 +264,13 @@ export const SubscriptionTab = () => {
           {tier === 'free' && (
             <div style={{
               display: 'flex',
-              ...createGlassEffect(theme),
+              background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               borderRadius: theme.radius.lg,
               padding: '4px',
               marginBottom: theme.spacing.lg,
+              border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
             }}>
               <button
                 onClick={() => setSelectedPlan('lite')}
@@ -276,17 +279,20 @@ export const SubscriptionTab = () => {
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                   border: 'none',
                   borderRadius: theme.radius.md,
-                  ...(selectedPlan === 'lite' ? createGlassEffect(theme) : {}),
                   background: selectedPlan === 'lite'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)')
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
                     : 'transparent',
+                  backdropFilter: selectedPlan === 'lite' ? 'blur(4px)' : 'none',
+                  WebkitBackdropFilter: selectedPlan === 'lite' ? 'blur(4px)' : 'none',
                   color: selectedPlan === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
                   fontWeight: selectedPlan === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   fontSize: theme.typography.fontSize.sm,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   boxShadow: selectedPlan === 'lite'
-                    ? '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    ? (mode === 'dark'
+                        ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                        : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
                     : 'none',
                 }}
               >
@@ -299,17 +305,20 @@ export const SubscriptionTab = () => {
                   padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                   border: 'none',
                   borderRadius: theme.radius.md,
-                  ...(selectedPlan === 'pro' ? createGlassEffect(theme) : {}),
                   background: selectedPlan === 'pro'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)')
+                    ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
                     : 'transparent',
+                  backdropFilter: selectedPlan === 'pro' ? 'blur(4px)' : 'none',
+                  WebkitBackdropFilter: selectedPlan === 'pro' ? 'blur(4px)' : 'none',
                   color: selectedPlan === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
                   fontWeight: selectedPlan === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   fontSize: theme.typography.fontSize.sm,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   boxShadow: selectedPlan === 'pro'
-                    ? '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    ? (mode === 'dark'
+                        ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                        : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
                     : 'none',
                 }}
               >
