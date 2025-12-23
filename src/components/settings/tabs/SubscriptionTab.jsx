@@ -337,7 +337,7 @@ export const SubscriptionTab = () => {
                   <li style={{ marginBottom: theme.spacing.xs }}>200 calls/day</li>
                   <li style={{ marginBottom: theme.spacing.xs }}>1,000 calls/week</li>
                   <li style={{ marginBottom: theme.spacing.xs }}>5,000 calls/month</li>
-                  <li style={{ color: '#C97D63', fontWeight: 500 }}>+ Pro Model Access</li>
+                  <li>+ Pro Model Access</li>
                 </ul>
                 <button
                   style={buttonStyle(true)}
