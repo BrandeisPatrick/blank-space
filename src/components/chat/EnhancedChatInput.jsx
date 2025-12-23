@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
@@ -59,6 +61,23 @@ const SparklesIcon = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
+// Lock icon for auth-required features
+const LockIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 export const EnhancedChatInput = ({
   placeholder = "Let's make something",
   onFocus,
@@ -72,6 +91,8 @@ export const EnhancedChatInput = ({
   isEditingArtifact = false
 }) => {
   const { mode } = useTheme();
+  const { user } = useAuth();
+  const { openAuthModal } = useSettings();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
@@ -134,6 +155,10 @@ export const EnhancedChatInput = ({
   };
 
   const handleSend = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     if (message.trim() && onSend) {
       onSend(message);
       setMessage('');
@@ -410,57 +435,70 @@ export const EnhancedChatInput = ({
                   zIndex: 100,
                 }}
               >
-                {Object.entries(MODEL_TIERS).map(([key, tier]) => (
-                  <div
-                    key={key}
-                    onClick={() => {
-                      onChangeModelTier && onChangeModelTier(key);
-                      setShowModelDropdown(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                      cursor: 'pointer',
-                      background: modelTier === key
-                        ? (mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
-                        : 'transparent',
-                      transition: `background ${theme.animation.fast}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (modelTier !== key) {
-                        e.currentTarget.style.background = mode === 'dark'
-                          ? 'rgba(255,255,255,0.05)'
-                          : 'rgba(0,0,0,0.03)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (modelTier !== key) {
-                        e.currentTarget.style.background = 'transparent';
-                      }
-                    }}
-                  >
-                    <div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: theme.typography.fontWeight.medium,
-                        color: theme.colors.text.primary,
-                      }}>
-                        {tier.name}
+                {Object.entries(MODEL_TIERS).map(([key, tier]) => {
+                  const isLocked = !user; // Require auth for all tiers
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => {
+                        if (isLocked) {
+                          setShowModelDropdown(false);
+                          openAuthModal();
+                        } else {
+                          onChangeModelTier && onChangeModelTier(key);
+                          setShowModelDropdown(false);
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                        cursor: 'pointer',
+                        background: modelTier === key && !isLocked
+                          ? (mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
+                          : 'transparent',
+                        transition: `background ${theme.animation.fast}`,
+                        opacity: isLocked ? 0.7 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (modelTier !== key || isLocked) {
+                          e.currentTarget.style.background = mode === 'dark'
+                            ? 'rgba(255,255,255,0.05)'
+                            : 'rgba(0,0,0,0.03)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (modelTier !== key || isLocked) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      <div>
+                        <div style={{
+                          fontSize: theme.typography.fontSize.sm,
+                          fontWeight: theme.typography.fontWeight.medium,
+                          color: theme.colors.text.primary,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: theme.spacing.xs,
+                        }}>
+                          {tier.name}
+                          {isLocked && <LockIcon size={12} color={theme.colors.text.tertiary} />}
+                        </div>
+                        <div style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          color: theme.colors.text.tertiary,
+                        }}>
+                          {isLocked ? 'Sign in required' : tier.description}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.text.tertiary,
-                      }}>
-                        {tier.description}
-                      </div>
+                      {modelTier === key && !isLocked && (
+                        <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
+                      )}
                     </div>
-                    {modelTier === key && (
-                      <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
