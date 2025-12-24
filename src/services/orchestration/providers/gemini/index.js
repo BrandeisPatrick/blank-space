@@ -13,6 +13,24 @@ import { classifyIntent } from '../../../intentClassifier.js';
 import { convertToolsToGeminiFormat } from './toolAdapter.js';
 import { buildSystemPrompt, CHAT_SYSTEM_PROMPT } from '../../shared/prompts.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
+import { auth } from '../../../../config/firebase.js';
+
+/**
+ * Get auth headers for API requests
+ * Includes Firebase ID token if user is authenticated
+ */
+async function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  try {
+    if (auth?.currentUser) {
+      const token = await auth.currentUser.getIdToken(true);
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.warn('[Gemini Provider] Failed to get auth token:', error.message);
+  }
+  return headers;
+}
 
 /**
  * Generate a short app name from user request (max 3 words)
@@ -21,9 +39,10 @@ import { getModelForTier } from '../../../config/modelConfig.js';
 async function generateAppName(userMessage, model) {
   try {
     const prompt = 'Generate a short app name (1-3 words max) from this user request. Return ONLY the name, no quotes, no explanation. Examples: "Todo List", "Weather App", "Quiz Game", "Calculator". User request: ' + userMessage;
+    const headers = await getAuthHeaders();
     const response = await fetch('/api/gemini', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         action: 'generate',
         model,
@@ -110,9 +129,10 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'Thinking...'
       });
 
+      const chatHeaders = await getAuthHeaders();
       const chatApiResponse = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: chatHeaders,
         body: JSON.stringify({
           action: 'generate',
           model,
@@ -193,10 +213,13 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     const maxLoops = 15;
     let history = [];
 
+    // Get auth headers once for the loop
+    const loopHeaders = await getAuthHeaders();
+
     // Send initial message to /api/gemini
     let apiResponse = await fetch('/api/gemini', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: loopHeaders,
       body: JSON.stringify({
         action: 'chat',
         model,
@@ -284,7 +307,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
 
       apiResponse = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: loopHeaders,
         body: JSON.stringify({
           action: 'chat',
           model,
