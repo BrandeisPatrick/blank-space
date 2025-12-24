@@ -46,10 +46,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get return URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                    'http://localhost:3000';
+    // Get return URL (same logic as create-checkout-session)
+    const vercelUrl = process.env.VERCEL_URL;
+    const isLocalhost = vercelUrl?.includes('localhost');
+    const baseUrl = isLocalhost
+      ? `http://${vercelUrl}`
+      : (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000');
 
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
