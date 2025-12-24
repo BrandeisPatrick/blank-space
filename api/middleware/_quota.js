@@ -2,7 +2,8 @@
  * Quota Middleware
  *
  * Checks and enforces user quotas for AI requests.
- * Tracks usage separately for Lite and Pro models using flat structure.
+ * Tracks usage separately for Lite and Pro models.
+ * Model: Daily burst limit + Monthly total budget
  */
 
 import { getFirestore } from './_auth.js';
@@ -21,21 +22,6 @@ function getNextDailyReset() {
     0, 0, 0, 0
   ));
   return tomorrow.toISOString();
-}
-
-/**
- * Get next reset time for weekly quota (next Monday midnight UTC)
- */
-function getNextWeeklyReset() {
-  const now = new Date();
-  const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
-  const nextMonday = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + daysUntilMonday,
-    0, 0, 0, 0
-  ));
-  return nextMonday.toISOString();
 }
 
 /**
@@ -59,8 +45,6 @@ function getFieldNames(modelTier) {
   return {
     dailyCount: `${prefix}DailyCount`,
     dailyResetAt: `${prefix}DailyResetAt`,
-    weeklyCount: `${prefix}WeeklyCount`,
-    weeklyResetAt: `${prefix}WeeklyResetAt`,
     monthlyCount: `${prefix}MonthlyCount`,
     monthlyResetAt: `${prefix}MonthlyResetAt`,
   };
@@ -73,14 +57,10 @@ function createDefaultUsage() {
   return {
     liteDailyCount: 0,
     liteDailyResetAt: getNextDailyReset(),
-    liteWeeklyCount: 0,
-    liteWeeklyResetAt: getNextWeeklyReset(),
     liteMonthlyCount: 0,
     liteMonthlyResetAt: getNextMonthlyReset(),
     proDailyCount: 0,
     proDailyResetAt: getNextDailyReset(),
-    proWeeklyCount: 0,
-    proWeeklyResetAt: getNextWeeklyReset(),
     proMonthlyCount: 0,
     proMonthlyResetAt: getNextMonthlyReset(),
     lastRequestAt: null,
@@ -91,34 +71,43 @@ function createDefaultUsage() {
  * Migrate old usage structure to new flat structure
  */
 function migrateUsage(oldUsage) {
-  // Already flat structure
-  if (oldUsage.liteDailyCount !== undefined) {
+  // Already new flat structure (no weekly)
+  if (oldUsage.liteDailyCount !== undefined && oldUsage.liteWeeklyCount === undefined) {
     return oldUsage;
   }
 
   const newUsage = createDefaultUsage();
 
+  // Migrate from flat structure with weekly (remove weekly)
+  if (oldUsage.liteDailyCount !== undefined) {
+    newUsage.liteDailyCount = oldUsage.liteDailyCount;
+    newUsage.liteDailyResetAt = oldUsage.liteDailyResetAt || getNextDailyReset();
+    newUsage.liteMonthlyCount = oldUsage.liteMonthlyCount || 0;
+    newUsage.liteMonthlyResetAt = oldUsage.liteMonthlyResetAt || getNextMonthlyReset();
+    newUsage.proDailyCount = oldUsage.proDailyCount || 0;
+    newUsage.proDailyResetAt = oldUsage.proDailyResetAt || getNextDailyReset();
+    newUsage.proMonthlyCount = oldUsage.proMonthlyCount || 0;
+    newUsage.proMonthlyResetAt = oldUsage.proMonthlyResetAt || getNextMonthlyReset();
+    newUsage.lastRequestAt = oldUsage.lastRequestAt;
+    return newUsage;
+  }
+
   // Migrate from nested structure (usage.lite.daily.requests)
   if (oldUsage.lite?.daily?.requests !== undefined) {
     newUsage.liteDailyCount = oldUsage.lite.daily.requests;
     newUsage.liteDailyResetAt = oldUsage.lite.daily.resetAt || getNextDailyReset();
-    newUsage.liteWeeklyCount = oldUsage.lite.weekly?.requests || 0;
-    newUsage.liteWeeklyResetAt = oldUsage.lite.weekly?.resetAt || getNextWeeklyReset();
     newUsage.liteMonthlyCount = oldUsage.lite.monthly?.requests || 0;
     newUsage.liteMonthlyResetAt = oldUsage.lite.monthly?.resetAt || getNextMonthlyReset();
   }
   // Migrate from semi-nested structure (usage.lite.daily = number)
   else if (typeof oldUsage.lite?.daily === 'number') {
     newUsage.liteDailyCount = oldUsage.lite.daily;
-    newUsage.liteWeeklyCount = oldUsage.lite.weekly || 0;
     newUsage.liteMonthlyCount = oldUsage.lite.monthly || 0;
   }
   // Migrate from old single-model structure (usage.daily.requests)
   else if (oldUsage.daily?.requests !== undefined) {
     newUsage.liteDailyCount = oldUsage.daily.requests;
     newUsage.liteDailyResetAt = oldUsage.daily.resetAt || getNextDailyReset();
-    newUsage.liteWeeklyCount = oldUsage.weekly?.requests || 0;
-    newUsage.liteWeeklyResetAt = oldUsage.weekly?.resetAt || getNextWeeklyReset();
     newUsage.liteMonthlyCount = oldUsage.monthly?.requests || 0;
     newUsage.liteMonthlyResetAt = oldUsage.monthly?.resetAt || getNextMonthlyReset();
   }
@@ -127,13 +116,10 @@ function migrateUsage(oldUsage) {
   if (oldUsage.pro?.daily?.requests !== undefined) {
     newUsage.proDailyCount = oldUsage.pro.daily.requests;
     newUsage.proDailyResetAt = oldUsage.pro.daily.resetAt || getNextDailyReset();
-    newUsage.proWeeklyCount = oldUsage.pro.weekly?.requests || 0;
-    newUsage.proWeeklyResetAt = oldUsage.pro.weekly?.resetAt || getNextWeeklyReset();
     newUsage.proMonthlyCount = oldUsage.pro.monthly?.requests || 0;
     newUsage.proMonthlyResetAt = oldUsage.pro.monthly?.resetAt || getNextMonthlyReset();
   } else if (typeof oldUsage.pro?.daily === 'number') {
     newUsage.proDailyCount = oldUsage.pro.daily;
-    newUsage.proWeeklyCount = oldUsage.pro.weekly || 0;
     newUsage.proMonthlyCount = oldUsage.pro.monthly || 0;
   }
 
@@ -154,12 +140,6 @@ function resetCountersIfNeeded(usage, modelTier, now) {
   if (new Date(usage[fields.dailyResetAt]) <= now) {
     usage[fields.dailyCount] = 0;
     usage[fields.dailyResetAt] = getNextDailyReset();
-    updated = true;
-  }
-
-  if (new Date(usage[fields.weeklyResetAt]) <= now) {
-    usage[fields.weeklyCount] = 0;
-    usage[fields.weeklyResetAt] = getNextWeeklyReset();
     updated = true;
   }
 
@@ -194,7 +174,6 @@ export async function checkQuota(userId, modelTier = 'lite') {
 
   const user = userDoc.data();
   const tier = user.subscription?.tier || 'free';
-  const tierConfig = TIER_QUOTAS[tier] || TIER_QUOTAS.free;
 
   // Check if user can access this model
   if (!canAccessModel(tier, modelTier)) {
@@ -227,7 +206,7 @@ export async function checkQuota(userId, modelTier = 'lite') {
   if (resetCountersIfNeeded(usage, 'pro', now)) usageUpdated = true;
 
   // Update usage in database if reset or migration occurred
-  if (usageUpdated || user.usage?.liteDailyCount === undefined) {
+  if (usageUpdated || user.usage?.liteDailyCount === undefined || user.usage?.liteWeeklyCount !== undefined) {
     await userRef.update({ usage });
   }
 
@@ -235,25 +214,20 @@ export async function checkQuota(userId, modelTier = 'lite') {
 
   // Check limits
   const dailyExceeded = usage[fields.dailyCount] >= limits.daily;
-  const weeklyExceeded = usage[fields.weeklyCount] >= limits.weekly;
   const monthlyExceeded = usage[fields.monthlyCount] >= limits.monthly;
 
   const remaining = {
     daily: Math.max(0, limits.daily - usage[fields.dailyCount]),
-    weekly: Math.max(0, limits.weekly - usage[fields.weeklyCount]),
     monthly: Math.max(0, limits.monthly - usage[fields.monthlyCount]),
   };
 
-  if (dailyExceeded || weeklyExceeded || monthlyExceeded) {
+  if (dailyExceeded || monthlyExceeded) {
     let resetAt;
     let limitType;
 
     if (dailyExceeded) {
       resetAt = usage[fields.dailyResetAt];
       limitType = 'daily';
-    } else if (weeklyExceeded) {
-      resetAt = usage[fields.weeklyResetAt];
-      limitType = 'weekly';
     } else {
       resetAt = usage[fields.monthlyResetAt];
       limitType = 'monthly';
@@ -281,7 +255,6 @@ export async function checkQuota(userId, modelTier = 'lite') {
     usage,
     remaining: {
       daily: remaining.daily - 1,
-      weekly: remaining.weekly - 1,
       monthly: remaining.monthly - 1,
     },
   };
@@ -298,10 +271,8 @@ export async function incrementUsage(userId, modelTier = 'lite') {
   const userRef = db.collection('users').doc(userId);
   const fields = getFieldNames(modelTier);
 
-  // Simple flat increment - no nested paths!
   await userRef.update({
     [`usage.${fields.dailyCount}`]: admin.firestore.FieldValue.increment(1),
-    [`usage.${fields.weeklyCount}`]: admin.firestore.FieldValue.increment(1),
     [`usage.${fields.monthlyCount}`]: admin.firestore.FieldValue.increment(1),
     'usage.lastRequestAt': new Date().toISOString(),
   });
@@ -319,7 +290,6 @@ export function getQuotaHeaders(quotaResult) {
     'X-Quota-Tier': quotaResult.tier || 'free',
     'X-Quota-Model': modelTier,
     'X-Quota-Daily-Remaining': String(quotaResult.remaining?.daily ?? 0),
-    'X-Quota-Weekly-Remaining': String(quotaResult.remaining?.weekly ?? 0),
     'X-Quota-Monthly-Remaining': String(quotaResult.remaining?.monthly ?? 0),
   };
 }

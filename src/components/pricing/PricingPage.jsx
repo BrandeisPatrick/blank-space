@@ -2,6 +2,7 @@
  * Pricing Page Component
  *
  * Full-page pricing display with all tiers.
+ * Uses tier config from API (single source of truth).
  */
 
 import { useState } from 'react';
@@ -11,52 +12,11 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { PricingCard } from './PricingCard';
 
-const TIER_FEATURES = {
-  free: {
-    name: 'Free',
-    description: 'Get started with basic access',
-    price: 0,
-    features: [
-      '300 AI requests per day',
-      '400 requests per week',
-      '400 requests per month',
-      'Lite model (fast)',
-      'Basic code generation',
-    ],
-  },
-  lite: {
-    name: 'Lite',
-    description: 'For hobbyists and side projects',
-    price: 4.99,
-    features: [
-      '700 AI requests per day',
-      '1,000 requests per week',
-      '1,500 requests per month',
-      'Lite model (fast)',
-      'Priority support',
-    ],
-  },
-  pro: {
-    name: 'Pro',
-    description: 'For professionals and teams',
-    price: 29.99,
-    features: [
-      '2,000 AI requests per day',
-      '3,000 requests per week',
-      '5,000 requests per month',
-      'Pro model (most capable)',
-      'Priority support',
-      'Advanced features',
-    ],
-    highlighted: true,
-  },
-};
-
 export const PricingPage = ({ onClose }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user, openAuthModal } = useAuth();
-  const { tier, createCheckoutSession, loading: subLoading } = useSubscription();
+  const { tier, allTiers, createCheckoutSession, loading: subLoading } = useSubscription();
   const [loadingTier, setLoadingTier] = useState(null);
 
   const handleSelectTier = async (selectedTier) => {
@@ -124,6 +84,13 @@ export const PricingPage = ({ onClose }) => {
     color: theme.colors.mutedForeground,
   };
 
+  // Use API data or fallback
+  const tiers = allTiers || {
+    free: { name: 'Free', description: 'Get started', price: 0, features: ['Loading...'] },
+    lite: { name: 'Lite', description: 'For hobbyists', price: 4.99, features: ['Loading...'] },
+    pro: { name: 'Pro', description: 'For professionals', price: 29.99, features: ['Loading...'], highlighted: true },
+  };
+
   return (
     <div style={containerStyle}>
       {onClose && (
@@ -140,7 +107,7 @@ export const PricingPage = ({ onClose }) => {
       </div>
 
       <div style={gridStyle}>
-        {Object.entries(TIER_FEATURES).map(([tierKey, tierData]) => (
+        {Object.entries(tiers).map(([tierKey, tierData]) => (
           <PricingCard
             key={tierKey}
             tier={tierKey}

@@ -3,6 +3,8 @@
  *
  * All quota limits and tier info are defined here.
  * Quotas are tracked separately for Lite model vs Pro model.
+ *
+ * Model: Daily burst limit + Monthly total budget
  */
 
 export const TIER_QUOTAS = {
@@ -12,7 +14,6 @@ export const TIER_QUOTAS = {
     description: 'Get started with basic access',
     liteModel: {
       daily: 150,
-      weekly: 250,
       monthly: 300,
     },
     proModel: null, // No access
@@ -22,6 +23,7 @@ export const TIER_QUOTAS = {
     features: [
       '150 generations per day',
       '300 generations per month',
+      'Lite model (fast)',
       'Community support',
     ],
   },
@@ -30,22 +32,20 @@ export const TIER_QUOTAS = {
     name: 'Lite',
     description: 'For hobbyists and side projects',
     liteModel: {
-      daily: 250,
-      weekly: 350,
-      monthly: 500,
+      daily: 150,
+      monthly: 1500,
     },
     proModel: {
-      daily: 15,
-      weekly: 35,
-      monthly: 70,
+      daily: 20,
+      monthly: 100,
     },
     models: ['lite', 'pro'],
     price: 4.99,
     stripePriceId: process.env.STRIPE_PRICE_LITE_MONTHLY || 'price_lite_monthly',
     features: [
-      '250 Lite generations per day',
-      '500 Lite generations per month',
-      '70 Pro generations per month',
+      '150 Lite generations per day',
+      '1,500 Lite generations per month',
+      '100 Pro generations per month',
       'Email support',
     ],
   },
@@ -54,22 +54,20 @@ export const TIER_QUOTAS = {
     name: 'Pro',
     description: 'For professionals and teams',
     liteModel: {
-      daily: 700,
-      weekly: 1000,
-      monthly: 1700,
+      daily: 500,
+      monthly: 5000,
     },
     proModel: {
       daily: 100,
-      weekly: 200,
-      monthly: 350,
+      monthly: 1000,
     },
     models: ['lite', 'pro'],
     price: 29.99,
     stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
     features: [
-      '700 Lite generations per day',
-      '1,700 Lite generations per month',
-      '350 Pro generations per month',
+      '500 Lite generations per day',
+      '5,000 Lite generations per month',
+      '1,000 Pro generations per month',
       'Priority support',
     ],
     highlighted: true,

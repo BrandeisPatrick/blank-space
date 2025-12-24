@@ -10,11 +10,11 @@ import { useAuth } from './AuthContext';
 
 const SubscriptionContext = createContext();
 
-// Default tier config (fallback before API loads)
+// Default tier config (fallback before API loads - must match server)
 const DEFAULT_TIER_CONFIG = {
   id: 'free',
   name: 'Free',
-  liteModel: { daily: 300, weekly: 400, monthly: 400 },
+  liteModel: { daily: 150, monthly: 300 },
   proModel: null,
   models: ['lite'],
   price: 0,
@@ -53,7 +53,7 @@ export const SubscriptionProvider = ({ children }) => {
 
       const data = await response.json();
       setSubscription(data.subscription);
-      // Per-model usage structure
+      // Per-model usage structure (daily + monthly only)
       setUsage({
         lite: data.usage.lite,
         pro: data.usage.pro,
@@ -168,9 +168,7 @@ export const SubscriptionProvider = ({ children }) => {
   const isQuotaExceeded = useCallback((modelTier = 'lite') => {
     const remaining = usage?.remaining?.[modelTier];
     if (!remaining) return false;
-    return remaining.daily <= 0 ||
-           remaining.weekly <= 0 ||
-           remaining.monthly <= 0;
+    return remaining.daily <= 0 || remaining.monthly <= 0;
   }, [usage]);
 
   /**
@@ -188,25 +186,15 @@ export const SubscriptionProvider = ({ children }) => {
     if (remaining.daily <= 0) {
       return { type: 'daily', remaining: 0, resetAt: resetAt.daily, modelTier };
     }
-    if (remaining.weekly <= 0) {
-      return { type: 'weekly', remaining: 0, resetAt: resetAt.weekly, modelTier };
-    }
     if (remaining.monthly <= 0) {
       return { type: 'monthly', remaining: 0, resetAt: resetAt.monthly, modelTier };
     }
 
     // Return the most restrictive remaining
-    const minRemaining = Math.min(
-      remaining.daily,
-      remaining.weekly,
-      remaining.monthly
-    );
+    const minRemaining = Math.min(remaining.daily, remaining.monthly);
 
     if (remaining.daily === minRemaining) {
       return { type: 'daily', remaining: minRemaining, resetAt: resetAt.daily, modelTier };
-    }
-    if (remaining.weekly === minRemaining) {
-      return { type: 'weekly', remaining: minRemaining, resetAt: resetAt.weekly, modelTier };
     }
     return { type: 'monthly', remaining: minRemaining, resetAt: resetAt.monthly, modelTier };
   }, [usage]);

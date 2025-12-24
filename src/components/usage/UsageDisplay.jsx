@@ -283,13 +283,6 @@ export const UsageDisplay = ({ compact = false }) => {
               theme={theme}
             />
             <UsageBar
-              label="Weekly"
-              used={modelUsage?.weekly || 0}
-              limit={modelLimits.weekly}
-              resetAt={modelResetAt?.weekly}
-              theme={theme}
-            />
-            <UsageBar
               label="Monthly"
               used={modelUsage?.monthly || 0}
               limit={modelLimits.monthly}

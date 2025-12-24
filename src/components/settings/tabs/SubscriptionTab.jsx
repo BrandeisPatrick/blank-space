@@ -1,6 +1,7 @@
 /**
  * Subscription Tab
  * Shows subscription status, usage, and upgrade options
+ * Uses tier config from API (single source of truth)
  */
 
 import { useState } from 'react';
@@ -8,25 +9,6 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getTheme } from '../../../styles/theme';
-import { createGlassEffect } from '../../../styles/componentStyles';
-
-const TIER_INFO = {
-  free: {
-    name: 'Free',
-    price: '$0',
-    color: '#6B7280',
-  },
-  lite: {
-    name: 'Lite',
-    price: '$4.99/mo',
-    color: '#3B82F6',
-  },
-  pro: {
-    name: 'Pro',
-    price: '$24.99/mo',
-    color: '#C97D63',
-  },
-};
 
 const UsageBar = ({ label, used, limit, theme, mode }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));
@@ -72,6 +54,13 @@ const UsageBar = ({ label, used, limit, theme, mode }) => {
   );
 };
 
+// Tier colors
+const TIER_COLORS = {
+  free: '#6B7280',
+  lite: '#3B82F6',
+  pro: '#C97D63',
+};
+
 export const SubscriptionTab = () => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
@@ -79,6 +68,7 @@ export const SubscriptionTab = () => {
   const {
     tier,
     tierConfig,
+    allTiers,
     usage,
     subscription,
     loading,
@@ -108,7 +98,10 @@ export const SubscriptionTab = () => {
     }
   };
 
-  const currentTierInfo = TIER_INFO[tier] || TIER_INFO.free;
+  // Get tier info from API or fallback
+  const currentTierConfig = tierConfig || allTiers?.[tier] || { name: 'Free', price: 0 };
+  const tierColor = TIER_COLORS[tier] || TIER_COLORS.free;
+  const priceDisplay = currentTierConfig.price > 0 ? `$${currentTierConfig.price}/mo` : '$0';
 
   const sectionStyle = {
     background: mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
@@ -147,6 +140,11 @@ export const SubscriptionTab = () => {
     );
   }
 
+  // Get upgrade tier config
+  const getUpgradeTierConfig = (targetTier) => {
+    return allTiers?.[targetTier] || { name: targetTier, price: 0, liteModel: {}, proModel: {} };
+  };
+
   return (
     <div style={{ padding: theme.spacing.lg }}>
       {/* Current Plan */}
@@ -171,27 +169,27 @@ export const SubscriptionTab = () => {
               alignItems: 'center',
               gap: theme.spacing.sm,
               padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-              background: currentTierInfo.color + '20',
+              background: tierColor + '20',
               borderRadius: theme.radius.full,
             }}>
               <span style={{
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: currentTierInfo.color,
+                background: tierColor,
               }} />
               <span style={{
-                color: currentTierInfo.color,
+                color: tierColor,
                 fontWeight: theme.typography.fontWeight.semibold,
                 fontSize: theme.typography.fontSize.sm,
               }}>
-                {currentTierInfo.name}
+                {currentTierConfig.name}
               </span>
               <span style={{
                 color: theme.colors.mutedForeground,
                 fontSize: theme.typography.fontSize.sm,
               }}>
-                {currentTierInfo.price}
+                {priceDisplay}
               </span>
             </div>
           </div>
@@ -322,13 +320,6 @@ export const SubscriptionTab = () => {
                 mode={mode}
               />
               <UsageBar
-                label="Weekly"
-                used={modelUsage?.weekly || 0}
-                limit={modelLimits.weekly}
-                theme={theme}
-                mode={mode}
-              />
-              <UsageBar
                 label="Monthly"
                 used={modelUsage?.monthly || 0}
                 limit={modelLimits.monthly}
@@ -419,70 +410,45 @@ export const SubscriptionTab = () => {
             </div>
           )}
 
-          {/* Plan Card */}
-          <div style={{
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radius.lg,
-            padding: theme.spacing.lg,
-          }}>
-            {(tier === 'lite' || selectedPlan === 'pro') ? (
-              <>
+          {/* Plan Card - uses API data */}
+          {(() => {
+            const targetTier = tier === 'lite' ? 'pro' : selectedPlan;
+            const upgradeTierConfig = getUpgradeTierConfig(targetTier);
+            const liteModel = upgradeTierConfig.liteModel || {};
+            const proModel = upgradeTierConfig.proModel || {};
+
+            return (
+              <div style={{
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.lg,
+                padding: theme.spacing.lg,
+              }}>
                 <p style={{
                   fontSize: theme.typography.fontSize['2xl'],
                   fontWeight: theme.typography.fontWeight.bold,
                   color: theme.colors.foreground,
                   marginBottom: theme.spacing.md,
                 }}>
-                  $29.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
+                  ${upgradeTierConfig.price}<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
                 </p>
                 <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
                   <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
-                  <p style={{ marginBottom: '2px' }}>2,000 / day</p>
-                  <p style={{ marginBottom: '2px' }}>3,000 / week</p>
-                  <p style={{ marginBottom: theme.spacing.md }}>5,000 / month</p>
+                  <p style={{ marginBottom: '2px' }}>{liteModel.daily?.toLocaleString() || '—'} / day</p>
+                  <p style={{ marginBottom: theme.spacing.md }}>{liteModel.monthly?.toLocaleString() || '—'} / month</p>
                   <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
-                  <p style={{ marginBottom: '2px' }}>300 / day</p>
-                  <p style={{ marginBottom: '2px' }}>600 / week</p>
-                  <p>1,000 / month</p>
+                  <p style={{ marginBottom: '2px' }}>{proModel.daily?.toLocaleString() || '—'} / day</p>
+                  <p>{proModel.monthly?.toLocaleString() || '—'} / month</p>
                 </div>
                 <button
                   style={buttonStyle(true)}
-                  onClick={() => handleUpgrade('pro')}
-                  disabled={upgradeLoading === 'pro'}
+                  onClick={() => handleUpgrade(targetTier)}
+                  disabled={upgradeLoading === targetTier}
                 >
-                  {upgradeLoading === 'pro' ? 'Loading...' : 'Upgrade to Pro'}
+                  {upgradeLoading === targetTier ? 'Loading...' : `Upgrade to ${upgradeTierConfig.name}`}
                 </button>
-              </>
-            ) : (
-              <>
-                <p style={{
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.foreground,
-                  marginBottom: theme.spacing.md,
-                }}>
-                  $4.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
-                </p>
-                <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
-                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
-                  <p style={{ marginBottom: '2px' }}>700 / day</p>
-                  <p style={{ marginBottom: '2px' }}>1,000 / week</p>
-                  <p style={{ marginBottom: theme.spacing.md }}>1,500 / month</p>
-                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
-                  <p style={{ marginBottom: '2px' }}>50 / day</p>
-                  <p style={{ marginBottom: '2px' }}>100 / week</p>
-                  <p>200 / month</p>
-                </div>
-                <button
-                  style={buttonStyle(true)}
-                  onClick={() => handleUpgrade('lite')}
-                  disabled={upgradeLoading === 'lite'}
-                >
-                  {upgradeLoading === 'lite' ? 'Loading...' : 'Upgrade to Lite'}
-                </button>
-              </>
-            )}
-          </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

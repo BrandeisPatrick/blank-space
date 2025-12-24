@@ -3,7 +3,7 @@
  *
  * GET /api/user/usage
  * Returns current usage, quota limits, and subscription info
- * Usage is tracked separately for Lite and Pro models using flat structure
+ * Model: Daily burst limit + Monthly total budget
  */
 
 import { verifyAuth, getFirestore } from '../middleware/_auth.js';
@@ -23,18 +23,6 @@ function getNextDailyReset() {
   return tomorrow.toISOString();
 }
 
-function getNextWeeklyReset() {
-  const now = new Date();
-  const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
-  const nextMonday = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + daysUntilMonday,
-    0, 0, 0, 0
-  ));
-  return nextMonday.toISOString();
-}
-
 function getNextMonthlyReset() {
   const now = new Date();
   const nextMonth = new Date(Date.UTC(
@@ -52,14 +40,10 @@ function createDefaultUsage() {
   return {
     liteDailyCount: 0,
     liteDailyResetAt: getNextDailyReset(),
-    liteWeeklyCount: 0,
-    liteWeeklyResetAt: getNextWeeklyReset(),
     liteMonthlyCount: 0,
     liteMonthlyResetAt: getNextMonthlyReset(),
     proDailyCount: 0,
     proDailyResetAt: getNextDailyReset(),
-    proWeeklyCount: 0,
-    proWeeklyResetAt: getNextWeeklyReset(),
     proMonthlyCount: 0,
     proMonthlyResetAt: getNextMonthlyReset(),
     lastRequestAt: null,
@@ -70,34 +54,43 @@ function createDefaultUsage() {
  * Migrate old usage structure to new flat structure
  */
 function migrateUsage(oldUsage) {
-  // Already flat structure
-  if (oldUsage.liteDailyCount !== undefined) {
+  // Already new flat structure (no weekly)
+  if (oldUsage.liteDailyCount !== undefined && oldUsage.liteWeeklyCount === undefined) {
     return oldUsage;
   }
 
   const newUsage = createDefaultUsage();
 
+  // Migrate from flat structure with weekly (remove weekly)
+  if (oldUsage.liteDailyCount !== undefined) {
+    newUsage.liteDailyCount = oldUsage.liteDailyCount;
+    newUsage.liteDailyResetAt = oldUsage.liteDailyResetAt || getNextDailyReset();
+    newUsage.liteMonthlyCount = oldUsage.liteMonthlyCount || 0;
+    newUsage.liteMonthlyResetAt = oldUsage.liteMonthlyResetAt || getNextMonthlyReset();
+    newUsage.proDailyCount = oldUsage.proDailyCount || 0;
+    newUsage.proDailyResetAt = oldUsage.proDailyResetAt || getNextDailyReset();
+    newUsage.proMonthlyCount = oldUsage.proMonthlyCount || 0;
+    newUsage.proMonthlyResetAt = oldUsage.proMonthlyResetAt || getNextMonthlyReset();
+    newUsage.lastRequestAt = oldUsage.lastRequestAt;
+    return newUsage;
+  }
+
   // Migrate from nested structure (usage.lite.daily.requests)
   if (oldUsage.lite?.daily?.requests !== undefined) {
     newUsage.liteDailyCount = oldUsage.lite.daily.requests;
     newUsage.liteDailyResetAt = oldUsage.lite.daily.resetAt || getNextDailyReset();
-    newUsage.liteWeeklyCount = oldUsage.lite.weekly?.requests || 0;
-    newUsage.liteWeeklyResetAt = oldUsage.lite.weekly?.resetAt || getNextWeeklyReset();
     newUsage.liteMonthlyCount = oldUsage.lite.monthly?.requests || 0;
     newUsage.liteMonthlyResetAt = oldUsage.lite.monthly?.resetAt || getNextMonthlyReset();
   }
   // Migrate from semi-nested structure (usage.lite.daily = number)
   else if (typeof oldUsage.lite?.daily === 'number') {
     newUsage.liteDailyCount = oldUsage.lite.daily;
-    newUsage.liteWeeklyCount = oldUsage.lite.weekly || 0;
     newUsage.liteMonthlyCount = oldUsage.lite.monthly || 0;
   }
   // Migrate from old single-model structure (usage.daily.requests)
   else if (oldUsage.daily?.requests !== undefined) {
     newUsage.liteDailyCount = oldUsage.daily.requests;
     newUsage.liteDailyResetAt = oldUsage.daily.resetAt || getNextDailyReset();
-    newUsage.liteWeeklyCount = oldUsage.weekly?.requests || 0;
-    newUsage.liteWeeklyResetAt = oldUsage.weekly?.resetAt || getNextWeeklyReset();
     newUsage.liteMonthlyCount = oldUsage.monthly?.requests || 0;
     newUsage.liteMonthlyResetAt = oldUsage.monthly?.resetAt || getNextMonthlyReset();
   }
@@ -106,13 +99,10 @@ function migrateUsage(oldUsage) {
   if (oldUsage.pro?.daily?.requests !== undefined) {
     newUsage.proDailyCount = oldUsage.pro.daily.requests;
     newUsage.proDailyResetAt = oldUsage.pro.daily.resetAt || getNextDailyReset();
-    newUsage.proWeeklyCount = oldUsage.pro.weekly?.requests || 0;
-    newUsage.proWeeklyResetAt = oldUsage.pro.weekly?.resetAt || getNextWeeklyReset();
     newUsage.proMonthlyCount = oldUsage.pro.monthly?.requests || 0;
     newUsage.proMonthlyResetAt = oldUsage.pro.monthly?.resetAt || getNextMonthlyReset();
   } else if (typeof oldUsage.pro?.daily === 'number') {
     newUsage.proDailyCount = oldUsage.pro.daily;
-    newUsage.proWeeklyCount = oldUsage.pro.weekly || 0;
     newUsage.proMonthlyCount = oldUsage.pro.monthly || 0;
   }
 
@@ -129,18 +119,11 @@ function migrateUsage(oldUsage) {
 function resetCountersIfNeeded(usage, prefix, now) {
   let updated = false;
   const dailyResetAt = `${prefix}DailyResetAt`;
-  const weeklyResetAt = `${prefix}WeeklyResetAt`;
   const monthlyResetAt = `${prefix}MonthlyResetAt`;
 
   if (new Date(usage[dailyResetAt]) <= now) {
     usage[`${prefix}DailyCount`] = 0;
     usage[dailyResetAt] = getNextDailyReset();
-    updated = true;
-  }
-
-  if (new Date(usage[weeklyResetAt]) <= now) {
-    usage[`${prefix}WeeklyCount`] = 0;
-    usage[weeklyResetAt] = getNextWeeklyReset();
     updated = true;
   }
 
@@ -189,8 +172,8 @@ export default async function handler(req, res) {
     if (resetCountersIfNeeded(usage, 'lite', now)) usageUpdated = true;
     if (resetCountersIfNeeded(usage, 'pro', now)) usageUpdated = true;
 
-    // Check if migration happened (old structure didn't have liteDailyCount)
-    if (user.usage && user.usage.liteDailyCount === undefined) {
+    // Check if migration happened (old structure had weekly or didn't have liteDailyCount)
+    if (user.usage && (user.usage.liteDailyCount === undefined || user.usage.liteWeeklyCount !== undefined)) {
       usageUpdated = true;
     }
 
@@ -206,12 +189,10 @@ export default async function handler(req, res) {
     // Calculate remaining and percent for lite model
     const liteRemaining = {
       daily: Math.max(0, liteLimits.daily - usage.liteDailyCount),
-      weekly: Math.max(0, liteLimits.weekly - usage.liteWeeklyCount),
       monthly: Math.max(0, liteLimits.monthly - usage.liteMonthlyCount),
     };
     const litePercent = {
       daily: Math.round((usage.liteDailyCount / liteLimits.daily) * 100),
-      weekly: Math.round((usage.liteWeeklyCount / liteLimits.weekly) * 100),
       monthly: Math.round((usage.liteMonthlyCount / liteLimits.monthly) * 100),
     };
 
@@ -221,12 +202,10 @@ export default async function handler(req, res) {
     if (proLimits) {
       proRemaining = {
         daily: Math.max(0, proLimits.daily - usage.proDailyCount),
-        weekly: Math.max(0, proLimits.weekly - usage.proWeeklyCount),
         monthly: Math.max(0, proLimits.monthly - usage.proMonthlyCount),
       };
       proPercent = {
         daily: Math.round((usage.proDailyCount / proLimits.daily) * 100),
-        weekly: Math.round((usage.proWeeklyCount / proLimits.weekly) * 100),
         monthly: Math.round((usage.proMonthlyCount / proLimits.monthly) * 100),
       };
     }
@@ -246,12 +225,10 @@ export default async function handler(req, res) {
       usage: {
         lite: {
           daily: usage.liteDailyCount,
-          weekly: usage.liteWeeklyCount,
           monthly: usage.liteMonthlyCount,
         },
         pro: proLimits ? {
           daily: usage.proDailyCount,
-          weekly: usage.proWeeklyCount,
           monthly: usage.proMonthlyCount,
         } : null,
         lastRequestAt: usage.lastRequestAt,
@@ -275,12 +252,10 @@ export default async function handler(req, res) {
       resetAt: {
         lite: {
           daily: usage.liteDailyResetAt,
-          weekly: usage.liteWeeklyResetAt,
           monthly: usage.liteMonthlyResetAt,
         },
         pro: proLimits ? {
           daily: usage.proDailyResetAt,
-          weekly: usage.proWeeklyResetAt,
           monthly: usage.proMonthlyResetAt,
         } : null,
       },
