@@ -140,7 +140,7 @@ export const ArtifactProvider = ({ children }) => {
     setError(null);
 
     try {
-      const data = await makeAuthenticatedRequest('/api/artifacts/list');
+      const data = await makeAuthenticatedRequest('/api/artifacts');
       setArtifacts(data.artifacts || []);
 
       // Don't auto-select first artifact to keep landing page clean
@@ -190,7 +190,7 @@ export const ArtifactProvider = ({ children }) => {
     setError(null);
 
     try {
-      const data = await makeAuthenticatedRequest('/api/artifacts/create', {
+      const data = await makeAuthenticatedRequest('/api/artifacts', {
         method: 'POST',
         body: JSON.stringify({
           name,
@@ -236,7 +236,7 @@ export const ArtifactProvider = ({ children }) => {
     ));
 
     try {
-      const data = await makeAuthenticatedRequest('/api/artifacts/update', {
+      const data = await makeAuthenticatedRequest('/api/artifacts', {
         method: 'PUT',
         body: JSON.stringify({
           artifactId: id,
@@ -323,7 +323,7 @@ export const ArtifactProvider = ({ children }) => {
     setActiveArtifactId(newActiveId);
 
     try {
-      await makeAuthenticatedRequest(`/api/artifacts/delete?id=${id}`, {
+      await makeAuthenticatedRequest(`/api/artifacts?id=${id}`, {
         method: 'DELETE',
       });
     } catch (error) {
