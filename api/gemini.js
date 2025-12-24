@@ -8,8 +8,8 @@
  * 2. Chat with tools: { action: 'chat', model, message, history, tools, ... }
  */
 
-import { verifyAuth } from './middleware/auth.js';
-import { checkQuota, canAccessModel, incrementUsage, getQuotaHeaders } from './middleware/quota.js';
+import { verifyAuth } from './middleware/_auth.js';
+import { checkQuota, canAccessModel, incrementUsage, getQuotaHeaders } from './middleware/_quota.js';
 import { GoogleGenAI } from '@google/genai';
 
 export default async function handler(req, res) {

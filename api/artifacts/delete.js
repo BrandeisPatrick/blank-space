@@ -4,7 +4,7 @@
  * Deletes an artifact for the authenticated user
  */
 
-import { verifyAuth, getFirestore } from '../middleware/auth.js';
+import { verifyAuth, getFirestore } from '../middleware/_auth.js';
 
 export default async function handler(req, res) {
   // Only allow DELETE requests

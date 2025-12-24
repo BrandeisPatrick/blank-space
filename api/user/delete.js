@@ -5,7 +5,7 @@
  * Note: Firebase Auth user deletion is handled client-side after this succeeds
  */
 
-import { verifyAuth, getFirestore } from '../middleware/auth.js';
+import { verifyAuth, getFirestore } from '../middleware/_auth.js';
 
 export default async function handler(req, res) {
   // Only allow DELETE requests

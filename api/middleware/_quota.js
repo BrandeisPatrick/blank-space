@@ -5,7 +5,7 @@
  * Tracks daily, weekly, and monthly usage limits.
  */
 
-import { getFirestore } from './auth.js';
+import { getFirestore } from './_auth.js';
 import admin from 'firebase-admin';
 
 /**

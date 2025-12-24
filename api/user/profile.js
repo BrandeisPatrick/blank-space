@@ -4,7 +4,7 @@
  * PUT /api/user/profile - Update user profile
  */
 
-import { verifyAuth, getFirestore } from '../middleware/auth.js';
+import { verifyAuth, getFirestore } from '../middleware/_auth.js';
 
 /**
  * Get next reset time for daily quota (midnight UTC)

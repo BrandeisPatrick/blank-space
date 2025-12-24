@@ -5,7 +5,7 @@
  * Returns current usage, quota limits, and subscription info
  */
 
-import { verifyAuth, getFirestore } from '../middleware/auth.js';
+import { verifyAuth, getFirestore } from '../middleware/_auth.js';
 
 /**
  * Tier quota limits

@@ -4,7 +4,7 @@
  * Keeps API key server-side only
  */
 
-import { checkRateLimit } from './utils/rateLimit.js';
+import { checkRateLimit } from './utils/_rateLimit.js';
 
 export default async function handler(req, res) {
   // Only allow POST requests

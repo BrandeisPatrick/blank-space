@@ -6,7 +6,7 @@
  */
 
 import Stripe from 'stripe';
-import { getFirestore } from '../middleware/auth.js';
+import { getFirestore } from '../middleware/_auth.js';
 
 // Initialize Stripe only if key is available
 const stripe = process.env.STRIPE_SECRET_KEY
