@@ -16,7 +16,7 @@ const TIER_QUOTAS = {
   free: {
     id: 'free',
     name: 'Free',
-    dailyRequests: 10,
+    dailyRequests: 200,
     weeklyRequests: 50,
     monthlyRequests: 100,
     models: ['lite'],

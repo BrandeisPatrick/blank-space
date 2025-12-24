@@ -12,7 +12,7 @@ import { verifyAuth, getFirestore } from '../middleware/_auth.js';
  */
 const TIER_QUOTAS = {
   free: {
-    dailyRequests: 10,
+    dailyRequests: 200,
     weeklyRequests: 50,
     monthlyRequests: 100,
     models: ['lite'],
