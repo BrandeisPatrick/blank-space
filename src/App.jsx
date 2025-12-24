@@ -453,21 +453,7 @@ function App() {
         setFiles(fixedFiles);
         removeLoadingMessage();
 
-        // Increment usage (counts per-generation, not per-API-call)
-        try {
-          const token = await getIdToken();
-          await fetch('/api/usage/increment', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ modelTier }),
-          });
-        } catch (err) {
-          console.error('Failed to increment usage:', err);
-        }
-
+        // Usage is now incremented server-side in /api/gemini
         refreshUsage();
 
         // Add success message
@@ -602,22 +588,7 @@ function App() {
         removeLoadingMessage();
         setIsAIProcessing(false);
 
-        // Increment usage (counts per-generation, not per-API-call)
-        try {
-          const token = await getIdToken();
-          await fetch('/api/usage/increment', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ modelTier }),
-          });
-        } catch (err) {
-          console.error('Failed to increment usage:', err);
-        }
-
-        // Refresh usage display
+        // Usage is now incremented server-side in /api/gemini
         refreshUsage();
 
         // Handle chat intent - no file operations, just conversation

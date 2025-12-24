@@ -9,7 +9,7 @@
  */
 
 import { verifyAuth } from './middleware/_auth.js';
-import { checkQuota, canAccessModel, getQuotaHeaders } from './middleware/_quota.js';
+import { checkQuota, incrementUsage, getQuotaHeaders } from './middleware/_quota.js';
 import { GoogleGenAI } from '@google/genai';
 
 export default async function handler(req, res) {
@@ -77,9 +77,9 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     if (action === 'chat') {
-      return handleChatRequest(req, res, ai, quotaResult);
+      return handleChatRequest(req, res, ai, quotaResult, userId);
     } else {
-      return handleGenerateRequest(req, res, ai, quotaResult);
+      return handleGenerateRequest(req, res, ai, quotaResult, userId);
     }
 
   } catch (error) {
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
 /**
  * Handle simple content generation
  */
-async function handleGenerateRequest(req, res, ai, quotaResult) {
+async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
   const {
     model = 'gemini-3-flash-preview',
     contents,
@@ -119,7 +119,9 @@ async function handleGenerateRequest(req, res, ai, quotaResult) {
     config: Object.keys(config).length > 0 ? config : undefined,
   });
 
-  // Note: Usage increment moved to frontend orchestration layer (per-generation, not per-API-call)
+  // Increment usage server-side (secure - cannot be bypassed by client)
+  const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
+  await incrementUsage(userId, modelTier);
 
   return res.status(200).json({
     text: response.text || '',
@@ -134,7 +136,7 @@ async function handleGenerateRequest(req, res, ai, quotaResult) {
  * Handle chat session with tools (for code generation)
  * Uses chat session to properly handle multi-turn with function calling
  */
-async function handleChatRequest(req, res, ai, quotaResult) {
+async function handleChatRequest(req, res, ai, quotaResult, userId) {
   const {
     model = 'gemini-3-flash-preview',
     message,
@@ -176,7 +178,12 @@ async function handleChatRequest(req, res, ai, quotaResult) {
     response = await chat.sendMessage({ message });
   }
 
-  // Note: Usage increment moved to frontend orchestration layer (per-generation, not per-API-call)
+  // Increment usage server-side only for new messages (not function responses)
+  // This maintains "per-generation" counting while being secure
+  if (!functionResponses) {
+    const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
+    await incrementUsage(userId, modelTier);
+  }
 
   return res.status(200).json({
     text: response.text || '',
