@@ -8,13 +8,13 @@
 
 import { getFirestore } from './_auth.js';
 import admin from 'firebase-admin';
-import { TIER_QUOTAS, getModelQuota, canAccessModel } from '../config/quotas.js';
+import { TIER_QUOTAS, getModelQuota, canAccessModel } from '../config/_quotas.js';
 import {
   getFieldNames,
   createDefaultUsage,
   migrateUsage,
   resetCountersIfNeeded,
-} from '../utils/usageHelpers.js';
+} from '../utils/_usageHelpers.js';
 
 /**
  * Check if user has quota remaining for a specific model

@@ -7,12 +7,12 @@
  */
 
 import { verifyAuth, getFirestore } from '../middleware/_auth.js';
-import { TIER_QUOTAS } from '../config/quotas.js';
+import { TIER_QUOTAS } from '../config/_quotas.js';
 import {
   createDefaultUsage,
   migrateUsage,
   resetCountersIfNeeded,
-} from '../utils/usageHelpers.js';
+} from '../utils/_usageHelpers.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
