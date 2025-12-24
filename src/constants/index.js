@@ -66,7 +66,9 @@ export const MESSAGES = {
   RATE_LIMIT_75: (remaining) =>
     `⚠️ Warning: You've used 75% of your daily quota.\nOnly ${remaining} requests remaining. Resets at midnight UTC.`,
   RATE_LIMIT_EXCEEDED: (used, limit) =>
-    `❌ Daily limit reached (${used}/${limit} requests used).\nYour quota will reset at midnight UTC.\nPlease try again later.`
+    `❌ Daily limit reached (${used}/${limit} requests used).\nYour quota will reset at midnight UTC.\nPlease try again later.`,
+  QUOTA_EXCEEDED: (limitType, resetAt) =>
+    `❌ ${limitType.charAt(0).toUpperCase() + limitType.slice(1)} limit reached.\n\nYour quota will reset ${resetAt}.`
 };
 
 /**

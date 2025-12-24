@@ -73,9 +73,10 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
   };
 
   try {
-    // Classify intent first
-    const intentResult = classifyIntent(userMessage);
-    console.log(`[Intent] "${userMessage.slice(0, 50)}..." → ${intentResult.intent} (${intentResult.confidence}, ${intentResult.reason})`);
+    // Classify intent first (async - uses AI)
+    const hasExistingFiles = Object.keys(currentFiles).length > 0;
+    const intentResult = await classifyIntent(userMessage, hasExistingFiles);
+    console.log(`[Intent] "${userMessage.slice(0, 50)}..." → ${intentResult.intent} (${intentResult.source})`);
 
     // Handle chat intent - return conversational response
     if (intentResult.intent === 'chat') {
@@ -108,7 +109,14 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
       };
     }
 
-    // Create intent - proceed with code generation
+    // Handle debug intent - enable debug mode and continue with code generation
+    if (intentResult.intent === 'debug') {
+      console.log(`[OpenAI Provider] Debug intent detected, enabling debug mode`);
+      // Note: OpenAI provider would need similar updates to use debug prompt
+      // For now, continue with normal generation
+    }
+
+    // Create/debug intent - proceed with code generation
     // Create session for tracking this conversation
     const sessionManager = new SessionManager();
     const sessionId = sessionManager.createSession('user-session').id;

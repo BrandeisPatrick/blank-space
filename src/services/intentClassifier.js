@@ -1,175 +1,119 @@
 /**
  * Intent Classifier
- * Determines if a user message is for creating an app or chatting
+ * Uses OpenAI gpt-4o-mini to classify user messages into:
+ * - Without existing files: create or chat
+ * - With existing files: debug or chat
  */
 
-// Keywords that strongly indicate app creation intent
-const CREATE_KEYWORDS = [
-  // Action verbs
-  'create', 'build', 'make', 'generate', 'develop', 'design', 'code',
-  'write', 'implement', 'add', 'setup', 'set up',
-  // App types
-  'app', 'application', 'website', 'webpage', 'page', 'site',
-  'component', 'ui', 'interface', 'dashboard', 'form', 'widget',
-  'game', 'tool', 'calculator', 'converter', 'tracker', 'timer',
-  'todo', 'list', 'gallery', 'slider', 'carousel', 'menu', 'nav',
-  'navbar', 'sidebar', 'header', 'footer', 'modal', 'popup',
-  'chart', 'graph', 'table', 'grid', 'layout', 'landing',
-  'browser', 'player', 'editor', 'viewer',
-  // Features
-  'with', 'that has', 'featuring', 'including', 'contains',
-  'functional', 'interactive', 'responsive', 'animated',
-];
+// Classification prompt for NEW app (no existing files)
+const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
+- "create": build an app, make something, generate code, design UI
+- "chat": asking questions, greetings, conversation, help requests
 
-// Keywords that indicate chat/question intent
-const CHAT_KEYWORDS = [
-  // Questions
-  'what', 'how', 'why', 'when', 'where', 'who', 'which',
-  'can you', 'could you', 'would you', 'will you',
-  'do you', 'are you', 'is it', 'is there',
-  // Information seeking
-  'tell me', 'explain', 'describe', 'show me what',
-  'help me understand', 'what is', 'what are',
-  // About the assistant
-  'your name', 'who are you', 'what can you',
-  'show what you can', 'capabilities', 'features',
-];
+Respond with ONLY ONE WORD: create or chat`;
 
-// Patterns that strongly indicate creation intent
-const CREATE_PATTERNS = [
-  /^(create|build|make|generate|design)\s/i,
-  /\ba\s+(new\s+)?(app|website|page|component|game|tool|calculator)/i,
-  /\bwith\s+(a\s+)?(functional|working|interactive)/i,
-  /\bthat\s+(has|includes|shows|displays)/i,
-  /(todo|timer|counter|clock|weather|news|chat|blog)\s*(app|list|tracker)?/i,
-  /^[A-Z][a-z]+\s+(app|game|tool|tracker)/i, // "Snake game", "Todo app"
-];
+// Classification prompt for EDITING existing app
+const EDITING_APP_PROMPT = `Classify the user's message into ONE intent:
+- "debug": ANY request to change, fix, modify, or improve the existing app (including adding features, fixing bugs, changing design)
+- "chat": asking questions, greetings, conversation, help requests
 
-// Patterns that strongly indicate chat intent
-const CHAT_PATTERNS = [
-  /^(what|how|why|when|where|who|which)\s/i,
-  /^(can|could|would|will|do|are|is)\s+(you|it|there)/i,
-  /^(tell|explain|describe|help)\s+me/i,
-  /\?$/,  // Ends with question mark
-  /^(hi|hello|hey|thanks|thank you|please)/i,
-  /show\s+(me\s+)?what\s+you\s+can/i,
-];
+The user is editing an existing app. ANY code change request should be "debug".
+
+Respond with ONLY ONE WORD: debug or chat`;
 
 /**
- * Classify user message intent
+ * Classify user message intent using AI (gpt-4o-mini)
  * @param {string} message - User's message
- * @returns {{intent: 'create' | 'chat', confidence: number, reason: string}}
+ * @param {boolean} hasExistingFiles - Whether there are existing files
+ * @returns {Promise<{intent: 'create' | 'chat' | 'debug', confidence: number, source: string}>}
  */
-export function classifyIntent(message) {
+export async function classifyIntent(message, hasExistingFiles = false) {
+  // Quick check for very short greetings (save API call)
   const lowerMessage = message.toLowerCase().trim();
+  if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|sure)[\s!.]*$/i.test(lowerMessage)) {
+    return { intent: 'chat', confidence: 0.95, source: 'quick-check' };
+  }
 
-  let createScore = 0;
-  let chatScore = 0;
-  const reasons = [];
+  try {
+    // Use different prompts based on context
+    const prompt = hasExistingFiles ? EDITING_APP_PROMPT : NEW_APP_PROMPT;
 
-  // Check for chat patterns first (higher priority for questions)
-  for (const pattern of CHAT_PATTERNS) {
-    if (pattern.test(message)) {
-      chatScore += 3;
-      reasons.push('matches chat pattern');
-      break;
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'user', content: `${prompt}\n\nUser message: "${message}"` }
+        ],
+        max_tokens: 10
+      })
+    });
+
+    if (!response.ok) {
+      console.warn('[Intent Classifier] API error, using fallback');
+      return fallbackClassify(message, hasExistingFiles);
     }
-  }
 
-  // Check for create patterns
-  for (const pattern of CREATE_PATTERNS) {
-    if (pattern.test(message)) {
-      createScore += 3;
-      reasons.push('matches create pattern');
-      break;
+    const data = await response.json();
+    const result = data.choices?.[0]?.message?.content?.trim().toLowerCase();
+
+    // Validate response based on context
+    const validIntents = hasExistingFiles ? ['debug', 'chat'] : ['create', 'chat'];
+
+    if (validIntents.includes(result)) {
+      console.log(`[Intent Classifier] AI classified: "${message.slice(0, 50)}..." → ${result}`);
+      return { intent: result, confidence: 0.9, source: 'ai' };
     }
+
+    // Unexpected response, use fallback
+    console.warn(`[Intent Classifier] Unexpected AI response: "${result}", using fallback`);
+    return fallbackClassify(message, hasExistingFiles);
+
+  } catch (error) {
+    console.warn('[Intent Classifier] Error, using fallback:', error.message);
+    return fallbackClassify(message, hasExistingFiles);
   }
-
-  // Count keyword matches
-  let createKeywordCount = 0;
-  let chatKeywordCount = 0;
-
-  for (const keyword of CREATE_KEYWORDS) {
-    if (lowerMessage.includes(keyword.toLowerCase())) {
-      createKeywordCount++;
-      if (createKeywordCount <= 3) createScore += 1;
-    }
-  }
-
-  for (const keyword of CHAT_KEYWORDS) {
-    if (lowerMessage.includes(keyword.toLowerCase())) {
-      chatKeywordCount++;
-      if (chatKeywordCount <= 3) chatScore += 1;
-    }
-  }
-
-  if (createKeywordCount > 0) reasons.push(`${createKeywordCount} create keywords`);
-  if (chatKeywordCount > 0) reasons.push(`${chatKeywordCount} chat keywords`);
-
-  // Special cases
-
-  // Very short messages are likely chat
-  if (lowerMessage.length < 15 && !CREATE_PATTERNS.some(p => p.test(message))) {
-    chatScore += 2;
-    reasons.push('short message');
-  }
-
-  // Messages describing something to build (adjective + noun patterns)
-  if (/^[a-z]+\s+[a-z]+\s+(app|game|tool|tracker|list|website)/i.test(message)) {
-    createScore += 2;
-    reasons.push('app description pattern');
-  }
-
-  // "Choose your own adventure" style descriptions are create intents
-  if (/adventure|quiz|story|narrative/i.test(lowerMessage) &&
-      /game|interactive|choose/i.test(lowerMessage)) {
-    createScore += 3;
-    reasons.push('interactive content pattern');
-  }
-
-  // Calculate confidence
-  const totalScore = createScore + chatScore;
-  const maxScore = Math.max(createScore, chatScore);
-  const confidence = totalScore > 0 ? (maxScore / totalScore) : 0.5;
-
-  // Determine intent
-  let intent;
-  if (createScore > chatScore) {
-    intent = 'create';
-  } else if (chatScore > createScore) {
-    intent = 'chat';
-  } else {
-    // Tie-breaker: default to create for ambiguous cases
-    // (most users on this platform want to create things)
-    intent = 'create';
-  }
-
-  return {
-    intent,
-    confidence: Math.round(confidence * 100) / 100,
-    reason: reasons.join(', ') || 'default',
-    scores: { create: createScore, chat: chatScore }
-  };
 }
 
 /**
- * Quick check if message is likely a creation request
- * @param {string} message
- * @returns {boolean}
+ * Simple keyword-based fallback classifier
+ */
+function fallbackClassify(message, hasExistingFiles = false) {
+  // Check for chat patterns first
+  const chatPatterns = [
+    /^(what|how|why|when|where|who|which)\s/i,
+    /\?$/,
+    /^(can|could|do|does|is|are)\s+(you|it|this)/i,
+    /^(tell|explain|help)\s+me/i,
+  ];
+
+  for (const pattern of chatPatterns) {
+    if (pattern.test(message)) {
+      return { intent: 'chat', confidence: 0.7, source: 'fallback' };
+    }
+  }
+
+  // Default based on context
+  if (hasExistingFiles) {
+    return { intent: 'debug', confidence: 0.6, source: 'fallback' };
+  } else {
+    return { intent: 'create', confidence: 0.6, source: 'fallback' };
+  }
+}
+
+/**
+ * @deprecated Use classifyIntent() instead
  */
 export function isCreateIntent(message) {
-  const result = classifyIntent(message);
-  return result.intent === 'create';
+  return fallbackClassify(message, false).intent === 'create';
 }
 
 /**
- * Quick check if message is likely a chat/question
- * @param {string} message
- * @returns {boolean}
+ * @deprecated Use classifyIntent() instead
  */
 export function isChatIntent(message) {
-  const result = classifyIntent(message);
-  return result.intent === 'chat';
+  return fallbackClassify(message, false).intent === 'chat';
 }
 
 export default { classifyIntent, isCreateIntent, isChatIntent };

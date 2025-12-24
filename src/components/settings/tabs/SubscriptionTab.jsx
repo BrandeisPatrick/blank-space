@@ -88,6 +88,7 @@ export const SubscriptionTab = () => {
 
   const [upgradeLoading, setUpgradeLoading] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState('lite');
+  const [selectedUsageModel, setSelectedUsageModel] = useState('lite');
 
   const handleUpgrade = async (targetTier) => {
     try {
@@ -225,27 +226,118 @@ export const SubscriptionTab = () => {
         }}>
           Usage
         </h3>
-        <UsageBar
-          label="Daily"
-          used={usage?.daily || 0}
-          limit={tierConfig?.dailyRequests || 10}
-          theme={theme}
-          mode={mode}
-        />
-        <UsageBar
-          label="Weekly"
-          used={usage?.weekly || 0}
-          limit={tierConfig?.weeklyRequests || 50}
-          theme={theme}
-          mode={mode}
-        />
-        <UsageBar
-          label="Monthly"
-          used={usage?.monthly || 0}
-          limit={tierConfig?.monthlyRequests || 100}
-          theme={theme}
-          mode={mode}
-        />
+
+        {/* Model Tab Bar */}
+        <div style={{
+          display: 'flex',
+          background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: theme.radius.lg,
+          padding: '4px',
+          marginBottom: theme.spacing.lg,
+          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
+        }}>
+          <button
+            onClick={() => setSelectedUsageModel('lite')}
+            style={{
+              flex: 1,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              border: 'none',
+              borderRadius: theme.radius.md,
+              background: selectedUsageModel === 'lite'
+                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
+                : 'transparent',
+              backdropFilter: selectedUsageModel === 'lite' ? 'blur(4px)' : 'none',
+              WebkitBackdropFilter: selectedUsageModel === 'lite' ? 'blur(4px)' : 'none',
+              color: selectedUsageModel === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
+              fontWeight: selectedUsageModel === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+              fontSize: theme.typography.fontSize.sm,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedUsageModel === 'lite'
+                ? (mode === 'dark'
+                    ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                    : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
+                : 'none',
+            }}
+          >
+            Lite Model
+          </button>
+          <button
+            onClick={() => setSelectedUsageModel('pro')}
+            style={{
+              flex: 1,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              border: 'none',
+              borderRadius: theme.radius.md,
+              background: selectedUsageModel === 'pro'
+                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
+                : 'transparent',
+              backdropFilter: selectedUsageModel === 'pro' ? 'blur(4px)' : 'none',
+              WebkitBackdropFilter: selectedUsageModel === 'pro' ? 'blur(4px)' : 'none',
+              color: selectedUsageModel === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
+              fontWeight: selectedUsageModel === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+              fontSize: theme.typography.fontSize.sm,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedUsageModel === 'pro'
+                ? (mode === 'dark'
+                    ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                    : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
+                : 'none',
+            }}
+          >
+            Pro Model
+          </button>
+        </div>
+
+        {/* Usage Bars for selected model */}
+        {(() => {
+          const modelUsage = usage?.[selectedUsageModel];
+          const modelLimits = selectedUsageModel === 'lite'
+            ? tierConfig?.liteModel
+            : tierConfig?.proModel;
+
+          if (!modelLimits) {
+            return (
+              <p style={{
+                textAlign: 'center',
+                padding: theme.spacing.xl,
+                color: theme.colors.mutedForeground,
+                fontSize: theme.typography.fontSize.sm,
+              }}>
+                Pro model is not available on the Free plan
+              </p>
+            );
+          }
+
+          return (
+            <>
+              <UsageBar
+                label="Daily"
+                used={modelUsage?.daily || 0}
+                limit={modelLimits.daily}
+                theme={theme}
+                mode={mode}
+              />
+              <UsageBar
+                label="Weekly"
+                used={modelUsage?.weekly || 0}
+                limit={modelLimits.weekly}
+                theme={theme}
+                mode={mode}
+              />
+              <UsageBar
+                label="Monthly"
+                used={modelUsage?.monthly || 0}
+                limit={modelLimits.monthly}
+                theme={theme}
+                mode={mode}
+              />
+            </>
+          );
+        })()}
       </div>
 
       {/* Upgrade Options */}
@@ -341,20 +433,18 @@ export const SubscriptionTab = () => {
                   color: theme.colors.foreground,
                   marginBottom: theme.spacing.md,
                 }}>
-                  $24.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
+                  $29.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
                 </p>
-                <ul style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: `0 0 ${theme.spacing.lg} 0`,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.mutedForeground,
-                }}>
-                  <li style={{ marginBottom: theme.spacing.xs }}>200 calls/day</li>
-                  <li style={{ marginBottom: theme.spacing.xs }}>1,000 calls/week</li>
-                  <li style={{ marginBottom: theme.spacing.xs }}>5,000 calls/month</li>
-                  <li>+ Pro Model Access</li>
-                </ul>
+                <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
+                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
+                  <p style={{ marginBottom: '2px' }}>2,000 / day</p>
+                  <p style={{ marginBottom: '2px' }}>3,000 / week</p>
+                  <p style={{ marginBottom: theme.spacing.md }}>5,000 / month</p>
+                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
+                  <p style={{ marginBottom: '2px' }}>300 / day</p>
+                  <p style={{ marginBottom: '2px' }}>600 / week</p>
+                  <p>1,000 / month</p>
+                </div>
                 <button
                   style={buttonStyle(true)}
                   onClick={() => handleUpgrade('pro')}
@@ -373,17 +463,16 @@ export const SubscriptionTab = () => {
                 }}>
                   $4.99<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
                 </p>
-                <ul style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: `0 0 ${theme.spacing.lg} 0`,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.mutedForeground,
-                }}>
-                  <li style={{ marginBottom: theme.spacing.xs }}>50 calls/day</li>
-                  <li style={{ marginBottom: theme.spacing.xs }}>250 calls/week</li>
-                  <li style={{ marginBottom: theme.spacing.xs }}>1,000 calls/month</li>
-                </ul>
+                <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
+                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
+                  <p style={{ marginBottom: '2px' }}>700 / day</p>
+                  <p style={{ marginBottom: '2px' }}>1,000 / week</p>
+                  <p style={{ marginBottom: theme.spacing.md }}>1,500 / month</p>
+                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
+                  <p style={{ marginBottom: '2px' }}>50 / day</p>
+                  <p style={{ marginBottom: '2px' }}>100 / week</p>
+                  <p>200 / month</p>
+                </div>
                 <button
                   style={buttonStyle(true)}
                   onClick={() => handleUpgrade('lite')}

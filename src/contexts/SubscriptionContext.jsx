@@ -2,6 +2,7 @@
  * Subscription Context
  *
  * Manages subscription state, usage tracking, and Stripe integration.
+ * Quota config is fetched from API (single source of truth in backend).
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -9,43 +10,22 @@ import { useAuth } from './AuthContext';
 
 const SubscriptionContext = createContext();
 
-/**
- * Tier quota limits (must match backend)
- */
-const TIER_QUOTAS = {
-  free: {
-    id: 'free',
-    name: 'Free',
-    dailyRequests: 200,
-    weeklyRequests: 50,
-    monthlyRequests: 100,
-    models: ['lite'],
-    price: 0,
-  },
-  lite: {
-    id: 'lite',
-    name: 'Lite',
-    dailyRequests: 50,
-    weeklyRequests: 250,
-    monthlyRequests: 1000,
-    models: ['lite'],
-    price: 9.99,
-  },
-  pro: {
-    id: 'pro',
-    name: 'Pro',
-    dailyRequests: 200,
-    weeklyRequests: 1000,
-    monthlyRequests: 5000,
-    models: ['lite', 'pro'],
-    price: 29.99,
-  },
+// Default tier config (fallback before API loads)
+const DEFAULT_TIER_CONFIG = {
+  id: 'free',
+  name: 'Free',
+  liteModel: { daily: 300, weekly: 400, monthly: 400 },
+  proModel: null,
+  models: ['lite'],
+  price: 0,
 };
 
 export const SubscriptionProvider = ({ children }) => {
   const { user, getIdToken } = useAuth();
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
+  const [tierConfig, setTierConfig] = useState(DEFAULT_TIER_CONFIG);
+  const [allTiers, setAllTiers] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -73,15 +53,23 @@ export const SubscriptionProvider = ({ children }) => {
 
       const data = await response.json();
       setSubscription(data.subscription);
+      // Per-model usage structure
       setUsage({
-        daily: data.usage.daily,
-        weekly: data.usage.weekly,
-        monthly: data.usage.monthly,
+        lite: data.usage.lite,
+        pro: data.usage.pro,
         lastRequestAt: data.usage.lastRequestAt,
         remaining: data.remaining,
         percentUsed: data.percentUsed,
         resetAt: data.resetAt,
+        limits: data.limits,
       });
+      // Store tier config from API (single source of truth)
+      if (data.tierConfig) {
+        setTierConfig(data.tierConfig);
+      }
+      if (data.allTiers) {
+        setAllTiers(data.allTiers);
+      }
     } catch (err) {
       console.error('Failed to fetch subscription:', err);
       setError(err.message);
@@ -99,8 +87,8 @@ export const SubscriptionProvider = ({ children }) => {
    * Create Stripe checkout session
    */
   const createCheckoutSession = async (tier) => {
-    const tierConfig = TIER_QUOTAS[tier];
-    if (!tierConfig || tier === 'free') {
+    const tierData = allTiers?.[tier];
+    if (!tierData || tier === 'free') {
       throw new Error('Invalid tier for checkout');
     }
 
@@ -148,61 +136,79 @@ export const SubscriptionProvider = ({ children }) => {
    * Check if user can use a specific model
    */
   const canUseModel = useCallback((modelTier) => {
-    const tier = subscription?.tier || 'free';
-    const tierConfig = TIER_QUOTAS[tier];
     return tierConfig?.models?.includes(modelTier) || false;
-  }, [subscription]);
+  }, [tierConfig]);
+
+  /**
+   * Get usage data for a specific model
+   * @param {string} modelTier - 'lite' or 'pro'
+   */
+  const getModelUsage = useCallback((modelTier) => {
+    if (!usage) return null;
+    return {
+      used: usage[modelTier],
+      remaining: usage.remaining?.[modelTier],
+      percentUsed: usage.percentUsed?.[modelTier],
+      resetAt: usage.resetAt?.[modelTier],
+      limits: usage.limits?.[modelTier],
+    };
+  }, [usage]);
 
   /**
    * Get current tier config
    */
   const getTierConfig = useCallback(() => {
-    const tier = subscription?.tier || 'free';
-    return TIER_QUOTAS[tier];
-  }, [subscription]);
+    return tierConfig;
+  }, [tierConfig]);
 
   /**
-   * Check if quota is exceeded
+   * Check if quota is exceeded for a specific model
+   * @param {string} modelTier - 'lite' or 'pro' (defaults to 'lite')
    */
-  const isQuotaExceeded = useCallback(() => {
-    if (!usage?.remaining) return false;
-    return usage.remaining.daily <= 0 ||
-           usage.remaining.weekly <= 0 ||
-           usage.remaining.monthly <= 0;
+  const isQuotaExceeded = useCallback((modelTier = 'lite') => {
+    const remaining = usage?.remaining?.[modelTier];
+    if (!remaining) return false;
+    return remaining.daily <= 0 ||
+           remaining.weekly <= 0 ||
+           remaining.monthly <= 0;
   }, [usage]);
 
   /**
-   * Get most restrictive limit info
+   * Get most restrictive limit info for a specific model
+   * @param {string} modelTier - 'lite' or 'pro' (defaults to 'lite')
    */
-  const getQuotaStatus = useCallback(() => {
-    if (!usage?.remaining || !usage?.resetAt) {
-      return { type: null, remaining: null, resetAt: null };
+  const getQuotaStatus = useCallback((modelTier = 'lite') => {
+    const remaining = usage?.remaining?.[modelTier];
+    const resetAt = usage?.resetAt?.[modelTier];
+
+    if (!remaining || !resetAt) {
+      return { type: null, remaining: null, resetAt: null, modelTier };
     }
 
-    if (usage.remaining.daily <= 0) {
-      return { type: 'daily', remaining: 0, resetAt: usage.resetAt.daily };
+    if (remaining.daily <= 0) {
+      return { type: 'daily', remaining: 0, resetAt: resetAt.daily, modelTier };
     }
-    if (usage.remaining.weekly <= 0) {
-      return { type: 'weekly', remaining: 0, resetAt: usage.resetAt.weekly };
+    if (remaining.weekly <= 0) {
+      return { type: 'weekly', remaining: 0, resetAt: resetAt.weekly, modelTier };
     }
-    if (usage.remaining.monthly <= 0) {
-      return { type: 'monthly', remaining: 0, resetAt: usage.resetAt.monthly };
+    if (remaining.monthly <= 0) {
+      return { type: 'monthly', remaining: 0, resetAt: resetAt.monthly, modelTier };
     }
 
     // Return the most restrictive remaining
     const minRemaining = Math.min(
-      usage.remaining.daily,
-      usage.remaining.weekly,
-      usage.remaining.monthly
+      remaining.daily,
+      remaining.weekly,
+      remaining.monthly
     );
 
-    if (usage.remaining.daily === minRemaining) {
-      return { type: 'daily', remaining: minRemaining, resetAt: usage.resetAt.daily };
+    if (remaining.daily === minRemaining) {
+      return { type: 'daily', remaining: minRemaining, resetAt: resetAt.daily, modelTier };
     }
-    if (usage.remaining.weekly === minRemaining) {
-      return { type: 'weekly', remaining: minRemaining, resetAt: usage.resetAt.weekly };
+    if (remaining.weekly === minRemaining) {
+      return { type: 'weekly', remaining: minRemaining, resetAt: resetAt.weekly, modelTier };
     }
-    return { type: 'monthly', remaining: minRemaining, resetAt: usage.resetAt.monthly };
+    return { type: 'monthly', remaining: minRemaining, resetAt: resetAt.monthly, modelTier };
   }, [usage]);
 
   const value = {
@@ -212,8 +218,8 @@ export const SubscriptionProvider = ({ children }) => {
     loading,
     error,
     tier: subscription?.tier || 'free',
-    tierConfig: getTierConfig(),
-    TIER_QUOTAS,
+    tierConfig,
+    allTiers, // All tier configs from API (for pricing pages, etc.)
 
     // Actions
     createCheckoutSession,
@@ -222,8 +228,10 @@ export const SubscriptionProvider = ({ children }) => {
 
     // Helpers
     canUseModel,
+    getModelUsage,
     isQuotaExceeded,
     getQuotaStatus,
+    getTierConfig,
     isPro: subscription?.tier === 'pro',
     isLite: subscription?.tier === 'lite',
     isFree: !subscription?.tier || subscription?.tier === 'free',

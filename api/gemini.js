@@ -9,7 +9,7 @@
  */
 
 import { verifyAuth } from './middleware/_auth.js';
-import { checkQuota, canAccessModel, incrementUsage, getQuotaHeaders } from './middleware/_quota.js';
+import { checkQuota, canAccessModel, getQuotaHeaders } from './middleware/_quota.js';
 import { GoogleGenAI } from '@google/genai';
 
 export default async function handler(req, res) {
@@ -29,8 +29,12 @@ export default async function handler(req, res) {
 
   const { userId } = authResult;
 
-  // Check user quota
-  const quotaResult = await checkQuota(userId);
+  // Determine model tier from model name
+  const { model = 'gemini-3-flash-preview' } = req.body;
+  const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
+
+  // Check user quota for this model tier
+  const quotaResult = await checkQuota(userId, modelTier);
 
   // Add quota headers
   const quotaHeaders = getQuotaHeaders(quotaResult);
@@ -38,30 +42,19 @@ export default async function handler(req, res) {
     res.setHeader(key, value);
   });
 
-  // If quota exceeded, return 429
+  // If quota exceeded or no access, return error
   if (!quotaResult.allowed) {
-    return res.status(429).json({
-      error: 'Quota exceeded',
-      message: `${quotaResult.limitType} limit reached. Your quota will reset at ${new Date(quotaResult.resetAt).toLocaleString()}.`,
+    const statusCode = quotaResult.status || 429;
+    return res.status(statusCode).json({
+      error: statusCode === 403 ? 'Model not available' : 'Quota exceeded',
+      message: quotaResult.error || `${quotaResult.limitType} limit reached. Your quota will reset at ${new Date(quotaResult.resetAt).toLocaleString()}.`,
       quota: {
         tier: quotaResult.tier,
+        modelTier: quotaResult.modelTier,
         limitType: quotaResult.limitType,
         remaining: quotaResult.remaining,
         resetAt: quotaResult.resetAt,
       },
-      upgradeUrl: '/pricing',
-    });
-  }
-
-  // Check model access
-  const { model = 'gemini-3-flash-preview' } = req.body;
-  const isProModel = model === 'gemini-3-pro-preview';
-
-  if (isProModel && !canAccessModel(quotaResult.tier, 'pro')) {
-    return res.status(403).json({
-      error: 'Model not available',
-      message: 'Pro model requires a Pro subscription.',
-      currentTier: quotaResult.tier,
       upgradeUrl: '/pricing',
     });
   }
@@ -84,9 +77,9 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     if (action === 'chat') {
-      return handleChatRequest(req, res, ai, quotaResult, userId);
+      return handleChatRequest(req, res, ai, quotaResult);
     } else {
-      return handleGenerateRequest(req, res, ai, quotaResult, userId);
+      return handleGenerateRequest(req, res, ai, quotaResult);
     }
 
   } catch (error) {
@@ -98,7 +91,7 @@ export default async function handler(req, res) {
 /**
  * Handle simple content generation
  */
-async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
+async function handleGenerateRequest(req, res, ai, quotaResult) {
   const {
     model = 'gemini-3-flash-preview',
     contents,
@@ -126,8 +119,7 @@ async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
     config: Object.keys(config).length > 0 ? config : undefined,
   });
 
-  // Increment usage after successful generation
-  await incrementUsage(userId);
+  // Note: Usage increment moved to frontend orchestration layer (per-generation, not per-API-call)
 
   return res.status(200).json({
     text: response.text || '',
@@ -142,7 +134,7 @@ async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
  * Handle chat session with tools (for code generation)
  * Uses chat session to properly handle multi-turn with function calling
  */
-async function handleChatRequest(req, res, ai, quotaResult, userId) {
+async function handleChatRequest(req, res, ai, quotaResult) {
   const {
     model = 'gemini-3-flash-preview',
     message,
@@ -184,8 +176,7 @@ async function handleChatRequest(req, res, ai, quotaResult, userId) {
     response = await chat.sendMessage({ message });
   }
 
-  // Increment usage after successful chat
-  await incrementUsage(userId);
+  // Note: Usage increment moved to frontend orchestration layer (per-generation, not per-API-call)
 
   return res.status(200).json({
     text: response.text || '',

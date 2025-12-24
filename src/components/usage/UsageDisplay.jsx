@@ -4,6 +4,7 @@
  * Shows current quota usage with progress bars.
  */
 
+import { useState } from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
@@ -100,6 +101,7 @@ export const UsageDisplay = ({ compact = false }) => {
     loading,
     openCustomerPortal,
   } = useSubscription();
+  const [selectedModel, setSelectedModel] = useState('lite');
 
   if (loading) {
     return (
@@ -198,41 +200,121 @@ export const UsageDisplay = ({ compact = false }) => {
         </div>
       )}
 
+      {/* Model Tab Bar */}
       {!compact && (
-        <>
-          <UsageBar
-            label="Daily"
-            used={usage?.daily || 0}
-            limit={tierConfig?.dailyRequests || 10}
-            resetAt={usage?.remaining?.daily !== undefined ? usage.resetAt?.daily : null}
-            theme={theme}
-          />
-          <UsageBar
-            label="Weekly"
-            used={usage?.weekly || 0}
-            limit={tierConfig?.weeklyRequests || 50}
-            resetAt={usage?.resetAt?.weekly}
-            theme={theme}
-          />
-          <UsageBar
-            label="Monthly"
-            used={usage?.monthly || 0}
-            limit={tierConfig?.monthlyRequests || 100}
-            resetAt={usage?.resetAt?.monthly}
-            theme={theme}
-          />
-        </>
+        <div style={{
+          display: 'flex',
+          background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: theme.radius.lg,
+          padding: '4px',
+          marginBottom: theme.spacing.lg,
+          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
+        }}>
+          <button
+            onClick={() => setSelectedModel('lite')}
+            style={{
+              flex: 1,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              border: 'none',
+              borderRadius: theme.radius.md,
+              background: selectedModel === 'lite'
+                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
+                : 'transparent',
+              color: selectedModel === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
+              fontWeight: selectedModel === 'lite' ? '600' : '500',
+              fontSize: theme.typography.fontSize.sm,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Lite Model
+          </button>
+          <button
+            onClick={() => setSelectedModel('pro')}
+            style={{
+              flex: 1,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              border: 'none',
+              borderRadius: theme.radius.md,
+              background: selectedModel === 'pro'
+                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
+                : 'transparent',
+              color: selectedModel === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
+              fontWeight: selectedModel === 'pro' ? '600' : '500',
+              fontSize: theme.typography.fontSize.sm,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Pro Model
+          </button>
+        </div>
       )}
 
-      {compact && (
-        <UsageBar
-          label="Daily"
-          used={usage?.daily || 0}
-          limit={tierConfig?.dailyRequests || 10}
-          resetAt={usage?.resetAt?.daily}
-          theme={theme}
-        />
-      )}
+      {!compact && (() => {
+        const modelUsage = usage?.[selectedModel];
+        const modelLimits = selectedModel === 'lite'
+          ? tierConfig?.liteModel
+          : tierConfig?.proModel;
+        const modelResetAt = usage?.resetAt?.[selectedModel];
+
+        if (!modelLimits) {
+          return (
+            <p style={{
+              textAlign: 'center',
+              padding: theme.spacing.xl,
+              color: theme.colors.mutedForeground,
+              fontSize: theme.typography.fontSize.sm,
+            }}>
+              Pro model is not available on the Free plan
+            </p>
+          );
+        }
+
+        return (
+          <>
+            <UsageBar
+              label="Daily"
+              used={modelUsage?.daily || 0}
+              limit={modelLimits.daily}
+              resetAt={modelResetAt?.daily}
+              theme={theme}
+            />
+            <UsageBar
+              label="Weekly"
+              used={modelUsage?.weekly || 0}
+              limit={modelLimits.weekly}
+              resetAt={modelResetAt?.weekly}
+              theme={theme}
+            />
+            <UsageBar
+              label="Monthly"
+              used={modelUsage?.monthly || 0}
+              limit={modelLimits.monthly}
+              resetAt={modelResetAt?.monthly}
+              theme={theme}
+            />
+          </>
+        );
+      })()}
+
+      {compact && (() => {
+        const modelUsage = usage?.lite;
+        const modelLimits = tierConfig?.liteModel;
+        const modelResetAt = usage?.resetAt?.lite;
+
+        return (
+          <UsageBar
+            label="Daily"
+            used={modelUsage?.daily || 0}
+            limit={modelLimits?.daily || 10}
+            resetAt={modelResetAt?.daily}
+            theme={theme}
+          />
+        );
+      })()}
 
       {tier === 'free' && (
         <a

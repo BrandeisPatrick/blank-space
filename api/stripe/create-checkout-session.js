@@ -66,9 +66,12 @@ export default async function handler(req, res) {
     }
 
     // Get success and cancel URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                    'http://localhost:3000';
+    // Use http for localhost, https for deployed environments
+    const vercelUrl = process.env.VERCEL_URL;
+    const isLocalhost = vercelUrl?.includes('localhost');
+    const baseUrl = isLocalhost
+      ? `http://${vercelUrl}`
+      : (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000');
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -82,7 +85,7 @@ export default async function handler(req, res) {
         },
       ],
       success_url: `${baseUrl}/settings?tab=billing&success=true`,
-      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      cancel_url: `${baseUrl}/`,
       metadata: {
         firebaseUserId: userId,
       },

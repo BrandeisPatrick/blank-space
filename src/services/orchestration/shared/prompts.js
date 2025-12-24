@@ -256,80 +256,159 @@ When you receive a user request:
 IMPORTANT: Your goal is to generate complete, working, VALIDATED React applications through tool calls only. When editing existing apps, preserve their purpose and functionality.`;
 
 /**
- * Build debug-specific prompt for fixing runtime errors
- * @param {Array} errors - Array of error objects {message, source, line}
+ * Build unified debug prompt for fixing both runtime errors AND user-reported issues
+ * @param {Object} debugContext - { errors: [], userDescription: '' }
  * @param {Object} currentFiles - Current file map {filename: content}
  * @returns {string} Debug-specific system prompt
  */
-export function buildDebugPrompt(errors, currentFiles) {
-  const errorList = errors.map((err, i) =>
-    `${i + 1}. ${err.message}${err.source ? ` (in ${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
-  ).join('\n');
-
+export function buildDebugPrompt(debugContext, currentFiles) {
+  const { errors = [], userDescription = '' } = debugContext;
   const fileList = Object.keys(currentFiles).map(f => `- ${f}`).join('\n');
 
-  return `You are debugging a React application that has runtime errors. Your job is to FIX the code so it WORKS.
+  // Build problem section based on what we have
+  let problemSection = '';
 
-# ERRORS TO FIX:
+  if (userDescription) {
+    problemSection += `# USER REPORTS:
+"${userDescription}"
+
+This is a BEHAVIORAL issue - the app runs but doesn't work correctly.
+`;
+  }
+
+  if (errors.length > 0) {
+    const errorList = errors.map((err, i) =>
+      `${i + 1}. ${err.message}${err.source ? ` (in ${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
+    ).join('\n');
+    problemSection += `# RUNTIME ERRORS:
 ${errorList}
+`;
+  }
 
+  // Detect if this is an interaction/click issue
+  const lowerDesc = userDescription.toLowerCase();
+  const isInteractionIssue = /can('t|not)?\s*(click|move|drag|select|interact|tap|touch|press)/i.test(lowerDesc) ||
+    /not\s*(working|responding|clickable|draggable)/i.test(lowerDesc) ||
+    /won('t|t)\s*(move|click|work|respond)/i.test(lowerDesc);
+
+  return `You are debugging a React application. Your job is to FIX the code so it WORKS.
+
+${problemSection}
 # CURRENT FILES:
 ${fileList}
 
-# CRITICAL: THIS IS A SANDBOXED BROWSER ENVIRONMENT
-You CANNOT install npm packages. You CANNOT use external libraries. Everything must work with:
-- React (pre-loaded)
-- Tailwind CSS (pre-loaded)
-- Native browser APIs only
+# MANDATORY FIRST STEP - READ EVERYTHING:
+You MUST read ALL files before making any changes. Use read() on each file listed above.
+Do NOT skip this step. Do NOT assume you know what the code does.
 
-# HOW TO FIX COMMON ERRORS:
+${isInteractionIssue ? `
+# INTERACTION BUG DEBUGGING (CRITICAL - READ THIS CAREFULLY)
 
-## "X is not defined" (Missing External Library)
-When you see errors like "Chessboard is not defined", "Chart is not defined", "Moment is not defined":
-1. The code is trying to use an external library that doesn't exist in this sandbox
-2. You MUST create a working replacement component/function from scratch
-3. DO NOT try to import it - CREATE IT
+The user reports they cannot click/move/interact with something. This is almost NEVER a logic bug.
+It's usually one of these issues (CHECK IN THIS ORDER):
 
-Example: If "Chessboard is not defined":
-- Create a functional <Chessboard /> component using divs and Tailwind CSS
-- Make it visually look like a chessboard with an 8x8 grid
-- Add pieces using Unicode chess symbols (♔♕♖♗♘♙♚♛♜♝♞♟)
-- Make it interactive if needed
+## 1. EVENT HANDLER NOT ATTACHED
+Look at the JSX. Find the element the user is trying to interact with.
+Does it have onClick, onMouseDown, onDrag, etc.?
 
-Example: If "Chart is not defined":
-- Create a simple chart using CSS/SVG
-- Use divs with varying heights for bar charts
-- Use SVG paths for line charts
+EXAMPLE BUG:
+  <div className="chess-piece">{piece}</div>  // ❌ No onClick!
+
+FIX:
+  <div className="chess-piece" onClick={() => handleClick(row, col)}>{piece}</div>
+
+## 2. EVENT HANDLER ON WRONG ELEMENT
+The handler might be on a parent/sibling instead of the actual clickable element.
+Check: Is the handler on the element the user sees and tries to click?
+
+## 3. CSS BLOCKING CLICKS
+Search for these CSS properties that block interaction:
+- pointer-events: none
+- user-select: none
+- position that causes overlay
+- z-index issues (another element on top)
+
+## 4. HANDLER FUNCTION NOT DOING ANYTHING
+The handler exists but:
+- It's empty or has early return
+- It updates the wrong state
+- The condition inside never passes
+
+## 5. STATE NOT CONNECTED TO RENDER
+The state updates, but the component doesn't use that state to show the change.
+
+# DEBUGGING PROCESS FOR INTERACTION BUGS:
+
+1. READ App.jsx completely - find all event handlers
+2. FIND the element user interacts with (e.g., chess squares, pieces)
+3. CHECK if that element has the right event handler attached
+4. IF NO HANDLER: That's your bug! Add the handler.
+5. IF HANDLER EXISTS: Read the handler function. Does it:
+   - Get called? (is it attached correctly?)
+   - Receive correct params? (row, col, event, etc.)
+   - Update the right state?
+   - Have any conditions blocking it?
+6. CHECK CSS for pointer-events or overlay issues
+
+DO NOT just edit validation logic or game rules. The bug is likely in the EVENT BINDING.
+` : `
+# DIAGNOSTIC STEPS (FOLLOW IN ORDER):
+
+## Step 1: READ the code first
+- Use read() to examine App.jsx and ALL component files
+- Understand the current implementation before making changes
+
+## Step 2: Diagnose the issue
+${userDescription ? `
+### For user-reported behavioral issues:
+- TRACE the interaction flow from user action to expected result
+- Find the event handler (onClick, onChange, onMouseDown, etc.)
+- Check if handler is attached to the correct element
+- Check if handler function has correct logic
+- Check if state updates trigger re-renders
+- Look for CSS that might block interactions (pointer-events: none)
+` : ''}
+${errors.length > 0 ? `
+### For runtime errors:
+- Identify the exact line/component causing the error
+- Check for undefined variables, missing imports, or null references
+` : ''}
+
+## Step 3: Fix the root cause
+- Make targeted fixes, don't rewrite entire files
+- Test your logic mentally before writing
+`}
+
+# COMMON ISSUES AND FIXES:
+
+## Interaction not working (clicks, moves, etc.)
+- Event handler not attached: Add onClick/onChange to the element
+- Handler attached to wrong element: Move to the clickable element
+- Wrong state variable: Check which state controls the behavior
+- CSS blocking: Remove pointer-events: none or add pointer-events: auto
+- Wrong coordinates/indices: Check row/col calculations
+
+## "X is not defined"
+- External library missing: CREATE a working replacement from scratch
+- Variable typo: Fix the variable name
+- Missing import: Add the import statement
 
 ## "Cannot read property of undefined"
-- Add null checks: \`value?.property\` or \`value && value.property\`
-- Add default values: \`const items = data?.items || []\`
-- Check if state is initialized properly
+- Add null checks: \`value?.property\`
+- Add default values: \`data?.items || []\`
+- Initialize state properly
 
-## "require is not defined"
-- Change: \`const X = require('x')\` → \`import X from 'x'\`
-- For React: hooks are already available, just use them directly
+# CRITICAL RULES:
+- READ ALL FILES FIRST before making changes
+- Fix the ROOT CAUSE, not symptoms
+- For interaction bugs: check EVENT HANDLERS first, not game logic
+- DO NOT add console.logs as the fix
+- DO NOT just add placeholder text
+- The app MUST work after your fix
+- Use Tailwind CSS for styling
+- Keep the app's original purpose
 
-## Syntax Errors
-- Fix missing brackets, quotes, semicolons
-- Ensure JSX is properly closed
-
-# YOUR TASK:
-1. Use read() to examine the file(s) with errors
-2. Identify what external library or undefined variable is causing the error
-3. CREATE a working replacement implementation from scratch using only React + Tailwind
-4. Use write() to save the fixed code
-5. The app MUST work after your fix - no placeholders that just show text
-
-# RULES:
-- DO NOT just add comments or placeholder text
-- DO NOT try to import unavailable libraries
-- CREATE functional replacements that actually work
-- Keep the app's original purpose and functionality
-- Use Tailwind CSS for all styling
-- Make it visually appealing
-
-Start by reading the file(s) with errors, then apply your fix.`;
+Start by reading ALL the files listed above, then apply your fix.`;
 }
 
 /**
@@ -373,12 +452,17 @@ export function buildSystemPrompt(options = {}) {
     wallpaperTheme = 'starry',
     isDarkTheme = true,
     isDebugMode = false,
-    debugErrors = []
+    debugContext = null,  // New: { errors: [], userDescription: '' }
+    debugErrors = []      // Legacy: keep for backwards compatibility
   } = options;
 
-  // Use debug-specific prompt when fixing errors
-  if (isDebugMode && debugErrors.length > 0) {
-    return buildDebugPrompt(debugErrors, currentFiles);
+  // Use debug-specific prompt when in debug mode
+  if (isDebugMode) {
+    // Support both new debugContext and legacy debugErrors
+    const context = debugContext || { errors: debugErrors, userDescription: '' };
+    if (context.errors?.length > 0 || context.userDescription) {
+      return buildDebugPrompt(context, currentFiles);
+    }
   }
 
   let systemPrompt = CODE_GENERATION_SYSTEM_PROMPT;

@@ -4,6 +4,7 @@ import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { useSettings } from "./contexts/SettingsContext";
+import { useSubscription } from "./contexts/SubscriptionContext";
 import { getTheme } from "./styles/theme";
 import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
 import { ArtifactSidebar } from "./components/artifact";
@@ -20,9 +21,10 @@ import "./styles/App.css";
 function App() {
   const { mode, theme: wallpaperTheme, currentTheme } = useTheme();
   const theme = getTheme(mode);
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getIdToken } = useAuth();
   const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
   const { aiColorPalette, aiUIStyle } = useSettings();
+  const { refreshUsage } = useSubscription();
   const isMobile = useIsMobile();
 
   // Route state
@@ -364,9 +366,10 @@ function App() {
     }
   }, []);
 
-  // Handle debug errors - AI auto-fix
-  const handleDebugErrors = useCallback(async (errors) => {
-    if (!errors || errors.length === 0 || isDebugging) return;
+  // Handle debug - unified handler for both runtime errors AND user-reported issues
+  const handleDebug = useCallback(async ({ errors = [], userDescription = '' }) => {
+    // Skip if nothing to debug or already debugging
+    if ((!errors.length && !userDescription) || isDebugging) return;
 
     setIsDebugging(true);
     setIsAIProcessing(true);
@@ -375,11 +378,12 @@ function App() {
 
     // Create a loading message
     const loadingMessageId = Date.now();
+    const loadingContent = userDescription ? 'Diagnosing issue...' : 'Analyzing errors...';
     setChatMessages(prev => {
       const newMessages = [...prev, {
         id: loadingMessageId,
         type: 'assistant',
-        content: 'Analyzing errors...',
+        content: loadingContent,
         isLoading: true,
         timestamp: loadingMessageId
       }];
@@ -387,12 +391,21 @@ function App() {
       return newMessages;
     });
 
-    // Build debug message from errors
-    const errorSummary = errors.map((err, i) =>
-      `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
-    ).join('\n');
-
-    const debugMessage = `Fix the following errors in my code:\n${errorSummary}`;
+    // Build debug message based on what we have
+    let debugMessage;
+    if (userDescription && errors.length > 0) {
+      const errorSummary = errors.map((err, i) =>
+        `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
+      ).join('\n');
+      debugMessage = `User reports: "${userDescription}"\n\nAlso seeing these errors:\n${errorSummary}`;
+    } else if (userDescription) {
+      debugMessage = `Fix this issue: ${userDescription}`;
+    } else {
+      const errorSummary = errors.map((err, i) =>
+        `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
+      ).join('\n');
+      debugMessage = `Fix the following errors in my code:\n${errorSummary}`;
+    }
 
     // Callback for streaming updates
     const onUpdate = (update) => {
@@ -427,7 +440,7 @@ function App() {
         wallpaperTheme,
         isDarkTheme: currentTheme?.isDark ?? mode === 'dark',
         isDebugMode: true,
-        debugErrors: errors,
+        debugContext: { errors, userDescription },  // Unified debug context
       });
 
       if (result.success && result.fileOperations?.length > 0) {
@@ -439,6 +452,23 @@ function App() {
 
         setFiles(fixedFiles);
         removeLoadingMessage();
+
+        // Increment usage (counts per-generation, not per-API-call)
+        try {
+          const token = await getIdToken();
+          await fetch('/api/usage/increment', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ modelTier }),
+          });
+        } catch (err) {
+          console.error('Failed to increment usage:', err);
+        }
+
+        refreshUsage();
 
         // Add success message
         const fixedCount = result.fileOperations.length;
@@ -572,6 +602,24 @@ function App() {
         removeLoadingMessage();
         setIsAIProcessing(false);
 
+        // Increment usage (counts per-generation, not per-API-call)
+        try {
+          const token = await getIdToken();
+          await fetch('/api/usage/increment', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ modelTier }),
+          });
+        } catch (err) {
+          console.error('Failed to increment usage:', err);
+        }
+
+        // Refresh usage display
+        refreshUsage();
+
         // Handle chat intent - no file operations, just conversation
         if (result.intent === 'chat') {
           // Chat response already sent via onUpdate callback
@@ -579,7 +627,7 @@ function App() {
           return;
         }
 
-        // Handle create intent - generate files and create/update artifact
+        // Handle create/debug intent - both generate files and update artifact
         if (result.fileOperations && result.fileOperations.length > 0) {
           // Build new files from operations
           const newFiles = { ...files };
@@ -668,8 +716,17 @@ function App() {
       removeLoadingMessage();
       setIsAIProcessing(false);
 
-      // Handle rate limit error specifically
-      if (error.isRateLimit && error.rateLimit) {
+      // Handle quota exceeded error (new structure from backend)
+      if (error.isQuotaExceeded && error.quota) {
+        const { limitType, resetAt } = error.quota;
+        const resetDate = new Date(resetAt).toLocaleString();
+        setChatMessages(prev => [...prev, {
+          type: 'error',
+          content: MESSAGES.QUOTA_EXCEEDED(limitType, resetDate),
+          timestamp: Date.now()
+        }]);
+      // Handle legacy rate limit error
+      } else if (error.isRateLimit && error.rateLimit) {
         setChatMessages(prev => [...prev, {
           type: 'error',
           content: MESSAGES.RATE_LIMIT_EXCEEDED(error.rateLimit.used, error.rateLimit.limit),
@@ -873,7 +930,7 @@ function App() {
         }}
         onFileChange={handleFileChange}
         onError={handlePreviewError}
-        onDebug={handleDebugErrors}
+        onDebug={(errors) => handleDebug({ errors })}
         isDebugging={isDebugging}
         onIconChange={(iconId) => {
           if (activeArtifactId) {
