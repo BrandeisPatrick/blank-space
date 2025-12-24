@@ -105,12 +105,31 @@ export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoo
         const css = files['styles.css'] || ''
 
         // Collect and combine all component files
+        // Each non-App file is wrapped in an IIFE to isolate scope (prevents duplicate declaration errors)
         const allCode = Object.entries(files)
           .filter(([filename]) =>
             filename.endsWith('.jsx') ||
             filename.endsWith('.js') && filename !== 'script.js'
           )
-          .map(([, code]) => stripImports(code))
+          .map(([filename, code]) => {
+            const stripped = stripImports(code)
+
+            // App.jsx stays in global scope for ReactDOM.render
+            if (filename === 'App.jsx') {
+              return stripped
+            }
+
+            // Extract component name from filename (e.g., "components/GameInfo.jsx" -> "GameInfo")
+            const componentName = filename
+              .replace(/^.*\//, '')  // Remove path
+              .replace(/\.(jsx?|tsx?)$/, '')  // Remove extension
+
+            // Wrap in IIFE to isolate scope, expose component globally
+            return `(function() {
+${stripped}
+  if (typeof ${componentName} !== 'undefined') window.${componentName} = ${componentName};
+})();`
+          })
           .join('\n\n')
 
         fullHtml = `
