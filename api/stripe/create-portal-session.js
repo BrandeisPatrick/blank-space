@@ -46,12 +46,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get return URL (same logic as create-checkout-session)
+    // Get return URL - use custom domain for production
     const vercelUrl = process.env.VERCEL_URL;
+    const isProduction = process.env.VERCEL_ENV === 'production';
     const isLocalhost = vercelUrl?.includes('localhost');
-    const baseUrl = isLocalhost
-      ? `http://${vercelUrl}`
-      : (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000');
+
+    let baseUrl;
+    if (isLocalhost) {
+      baseUrl = `http://${vercelUrl}`;
+    } else if (isProduction) {
+      baseUrl = 'https://www.blankspace.build';
+    } else if (vercelUrl) {
+      baseUrl = `https://${vercelUrl}`;
+    } else {
+      baseUrl = 'http://localhost:3000';
+    }
 
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
