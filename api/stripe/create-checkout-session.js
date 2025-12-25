@@ -66,12 +66,21 @@ export default async function handler(req, res) {
     }
 
     // Get success and cancel URLs
-    // Use http for localhost, https for deployed environments
+    // Use custom domain for production, VERCEL_URL for preview, localhost for dev
     const vercelUrl = process.env.VERCEL_URL;
+    const isProduction = process.env.VERCEL_ENV === 'production';
     const isLocalhost = vercelUrl?.includes('localhost');
-    const baseUrl = isLocalhost
-      ? `http://${vercelUrl}`
-      : (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000');
+
+    let baseUrl;
+    if (isLocalhost) {
+      baseUrl = `http://${vercelUrl}`;
+    } else if (isProduction) {
+      baseUrl = 'https://www.blankspace.build';
+    } else if (vercelUrl) {
+      baseUrl = `https://${vercelUrl}`;
+    } else {
+      baseUrl = 'http://localhost:3000';
+    }
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
