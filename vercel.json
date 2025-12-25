@@ -2,5 +2,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://blank-space-29ea4.firebaseapp.com/__/auth/:path*"
+    }
+  ]
 }
