@@ -130,7 +130,7 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
               letterSpacing: '0.5px',
               display: 'inline-flex',
               alignItems: 'center',
-            }}>early access</span>
+            }}>beta</span>
           </h1>
         </div>
 
