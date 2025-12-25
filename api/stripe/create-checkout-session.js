@@ -112,9 +112,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Stripe checkout error:', error);
+    console.error('Error stack:', error.stack);
     return res.status(500).json({
       error: 'Failed to create checkout session',
       message: error.message,
+      type: error.type || error.code || 'unknown',
     });
   }
 }
