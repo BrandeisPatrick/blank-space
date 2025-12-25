@@ -167,7 +167,9 @@ export const SubscriptionProvider = ({ children }) => {
   // Auto-sync when returning from checkout (success=true in URL)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    console.log('[Subscription] Checking URL params:', window.location.search);
     if (params.get('success') === 'true' && user) {
+      console.log('[Subscription] Success param detected, syncing...');
       // Remove success param from URL
       params.delete('success');
       const newUrl = params.toString()
@@ -176,7 +178,9 @@ export const SubscriptionProvider = ({ children }) => {
       window.history.replaceState({}, '', newUrl);
 
       // Sync subscription with Stripe
-      syncSubscription();
+      syncSubscription().then(result => {
+        console.log('[Subscription] Sync result:', result);
+      });
     }
   }, [user, syncSubscription]);
 

@@ -26,37 +26,48 @@ function getTierFromPriceId(priceId) {
 }
 
 export default async function handler(req, res) {
+  console.log('[sync-subscription] Request received');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!stripe) {
+    console.log('[sync-subscription] Stripe not configured');
     return res.status(503).json({ error: 'Stripe not configured' });
   }
 
   try {
     const authResult = await verifyAuth(req);
     if (authResult.error) {
+      console.log('[sync-subscription] Auth error:', authResult.error);
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
     const { userId } = authResult;
+    console.log('[sync-subscription] User ID:', userId);
+
     const db = getFirestore();
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
     const userData = userDoc.data();
 
     const stripeCustomerId = userData?.subscription?.stripeCustomerId;
+    console.log('[sync-subscription] Existing customer ID:', stripeCustomerId);
 
     if (!stripeCustomerId) {
       // No customer yet - check if they just completed checkout
-      // Try to find customer by metadata
+      // Try to find customer by email
+      console.log('[sync-subscription] No customer ID, searching by email:', userData.email);
       const customers = await stripe.customers.list({
         limit: 1,
         email: userData.email,
       });
 
+      console.log('[sync-subscription] Found customers:', customers.data.length);
+
       if (customers.data.length === 0) {
+        console.log('[sync-subscription] No customer found');
         return res.status(200).json({
           synced: false,
           tier: 'free',
@@ -66,13 +77,18 @@ export default async function handler(req, res) {
 
       // Use the found customer
       const customer = customers.data[0];
+      console.log('[sync-subscription] Found customer:', customer.id);
+
       const subscriptions = await stripe.subscriptions.list({
         customer: customer.id,
         status: 'active',
         limit: 1,
       });
 
+      console.log('[sync-subscription] Found subscriptions:', subscriptions.data.length);
+
       if (subscriptions.data.length === 0) {
+        console.log('[sync-subscription] No active subscription');
         return res.status(200).json({
           synced: false,
           tier: 'free',
@@ -84,6 +100,8 @@ export default async function handler(req, res) {
       const priceId = subscription.items.data[0]?.price?.id;
       const tier = getTierFromPriceId(priceId);
 
+      console.log('[sync-subscription] Subscription found:', { id: subscription.id, priceId, tier });
+
       // Update Firestore
       await userRef.update({
         'subscription.tier': tier,
@@ -94,6 +112,8 @@ export default async function handler(req, res) {
         'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000).toISOString(),
         'subscription.cancelAtPeriodEnd': subscription.cancel_at_period_end,
       });
+
+      console.log('[sync-subscription] Firestore updated successfully');
 
       return res.status(200).json({
         synced: true,
