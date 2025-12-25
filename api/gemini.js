@@ -9,13 +9,23 @@
  */
 
 import { verifyAuth } from './middleware/_auth.js';
-import { checkQuota, incrementUsage, getQuotaHeaders } from './middleware/_quota.js';
+import { checkQuota } from './middleware/_quota.js';
+import { checkRateLimit } from './utils/_rateLimit.js';
 import { GoogleGenAI } from '@google/genai';
 
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Check rate limit for burst protection
+  const rateLimit = checkRateLimit(req);
+  if (!rateLimit.allowed) {
+    return res.status(429).json({
+      error: 'Too many requests',
+      message: 'Please slow down. Try again in a minute.',
+    });
   }
 
   // Verify authentication
@@ -33,29 +43,14 @@ export default async function handler(req, res) {
   const { model = 'gemini-3-flash-preview' } = req.body;
   const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
 
-  // Check user quota for this model tier
+  // Check user quota
   const quotaResult = await checkQuota(userId, modelTier);
-
-  // Add quota headers
-  const quotaHeaders = getQuotaHeaders(quotaResult);
-  Object.entries(quotaHeaders).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
-
-  // If quota exceeded or no access, return error
   if (!quotaResult.allowed) {
-    const statusCode = quotaResult.status || 429;
-    return res.status(statusCode).json({
-      error: statusCode === 403 ? 'Model not available' : 'Quota exceeded',
-      message: quotaResult.error || `${quotaResult.limitType} limit reached. Your quota will reset at ${new Date(quotaResult.resetAt).toLocaleString()}.`,
-      quota: {
-        tier: quotaResult.tier,
-        modelTier: quotaResult.modelTier,
-        limitType: quotaResult.limitType,
-        remaining: quotaResult.remaining,
-        resetAt: quotaResult.resetAt,
-      },
-      upgradeUrl: '/pricing',
+    return res.status(429).json({
+      error: 'Quota exceeded',
+      message: quotaResult.error,
+      resetAt: quotaResult.resetAt,
+      limits: quotaResult.limits,
     });
   }
 
@@ -77,9 +72,9 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     if (action === 'chat') {
-      return handleChatRequest(req, res, ai, quotaResult, userId);
+      return handleChatRequest(req, res, ai);
     } else {
-      return handleGenerateRequest(req, res, ai, quotaResult, userId);
+      return handleGenerateRequest(req, res, ai);
     }
 
   } catch (error) {
@@ -91,7 +86,7 @@ export default async function handler(req, res) {
 /**
  * Handle simple content generation
  */
-async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
+async function handleGenerateRequest(req, res, ai) {
   const {
     model = 'gemini-3-flash-preview',
     contents,
@@ -119,16 +114,11 @@ async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
     config: Object.keys(config).length > 0 ? config : undefined,
   });
 
-  // Increment usage server-side (secure - cannot be bypassed by client)
-  const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
-  await incrementUsage(userId, modelTier);
-
   return res.status(200).json({
     text: response.text || '',
     candidates: response.candidates,
     functionCalls: response.functionCalls || [],
     usageMetadata: response.usageMetadata,
-    quota: formatQuota(quotaResult)
   });
 }
 
@@ -136,7 +126,7 @@ async function handleGenerateRequest(req, res, ai, quotaResult, userId) {
  * Handle chat session with tools (for code generation)
  * Uses chat session to properly handle multi-turn with function calling
  */
-async function handleChatRequest(req, res, ai, quotaResult, userId) {
+async function handleChatRequest(req, res, ai) {
   const {
     model = 'gemini-3-flash-preview',
     message,
@@ -178,13 +168,6 @@ async function handleChatRequest(req, res, ai, quotaResult, userId) {
     response = await chat.sendMessage({ message });
   }
 
-  // Increment usage server-side only for new messages (not function responses)
-  // This maintains "per-generation" counting while being secure
-  if (!functionResponses) {
-    const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
-    await incrementUsage(userId, modelTier);
-  }
-
   return res.status(200).json({
     text: response.text || '',
     candidates: response.candidates,
@@ -192,19 +175,7 @@ async function handleChatRequest(req, res, ai, quotaResult, userId) {
     usageMetadata: response.usageMetadata,
     // Return updated history for client to use in next request
     history: chat.getHistory ? chat.getHistory() : history,
-    quota: formatQuota(quotaResult)
   });
-}
-
-/**
- * Format quota for response
- */
-function formatQuota(quotaResult) {
-  return {
-    tier: quotaResult.tier,
-    remaining: quotaResult.remaining,
-    limits: quotaResult.limits,
-  };
 }
 
 /**

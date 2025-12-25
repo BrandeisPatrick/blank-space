@@ -1,19 +1,31 @@
 /**
- * Subscription Tab
- * Shows subscription status, usage, and upgrade options
- * Uses tier config from API (single source of truth)
+ * Subscription Tab (Beta Mode)
+ * Shows beta access status and usage
  */
 
-import { useState } from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { getTheme } from '../../../styles/theme';
 
-const UsageBar = ({ label, used, limit, theme, mode }) => {
+const UsageBar = ({ label, used, limit, resetAt, theme, mode }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));
   const isWarning = percent >= 75;
   const isExceeded = percent >= 100;
+
+  // Format reset time
+  const formatResetTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = date - now;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) return `Resets in ${diffDays}d`;
+    if (diffHours > 0) return `Resets in ${diffHours}h`;
+    return 'Resets soon';
+  };
 
   return (
     <div style={{ marginBottom: theme.spacing.lg }}>
@@ -24,7 +36,10 @@ const UsageBar = ({ label, used, limit, theme, mode }) => {
         fontSize: theme.typography.fontSize.sm,
       }}>
         <span style={{ color: theme.colors.foreground }}>{label}</span>
-        <span style={{ color: theme.colors.mutedForeground }}>{used} / {limit}</span>
+        <span style={{ color: theme.colors.mutedForeground }}>
+          {used} / {limit}
+          {resetAt && <span style={{ marginLeft: '8px', opacity: 0.7 }}>({formatResetTime(resetAt)})</span>}
+        </span>
       </div>
       <div style={{
         width: '100%',
@@ -32,9 +47,6 @@ const UsageBar = ({ label, used, limit, theme, mode }) => {
         background: mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
         borderRadius: '5px',
         overflow: 'hidden',
-        boxShadow: mode === 'dark'
-          ? 'inset 0 1px 2px rgba(0,0,0,0.3)'
-          : 'inset 0 1px 2px rgba(0,0,0,0.1)',
       }}>
         <div style={{
           width: `${Math.max(percent, 2)}%`,
@@ -47,61 +59,17 @@ const UsageBar = ({ label, used, limit, theme, mode }) => {
               : 'linear-gradient(90deg, #C97D63, #b06b52)',
           borderRadius: '5px',
           transition: 'width 0.3s ease',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
         }} />
       </div>
     </div>
   );
 };
 
-// Tier colors
-const TIER_COLORS = {
-  free: '#6B7280',
-  lite: '#3B82F6',
-  pro: '#C97D63',
-};
-
 export const SubscriptionTab = () => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { user } = useAuth();
-  const {
-    tier,
-    tierConfig,
-    allTiers,
-    usage,
-    subscription,
-    loading,
-    createCheckoutSession,
-    openCustomerPortal,
-  } = useSubscription();
-
-  const [upgradeLoading, setUpgradeLoading] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState(tier || 'free');
-  const [selectedUsageModel, setSelectedUsageModel] = useState('lite');
-
-  const handleUpgrade = async (targetTier) => {
-    try {
-      setUpgradeLoading(targetTier);
-      await createCheckoutSession(targetTier);
-    } catch (error) {
-      console.error('Upgrade error:', error);
-      setUpgradeLoading(null);
-    }
-  };
-
-  const handleManage = async () => {
-    try {
-      await openCustomerPortal();
-    } catch (error) {
-      console.error('Portal error:', error);
-    }
-  };
-
-  // Get tier info from API or fallback
-  const currentTierConfig = tierConfig || allTiers?.[tier] || { name: 'Free', price: 0 };
-  const tierColor = TIER_COLORS[tier] || TIER_COLORS.free;
-  const priceDisplay = currentTierConfig.price > 0 ? `$${currentTierConfig.price}/mo` : '$0';
+  const { usage, loading } = useSubscription();
 
   const sectionStyle = {
     background: mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
@@ -110,119 +78,18 @@ export const SubscriptionTab = () => {
     marginBottom: theme.spacing.lg,
   };
 
-  const buttonStyle = (primary = false) => ({
-    padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-    borderRadius: theme.radius.lg,
-    border: primary ? 'none' : `1px solid ${theme.colors.border}`,
-    background: primary ? '#C97D63' : 'transparent',
-    color: primary ? 'white' : theme.colors.foreground,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    cursor: 'pointer',
-    transition: 'opacity 0.2s',
-  });
-
   if (!user) {
     return (
       <div style={{ padding: theme.spacing.lg, textAlign: 'center' }}>
         <p style={{ color: theme.colors.mutedForeground }}>
-          Sign in to view subscription details
+          Sign in to view your account
         </p>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div style={{ padding: theme.spacing.lg, textAlign: 'center' }}>
-        <p style={{ color: theme.colors.mutedForeground }}>Loading...</p>
-      </div>
-    );
-  }
-
-  // Get tier config for any plan
-  const getUpgradeTierConfig = (targetTier) => {
-    if (targetTier === 'free') {
-      return allTiers?.free || { name: 'Free', price: 0, liteModel: { daily: 150, monthly: 300 }, proModel: null };
-    }
-    return allTiers?.[targetTier] || { name: targetTier, price: 0, liteModel: {}, proModel: {} };
-  };
-
   return (
     <div style={{ padding: theme.spacing.lg }}>
-      {/* Current Plan */}
-      <div style={sectionStyle}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: theme.spacing.md,
-        }}>
-          <div>
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.foreground,
-              marginBottom: '4px',
-            }}>
-              Current Plan
-            </h3>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-              background: tierColor + '20',
-              borderRadius: theme.radius.full,
-            }}>
-              <span style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: tierColor,
-              }} />
-              <span style={{
-                color: tierColor,
-                fontWeight: theme.typography.fontWeight.semibold,
-                fontSize: theme.typography.fontSize.sm,
-              }}>
-                {currentTierConfig.name}
-              </span>
-              <span style={{
-                color: theme.colors.mutedForeground,
-                fontSize: theme.typography.fontSize.sm,
-              }}>
-                {priceDisplay}
-              </span>
-            </div>
-          </div>
-          <button
-            style={{
-              ...buttonStyle(),
-              opacity: tier === 'free' ? 0.5 : 1,
-              cursor: tier === 'free' ? 'not-allowed' : 'pointer',
-            }}
-            onClick={tier !== 'free' ? handleManage : undefined}
-            disabled={tier === 'free'}
-            title={tier === 'free' ? 'Subscribe to manage billing' : 'Manage your subscription'}
-          >
-            Manage Billing
-          </button>
-        </div>
-
-        {subscription?.cancelAtPeriodEnd && (
-          <div style={{
-            background: '#fef3c7',
-            border: '1px solid #fcd34d',
-            borderRadius: theme.radius.md,
-            padding: theme.spacing.md,
-            color: '#92400e',
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            Your subscription will cancel at the end of the billing period.
-          </div>
-        )}
-      </div>
 
       {/* Usage */}
       <div style={sectionStyle}>
@@ -235,249 +102,96 @@ export const SubscriptionTab = () => {
           Usage
         </h3>
 
-        {/* Model Tab Bar */}
-        <div style={{
-          display: 'flex',
-          background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          borderRadius: theme.radius.lg,
-          padding: '4px',
-          marginBottom: theme.spacing.lg,
-          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
-        }}>
-          <button
-            onClick={() => setSelectedUsageModel('lite')}
-            style={{
-              flex: 1,
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              border: 'none',
-              borderRadius: theme.radius.md,
-              background: selectedUsageModel === 'lite'
-                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
-                : 'transparent',
-              backdropFilter: selectedUsageModel === 'lite' ? 'blur(4px)' : 'none',
-              WebkitBackdropFilter: selectedUsageModel === 'lite' ? 'blur(4px)' : 'none',
-              color: selectedUsageModel === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
-              fontWeight: selectedUsageModel === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-              fontSize: theme.typography.fontSize.sm,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: selectedUsageModel === 'lite'
-                ? (mode === 'dark'
-                    ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                    : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
-                : 'none',
-            }}
-          >
-            Lite Model
-          </button>
-          <button
-            onClick={() => setSelectedUsageModel('pro')}
-            style={{
-              flex: 1,
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              border: 'none',
-              borderRadius: theme.radius.md,
-              background: selectedUsageModel === 'pro'
-                ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
-                : 'transparent',
-              backdropFilter: selectedUsageModel === 'pro' ? 'blur(4px)' : 'none',
-              WebkitBackdropFilter: selectedUsageModel === 'pro' ? 'blur(4px)' : 'none',
-              color: selectedUsageModel === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
-              fontWeight: selectedUsageModel === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-              fontSize: theme.typography.fontSize.sm,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: selectedUsageModel === 'pro'
-                ? (mode === 'dark'
-                    ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                    : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
-                : 'none',
-            }}
-          >
-            Pro Model
-          </button>
-        </div>
-
-        {/* Usage Bars for selected model */}
-        {(() => {
-          const modelUsage = usage?.[selectedUsageModel];
-          const modelLimits = selectedUsageModel === 'lite'
-            ? tierConfig?.liteModel
-            : tierConfig?.proModel;
-
-          if (!modelLimits) {
-            return (
-              <p style={{
-                textAlign: 'center',
-                padding: theme.spacing.xl,
-                color: theme.colors.mutedForeground,
-                fontSize: theme.typography.fontSize.sm,
-              }}>
-                Pro model is not available on the Free plan
-              </p>
-            );
-          }
-
-          return (
-            <>
-              <UsageBar
-                label="Daily"
-                used={modelUsage?.daily || 0}
-                limit={modelLimits.daily}
-                theme={theme}
-                mode={mode}
-              />
-              <UsageBar
-                label="Monthly"
-                used={modelUsage?.monthly || 0}
-                limit={modelLimits.monthly}
-                theme={theme}
-                mode={mode}
-              />
-            </>
-          );
-        })()}
+        {loading ? (
+          <p style={{ color: theme.colors.mutedForeground, fontSize: theme.typography.fontSize.sm }}>
+            Loading...
+          </p>
+        ) : usage ? (
+          <>
+            <UsageBar
+              label="Daily"
+              used={usage.daily?.used || 0}
+              limit={usage.daily?.limit || 300}
+              resetAt={usage.daily?.resetAt}
+              theme={theme}
+              mode={mode}
+            />
+            <UsageBar
+              label="Monthly"
+              used={usage.monthly?.used || 0}
+              limit={usage.monthly?.limit || 500}
+              resetAt={usage.monthly?.resetAt}
+              theme={theme}
+              mode={mode}
+            />
+            <p style={{
+              color: theme.colors.mutedForeground,
+              fontSize: theme.typography.fontSize.xs,
+              marginTop: theme.spacing.sm,
+            }}>
+              Pro model uses 3 credits per request
+            </p>
+          </>
+        ) : (
+          <p style={{ color: theme.colors.mutedForeground, fontSize: theme.typography.fontSize.sm }}>
+            No usage data available
+          </p>
+        )}
       </div>
 
-      {/* All Plans */}
+      {/* Features */}
       <div style={sectionStyle}>
         <h3 style={{
           fontSize: theme.typography.fontSize.lg,
           fontWeight: theme.typography.fontWeight.semibold,
           color: theme.colors.foreground,
-          marginBottom: theme.spacing.lg,
+          marginBottom: theme.spacing.md,
         }}>
-          Plans
+          Included Features
         </h3>
-
-        {/* Plan Tab Bar - Always show all plans */}
-        <div style={{
-          display: 'flex',
-          background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          borderRadius: theme.radius.lg,
-          padding: '4px',
-          marginBottom: theme.spacing.lg,
-          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
+        <ul style={{
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          color: theme.colors.mutedForeground,
+          fontSize: theme.typography.fontSize.sm,
         }}>
-          {['free', 'lite', 'pro'].map((plan) => (
-            <button
-              key={plan}
-              onClick={() => setSelectedPlan(plan)}
-              style={{
-                flex: 1,
-                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                border: 'none',
-                borderRadius: theme.radius.md,
-                background: selectedPlan === plan
-                  ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
-                  : 'transparent',
-                backdropFilter: selectedPlan === plan ? 'blur(4px)' : 'none',
-                WebkitBackdropFilter: selectedPlan === plan ? 'blur(4px)' : 'none',
-                color: selectedPlan === plan ? theme.colors.foreground : theme.colors.mutedForeground,
-                fontWeight: selectedPlan === plan ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                fontSize: theme.typography.fontSize.sm,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: selectedPlan === plan
-                  ? (mode === 'dark'
-                      ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                      : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
-                  : 'none',
-              }}
-            >
-              {plan.charAt(0).toUpperCase() + plan.slice(1)}
-              {tier === plan && ' (Current)'}
-            </button>
-          ))}
-        </div>
-
-        {/* Plan Card - uses API data */}
-        {(() => {
-          const planConfig = getUpgradeTierConfig(selectedPlan);
-          const liteModel = planConfig.liteModel || {};
-          const proModel = planConfig.proModel || {};
-          const isCurrentPlan = tier === selectedPlan;
-          const isDowngrade = (tier === 'pro' && selectedPlan !== 'pro') || (tier === 'lite' && selectedPlan === 'free');
-
-          return (
-            <div style={{
-              border: `1px solid ${isCurrentPlan ? TIER_COLORS[tier] : theme.colors.border}`,
-              borderRadius: theme.radius.lg,
-              padding: theme.spacing.lg,
-              background: isCurrentPlan ? `${TIER_COLORS[tier]}10` : 'transparent',
+          {[
+            'Lite Model (1 credit/request)',
+            'Pro Model (3 credits/request)',
+            'Knowledge Base access',
+            'Unlimited projects',
+          ].map((feature, i) => (
+            <li key={i} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              marginBottom: theme.spacing.sm,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md }}>
-                <p style={{
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.foreground,
-                }}>
-                  {planConfig.price > 0 ? `$${planConfig.price}` : 'Free'}
-                  {planConfig.price > 0 && <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>}
-                </p>
-                {isCurrentPlan && (
-                  <span style={{
-                    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                    background: TIER_COLORS[tier],
-                    color: 'white',
-                    borderRadius: theme.radius.full,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                  }}>
-                    Current Plan
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
-                <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
-                <p style={{ marginBottom: '2px' }}>{liteModel.daily?.toLocaleString() || '—'} / day</p>
-                <p style={{ marginBottom: theme.spacing.md }}>{liteModel.monthly?.toLocaleString() || '—'} / month</p>
-                {(selectedPlan !== 'free' || proModel.daily) && (
-                  <>
-                    <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
-                    <p style={{ marginBottom: '2px' }}>{proModel.daily?.toLocaleString() || 'Not available'} / day</p>
-                    <p>{proModel.monthly?.toLocaleString() || 'Not available'} / month</p>
-                  </>
-                )}
-              </div>
-              {isCurrentPlan ? (
-                <button
-                  style={{
-                    ...buttonStyle(),
-                    width: '100%',
-                    opacity: 0.6,
-                    cursor: 'default',
-                  }}
-                  disabled
-                >
-                  Current Plan
-                </button>
-              ) : isDowngrade ? (
-                <button
-                  style={{
-                    ...buttonStyle(),
-                    width: '100%',
-                  }}
-                  onClick={handleManage}
-                >
-                  Manage Plan
-                </button>
-              ) : (
-                <button
-                  style={{ ...buttonStyle(true), width: '100%' }}
-                  onClick={() => handleUpgrade(selectedPlan)}
-                  disabled={upgradeLoading === selectedPlan}
-                >
-                  {upgradeLoading === selectedPlan ? 'Loading...' : `Upgrade to ${planConfig.name}`}
-                </button>
-              )}
-            </div>
-          );
-        })()}
+              <span style={{ color: '#10b981' }}>✓</span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Coming Soon */}
+      <div style={sectionStyle}>
+        <h3 style={{
+          fontSize: theme.typography.fontSize.lg,
+          fontWeight: theme.typography.fontWeight.semibold,
+          color: theme.colors.foreground,
+          marginBottom: theme.spacing.sm,
+        }}>
+          Subscription Plans
+        </h3>
+        <p style={{
+          color: theme.colors.mutedForeground,
+          fontSize: theme.typography.fontSize.sm,
+          margin: 0,
+        }}>
+          Coming soon! Unlock higher limits and premium features.
+        </p>
       </div>
     </div>
   );

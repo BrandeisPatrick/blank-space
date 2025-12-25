@@ -12,25 +12,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check rate limit
+  // Check rate limit for burst protection
   const rateLimit = checkRateLimit(req);
-
-  // Add rate limit headers to response
-  res.setHeader('X-RateLimit-Limit', rateLimit.limit.toString());
-  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
-  res.setHeader('X-RateLimit-Reset', rateLimit.reset);
-
-  // If rate limit exceeded, return 429
   if (!rateLimit.allowed) {
     return res.status(429).json({
-      error: 'Rate limit exceeded',
-      message: 'Daily limit reached. Your quota will reset at midnight UTC.',
-      rateLimit: {
-        limit: rateLimit.limit,
-        remaining: rateLimit.remaining,
-        reset: rateLimit.reset,
-        used: rateLimit.used
-      }
+      error: 'Too many requests',
+      message: 'Please slow down. Try again in a minute.',
     });
   }
 
@@ -104,17 +91,7 @@ export default async function handler(req, res) {
 
     // Parse and return successful response
     const data = await openaiResponse.json();
-
-    // Include rate limit info in response body
-    return res.status(200).json({
-      ...data,
-      rateLimit: {
-        limit: rateLimit.limit,
-        remaining: rateLimit.remaining,
-        reset: rateLimit.reset,
-        used: rateLimit.used
-      }
-    });
+    return res.status(200).json(data);
 
   } catch (error) {
     console.error('Serverless function error:', error);

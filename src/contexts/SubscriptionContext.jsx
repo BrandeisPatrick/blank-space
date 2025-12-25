@@ -1,8 +1,7 @@
 /**
- * Subscription Context
+ * Subscription Context (Beta Mode)
  *
- * Manages subscription state, usage tracking, and Stripe integration.
- * Quota config is fetched from API (single source of truth in backend).
+ * Simplified for beta testing - all features unlocked, tracks usage only.
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -10,272 +9,95 @@ import { useAuth } from './AuthContext';
 
 const SubscriptionContext = createContext();
 
-// Default tier config (fallback before API loads - must match server)
-const DEFAULT_TIER_CONFIG = {
-  id: 'free',
-  name: 'Free',
-  liteModel: { daily: 150, monthly: 300 },
-  proModel: null,
-  models: ['lite'],
-  price: 0,
-};
-
 export const SubscriptionProvider = ({ children }) => {
   const { user, getIdToken } = useAuth();
-  const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
-  const [tierConfig, setTierConfig] = useState(DEFAULT_TIER_CONFIG);
-  const [allTiers, setAllTiers] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  /**
-   * Fetch subscription and usage data
-   */
-  const fetchSubscriptionData = useCallback(async () => {
+  // Fetch usage data
+  const fetchUsage = useCallback(async () => {
     if (!user) {
-      setSubscription(null);
       setUsage(null);
       setLoading(false);
       return;
     }
 
     try {
-      setError(null);
       const token = await getIdToken();
       const response = await fetch('/api/user/usage', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription data');
+      if (response.ok) {
+        const data = await response.json();
+        setUsage(data.usage);
       }
-
-      const data = await response.json();
-      setSubscription(data.subscription);
-      // Per-model usage structure (daily + monthly only)
-      setUsage({
-        lite: data.usage.lite,
-        pro: data.usage.pro,
-        lastRequestAt: data.usage.lastRequestAt,
-        remaining: data.remaining,
-        percentUsed: data.percentUsed,
-        resetAt: data.resetAt,
-        limits: data.limits,
-      });
-      // Store tier config from API (single source of truth)
-      if (data.tierConfig) {
-        setTierConfig(data.tierConfig);
-      }
-      if (data.allTiers) {
-        setAllTiers(data.allTiers);
-      }
-    } catch (err) {
-      console.error('Failed to fetch subscription:', err);
-      setError(err.message);
+    } catch (error) {
+      console.error('Failed to fetch usage:', error);
     } finally {
       setLoading(false);
     }
   }, [user, getIdToken]);
 
-  // Fetch on mount and when user changes
-  useEffect(() => {
-    fetchSubscriptionData();
-  }, [fetchSubscriptionData]);
-
-  /**
-   * Create Stripe checkout session
-   */
-  const createCheckoutSession = async (tier) => {
-    const tierData = allTiers?.[tier];
-    if (!tierData || tier === 'free') {
-      throw new Error('Invalid tier for checkout');
-    }
-
-    const priceId = tier === 'pro'
-      ? import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY
-      : import.meta.env.VITE_STRIPE_PRICE_LITE_MONTHLY;
-
-    const token = await getIdToken();
-    const response = await fetch('/api/stripe/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ priceId }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create checkout session');
-    }
-
-    const { url } = await response.json();
-    window.location.href = url;
-  };
-
-  /**
-   * Open Stripe customer portal
-   */
-  const openCustomerPortal = async () => {
-    const token = await getIdToken();
-    const response = await fetch('/api/stripe/create-portal-session', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create portal session');
-    }
-
-    const { url } = await response.json();
-    window.location.href = url;
-  };
-
-  /**
-   * Sync subscription with Stripe (call after checkout success)
-   * This is more reliable than waiting for webhooks
-   */
-  const syncSubscription = useCallback(async () => {
-    if (!user) return null;
+  // Increment usage after a generation completes
+  const incrementUsage = useCallback(async (modelTier = 'lite') => {
+    if (!user) return;
 
     try {
       const token = await getIdToken();
-      const response = await fetch('/api/stripe/sync-subscription', {
+      await fetch('/api/user/increment-usage', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ modelTier }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to sync subscription');
-      }
-
-      const result = await response.json();
-
-      // Refresh subscription data after sync
-      if (result.synced) {
-        await fetchSubscriptionData();
-      }
-
-      return result;
-    } catch (err) {
-      console.error('Failed to sync subscription:', err);
-      return null;
+      // Refresh usage after increment
+      fetchUsage();
+    } catch (error) {
+      console.error('Failed to increment usage:', error);
     }
-  }, [user, getIdToken, fetchSubscriptionData]);
+  }, [user, getIdToken, fetchUsage]);
 
-  // Auto-sync when returning from checkout (success=true in URL)
+  // Fetch on mount and when user changes
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    console.log('[Subscription] Checking URL params:', window.location.search);
-    if (params.get('success') === 'true' && user) {
-      console.log('[Subscription] Success param detected, syncing...');
-      // Remove success param from URL
-      params.delete('success');
-      const newUrl = params.toString()
-        ? `${window.location.pathname}?${params}`
-        : window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+    fetchUsage();
+  }, [fetchUsage]);
 
-      // Sync subscription with Stripe
-      syncSubscription().then(result => {
-        console.log('[Subscription] Sync result:', result);
-      });
-    }
-  }, [user, syncSubscription]);
-
-  /**
-   * Check if user can use a specific model
-   */
-  const canUseModel = useCallback((modelTier) => {
-    return tierConfig?.models?.includes(modelTier) || false;
-  }, [tierConfig]);
-
-  /**
-   * Get usage data for a specific model
-   * @param {string} modelTier - 'lite' or 'pro'
-   */
-  const getModelUsage = useCallback((modelTier) => {
-    if (!usage) return null;
-    return {
-      used: usage[modelTier],
-      remaining: usage.remaining?.[modelTier],
-      percentUsed: usage.percentUsed?.[modelTier],
-      resetAt: usage.resetAt?.[modelTier],
-      limits: usage.limits?.[modelTier],
-    };
-  }, [usage]);
-
-  /**
-   * Get current tier config
-   */
-  const getTierConfig = useCallback(() => {
-    return tierConfig;
-  }, [tierConfig]);
-
-  /**
-   * Check if quota is exceeded for a specific model
-   * @param {string} modelTier - 'lite' or 'pro' (defaults to 'lite')
-   */
-  const isQuotaExceeded = useCallback((modelTier = 'lite') => {
-    const remaining = usage?.remaining?.[modelTier];
-    if (!remaining) return false;
-    return remaining.daily <= 0 || remaining.monthly <= 0;
-  }, [usage]);
-
-  /**
-   * Get most restrictive limit info for a specific model
-   * @param {string} modelTier - 'lite' or 'pro' (defaults to 'lite')
-   */
-  const getQuotaStatus = useCallback((modelTier = 'lite') => {
-    const remaining = usage?.remaining?.[modelTier];
-    const resetAt = usage?.resetAt?.[modelTier];
-
-    if (!remaining || !resetAt) {
-      return { type: null, remaining: null, resetAt: null, modelTier };
-    }
-
-    if (remaining.daily <= 0) {
-      return { type: 'daily', remaining: 0, resetAt: resetAt.daily, modelTier };
-    }
-    if (remaining.monthly <= 0) {
-      return { type: 'monthly', remaining: 0, resetAt: resetAt.monthly, modelTier };
-    }
-
-    // Return the most restrictive remaining
-    const minRemaining = Math.min(remaining.daily, remaining.monthly);
-
-    if (remaining.daily === minRemaining) {
-      return { type: 'daily', remaining: minRemaining, resetAt: resetAt.daily, modelTier };
-    }
-    return { type: 'monthly', remaining: minRemaining, resetAt: resetAt.monthly, modelTier };
-  }, [usage]);
+  // Beta mode: always allow all features
+  const canUseModel = useCallback(() => true, []);
 
   const value = {
-    // State
-    subscription,
+    // State - beta users get pro tier
+    subscription: { tier: 'pro', status: 'active' },
     usage,
     loading,
-    error,
-    tier: subscription?.tier || 'free',
-    tierConfig,
-    allTiers, // All tier configs from API (for pricing pages, etc.)
+    error: null,
+    tier: 'pro',
+    tierConfig: {
+      id: 'pro',
+      name: 'Beta',
+      models: ['lite', 'pro'],
+    },
+    allTiers: null,
 
     // Actions
-    createCheckoutSession,
-    openCustomerPortal,
-    syncSubscription,
-    refreshUsage: fetchSubscriptionData,
+    refreshUsage: fetchUsage,
+    incrementUsage,
+    createCheckoutSession: async () => {},
+    openCustomerPortal: async () => {},
+    syncSubscription: async () => null,
 
-    // Helpers
+    // Helpers - all unlocked for beta
     canUseModel,
-    getModelUsage,
-    isQuotaExceeded,
-    getQuotaStatus,
-    getTierConfig,
-    isPro: subscription?.tier === 'pro',
-    isLite: subscription?.tier === 'lite',
-    isFree: !subscription?.tier || subscription?.tier === 'free',
+    getModelUsage: () => null,
+    isQuotaExceeded: () => false,
+    getQuotaStatus: () => ({ type: null, remaining: null, resetAt: null }),
+    getTierConfig: () => ({ id: 'pro', name: 'Beta', models: ['lite', 'pro'] }),
+    isPro: true,
+    isLite: false,
+    isFree: false,
   };
 
   return (

@@ -1,169 +1,190 @@
 /**
- * Quota Middleware
+ * Simple Quota Middleware (Beta)
  *
- * Checks and enforces user quotas for AI requests.
- * Tracks usage separately for Lite and Pro models.
- * Model: Daily burst limit + Monthly total budget
+ * All users get:
+ * - 300 daily limit
+ * - 500 monthly limit
+ * - Pro model costs 3x
  */
 
 import { getFirestore } from './_auth.js';
-import admin from 'firebase-admin';
-import { TIER_QUOTAS, getModelQuota, canAccessModel } from '../config/_quotas.js';
-import {
-  getFieldNames,
-  createDefaultUsage,
-  migrateUsage,
-  resetCountersIfNeeded,
-} from '../utils/_usageHelpers.js';
+
+const LIMITS = {
+  daily: 300,
+  monthly: 500,
+};
+
+const MODEL_COST = {
+  lite: 1,
+  pro: 3,
+};
 
 /**
- * Check if user has quota remaining for a specific model
- *
+ * Get next reset time for daily quota (2 AM EST)
+ * 2 AM EST = 7 AM UTC (EST = UTC-5)
+ */
+function getNextDailyReset() {
+  const now = new Date();
+
+  // 2 AM EST = 7 AM UTC
+  const resetHourUTC = 7;
+
+  // Check if we've passed today's reset time
+  let resetDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    resetHourUTC, 0, 0, 0
+  ));
+
+  // If we've passed today's reset, use tomorrow's
+  if (now >= resetDate) {
+    resetDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      resetHourUTC, 0, 0, 0
+    ));
+  }
+
+  return resetDate.toISOString();
+}
+
+/**
+ * Get next reset time for monthly quota (1st of next month 2 AM EST)
+ */
+function getNextMonthlyReset() {
+  const now = new Date();
+  const resetHourUTC = 7; // 2 AM EST = 7 AM UTC
+
+  // 1st of next month at 2 AM EST
+  const nextMonth = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth() + 1,
+    1, resetHourUTC, 0, 0, 0
+  ));
+
+  return nextMonth.toISOString();
+}
+
+/**
+ * Create default usage object
+ */
+function createDefaultUsage() {
+  return {
+    dailyUsed: 0,
+    dailyResetAt: getNextDailyReset(),
+    monthlyUsed: 0,
+    monthlyResetAt: getNextMonthlyReset(),
+  };
+}
+
+/**
+ * Check if counters need reset and reset them if needed
+ */
+function resetIfNeeded(usage) {
+  const now = new Date();
+  let updated = false;
+
+  if (new Date(usage.dailyResetAt) <= now) {
+    usage.dailyUsed = 0;
+    usage.dailyResetAt = getNextDailyReset();
+    updated = true;
+  }
+
+  if (new Date(usage.monthlyResetAt) <= now) {
+    usage.monthlyUsed = 0;
+    usage.monthlyResetAt = getNextMonthlyReset();
+    updated = true;
+  }
+
+  return updated;
+}
+
+/**
+ * Check if user has quota for a request
  * @param {string} userId - Firebase user ID
  * @param {string} modelTier - 'lite' or 'pro'
- * @returns {Object} Quota check result
+ * @returns {object} { allowed, usage, cost, limits, error? }
  */
 export async function checkQuota(userId, modelTier = 'lite') {
   const db = getFirestore();
   const userRef = db.collection('users').doc(userId);
   const userDoc = await userRef.get();
 
-  if (!userDoc.exists) {
-    return {
-      allowed: false,
-      error: 'User not found',
-      status: 404,
-    };
+  // Get or create usage
+  let usage = userDoc.exists && userDoc.data().usage
+    ? { ...userDoc.data().usage }
+    : createDefaultUsage();
+
+  // Reset counters if needed
+  const needsReset = resetIfNeeded(usage);
+  if (needsReset) {
+    await userRef.set({ usage }, { merge: true });
   }
 
-  const user = userDoc.data();
-  const tier = user.subscription?.tier || 'free';
+  const cost = MODEL_COST[modelTier] || 1;
 
-  // Check if user can access this model
-  if (!canAccessModel(tier, modelTier)) {
+  // Check if request would exceed limits
+  const dailyRemaining = LIMITS.daily - usage.dailyUsed;
+  const monthlyRemaining = LIMITS.monthly - usage.monthlyUsed;
+
+  if (cost > dailyRemaining) {
     return {
       allowed: false,
-      tier,
-      error: `${modelTier === 'pro' ? 'Pro' : 'Lite'} model requires ${modelTier === 'pro' ? 'Lite or Pro' : ''} subscription`,
-      status: 403,
-    };
-  }
-
-  // Get limits for this model
-  const limits = getModelQuota(tier, modelTier);
-  if (!limits) {
-    return {
-      allowed: false,
-      tier,
-      error: `No quota configured for ${modelTier} model`,
-      status: 403,
-    };
-  }
-
-  // Initialize or migrate usage
-  let usage = user.usage ? migrateUsage(user.usage) : createDefaultUsage();
-  const now = new Date();
-  let usageUpdated = false;
-
-  // Reset counters if needed for both models
-  if (resetCountersIfNeeded(usage, 'lite', now)) usageUpdated = true;
-  if (resetCountersIfNeeded(usage, 'pro', now)) usageUpdated = true;
-
-  // Update usage in database if reset or migration occurred
-  if (usageUpdated || user.usage?.liteDailyCount === undefined || user.usage?.liteWeeklyCount !== undefined) {
-    await userRef.update({ usage });
-  }
-
-  const fields = getFieldNames(modelTier);
-
-  // Check limits
-  const dailyExceeded = usage[fields.dailyCount] >= limits.daily;
-  const monthlyExceeded = usage[fields.monthlyCount] >= limits.monthly;
-
-  const remaining = {
-    daily: Math.max(0, limits.daily - usage[fields.dailyCount]),
-    monthly: Math.max(0, limits.monthly - usage[fields.monthlyCount]),
-  };
-
-  if (dailyExceeded || monthlyExceeded) {
-    let resetAt;
-    let limitType;
-
-    if (dailyExceeded) {
-      resetAt = usage[fields.dailyResetAt];
-      limitType = 'daily';
-    } else {
-      resetAt = usage[fields.monthlyResetAt];
-      limitType = 'monthly';
-    }
-
-    return {
-      allowed: false,
-      tier,
-      modelTier,
-      limits,
+      error: 'Daily limit reached',
+      resetAt: usage.dailyResetAt,
       usage,
-      remaining,
-      resetAt,
-      limitType,
-      error: `${limitType.charAt(0).toUpperCase() + limitType.slice(1)} ${modelTier} model quota exceeded`,
-      status: 429,
+      limits: LIMITS,
+    };
+  }
+
+  if (cost > monthlyRemaining) {
+    return {
+      allowed: false,
+      error: 'Monthly limit reached',
+      resetAt: usage.monthlyResetAt,
+      usage,
+      limits: LIMITS,
     };
   }
 
   return {
     allowed: true,
-    tier,
-    modelTier,
-    limits,
     usage,
+    cost,
+    limits: LIMITS,
     remaining: {
-      daily: remaining.daily - 1,
-      monthly: remaining.monthly - 1,
+      daily: dailyRemaining,
+      monthly: monthlyRemaining,
     },
   };
 }
 
 /**
  * Increment usage after successful request
- *
  * @param {string} userId - Firebase user ID
  * @param {string} modelTier - 'lite' or 'pro'
  */
 export async function incrementUsage(userId, modelTier = 'lite') {
   const db = getFirestore();
   const userRef = db.collection('users').doc(userId);
-  const fields = getFieldNames(modelTier);
+  const cost = MODEL_COST[modelTier] || 1;
 
-  await userRef.update({
-    [`usage.${fields.dailyCount}`]: admin.firestore.FieldValue.increment(1),
-    [`usage.${fields.monthlyCount}`]: admin.firestore.FieldValue.increment(1),
-    'usage.lastRequestAt': new Date().toISOString(),
-  });
+  const userDoc = await userRef.get();
+  let usage = userDoc.exists && userDoc.data().usage
+    ? { ...userDoc.data().usage }
+    : createDefaultUsage();
+
+  // Reset if needed before incrementing
+  resetIfNeeded(usage);
+
+  // Increment
+  usage.dailyUsed += cost;
+  usage.monthlyUsed += cost;
+  usage.lastRequestAt = new Date().toISOString();
+
+  await userRef.set({ usage }, { merge: true });
+
+  return usage;
 }
-
-/**
- * Format quota info for response headers
- *
- * @param {Object} quotaResult - Result from checkQuota
- * @returns {Object} Headers to add to response
- */
-export function getQuotaHeaders(quotaResult) {
-  const modelTier = quotaResult.modelTier || 'lite';
-  return {
-    'X-Quota-Tier': quotaResult.tier || 'free',
-    'X-Quota-Model': modelTier,
-    'X-Quota-Daily-Remaining': String(quotaResult.remaining?.daily ?? 0),
-    'X-Quota-Monthly-Remaining': String(quotaResult.remaining?.monthly ?? 0),
-  };
-}
-
-export { canAccessModel };
-
-export default {
-  checkQuota,
-  canAccessModel,
-  incrementUsage,
-  getQuotaHeaders,
-  TIER_QUOTAS,
-};

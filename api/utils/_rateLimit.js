@@ -1,100 +1,88 @@
 /**
- * Rate Limiting Utility
- * Tracks daily request limits per IP address
+ * Simple rate limiting for burst protection
+ * Uses in-memory store (resets on serverless cold start)
  */
 
-// In-memory storage for rate limiting
-const requestCounts = new Map();
+// In-memory store for rate limiting
+const rateLimitStore = new Map();
 
-// Configuration
-const DAILY_LIMIT = 50;
-const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+// Rate limit configuration (generous for beta)
+const RATE_LIMIT = {
+  windowMs: 60 * 1000, // 1 minute window
+  maxRequests: 30, // 30 requests per minute per IP
+};
 
 /**
- * Get client identifier (IP address)
+ * Clean up old entries from the store
  */
-function getClientKey(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0] ||
-         req.headers['x-real-ip'] ||
-         req.connection?.remoteAddress ||
-         'unknown';
-}
-
-/**
- * Get current day key (YYYY-MM-DD in UTC)
- */
-function getCurrentDayKey() {
-  const now = new Date();
-  return now.toISOString().split('T')[0];
-}
-
-/**
- * Get midnight UTC timestamp for rate limit reset
- */
-function getNextMidnightUTC() {
-  const now = new Date();
-  const tomorrow = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-    0, 0, 0, 0
-  ));
-  return tomorrow.toISOString();
-}
-
-/**
- * Check and update rate limit for a client
- * Returns: { allowed: boolean, remaining: number, limit: number, reset: string, used: number }
- */
-export function checkRateLimit(req) {
-  const clientKey = getClientKey(req);
-  const dayKey = getCurrentDayKey();
-  const storageKey = `${clientKey}:${dayKey}`;
-
-  // Get current count for this client today
-  const currentCount = requestCounts.get(storageKey) || 0;
-
-  // Check if limit exceeded
-  if (currentCount >= DAILY_LIMIT) {
-    return {
-      allowed: false,
-      remaining: 0,
-      limit: DAILY_LIMIT,
-      reset: getNextMidnightUTC(),
-      used: currentCount
-    };
-  }
-
-  // Increment count
-  const newCount = currentCount + 1;
-  requestCounts.set(storageKey, newCount);
-
-  return {
-    allowed: true,
-    remaining: DAILY_LIMIT - newCount,
-    limit: DAILY_LIMIT,
-    reset: getNextMidnightUTC(),
-    used: newCount
-  };
-}
-
-/**
- * Cleanup old entries (run periodically)
- */
-function cleanupOldEntries() {
-  const currentDay = getCurrentDayKey();
-
-  for (const [key] of requestCounts) {
-    // Extract day from key (format: "ip:YYYY-MM-DD")
-    const keyDay = key.split(':').slice(-1)[0];
-
-    if (keyDay !== currentDay) {
-      requestCounts.delete(key);
+function cleanupStore() {
+  const now = Date.now();
+  for (const [key, data] of rateLimitStore.entries()) {
+    if (now - data.startTime > RATE_LIMIT.windowMs) {
+      rateLimitStore.delete(key);
     }
   }
 }
 
-// Run cleanup every hour
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupOldEntries, CLEANUP_INTERVAL);
+/**
+ * Get client identifier from request
+ */
+function getClientId(req) {
+  // Try to get real IP from various headers
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  if (realIp) {
+    return realIp;
+  }
+  if (cfConnectingIp) {
+    return cfConnectingIp;
+  }
+
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * Check rate limit for a request
+ * @param {object} req - Request object
+ * @returns {object} Rate limit status
+ */
+export function checkRateLimit(req) {
+  // Clean up old entries periodically
+  if (Math.random() < 0.1) {
+    cleanupStore();
+  }
+
+  const clientId = getClientId(req);
+  const now = Date.now();
+
+  // Get or create rate limit data for this client
+  let data = rateLimitStore.get(clientId);
+
+  if (!data || now - data.startTime > RATE_LIMIT.windowMs) {
+    // Start new window
+    data = {
+      startTime: now,
+      count: 0,
+    };
+    rateLimitStore.set(clientId, data);
+  }
+
+  // Increment count
+  data.count++;
+
+  const remaining = Math.max(0, RATE_LIMIT.maxRequests - data.count);
+  const resetTime = new Date(data.startTime + RATE_LIMIT.windowMs).toISOString();
+
+  return {
+    allowed: data.count <= RATE_LIMIT.maxRequests,
+    limit: RATE_LIMIT.maxRequests,
+    remaining,
+    reset: resetTime,
+    used: data.count,
+  };
 }

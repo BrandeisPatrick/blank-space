@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useSubscription } from '../../contexts/SubscriptionContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
@@ -93,8 +92,7 @@ export const EnhancedChatInput = ({
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
-  const { openAuthModal, openPricingPage } = useSettings();
-  const { canUseModel, tier: subscriptionTier } = useSubscription();
+  const { openAuthModal } = useSettings();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
@@ -439,8 +437,6 @@ export const EnhancedChatInput = ({
               >
                 {Object.entries(MODEL_TIERS).map(([key, tier]) => {
                   const needsAuth = !user;
-                  const needsUpgrade = user && key === 'pro' && !canUseModel('pro');
-                  const isLocked = needsAuth || needsUpgrade;
                   return (
                     <div
                       key={key}
@@ -448,9 +444,6 @@ export const EnhancedChatInput = ({
                         if (needsAuth) {
                           setShowModelDropdown(false);
                           openAuthModal();
-                        } else if (needsUpgrade) {
-                          setShowModelDropdown(false);
-                          openPricingPage();
                         } else {
                           onChangeModelTier && onChangeModelTier(key);
                           setShowModelDropdown(false);
@@ -462,21 +455,21 @@ export const EnhancedChatInput = ({
                         justifyContent: 'space-between',
                         padding: `${theme.spacing.sm} ${theme.spacing.md}`,
                         cursor: 'pointer',
-                        background: modelTier === key && !isLocked
+                        background: modelTier === key && !needsAuth
                           ? (mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
                           : 'transparent',
                         transition: `background ${theme.animation.fast}`,
-                        opacity: isLocked ? 0.7 : 1,
+                        opacity: needsAuth ? 0.7 : 1,
                       }}
                       onMouseEnter={(e) => {
-                        if (modelTier !== key || isLocked) {
+                        if (modelTier !== key || needsAuth) {
                           e.currentTarget.style.background = mode === 'dark'
                             ? 'rgba(255,255,255,0.05)'
                             : 'rgba(0,0,0,0.03)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (modelTier !== key || isLocked) {
+                        if (modelTier !== key || needsAuth) {
                           e.currentTarget.style.background = 'transparent';
                         }
                       }}
@@ -491,16 +484,16 @@ export const EnhancedChatInput = ({
                           gap: theme.spacing.xs,
                         }}>
                           {tier.name}
-                          {isLocked && <LockIcon size={12} color={theme.colors.text.tertiary} />}
+                          {needsAuth && <LockIcon size={12} color={theme.colors.text.tertiary} />}
                         </div>
                         <div style={{
                           fontSize: theme.typography.fontSize.xs,
-                          color: needsUpgrade ? '#C97D63' : theme.colors.text.tertiary,
+                          color: theme.colors.text.tertiary,
                         }}>
-                          {needsAuth ? 'Sign in required' : needsUpgrade ? 'Upgrade to Pro' : tier.description}
+                          {needsAuth ? 'Sign in required' : tier.description}
                         </div>
                       </div>
-                      {modelTier === key && !isLocked && (
+                      {modelTier === key && !needsAuth && (
                         <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
                       )}
                     </div>

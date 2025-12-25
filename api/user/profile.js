@@ -6,82 +6,6 @@
 
 import { verifyAuth, getFirestore } from '../middleware/_auth.js';
 
-/**
- * Get next reset time for daily quota (midnight UTC)
- */
-function getNextDailyReset() {
-  const now = new Date();
-  const tomorrow = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-    0, 0, 0, 0
-  ));
-  return tomorrow.toISOString();
-}
-
-/**
- * Get next reset time for weekly quota (next Monday midnight UTC)
- */
-function getNextWeeklyReset() {
-  const now = new Date();
-  const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
-  const nextMonday = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + daysUntilMonday,
-    0, 0, 0, 0
-  ));
-  return nextMonday.toISOString();
-}
-
-/**
- * Get next reset time for monthly quota (1st of next month midnight UTC)
- */
-function getNextMonthlyReset() {
-  const now = new Date();
-  const nextMonth = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth() + 1,
-    1, 0, 0, 0, 0
-  ));
-  return nextMonth.toISOString();
-}
-
-/**
- * Create default usage object
- */
-function createDefaultUsage() {
-  return {
-    daily: {
-      requests: 0,
-      resetAt: getNextDailyReset(),
-    },
-    weekly: {
-      requests: 0,
-      resetAt: getNextWeeklyReset(),
-    },
-    monthly: {
-      requests: 0,
-      resetAt: getNextMonthlyReset(),
-    },
-    lastRequestAt: null,
-  };
-}
-
-/**
- * Default subscription object
- */
-const DEFAULT_SUBSCRIPTION = {
-  tier: 'free',
-  status: 'active',
-  stripeCustomerId: null,
-  stripeSubscriptionId: null,
-  stripePriceId: null,
-  currentPeriodEnd: null,
-  cancelAtPeriodEnd: false,
-};
-
 // Default profile for new users
 function createDefaultProfile(authResult) {
   return {
@@ -94,8 +18,6 @@ function createDefaultProfile(authResult) {
       aiColorPalette: 'vibrant',
       aiUIStyle: 'glassmorphism',
     },
-    subscription: { ...DEFAULT_SUBSCRIPTION },
-    usage: createDefaultUsage(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     emailVerified: authResult.emailVerified || false,
@@ -136,30 +58,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // Backfill subscription/usage for existing users
-      const data = userDoc.data();
-      const needsBackfill = !data.subscription || !data.usage;
-
-      if (needsBackfill) {
-        const backfillUpdates = {};
-        if (!data.subscription) {
-          backfillUpdates.subscription = { ...DEFAULT_SUBSCRIPTION };
-        }
-        if (!data.usage) {
-          backfillUpdates.usage = createDefaultUsage();
-        }
-        await userRef.update(backfillUpdates);
-
-        return res.status(200).json({
-          success: true,
-          profile: { ...data, ...backfillUpdates },
-          isNew: false,
-        });
-      }
-
       return res.status(200).json({
         success: true,
-        profile: data,
+        profile: userDoc.data(),
         isNew: false,
       });
     }

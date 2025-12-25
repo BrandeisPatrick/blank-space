@@ -17,9 +17,6 @@ export const SettingsProvider = ({ children }) => {
   // UI state for auth modal
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // UI state for pricing page navigation
-  const [shouldShowPricing, setShouldShowPricing] = useState(false);
-
   // AI Generation Style settings (persisted to localStorage for guests)
   const [localAIColorPalette, setLocalAIColorPalette] = useLocalStorage('aiColorPalette', DEFAULT_COLOR_PALETTE);
   const [localAIUIStyle, setLocalAIUIStyle] = useLocalStorage('aiUIStyle', DEFAULT_UI_STYLE);
@@ -68,9 +65,6 @@ export const SettingsProvider = ({ children }) => {
   const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
   const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
 
-  const openPricingPage = useCallback(() => setShouldShowPricing(true), []);
-  const closePricingPage = useCallback(() => setShouldShowPricing(false), []);
-
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
@@ -82,17 +76,13 @@ export const SettingsProvider = ({ children }) => {
       isAuthModalOpen,
       openAuthModal,
       closeAuthModal,
-      // Pricing page state
-      shouldShowPricing,
-      openPricingPage,
-      closePricingPage,
       // AI Generation Style settings
       aiColorPalette,
       setAIColorPalette,
       aiUIStyle,
       setAIUIStyle,
     }),
-    [isSettingsOpen, openSettings, closeSettings, isAuthModalOpen, openAuthModal, closeAuthModal, shouldShowPricing, openPricingPage, closePricingPage, aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle]
+    [isSettingsOpen, openSettings, closeSettings, isAuthModalOpen, openAuthModal, closeAuthModal, aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle]
   );
 
   return (

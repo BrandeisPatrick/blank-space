@@ -24,7 +24,7 @@ function App() {
   const { user, loading: authLoading, getIdToken } = useAuth();
   const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
   const { aiColorPalette, aiUIStyle } = useSettings();
-  const { refreshUsage } = useSubscription();
+  const { refreshUsage, incrementUsage } = useSubscription();
   const isMobile = useIsMobile();
 
   // Route state
@@ -453,8 +453,8 @@ function App() {
         setFiles(fixedFiles);
         removeLoadingMessage();
 
-        // Usage is now incremented server-side in /api/gemini
-        refreshUsage();
+        // Increment usage after successful debug (1 credit for lite, 3 for pro)
+        incrementUsage(modelTier);
 
         // Add success message
         const fixedCount = result.fileOperations.length;
@@ -501,7 +501,7 @@ function App() {
       setIsDebugging(false);
       setIsAIProcessing(false);
     }
-  }, [files, isDebugging, useKnowledgeBase, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory]);
+  }, [files, isDebugging, useKnowledgeBase, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, incrementUsage]);
 
   // Handle chat message with AI agents
   const handleSendMessage = useCallback(async (message) => {
@@ -588,8 +588,8 @@ function App() {
         removeLoadingMessage();
         setIsAIProcessing(false);
 
-        // Usage is now incremented server-side in /api/gemini
-        refreshUsage();
+        // Increment usage after successful generation (1 credit for lite, 3 for pro)
+        incrementUsage(modelTier);
 
         // Handle chat intent - no file operations, just conversation
         if (result.intent === 'chat') {
@@ -711,7 +711,7 @@ function App() {
         }]);
       }
     }
-  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase, modelTier]);
+  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase, modelTier, incrementUsage]);
   // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
 
   // Handle initial message from URL parameter (landing page → studio transition)
