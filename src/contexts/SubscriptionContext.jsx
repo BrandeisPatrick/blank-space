@@ -133,6 +133,54 @@ export const SubscriptionProvider = ({ children }) => {
   };
 
   /**
+   * Sync subscription with Stripe (call after checkout success)
+   * This is more reliable than waiting for webhooks
+   */
+  const syncSubscription = useCallback(async () => {
+    if (!user) return null;
+
+    try {
+      const token = await getIdToken();
+      const response = await fetch('/api/stripe/sync-subscription', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync subscription');
+      }
+
+      const result = await response.json();
+
+      // Refresh subscription data after sync
+      if (result.synced) {
+        await fetchSubscriptionData();
+      }
+
+      return result;
+    } catch (err) {
+      console.error('Failed to sync subscription:', err);
+      return null;
+    }
+  }, [user, getIdToken, fetchSubscriptionData]);
+
+  // Auto-sync when returning from checkout (success=true in URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true' && user) {
+      // Remove success param from URL
+      params.delete('success');
+      const newUrl = params.toString()
+        ? `${window.location.pathname}?${params}`
+        : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+
+      // Sync subscription with Stripe
+      syncSubscription();
+    }
+  }, [user, syncSubscription]);
+
+  /**
    * Check if user can use a specific model
    */
   const canUseModel = useCallback((modelTier) => {
@@ -212,6 +260,7 @@ export const SubscriptionProvider = ({ children }) => {
     // Actions
     createCheckoutSession,
     openCustomerPortal,
+    syncSubscription,
     refreshUsage: fetchSubscriptionData,
 
     // Helpers
