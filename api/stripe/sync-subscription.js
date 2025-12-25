@@ -44,27 +44,98 @@ export default async function handler(req, res) {
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
-    const { userId } = authResult;
-    console.log('[sync-subscription] User ID:', userId);
+    const { userId, email: authEmail } = authResult;
+    console.log('[sync-subscription] User ID:', userId, 'Auth email:', authEmail);
 
     const db = getFirestore();
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      console.log('[sync-subscription] User doc does not exist');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const userData = userDoc.data();
+    console.log('[sync-subscription] User data email:', userData?.email);
 
     const stripeCustomerId = userData?.subscription?.stripeCustomerId;
     console.log('[sync-subscription] Existing customer ID:', stripeCustomerId);
 
+    // Use auth email as fallback
+    const userEmail = userData?.email || authEmail;
+
     if (!stripeCustomerId) {
-      // No customer yet - check if they just completed checkout
-      // Try to find customer by email
-      console.log('[sync-subscription] No customer ID, searching by email:', userData.email);
-      const customers = await stripe.customers.list({
-        limit: 1,
-        email: userData.email,
+      // No customer yet - check recent checkout sessions for this user
+      console.log('[sync-subscription] No customer ID, checking recent checkout sessions...');
+
+      // First try to find recent completed checkout sessions
+      const sessions = await stripe.checkout.sessions.list({
+        limit: 10,
+        status: 'complete',
       });
 
-      console.log('[sync-subscription] Found customers:', customers.data.length);
+      // Find session with our Firebase user ID
+      const userSession = sessions.data.find(
+        s => s.metadata?.firebaseUserId === userId
+      );
+
+      if (userSession && userSession.customer) {
+        console.log('[sync-subscription] Found checkout session for user:', userSession.id);
+        const customerId = userSession.customer;
+
+        // Get subscription from this customer
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          limit: 1,
+        });
+
+        if (subscriptions.data.length > 0) {
+          const subscription = subscriptions.data[0];
+          const priceId = subscription.items.data[0]?.price?.id;
+          const tier = getTierFromPriceId(priceId);
+
+          console.log('[sync-subscription] Found subscription via session:', { id: subscription.id, tier });
+
+          // Update Firestore
+          await userRef.update({
+            'subscription.tier': tier,
+            'subscription.status': subscription.status,
+            'subscription.stripeCustomerId': customerId,
+            'subscription.stripeSubscriptionId': subscription.id,
+            'subscription.stripePriceId': priceId,
+            'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000).toISOString(),
+            'subscription.cancelAtPeriodEnd': subscription.cancel_at_period_end,
+          });
+
+          console.log('[sync-subscription] Firestore updated successfully');
+
+          return res.status(200).json({
+            synced: true,
+            tier,
+            status: subscription.status,
+          });
+        }
+      }
+
+      // Fallback: try to find customer by email
+      if (!userEmail) {
+        console.log('[sync-subscription] No email found');
+        return res.status(200).json({
+          synced: false,
+          tier: 'free',
+          message: 'No subscription found',
+        });
+      }
+
+      console.log('[sync-subscription] Fallback: searching by email:', userEmail);
+      const customers = await stripe.customers.list({
+        limit: 5,
+        email: userEmail,
+      });
+
+      console.log('[sync-subscription] Found customers by email:', customers.data.length);
 
       if (customers.data.length === 0) {
         console.log('[sync-subscription] No customer found');
@@ -174,10 +245,12 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Sync subscription error:', error);
+    console.error('[sync-subscription] Error:', error.message);
+    console.error('[sync-subscription] Stack:', error.stack);
     return res.status(500).json({
       error: 'Failed to sync subscription',
       message: error.message,
+      type: error.type || error.code || 'unknown',
     });
   }
 }
