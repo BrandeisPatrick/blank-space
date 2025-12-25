@@ -5,8 +5,17 @@ import { createGlassEffect } from '../../styles/componentStyles'
 import { LoadingDots } from './LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 import { Z_INDEX, FLOATING_WINDOWS } from '../../constants'
-import { getRandomTip } from '../../knowledge/tips'
 import { CloseIcon } from '../icons/icons'
+
+// Simple tips shown during loading
+const TIPS = [
+  'Try describing your app in detail for better results',
+  'You can ask to modify specific parts of your app',
+  'Use the Pro model for more complex applications',
+  'Save your favorite apps to access them later',
+  'Check out the App Store for ready-to-use templates',
+];
+const getRandomTip = () => TIPS[Math.floor(Math.random() * TIPS.length)];
 
 export const AIResponsePanel = ({
   visible = false,
