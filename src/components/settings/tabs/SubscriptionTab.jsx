@@ -77,7 +77,7 @@ export const SubscriptionTab = () => {
   } = useSubscription();
 
   const [upgradeLoading, setUpgradeLoading] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState('lite');
+  const [selectedPlan, setSelectedPlan] = useState(tier || 'free');
   const [selectedUsageModel, setSelectedUsageModel] = useState('lite');
 
   const handleUpgrade = async (targetTier) => {
@@ -140,8 +140,11 @@ export const SubscriptionTab = () => {
     );
   }
 
-  // Get upgrade tier config
+  // Get tier config for any plan
   const getUpgradeTierConfig = (targetTier) => {
+    if (targetTier === 'free') {
+      return allTiers?.free || { name: 'Free', price: 0, liteModel: { daily: 150, monthly: 300 }, proModel: null };
+    }
     return allTiers?.[targetTier] || { name: targetTier, price: 0, liteModel: {}, proModel: {} };
   };
 
@@ -193,11 +196,18 @@ export const SubscriptionTab = () => {
               </span>
             </div>
           </div>
-          {tier !== 'free' && (
-            <button style={buttonStyle()} onClick={handleManage}>
-              Manage Billing
-            </button>
-          )}
+          <button
+            style={{
+              ...buttonStyle(),
+              opacity: tier === 'free' ? 0.5 : 1,
+              cursor: tier === 'free' ? 'not-allowed' : 'pointer',
+            }}
+            onClick={tier !== 'free' ? handleManage : undefined}
+            disabled={tier === 'free'}
+            title={tier === 'free' ? 'Subscribe to manage billing' : 'Manage your subscription'}
+          >
+            Manage Billing
+          </button>
         </div>
 
         {subscription?.cancelAtPeriodEnd && (
@@ -331,142 +341,144 @@ export const SubscriptionTab = () => {
         })()}
       </div>
 
-      {/* Upgrade Options */}
-      {tier !== 'pro' && (
-        <div style={sectionStyle}>
-          <h3 style={{
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.foreground,
-            marginBottom: theme.spacing.lg,
-          }}>
-            Upgrade
-          </h3>
+      {/* All Plans */}
+      <div style={sectionStyle}>
+        <h3 style={{
+          fontSize: theme.typography.fontSize.lg,
+          fontWeight: theme.typography.fontWeight.semibold,
+          color: theme.colors.foreground,
+          marginBottom: theme.spacing.lg,
+        }}>
+          Plans
+        </h3>
 
-          {/* Plan Tab Bar */}
-          {tier === 'free' && (
+        {/* Plan Tab Bar - Always show all plans */}
+        <div style={{
+          display: 'flex',
+          background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: theme.radius.lg,
+          padding: '4px',
+          marginBottom: theme.spacing.lg,
+          border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
+        }}>
+          {['free', 'lite', 'pro'].map((plan) => (
+            <button
+              key={plan}
+              onClick={() => setSelectedPlan(plan)}
+              style={{
+                flex: 1,
+                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                border: 'none',
+                borderRadius: theme.radius.md,
+                background: selectedPlan === plan
+                  ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
+                  : 'transparent',
+                backdropFilter: selectedPlan === plan ? 'blur(4px)' : 'none',
+                WebkitBackdropFilter: selectedPlan === plan ? 'blur(4px)' : 'none',
+                color: selectedPlan === plan ? theme.colors.foreground : theme.colors.mutedForeground,
+                fontWeight: selectedPlan === plan ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                fontSize: theme.typography.fontSize.sm,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: selectedPlan === plan
+                  ? (mode === 'dark'
+                      ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                      : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
+                  : 'none',
+              }}
+            >
+              {plan.charAt(0).toUpperCase() + plan.slice(1)}
+              {tier === plan && ' (Current)'}
+            </button>
+          ))}
+        </div>
+
+        {/* Plan Card - uses API data */}
+        {(() => {
+          const planConfig = getUpgradeTierConfig(selectedPlan);
+          const liteModel = planConfig.liteModel || {};
+          const proModel = planConfig.proModel || {};
+          const isCurrentPlan = tier === selectedPlan;
+          const isDowngrade = (tier === 'pro' && selectedPlan !== 'pro') || (tier === 'lite' && selectedPlan === 'free');
+
+          return (
             <div style={{
-              display: 'flex',
-              background: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              border: `1px solid ${isCurrentPlan ? TIER_COLORS[tier] : theme.colors.border}`,
               borderRadius: theme.radius.lg,
-              padding: '4px',
-              marginBottom: theme.spacing.lg,
-              border: mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)',
+              padding: theme.spacing.lg,
+              background: isCurrentPlan ? `${TIER_COLORS[tier]}10` : 'transparent',
             }}>
-              <button
-                onClick={() => setSelectedPlan('lite')}
-                style={{
-                  flex: 1,
-                  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                  border: 'none',
-                  borderRadius: theme.radius.md,
-                  background: selectedPlan === 'lite'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
-                    : 'transparent',
-                  backdropFilter: selectedPlan === 'lite' ? 'blur(4px)' : 'none',
-                  WebkitBackdropFilter: selectedPlan === 'lite' ? 'blur(4px)' : 'none',
-                  color: selectedPlan === 'lite' ? theme.colors.foreground : theme.colors.mutedForeground,
-                  fontWeight: selectedPlan === 'lite' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  fontSize: theme.typography.fontSize.sm,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: selectedPlan === 'lite'
-                    ? (mode === 'dark'
-                        ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
-                    : 'none',
-                }}
-              >
-                Lite
-              </button>
-              <button
-                onClick={() => setSelectedPlan('pro')}
-                style={{
-                  flex: 1,
-                  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                  border: 'none',
-                  borderRadius: theme.radius.md,
-                  background: selectedPlan === 'pro'
-                    ? (mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)')
-                    : 'transparent',
-                  backdropFilter: selectedPlan === 'pro' ? 'blur(4px)' : 'none',
-                  WebkitBackdropFilter: selectedPlan === 'pro' ? 'blur(4px)' : 'none',
-                  color: selectedPlan === 'pro' ? theme.colors.foreground : theme.colors.mutedForeground,
-                  fontWeight: selectedPlan === 'pro' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  fontSize: theme.typography.fontSize.sm,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: selectedPlan === 'pro'
-                    ? (mode === 'dark'
-                        ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)')
-                    : 'none',
-                }}
-              >
-                Pro
-              </button>
-            </div>
-          )}
-
-          {/* Plan Card - uses API data */}
-          {(() => {
-            const targetTier = tier === 'lite' ? 'pro' : selectedPlan;
-            const upgradeTierConfig = getUpgradeTierConfig(targetTier);
-            const liteModel = upgradeTierConfig.liteModel || {};
-            const proModel = upgradeTierConfig.proModel || {};
-
-            return (
-              <div style={{
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.lg,
-                padding: theme.spacing.lg,
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md }}>
                 <p style={{
                   fontSize: theme.typography.fontSize['2xl'],
                   fontWeight: theme.typography.fontWeight.bold,
                   color: theme.colors.foreground,
-                  marginBottom: theme.spacing.md,
                 }}>
-                  ${upgradeTierConfig.price}<span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>
+                  {planConfig.price > 0 ? `$${planConfig.price}` : 'Free'}
+                  {planConfig.price > 0 && <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground }}>/mo</span>}
                 </p>
-                <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
-                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
-                  <p style={{ marginBottom: '2px' }}>{liteModel.daily?.toLocaleString() || '—'} / day</p>
-                  <p style={{ marginBottom: theme.spacing.md }}>{liteModel.monthly?.toLocaleString() || '—'} / month</p>
-                  <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
-                  <p style={{ marginBottom: '2px' }}>{proModel.daily?.toLocaleString() || '—'} / day</p>
-                  <p>{proModel.monthly?.toLocaleString() || '—'} / month</p>
-                </div>
-                <button
-                  style={buttonStyle(true)}
-                  onClick={() => handleUpgrade(targetTier)}
-                  disabled={upgradeLoading === targetTier}
-                >
-                  {upgradeLoading === targetTier ? 'Loading...' : `Upgrade to ${upgradeTierConfig.name}`}
-                </button>
+                {isCurrentPlan && (
+                  <span style={{
+                    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                    background: TIER_COLORS[tier],
+                    color: 'white',
+                    borderRadius: theme.radius.full,
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                  }}>
+                    Current Plan
+                  </span>
+                )}
               </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* Pro user message */}
-      {tier === 'pro' && (
-        <div style={{
-          ...sectionStyle,
-          textAlign: 'center',
-          background: '#C97D6320',
-        }}>
-          <p style={{
-            color: '#C97D63',
-            fontWeight: theme.typography.fontWeight.medium,
-          }}>
-            You're on the Pro plan with full access to all features!
-          </p>
-        </div>
-      )}
+              <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.mutedForeground, marginBottom: theme.spacing.lg }}>
+                <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Lite Model</p>
+                <p style={{ marginBottom: '2px' }}>{liteModel.daily?.toLocaleString() || '—'} / day</p>
+                <p style={{ marginBottom: theme.spacing.md }}>{liteModel.monthly?.toLocaleString() || '—'} / month</p>
+                {(selectedPlan !== 'free' || proModel.daily) && (
+                  <>
+                    <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.foreground, marginBottom: theme.spacing.xs }}>Pro Model</p>
+                    <p style={{ marginBottom: '2px' }}>{proModel.daily?.toLocaleString() || 'Not available'} / day</p>
+                    <p>{proModel.monthly?.toLocaleString() || 'Not available'} / month</p>
+                  </>
+                )}
+              </div>
+              {isCurrentPlan ? (
+                <button
+                  style={{
+                    ...buttonStyle(),
+                    width: '100%',
+                    opacity: 0.6,
+                    cursor: 'default',
+                  }}
+                  disabled
+                >
+                  Current Plan
+                </button>
+              ) : isDowngrade ? (
+                <button
+                  style={{
+                    ...buttonStyle(),
+                    width: '100%',
+                  }}
+                  onClick={handleManage}
+                >
+                  Manage Plan
+                </button>
+              ) : (
+                <button
+                  style={{ ...buttonStyle(true), width: '100%' }}
+                  onClick={() => handleUpgrade(selectedPlan)}
+                  disabled={upgradeLoading === selectedPlan}
+                >
+                  {upgradeLoading === selectedPlan ? 'Loading...' : `Upgrade to ${planConfig.name}`}
+                </button>
+              )}
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
 };
