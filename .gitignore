@@ -32,3 +32,5 @@ dist-ssr
 *.sw?
 
 .env*.local
+.env.local.*
+*.env.local.new
