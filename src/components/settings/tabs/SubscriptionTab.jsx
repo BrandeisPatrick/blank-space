@@ -159,7 +159,6 @@ export const SubscriptionTab = () => {
           {[
             'Lite Model (1 credit/request)',
             'Pro Model (3 credits/request)',
-            'Knowledge Base access',
             'Unlimited projects',
           ].map((feature, i) => (
             <li key={i} style={{

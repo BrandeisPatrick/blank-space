@@ -34,13 +34,6 @@ function App() {
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [isDebugging, setIsDebugging] = useState(false);
 
-  // Knowledge Base state - enables professional component patterns
-  const [useKnowledgeBase, setUseKnowledgeBase] = useLocalStorage('useKnowledgeBase', true);
-
-  // Toggle knowledge base preference
-  const toggleKnowledgeBase = useCallback(() => {
-    setUseKnowledgeBase(prev => !prev);
-  }, [setUseKnowledgeBase]);
 
   // Model tier state - 'lite' or 'pro'
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite');
@@ -433,7 +426,6 @@ function App() {
 
     try {
       const result = await processMessage(debugMessage, files, onUpdate, {
-        useKnowledgeBase,
         modelTier,
         aiColorPalette,
         aiUIStyle,
@@ -501,7 +493,7 @@ function App() {
       setIsDebugging(false);
       setIsAIProcessing(false);
     }
-  }, [files, isDebugging, useKnowledgeBase, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, incrementUsage]);
+  }, [files, isDebugging, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, incrementUsage]);
 
   // Handle chat message with AI agents
   const handleSendMessage = useCallback(async (message) => {
@@ -575,7 +567,6 @@ function App() {
     try {
       // Process message with AI agents
       const result = await processMessage(message, files, onUpdate, {
-        useKnowledgeBase,
         modelTier,
         aiColorPalette,
         aiUIStyle,
@@ -711,7 +702,7 @@ function App() {
         }]);
       }
     }
-  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, useKnowledgeBase, modelTier, incrementUsage]);
+  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, modelTier, incrementUsage]);
   // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
 
   // Handle initial message from URL parameter (landing page → studio transition)
@@ -867,8 +858,6 @@ function App() {
       <LandingPage
         onTryNow={handleTryNow}
         onSignIn={handleNavigateToSignIn}
-        useKnowledgeBase={useKnowledgeBase}
-        onToggleKnowledgeBase={toggleKnowledgeBase}
         modelTier={modelTier}
         onChangeModelTier={setModelTier}
         activeArtifact={activeArtifact}

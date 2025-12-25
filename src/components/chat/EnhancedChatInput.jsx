@@ -44,23 +44,6 @@ const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
-// Sparkles icon for Knowledge Base
-const SparklesIcon = ({ size = 16, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" />
-    <path d="M19 15L20 18L23 19L20 20L19 23L18 20L15 19L18 18L19 15Z" />
-  </svg>
-);
-
 // Lock icon for auth-required features
 const LockIcon = ({ size = 14, color = "currentColor" }) => (
   <svg
@@ -83,8 +66,6 @@ export const EnhancedChatInput = ({
   onFocus,
   onSend,
   initialMessage = '',
-  useKnowledgeBase = true,
-  onToggleKnowledgeBase,
   modelTier = 'lite',
   onChangeModelTier,
   activeArtifact = null,
@@ -99,14 +80,10 @@ export const EnhancedChatInput = ({
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [showKnowledgeDropdown, setShowKnowledgeDropdown] = useState(false);
-  const [isProComponentsHovered, setIsProComponentsHovered] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const modelDropdownRef = useRef(null);
   const modelButtonRef = useRef(null);
-  const knowledgeDropdownRef = useRef(null);
-  const knowledgeButtonRef = useRef(null);
 
   // Update message when initialMessage prop changes
   useEffect(() => {
@@ -133,14 +110,6 @@ export const EnhancedChatInput = ({
         !modelButtonRef.current.contains(event.target)
       ) {
         setShowModelDropdown(false);
-      }
-      if (
-        knowledgeDropdownRef.current &&
-        !knowledgeDropdownRef.current.contains(event.target) &&
-        knowledgeButtonRef.current &&
-        !knowledgeButtonRef.current.contains(event.target)
-      ) {
-        setShowKnowledgeDropdown(false);
       }
     };
 
@@ -175,16 +144,6 @@ export const EnhancedChatInput = ({
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
   };
-
-  const handleAddProComponents = () => {
-    if (onToggleKnowledgeBase) {
-      onToggleKnowledgeBase();
-    }
-    setShowDropdown(false);
-  };
-
-  // Blue color for Knowledge Base text
-  const proComponentsColor = COLORS.PRO_COMPONENTS_BLUE;
 
   return (
     <div style={{
@@ -236,57 +195,6 @@ export const EnhancedChatInput = ({
             `}
           </style>
 
-          {/* Knowledge Base Option */}
-          <div
-            onClick={handleAddProComponents}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-              padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-              cursor: 'pointer',
-              transition: `background ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = theme.colors.bg.tertiary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            {/* Icon */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '20px',
-              height: '20px',
-              color: proComponentsColor,
-            }}>
-              <SparklesIcon size={18} color={proComponentsColor} />
-            </div>
-
-            {/* Label */}
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.text.primary,
-              fontFamily: theme.typography.fontFamily.sans,
-            }}>
-              Knowledge Base
-            </span>
-
-            {/* Checkmark when enabled */}
-            {useKnowledgeBase && (
-              <span style={{
-                marginLeft: 'auto',
-                fontSize: theme.typography.fontSize.sm,
-                color: proComponentsColor,
-              }}>
-                ✓
-              </span>
-            )}
-          </div>
         </div>
       )}
 
@@ -503,118 +411,6 @@ export const EnhancedChatInput = ({
             )}
           </div>
 
-          {/* Knowledge Base with dropdown */}
-          {useKnowledgeBase && (
-            <div style={{ position: 'relative' }}>
-              <button
-                ref={knowledgeButtonRef}
-                type="button"
-                onClick={() => setShowKnowledgeDropdown(!showKnowledgeDropdown)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.15)'
-                    : 'rgba(255, 255, 255, 0.7)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!showKnowledgeDropdown) {
-                    e.currentTarget.style.background = mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.08)'
-                      : 'rgba(255, 255, 255, 0.5)';
-                  }
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing.xs,
-                  ...createGlassEffect(theme),
-                  background: mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.08)'
-                    : 'rgba(255, 255, 255, 0.5)',
-                  boxShadow: mode === 'dark'
-                    ? 'inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-                    : 'inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
-                  cursor: 'pointer',
-                  color: proComponentsColor,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  fontFamily: theme.typography.fontFamily.sans,
-                  padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-                  borderRadius: theme.radius.full,
-                  transition: `all ${theme.animation.fast}`,
-                  flexShrink: 0,
-                }}
-              >
-                <span>Knowledge</span>
-                <ChevronDownIcon size={14} color={proComponentsColor} />
-              </button>
-
-              {/* Knowledge Dropdown Menu */}
-              {showKnowledgeDropdown && (
-                <div
-                  ref={knowledgeDropdownRef}
-                  style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: 0,
-                    marginBottom: theme.spacing.sm,
-                    ...createGlassEffect(theme),
-                    background: mode === 'dark'
-                      ? 'rgba(30, 30, 35, 0.6)'
-                      : 'rgba(255, 255, 255, 0.65)',
-                    borderRadius: theme.radius.xl,
-                    boxShadow: mode === 'dark'
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-                      : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
-                    minWidth: '140px',
-                    overflow: 'hidden',
-                    animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    zIndex: 100,
-                  }}
-                >
-                  <div
-                    onClick={() => {
-                      onToggleKnowledgeBase && onToggleKnowledgeBase();
-                      setShowKnowledgeDropdown(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                      cursor: 'pointer',
-                      background: 'transparent',
-                      transition: `background ${theme.animation.fast}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = mode === 'dark'
-                        ? 'rgba(255,255,255,0.05)'
-                        : 'rgba(0,0,0,0.03)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    <div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: theme.typography.fontWeight.medium,
-                        color: theme.colors.text.primary,
-                      }}>
-                        Remove
-                      </div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.text.tertiary,
-                      }}>
-                        Disable feature
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Editing Indicator - Shows when artifact is open (desktop only) */}
           {!isMobile && isEditingArtifact && activeArtifact && (
             <div style={{
@@ -624,7 +420,7 @@ export const EnhancedChatInput = ({
               fontSize: theme.typography.fontSize.base,
               fontWeight: theme.typography.fontWeight.medium,
               fontFamily: theme.typography.fontFamily.sans,
-              color: proComponentsColor,
+              color: COLORS.PRO_COMPONENTS_BLUE,
             }}>
               <span>Editing</span>
               <span>{activeArtifact.name}</span>
@@ -699,8 +495,6 @@ EnhancedChatInput.propTypes = {
   onFocus: PropTypes.func,
   onSend: PropTypes.func.isRequired,
   initialMessage: PropTypes.string,
-  useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func,
   modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func,
   activeArtifact: PropTypes.object,

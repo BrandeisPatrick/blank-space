@@ -51,7 +51,6 @@ async function generateAppName(userMessage, model) {
  */
 export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
-    useKnowledgeBase = false,
     modelTier = 'lite',
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
@@ -183,8 +182,6 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
     // Build system prompt with all context
     const systemPrompt = buildSystemPrompt({
       currentFiles,
-      useKnowledgeBase,
-      userMessage,
       aiColorPalette,
       aiUIStyle,
       wallpaperTheme,
@@ -196,10 +193,6 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
     const isEditing = Object.keys(currentFiles).length > 0;
     if (isEditing) {
       console.log(`[OpenAI Provider] Edit mode for ${Object.keys(currentFiles).length} existing file(s)`);
-    }
-
-    if (useKnowledgeBase) {
-      console.log('[OpenAI Provider] Knowledge base context enabled');
     }
 
     console.log(`[OpenAI Provider] Style preferences: palette=${aiColorPalette}, style=${aiUIStyle}`);

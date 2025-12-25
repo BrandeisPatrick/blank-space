@@ -4,7 +4,6 @@
  */
 
 import promptGuidance from '../../prompts.json';
-import { buildKnowledgeBaseContext } from '../../knowledgeBase/promptBuilder.js';
 import { buildStylePrompt } from '../../stylePresets/stylePromptBuilder.js';
 
 /**
@@ -439,14 +438,12 @@ Keep your tone friendly, helpful, and encouraging. If users seem unsure, suggest
 
 /**
  * Build complete system prompt with all context
- * @param {Object} options - Options including currentFiles, useKnowledgeBase, style preferences
+ * @param {Object} options - Options including currentFiles and style preferences
  * @returns {string} Complete system prompt
  */
 export function buildSystemPrompt(options = {}) {
   const {
     currentFiles = {},
-    useKnowledgeBase = false,
-    userMessage = '',
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
     wallpaperTheme = 'starry',
@@ -478,14 +475,6 @@ export function buildSystemPrompt(options = {}) {
   if (isEditing) {
     const editInstructions = buildEditModeInstructions(currentFiles);
     systemPrompt = editInstructions + '\n\n' + systemPrompt; // Prepend to ensure it's read first
-  }
-
-  // Add knowledge base context if enabled (Pro Mode)
-  if (useKnowledgeBase && userMessage) {
-    const knowledgeBaseContext = buildKnowledgeBaseContext(userMessage);
-    if (knowledgeBaseContext) {
-      systemPrompt += knowledgeBaseContext;
-    }
   }
 
   // Add AI style preferences

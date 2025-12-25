@@ -20,7 +20,7 @@ import { AuthModal } from './AuthModal';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
-export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnowledgeBase, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact, onShowLockScreen }) => {
+export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact, onShowLockScreen }) => {
   const { mode, theme: selectedTheme, currentTheme } = useTheme();
   const { openAuthModal } = useSettings();
   const { user, signOut } = useAuth();
@@ -305,8 +305,6 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
             setSelectedSuggestionPillText(''); // Reset so same pill can be clicked again
           }}
           initialMessage={selectedSuggestionPillText}
-          useKnowledgeBase={useKnowledgeBase}
-          onToggleKnowledgeBase={onToggleKnowledgeBase}
           modelTier={modelTier}
           onChangeModelTier={onChangeModelTier}
           activeArtifact={activeArtifact}
@@ -332,8 +330,6 @@ export const LandingPage = ({ onTryNow, onSignIn, useKnowledgeBase, onToggleKnow
 LandingPage.propTypes = {
   onTryNow: PropTypes.func.isRequired,
   onSignIn: PropTypes.func.isRequired,
-  useKnowledgeBase: PropTypes.bool,
-  onToggleKnowledgeBase: PropTypes.func,
   modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func,
   activeArtifact: PropTypes.object,

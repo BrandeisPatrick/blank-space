@@ -211,7 +211,7 @@ ${stripped}
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-    <!-- Framer Motion for animations (Knowledge Base) -->
+    <!-- Framer Motion for animations -->
     <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
 
     <!-- Error handling - MUST be before Babel to catch transpilation errors -->

@@ -96,7 +96,6 @@ async function executeFunction(name, args, executor, context) {
  */
 export async function processWithGemini(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
-    useKnowledgeBase = false,
     modelTier = 'lite',
     aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
@@ -205,8 +204,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     // Build system prompt (use local debug state which may have been set by intent classification)
     const systemPrompt = buildSystemPrompt({
       currentFiles,
-      useKnowledgeBase,
-      userMessage,
       aiColorPalette,
       aiUIStyle,
       wallpaperTheme,
