@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${baseUrl}/settings?tab=billing`,
+      return_url: baseUrl,
     });
 
     return res.status(200).json({

@@ -93,7 +93,7 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/settings?tab=billing&success=true`,
+      success_url: `${baseUrl}/?success=true`,
       cancel_url: `${baseUrl}/`,
       metadata: {
         firebaseUserId: userId,
