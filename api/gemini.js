@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless Function
  * Securely proxies Google Gemini API requests
- * Keeps GOOGLE_API_KEY server-side only
+ * Keeps GEMINI_API_KEY server-side only
  *
  * Supports two modes:
  * 1. Simple generation: { action: 'generate', model, contents, ... }
@@ -55,13 +55,14 @@ export default async function handler(req, res) {
   }
 
   // Get API key from environment (server-side only)
-  const apiKey = process.env.GOOGLE_API_KEY;
+  // Prefer GEMINI_API_KEY, fall back to GOOGLE_API_KEY for backwards compatibility
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
-    console.error('GOOGLE_API_KEY not configured in Vercel environment');
+    console.error('GEMINI_API_KEY not configured in environment');
     return res.status(500).json({
       error: 'Server configuration error',
-      message: 'Google API key not configured'
+      message: 'Gemini API key not configured'
     });
   }
 
