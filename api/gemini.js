@@ -55,8 +55,7 @@ export default async function handler(req, res) {
   }
 
   // Get API key from environment (server-side only)
-  // Prefer GEMINI_API_KEY, fall back to GOOGLE_API_KEY for backwards compatibility
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     console.error('GEMINI_API_KEY not configured in environment');
