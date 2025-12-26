@@ -100,19 +100,23 @@ export default async function handler(req, res) {
       }
     }
 
+    // Ensure values are valid numbers (handle null/undefined/NaN from Firestore)
+    const dailyUsed = (typeof usage.dailyUsed === 'number' && !isNaN(usage.dailyUsed)) ? usage.dailyUsed : 0;
+    const monthlyUsed = (typeof usage.monthlyUsed === 'number' && !isNaN(usage.monthlyUsed)) ? usage.monthlyUsed : 0;
+
     return res.status(200).json({
       success: true,
       usage: {
         daily: {
-          used: usage.dailyUsed,
+          used: dailyUsed,
           limit: LIMITS.daily,
-          remaining: Math.max(0, LIMITS.daily - usage.dailyUsed),
+          remaining: Math.max(0, LIMITS.daily - dailyUsed),
           resetAt: usage.dailyResetAt,
         },
         monthly: {
-          used: usage.monthlyUsed,
+          used: monthlyUsed,
           limit: LIMITS.monthly,
-          remaining: Math.max(0, LIMITS.monthly - usage.monthlyUsed),
+          remaining: Math.max(0, LIMITS.monthly - monthlyUsed),
           resetAt: usage.monthlyResetAt,
         },
       },

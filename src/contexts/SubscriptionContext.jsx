@@ -59,17 +59,19 @@ export const SubscriptionProvider = ({ children }) => {
         // Use the returned usage directly to update state (format it like GET endpoint)
         if (data.usage) {
           const LIMITS = { daily: 300, monthly: 500 };
+          const dailyUsed = (typeof data.usage.dailyUsed === 'number' && !isNaN(data.usage.dailyUsed)) ? data.usage.dailyUsed : 0;
+          const monthlyUsed = (typeof data.usage.monthlyUsed === 'number' && !isNaN(data.usage.monthlyUsed)) ? data.usage.monthlyUsed : 0;
           setUsage({
             daily: {
-              used: data.usage.dailyUsed,
+              used: dailyUsed,
               limit: LIMITS.daily,
-              remaining: Math.max(0, LIMITS.daily - data.usage.dailyUsed),
+              remaining: Math.max(0, LIMITS.daily - dailyUsed),
               resetAt: data.usage.dailyResetAt,
             },
             monthly: {
-              used: data.usage.monthlyUsed,
+              used: monthlyUsed,
               limit: LIMITS.monthly,
-              remaining: Math.max(0, LIMITS.monthly - data.usage.monthlyUsed),
+              remaining: Math.max(0, LIMITS.monthly - monthlyUsed),
               resetAt: data.usage.monthlyResetAt,
             },
           });

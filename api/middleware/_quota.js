@@ -173,8 +173,12 @@ export async function incrementUsage(userId, modelTier = 'lite') {
 
   const userDoc = await userRef.get();
   let usage = userDoc.exists && userDoc.data().usage
-    ? { ...userDoc.data().usage }
+    ? { ...createDefaultUsage(), ...userDoc.data().usage }
     : createDefaultUsage();
+
+  // Ensure values are numbers (handle null/undefined/NaN from Firestore)
+  usage.dailyUsed = (typeof usage.dailyUsed === 'number' && !isNaN(usage.dailyUsed)) ? usage.dailyUsed : 0;
+  usage.monthlyUsed = (typeof usage.monthlyUsed === 'number' && !isNaN(usage.monthlyUsed)) ? usage.monthlyUsed : 0;
 
   // Reset if needed before incrementing
   resetIfNeeded(usage);

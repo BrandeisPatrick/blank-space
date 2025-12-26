@@ -4,12 +4,12 @@
  */
 export const LoadingDots = () => {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <span style={{ fontSize: '0.9em', opacity: 0.7 }}>Thinking</span>
-      <span style={{ display: 'inline-flex', gap: '4px' }}>
-        <span className="loading-dot" style={{ animationDelay: '0ms' }}>.</span>
-        <span className="loading-dot" style={{ animationDelay: '200ms' }}>.</span>
-        <span className="loading-dot" style={{ animationDelay: '400ms' }}>.</span>
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px' }}>
+      <span style={{ opacity: 0.7 }}>Thinking</span>
+      <span style={{ display: 'inline-flex', gap: '3px', alignItems: 'baseline' }}>
+        <span className="loading-dot" style={{ animationDelay: '0ms' }}>•</span>
+        <span className="loading-dot" style={{ animationDelay: '200ms' }}>•</span>
+        <span className="loading-dot" style={{ animationDelay: '400ms' }}>•</span>
       </span>
       <style>{`
         @keyframes loadingDot {
@@ -19,8 +19,7 @@ export const LoadingDots = () => {
         }
         .loading-dot {
           animation: loadingDot 1.4s ease-in-out infinite;
-          font-size: 4em;
-          line-height: 0.5;
+          font-size: 0.8em;
         }
       `}</style>
     </span>
