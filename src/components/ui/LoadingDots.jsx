@@ -19,7 +19,7 @@ export const LoadingDots = () => {
         }
         .loading-dot {
           animation: loadingDot 1.4s ease-in-out infinite;
-          font-size: 0.8em;
+          font-size: 2.5em;
         }
       `}</style>
     </span>

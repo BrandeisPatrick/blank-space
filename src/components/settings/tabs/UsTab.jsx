@@ -5,6 +5,7 @@ import {
   TwitterXIcon as XIcon,
   InstagramIcon,
   GitHubIcon,
+  DiscordIcon,
 } from '../../icons/icons';
 
 export const UsTab = () => {
@@ -46,24 +47,6 @@ export const UsTab = () => {
         gap: theme.spacing.xl,
       }}>
         <a
-          href="https://www.linkedin.com/in/patrick-pinyuan-li/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover-linkedin hover-transition"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            textDecoration: 'none',
-            color: theme.colors.text.secondary,
-          }}
-        >
-          <LinkedInIcon size={28} color="currentColor" />
-          <span style={{ fontSize: theme.typography.fontSize.xs }}>LinkedIn</span>
-        </a>
-
-        <a
           href="https://x.com/BrandeisPatrick"
           target="_blank"
           rel="noopener noreferrer"
@@ -98,6 +81,24 @@ export const UsTab = () => {
           <InstagramIcon size={28} color="currentColor" />
           <span style={{ fontSize: theme.typography.fontSize.xs }}>Instagram</span>
         </a>
+
+        <a
+          href="https://discord.gg/BDhsyw59"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover-discord hover-transition"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            textDecoration: 'none',
+            color: theme.colors.text.secondary,
+          }}
+        >
+          <DiscordIcon size={28} color="currentColor" />
+          <span style={{ fontSize: theme.typography.fontSize.xs }}>Discord</span>
+        </a>
       </div>
 
       <div style={{
@@ -112,23 +113,42 @@ export const UsTab = () => {
         }}>
           Open sourced at GitHub
         </span>
-        <a
-          href="https://github.com/BrandeisPatrick/blank-space"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`hover-text-primary-${mode} hover-transition`}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            textDecoration: 'none',
-            color: theme.colors.text.secondary,
-          }}
-        >
-          <GitHubIcon size={28} color="currentColor" />
-          <span style={{ fontSize: theme.typography.fontSize.xs }}>GitHub</span>
-        </a>
+        <div style={{ display: 'flex', gap: theme.spacing.xl }}>
+          <a
+            href="https://github.com/BrandeisPatrick/blank-space"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`hover-text-primary-${mode} hover-transition`}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              textDecoration: 'none',
+              color: theme.colors.text.secondary,
+            }}
+          >
+            <GitHubIcon size={28} color="currentColor" />
+            <span style={{ fontSize: theme.typography.fontSize.xs }}>GitHub</span>
+          </a>
+          <a
+            href="https://www.linkedin.com/in/patrick-pinyuan-li/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover-linkedin hover-transition"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              textDecoration: 'none',
+              color: theme.colors.text.secondary,
+            }}
+          >
+            <LinkedInIcon size={28} color="currentColor" />
+            <span style={{ fontSize: theme.typography.fontSize.xs }}>LinkedIn</span>
+          </a>
+        </div>
       </div>
     </div>
   );
