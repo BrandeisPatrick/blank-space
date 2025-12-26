@@ -45,7 +45,7 @@ export const SubscriptionProvider = ({ children }) => {
 
     try {
       const token = await getIdToken();
-      await fetch('/api/user/increment-usage', {
+      const response = await fetch('/api/user/increment-usage', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -53,12 +53,34 @@ export const SubscriptionProvider = ({ children }) => {
         },
         body: JSON.stringify({ modelTier }),
       });
-      // Refresh usage after increment
-      fetchUsage();
+
+      if (response.ok) {
+        const data = await response.json();
+        // Use the returned usage directly to update state (format it like GET endpoint)
+        if (data.usage) {
+          const LIMITS = { daily: 300, monthly: 500 };
+          setUsage({
+            daily: {
+              used: data.usage.dailyUsed,
+              limit: LIMITS.daily,
+              remaining: Math.max(0, LIMITS.daily - data.usage.dailyUsed),
+              resetAt: data.usage.dailyResetAt,
+            },
+            monthly: {
+              used: data.usage.monthlyUsed,
+              limit: LIMITS.monthly,
+              remaining: Math.max(0, LIMITS.monthly - data.usage.monthlyUsed),
+              resetAt: data.usage.monthlyResetAt,
+            },
+          });
+        }
+      } else {
+        console.error('Failed to increment usage: response not ok', response.status);
+      }
     } catch (error) {
       console.error('Failed to increment usage:', error);
     }
-  }, [user, getIdToken, fetchUsage]);
+  }, [user, getIdToken]);
 
   // Fetch on mount and when user changes
   useEffect(() => {
