@@ -74,8 +74,6 @@ export const SubscriptionProvider = ({ children }) => {
             },
           });
         }
-      } else {
-        console.error('Failed to increment usage: response not ok', response.status);
       }
     } catch (error) {
       console.error('Failed to increment usage:', error);

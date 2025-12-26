@@ -67,9 +67,9 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
 
   // Suggestion pill prompts
   const suggestionPills = [
-    "Create a chess game with ai",
+    "Create a random dinner selector",
     "Show me what you can do",
-    "Choose your own adventure game"
+    "Create a chess game with ai"
   ];
 
   return (
