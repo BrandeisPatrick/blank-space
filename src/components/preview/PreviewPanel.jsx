@@ -104,6 +104,26 @@ export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoo
         // React app - use CDN-based approach
         const css = files['styles.css'] || ''
 
+        // Extract named exports from code (for utility files)
+        const extractNamedExports = (code) => {
+          const exports = []
+          // Match: export const/let/var/function/class name
+          const pattern = /export\s+(?:const|let|var|function|class)\s+(\w+)/g
+          let match
+          while ((match = pattern.exec(code)) !== null) {
+            exports.push(match[1])
+          }
+          // Match: export { name1, name2 }
+          const listPattern = /export\s+\{([^}]+)\}/g
+          while ((match = listPattern.exec(code)) !== null) {
+            match[1].split(',').forEach(name => {
+              const clean = name.trim().split(/\s+as\s+/)[0].trim()
+              if (clean && /^\w+$/.test(clean)) exports.push(clean)
+            })
+          }
+          return [...new Set(exports)]  // Remove duplicates
+        }
+
         // Collect and combine all component files
         // Each non-App file is wrapped in an IIFE to isolate scope (prevents duplicate declaration errors)
         const allCode = Object.entries(files)
@@ -119,7 +139,23 @@ export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoo
               return stripped
             }
 
-            // Extract component name from filename (e.g., "components/GameInfo.jsx" -> "GameInfo")
+            // Check if this is a utility file (not a React component)
+            const isUtilityFile = filename.startsWith('utils/') || filename.startsWith('hooks/')
+
+            if (isUtilityFile) {
+              // For utility files: expose ALL named exports globally
+              const namedExports = extractNamedExports(code)
+              const exposeStatements = namedExports
+                .map(name => `  if (typeof ${name} !== 'undefined') window.${name} = ${name};`)
+                .join('\n')
+
+              return `(function() {
+${stripped}
+${exposeStatements}
+})();`
+            }
+
+            // For React components: expose by filename (e.g., "components/GameInfo.jsx" -> "GameInfo")
             const componentName = filename
               .replace(/^.*\//, '')  // Remove path
               .replace(/\.(jsx?|tsx?)$/, '')  // Remove extension
