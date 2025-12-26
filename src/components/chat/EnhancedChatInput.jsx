@@ -145,6 +145,31 @@ export const EnhancedChatInput = ({
     setShowDropdown(!showDropdown);
   };
 
+  // Editing Indicator - shared component for desktop and mobile
+  const EditingIndicator = () => {
+    if (!isEditingArtifact || !activeArtifact) return null;
+
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        fontSize: isMobile ? theme.typography.fontSize.sm : theme.typography.fontSize.base,
+        fontWeight: theme.typography.fontWeight.medium,
+        fontFamily: theme.typography.fontFamily.sans,
+        color: COLORS.PRO_COMPONENTS_BLUE,
+        ...(isMobile && { marginTop: `-${theme.spacing.xs}` }),
+      }}>
+        <span>Editing</span>
+        <span style={isMobile ? {
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        } : undefined}>{activeArtifact.name}</span>
+      </div>
+    );
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -411,21 +436,8 @@ export const EnhancedChatInput = ({
             )}
           </div>
 
-          {/* Editing Indicator - Shows when artifact is open (desktop only) */}
-          {!isMobile && isEditingArtifact && activeArtifact && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.xs,
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              fontFamily: theme.typography.fontFamily.sans,
-              color: COLORS.PRO_COMPONENTS_BLUE,
-            }}>
-              <span>Editing</span>
-              <span>{activeArtifact.name}</span>
-            </div>
-          )}
+          {/* Editing Indicator (desktop - inline) */}
+          {!isMobile && <EditingIndicator />}
 
           {/* Flex spacer */}
           <div style={{ flex: 1 }} />
@@ -465,26 +477,8 @@ export const EnhancedChatInput = ({
           </button>
         </div>
 
-        {/* Editing Indicator - Mobile (separate row below controls) */}
-        {isMobile && isEditingArtifact && activeArtifact && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            fontFamily: theme.typography.fontFamily.sans,
-            color: proComponentsColor,
-            marginTop: `-${theme.spacing.xs}`,
-          }}>
-            <span>Editing</span>
-            <span style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>{activeArtifact.name}</span>
-          </div>
-        )}
+        {/* Editing Indicator (mobile - separate row) */}
+        {isMobile && <EditingIndicator />}
       </div>
     </div>
   );
