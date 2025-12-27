@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTheme } from '../../styles/theme';
+import { trackXConversion } from '../../utils/xPixel';
 
 export const SignUpPage = ({ onNavigateToSignIn, onNavigateToMain, onSignUpSuccess }) => {
   const { mode } = useTheme();
@@ -40,8 +41,12 @@ export const SignUpPage = ({ onNavigateToSignIn, onNavigateToMain, onSignUpSucce
     setLocalError('');
 
     try {
-      await signUp(formData.email, formData.password);
+      const user = await signUp(formData.email, formData.password);
       // Success! The AuthContext will update user state
+      trackXConversion({
+        email: formData.email,
+        conversionId: user?.uid || `signup_${Date.now()}`
+      });
       if (onSignUpSuccess) {
         onSignUpSuccess();
       }
@@ -58,7 +63,11 @@ export const SignUpPage = ({ onNavigateToSignIn, onNavigateToMain, onSignUpSucce
     setLocalError('');
 
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      trackXConversion({
+        email: user?.email,
+        conversionId: user?.uid || `signup_${Date.now()}`
+      });
       if (onSignUpSuccess) {
         onSignUpSuccess();
       }
