@@ -12,6 +12,7 @@ import { AIResponsePanel } from "./components/ui/AIResponsePanel";
 import { CollapsedChatIcon } from "./components/ui/CollapsedChatIcon";
 import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
 import LockScreen from "./components/ui/LockScreen";
+import WelcomeScreen from "./components/ui/WelcomeScreen";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { processMessage } from "./services/ToolOrchestrator.js";
@@ -124,20 +125,27 @@ function App() {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
 
-  // Lock screen state - check sessionStorage on initial render
-  const [showLockScreen, setShowLockScreen] = useState(() => {
-    return sessionStorage.getItem('lockScreenDismissed') !== 'true';
+  // Welcome screen state - shown on first visit
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(() => {
+    return sessionStorage.getItem('welcomeScreenDismissed') !== 'true';
   });
+
+  // Lock screen state - shown when clicking logo (clock display)
+  const [showLockScreen, setShowLockScreen] = useState(false);
+
+  // Handle welcome screen dismiss
+  const handleWelcomeScreenDismiss = useCallback(() => {
+    sessionStorage.setItem('welcomeScreenDismissed', 'true');
+    setShowWelcomeScreen(false);
+  }, []);
 
   // Handle lock screen dismiss
   const handleLockScreenDismiss = useCallback(() => {
-    sessionStorage.setItem('lockScreenDismissed', 'true');
     setShowLockScreen(false);
   }, []);
 
   // Handle showing lock screen (when user clicks logo)
   const handleShowLockScreen = useCallback(() => {
-    sessionStorage.removeItem('lockScreenDismissed');
     setShowLockScreen(true);
   }, []);
 
@@ -913,7 +921,12 @@ function App() {
       {/* Vercel Analytics */}
       <Analytics />
 
-      {/* Lock Screen Overlay */}
+      {/* Welcome Screen Overlay - First visit */}
+      {showWelcomeScreen && (
+        <WelcomeScreen onDismiss={handleWelcomeScreenDismiss} />
+      )}
+
+      {/* Lock Screen Overlay - When clicking logo */}
       {showLockScreen && (
         <LockScreen onDismiss={handleLockScreenDismiss} />
       )}
