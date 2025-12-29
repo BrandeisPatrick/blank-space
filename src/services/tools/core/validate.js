@@ -202,8 +202,8 @@ function checkImportRules(content, filename, errors) {
     return (trimmed.startsWith('import ') || trimmed.includes(' from ')) && !line.trim().startsWith('//');
   });
 
-  // List of allowed third-party imports
-  const allowedThirdParty = ['react', 'react-dom'];
+  // List of allowed third-party imports (must match CDN libraries in PreviewPanel)
+  const allowedThirdParty = ['react', 'react-dom', 'framer-motion'];
 
   importLines.forEach((line, index) => {
     // Extract the module name from import statement
