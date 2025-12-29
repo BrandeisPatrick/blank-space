@@ -40,6 +40,7 @@ export class ToolExecutor {
       // Execute tool
       console.log(`🔧 Executing tool: ${toolName}`, params);
       const result = await tool.execute(params, context);
+      console.log(`✅ Tool result: ${toolName}`, result);
 
       return {
         success: true,
