@@ -6,7 +6,7 @@ export const LoadingDots = () => {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
       <span style={{ opacity: 0.7 }}>Thinking</span>
-      <span style={{ display: 'inline-flex', gap: '3px', alignItems: 'center' }}>
+      <span style={{ display: 'inline-flex', gap: '3px', alignItems: 'center', marginTop: '-0.3em' }}>
         <span className="loading-dot" style={{ animationDelay: '0ms' }}>•</span>
         <span className="loading-dot" style={{ animationDelay: '200ms' }}>•</span>
         <span className="loading-dot" style={{ animationDelay: '400ms' }}>•</span>

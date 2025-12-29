@@ -140,7 +140,7 @@ export const AIResponsePanel = ({
               fontSize: theme.typography.fontSize.base,
               fontFamily: theme.typography.fontFamily.sans,
             }}>
-              {loadingMessage.content ? loadingMessage.content : <LoadingDots />}
+              {loadingMessage.content && loadingMessage.content !== 'Thinking...' ? loadingMessage.content : <LoadingDots />}
               <div style={{
                 marginTop: theme.spacing.md,
                 fontSize: theme.typography.fontSize.sm,
