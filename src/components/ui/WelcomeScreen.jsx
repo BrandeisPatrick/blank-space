@@ -134,7 +134,7 @@ const WelcomeScreen = ({ onDismiss }) => {
             lineHeight: 1.5,
           }}
         >
-          Build, remix, and share interfaces with AI. Your creative workspace awaits.
+          A new way to interact with AI. Build, remix, share—your creative playground awaits.
         </p>
 
         {/* Let's go! Button */}
