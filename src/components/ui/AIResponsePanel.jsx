@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { createGlassEffect } from '../../styles/componentStyles'
@@ -150,18 +151,45 @@ export const AIResponsePanel = ({
             </div>
           )}
 
-          {/* Assistant response */}
+          {/* Assistant response with markdown support */}
           {!loadingMessage && lastAssistantMessage && (
-            <div style={{
-              alignSelf: 'flex-start',
-              color: theme.colors.text.primary,
-              fontSize: theme.typography.fontSize.base,
-              lineHeight: theme.typography.lineHeight.relaxed,
-              fontFamily: theme.typography.fontFamily.sans,
-              whiteSpace: 'pre-wrap',
-              maxWidth: '95%',
-            }}>
-              {lastAssistantMessage.content}
+            <div
+              style={{
+                alignSelf: 'flex-start',
+                color: theme.colors.text.primary,
+                fontSize: theme.typography.fontSize.base,
+                lineHeight: theme.typography.lineHeight.relaxed,
+                fontFamily: theme.typography.fontFamily.sans,
+                maxWidth: '95%',
+              }}
+              className="markdown-content"
+            >
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => (
+                    <p style={{ margin: '0 0 12px 0' }}>{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>{children}</ul>
+                  ),
+                  li: ({ children }) => (
+                    <li style={{ margin: '4px 0' }}>{children}</li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong style={{ fontWeight: 600 }}>{children}</strong>
+                  ),
+                  code: ({ children }) => (
+                    <code style={{
+                      background: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '0.9em',
+                    }}>{children}</code>
+                  ),
+                }}
+              >
+                {lastAssistantMessage.content}
+              </ReactMarkdown>
             </div>
           )}
         </div>
