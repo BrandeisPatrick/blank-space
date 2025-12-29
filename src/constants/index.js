@@ -187,7 +187,7 @@ export const FLOATING_WINDOWS = {
   AI_RESPONSE: {
     PANEL_TOP: '100px',
     PANEL_RIGHT: '20px',
-    PANEL_WIDTH: '320px',
+    PANEL_WIDTH: '520px',
     PANEL_MAX_HEIGHT: '60vh'
   }
 };
