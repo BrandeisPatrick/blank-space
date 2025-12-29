@@ -1,25 +1,40 @@
 /**
  * Styling
- * Style system integration for generate intent
+ * Minimal style guidance - let AI be creative
  */
 
-import { buildStylePrompt } from '../../stylePresets/stylePromptBuilder.js';
-
 /**
- * Build style prompt section
+ * Build simplified style prompt
  */
 export function buildStylingPrompt(options = {}) {
   const {
-    aiColorPalette = 'matchWallpaper',
     aiUIStyle = 'glassmorphism',
-    wallpaperTheme = 'starry',
     isDarkTheme = true
   } = options;
 
-  return buildStylePrompt({
-    colorPaletteId: aiColorPalette,
-    uiStyleId: aiUIStyle,
-    wallpaperTheme,
-    isDarkTheme
-  });
+  const themeMode = isDarkTheme ? 'dark' : 'light';
+
+  const styleDescriptions = {
+    glassmorphism: 'frosted glass effects, blur backdrops, subtle transparency, soft shadows',
+    minimal: 'clean lines, lots of whitespace, simple typography, subtle accents',
+    brutalist: 'bold contrasts, raw edges, strong typography, unconventional layouts',
+    neomorphism: 'soft shadows, subtle depth, muted colors, tactile feel',
+    retro: 'vintage colors, nostalgic typography, playful elements'
+  };
+
+  const styleDesc = styleDescriptions[aiUIStyle] || styleDescriptions.glassmorphism;
+
+  return `
+# STYLING GUIDELINES
+
+Theme: ${themeMode.toUpperCase()} mode
+Style: ${aiUIStyle} (${styleDesc})
+
+Use Tailwind CSS. Be creative with the design while keeping it:
+- Visually cohesive
+- Mobile-responsive (mobile-first)
+- Accessible (good contrast, readable text)
+
+Keep heroes compact (15-20% viewport max, no giant padding).
+`;
 }
