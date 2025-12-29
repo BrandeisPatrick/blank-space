@@ -10,35 +10,7 @@ import { coreTools } from '../../../tools/core/index.js';
 import { callLLMWithTools, callLLM } from '../../../utils/llm/llmClient.js';
 import { classifyIntent } from '../../../intentClassifier.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
-import { buildSystemPrompt, CHAT_SYSTEM_PROMPT } from '../../shared/prompts.js';
-
-/**
- * Generate a short app name from user request (max 3 words)
- */
-async function generateAppName(userMessage, model) {
-  try {
-    const response = await callLLM({
-      model: 'gpt-4o-mini',
-      systemPrompt: 'Generate a short app name (1-3 words max) from the user request. Return ONLY the name, no quotes, no explanation. Examples: "Todo List", "Weather App", "Quiz Game", "Calculator"',
-      userPrompt: userMessage,
-      maxTokens: 20,
-      temperature: 0.3
-    });
-
-    const name = response.choices[0]?.message?.content?.trim() || 'New App';
-    // Ensure max 3 words and clean up
-    return name.split(/\s+/).slice(0, 3).join(' ');
-  } catch (error) {
-    console.error('Failed to generate app name:', error);
-    // Fallback: extract first 3 meaningful words
-    const words = userMessage
-      .replace(/^(create|build|make|design|generate)\s+(a|an|the)?\s*/i, '')
-      .split(/\s+/)
-      .slice(0, 3)
-      .join(' ');
-    return words || 'New App';
-  }
-}
+import { buildSystemPrompt, CHAT_SYSTEM_PROMPT, generateAppNameOpenAI, formatToolAction } from '../../../prompts/index.js';
 
 /**
  * Process a user message using OpenAI models
@@ -147,26 +119,6 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
       }
     ];
 
-    // Helper to format tool action into human-readable text
-    const formatToolAction = (tool, params) => {
-      switch (tool) {
-        case 'read':
-          return `Reading ${params.path}...`;
-        case 'write':
-          return `Writing ${params.path}...`;
-        case 'edit':
-          return `Editing ${params.path}...`;
-        case 'glob':
-          return `Searching files...`;
-        case 'grep':
-          return `Searching for "${params.pattern}"...`;
-        case 'validate':
-          return `Validating ${params.filename}...`;
-        default:
-          return `Running ${tool}...`;
-      }
-    };
-
     // Callback for tool actions
     const onToolAction = (tool, params, status) => {
       if (status === 'start') {
@@ -239,7 +191,7 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
     });
 
     // Generate a short app name (max 3 words)
-    const appName = await generateAppName(userMessage, model);
+    const appName = await generateAppNameOpenAI(userMessage);
 
     return {
       success: true,

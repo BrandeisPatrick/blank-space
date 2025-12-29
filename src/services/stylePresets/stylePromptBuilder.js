@@ -4,6 +4,7 @@
 import { COLOR_PALETTES } from "./colorPalettes";
 import { UI_STYLES } from "./uiStyles";
 import { deriveColorsFromWallpaper } from "./wallpaperMapping";
+import { replaceColorTokens } from "../prompts/utils/tokenReplacer.js";
 
 /**
  * Formats color palette into prompt text
@@ -87,57 +88,36 @@ ${promptSnippet}
  * @returns {string} Formatted component patterns
  */
 function formatComponentPatterns(components, colors) {
-  // Helper to replace color tokens like {primary.base} with actual values
-  const replaceTokens = (str) => {
-    if (!str) return str;
-    return str
-      .replace(/\{primary\.base\}/g, colors.primary.base)
-      .replace(/\{primary\.hover\}/g, colors.primary.hover)
-      .replace(/\{primary\.light\}/g, colors.primary.light)
-      .replace(/\{secondary\.base\}/g, colors.secondary.base)
-      .replace(/\{secondary\.hover\}/g, colors.secondary.hover)
-      .replace(/\{accent\.base\}/g, colors.accent.base)
-      .replace(/\{accent\.hover\}/g, colors.accent.hover)
-      .replace(/\{background\.page\}/g, colors.background.page)
-      .replace(/\{background\.card\}/g, colors.background.card)
-      .replace(/\{background\.muted\}/g, colors.background.muted)
-      .replace(/\{text\.heading\}/g, colors.text.heading)
-      .replace(/\{text\.body\}/g, colors.text.body)
-      .replace(/\{text\.muted\}/g, colors.text.muted)
-      .replace(/\{border\}/g, colors.border)
-      .replace(/\{primary\}/g, colors.primary.base);
-  };
-
   return `
 ## COMPONENT PATTERNS (Use these exact Tailwind classes)
 
 ### Page Layout
 \`\`\`
-Page wrapper: "${replaceTokens(components.pageWrapper)}"
+Page wrapper: "${replaceColorTokens(components.pageWrapper, colors)}"
 Container: "${components.container}"
 \`\`\`
 
 ### Cards
 \`\`\`
-Card: "${replaceTokens(components.card)}"
-Card hover: "${replaceTokens(components.cardHover)}"
+Card: "${replaceColorTokens(components.card, colors)}"
+Card hover: "${replaceColorTokens(components.cardHover, colors)}"
 \`\`\`
 
 ### Buttons
 \`\`\`
-Primary button: "${replaceTokens(components.button.primary)}"
-Secondary button: "${replaceTokens(components.button.secondary)}"
-Ghost button: "${replaceTokens(components.button.ghost)}"
+Primary button: "${replaceColorTokens(components.button.primary, colors)}"
+Secondary button: "${replaceColorTokens(components.button.secondary, colors)}"
+Ghost button: "${replaceColorTokens(components.button.ghost, colors)}"
 \`\`\`
 
 ### Form Elements
 \`\`\`
-Input field: "${replaceTokens(components.input)}"
+Input field: "${replaceColorTokens(components.input, colors)}"
 \`\`\`
 
 ### List Items
 \`\`\`
-List item: "${replaceTokens(components.listItem)}"
+List item: "${replaceColorTokens(components.listItem, colors)}"
 \`\`\`
 `;
 }
@@ -152,30 +132,9 @@ List item: "${replaceTokens(components.listItem)}"
 function formatHeroSection(hero, colors, styleName) {
   if (!hero) return "";
 
-  // Helper to replace color tokens
-  const replaceTokens = (str) => {
-    if (!str) return str;
-    return str
-      .replace(/\{primary\.base\}/g, colors.primary.base)
-      .replace(/\{primary\.hover\}/g, colors.primary.hover)
-      .replace(/\{primary\.light\}/g, colors.primary.light)
-      .replace(/\{secondary\.base\}/g, colors.secondary.base)
-      .replace(/\{secondary\.hover\}/g, colors.secondary.hover)
-      .replace(/\{accent\.base\}/g, colors.accent.base)
-      .replace(/\{accent\.hover\}/g, colors.accent.hover)
-      .replace(/\{background\.page\}/g, colors.background.page)
-      .replace(/\{background\.card\}/g, colors.background.card)
-      .replace(/\{background\.muted\}/g, colors.background.muted)
-      .replace(/\{text\.heading\}/g, colors.text.heading)
-      .replace(/\{text\.body\}/g, colors.text.body)
-      .replace(/\{text\.muted\}/g, colors.text.muted)
-      .replace(/\{border\}/g, colors.border)
-      .replace(/\{primary\}/g, colors.primary.base);
-  };
-
   // Build hero pattern entries dynamically
   const heroEntries = Object.entries(hero)
-    .map(([key, value]) => `${key}: "${replaceTokens(value)}"`)
+    .map(([key, value]) => `${key}: "${replaceColorTokens(value, colors)}"`)
     .join("\n");
 
   return `

@@ -1,9 +1,0 @@
-{
-  "BROWSER_RENDERABILITY_RULES": "BROWSER PREVIEW REQUIREMENTS:\n\n1. App.jsx MUST exist with: function App() { return (...); }\n2. Functional components ONLY (no class components)\n3. React hooks available globally: useState, useEffect, useRef, useMemo, useCallback, useReducer, useContext\n4. Structure: App.jsx at root, components/ folder for UI, hooks/ folder for custom hooks\n\nWill cause white screen:\n- Missing App.jsx or App component\n- Class components\n- Circular dependencies",
-
-  "NO_INITIALIZATION_CODE": "DO NOT generate React initialization code - the system handles this automatically.\n\nFORBIDDEN:\n- ReactDOM.createRoot()\n- root.render()\n- document.getElementById(\"root\")\n- import ReactDOM from \"react-dom/client\"\n\nCORRECT: Just export components\n- function App() { return <div>...</div>; }\n- export default App;",
-
-  "PACKAGE_MANAGEMENT_RULES": "BROWSER ENVIRONMENT - No npm packages available.\n\nSUPPORTED:\n- react, react-dom (import normally)\n- framer-motion (global - NO import needed, use motion.div directly)\n- Browser APIs: fetch(), localStorage, crypto.randomUUID(), Date\n\nBANNED (use alternatives):\n- axios → use fetch()\n- lodash → use native JS\n- uuid → use crypto.randomUUID()\n- moment → use native Date\n- prop-types → not needed",
-
-  "FRAMER_MOTION_USAGE": "motion and AnimatePresence are ALREADY DECLARED as globals. Use them directly in JSX:\n\n<motion.div animate={{opacity:1}} />\n<AnimatePresence>{show && <motion.div />}</AnimatePresence>\n\nDO NOT declare them in any way:\n- import { motion } from 'framer-motion'\n- const { motion } = window\n- const motion = anything"
-}

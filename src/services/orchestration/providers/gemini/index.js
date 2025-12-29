@@ -11,7 +11,7 @@ import { SessionManager } from '../../../session/SessionManager.js';
 import { coreTools } from '../../../tools/core/index.js';
 import { classifyIntent } from '../../../intentClassifier.js';
 import { convertToolsToGeminiFormat } from './toolAdapter.js';
-import { buildSystemPrompt, CHAT_SYSTEM_PROMPT } from '../../shared/prompts.js';
+import { buildSystemPrompt, CHAT_SYSTEM_PROMPT, generateAppNameGemini, formatToolAction } from '../../../prompts/index.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
 import { auth } from '../../../../config/firebase.js';
 
@@ -30,44 +30,6 @@ async function getAuthHeaders() {
     console.warn('[Gemini Provider] Failed to get auth token:', error.message);
   }
   return headers;
-}
-
-/**
- * Generate a short app name from user request (max 3 words)
- * Uses Gemini API via serverless function
- */
-async function generateAppName(userMessage, model) {
-  try {
-    const prompt = 'Generate a short app name (1-3 words max) from this user request. Return ONLY the name, no quotes, no explanation. Examples: "Todo List", "Weather App", "Quiz Game", "Calculator". User request: ' + userMessage;
-    const headers = await getAuthHeaders();
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        action: 'generate',
-        model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const name = data.text?.trim() || 'New App';
-    // Ensure max 3 words and clean up
-    return name.split(/\s+/).slice(0, 3).join(' ');
-  } catch (error) {
-    console.error('[Gemini Provider] Failed to generate app name:', error);
-    // Fallback: extract first 3 meaningful words
-    const words = userMessage
-      .replace(/^(create|build|make|design|generate)\s+(a|an|the)?\s*/i, '')
-      .split(/\s+/)
-      .slice(0, 3)
-      .join(' ');
-    return words || 'New App';
-  }
 }
 
 /**
@@ -386,7 +348,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     });
 
     // Generate app name
-    const appName = await generateAppName(userMessage, model);
+    const appName = await generateAppNameGemini(userMessage, model);
 
     return {
       success: true,
@@ -416,28 +378,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       error: error.message,
       fileOperations: []
     };
-  }
-}
-
-/**
- * Helper to format tool action into human-readable text
- */
-function formatToolAction(tool, params) {
-  switch (tool) {
-    case 'read':
-      return `Reading ${params.path}...`;
-    case 'write':
-      return `Writing ${params.path}...`;
-    case 'edit':
-      return `Editing ${params.path}...`;
-    case 'glob':
-      return `Searching files...`;
-    case 'grep':
-      return `Searching for "${params.pattern}"...`;
-    case 'validate':
-      return `Validating ${params.filename}...`;
-    default:
-      return `Running ${tool}...`;
   }
 }
 
