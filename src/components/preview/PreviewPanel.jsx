@@ -139,8 +139,8 @@ export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoo
               return stripped
             }
 
-            // Check if this is a utility file (not a React component)
-            const isUtilityFile = filename.startsWith('utils/') || filename.startsWith('hooks/')
+            // Check if this is a utility/data file (not a React component)
+            const isUtilityFile = filename.startsWith('utils/') || filename.startsWith('hooks/') || filename.startsWith('data/')
 
             if (isUtilityFile) {
               // For utility files: expose ALL named exports globally

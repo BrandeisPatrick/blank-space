@@ -67,6 +67,9 @@ export const validateTool = new Tool({
       // 7. Check for mismatched tags (e.g., <button>...</a>)
       checkMismatchedTags(content, filename, errors);
 
+      // 8. Check for unsupported folder structures
+      checkSupportedFolders(filename, errors);
+
       // If errors exist, return early
       if (errors.length > 0) {
         return {
@@ -337,6 +340,33 @@ function checkMismatchedTags(content, filename, errors) {
 }
 
 /**
+ * Check for unsupported folder structures
+ * Only components/, utils/, hooks/, data/ are supported
+ */
+function checkSupportedFolders(filename, errors) {
+  // Skip root-level files
+  if (!filename.includes('/')) return;
+
+  // Supported folder prefixes
+  const supportedFolders = ['components/', 'utils/', 'hooks/', 'data/'];
+
+  // Check if file is in a supported folder
+  const isSupported = supportedFolders.some(folder => filename.startsWith(folder));
+
+  if (!isSupported) {
+    // Extract the folder name for the error message
+    const folderName = filename.split('/')[0];
+
+    errors.push({
+      type: 'UNSUPPORTED_FOLDER',
+      message: `Folder "${folderName}/" is not supported by the preview system. Supported folders: components/, utils/, hooks/, data/`,
+      pattern: `${folderName}/`,
+      fix: `Move file to a supported folder:\n- React components → components/\n- Utility functions → utils/\n- Custom hooks → hooks/\n- Data/constants → data/\n- Or keep in root level (e.g., App.jsx)`
+    });
+  }
+}
+
+/**
  * Check for code style warnings
  */
 function checkStyleWarnings(content, filename, warnings) {
@@ -390,6 +420,10 @@ function getGuidanceForErrors(errors) {
 
   if (errorTypes.has('DUPLICATE_ATTRIBUTE')) {
     guidance.push('Merge duplicate className attributes into one: className="class1 class2 class3"');
+  }
+
+  if (errorTypes.has('UNSUPPORTED_FOLDER')) {
+    guidance.push('Only these folders are supported: components/, utils/, hooks/, data/. Move files to supported folders or keep at root level.');
   }
 
   return guidance.length > 0 ? guidance.join(' ') : undefined;
