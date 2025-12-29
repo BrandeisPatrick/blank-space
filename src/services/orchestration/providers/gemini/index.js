@@ -254,31 +254,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
           name: toolName,
           response: result,
         });
-
-        // Auto-validate write operations
-        if (toolName === 'write' && params.path && params.content && result.success) {
-          try {
-            const validateResult = await executor.execute('validate', {
-              filename: params.path,
-              content: params.content,
-            }, context);
-
-            if (!validateResult.success) {
-              functionResponses.push({
-                name: 'validate',
-                response: {
-                  tool: 'validate',
-                  filename: params.path,
-                  success: false,
-                  errors: validateResult.errors,
-                  guidance: validateResult.guidance || 'Fix the validation errors above before proceeding.',
-                },
-              });
-            }
-          } catch (validateError) {
-            console.warn('[Gemini Provider] Validation check failed:', validateError.message);
-          }
-        }
       }
 
       // Send function responses back via /api/gemini

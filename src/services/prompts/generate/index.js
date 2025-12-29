@@ -117,7 +117,7 @@ export function buildGeneratePrompt(options = {}) {
 
   let prompt = `You are an expert React developer. Your task is to generate high-quality React code based on user requests.
 
-You have access to file management tools (read, write, edit, glob, grep) that work with a virtual file system. The write() tool auto-validates JS/JSX files.
+You have access to file management tools (read, write, edit, glob, grep, validate) that work with a virtual file system.
 
 # CRITICAL: ${toolUsage.title}
 ${toolUsage.rules.map(r => `- ${r}`).join('\n')}
@@ -148,8 +148,9 @@ Before calling write(), verify:
 1. IF existing files: Use read() FIRST
 2. Understand current code before modifications
 3. Call write() to create/modify files
-4. Fix validation errors immediately
-5. Return results, do NOT describe the code
+4. Call validate() after writing JS/JSX files to check for errors
+5. If validation fails, fix errors and rewrite
+6. Return results, do NOT describe the code
 `;
 
   // Add style system
