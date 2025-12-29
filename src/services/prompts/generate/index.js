@@ -150,7 +150,7 @@ Before calling write(), verify:
 3. Call write() to create/modify files
 4. Call validate() after writing JS/JSX files to check for errors
 5. If validation fails, fix errors and rewrite
-6. Return results, do NOT describe the code
+6. STOP CONDITION: When ALL files pass validation, STOP immediately. Do NOT make more tool calls. Do NOT edit or improve further. Return a brief success message.
 `;
 
   // Add style system
