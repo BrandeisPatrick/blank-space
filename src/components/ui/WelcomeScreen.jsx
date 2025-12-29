@@ -82,6 +82,30 @@ const WelcomeScreen = ({ onDismiss }) => {
           zIndex: 1,
         }}
       >
+        {/* Two Clouds Icon */}
+        <svg
+          width="72"
+          height="48"
+          viewBox="-2 0 72 48"
+          fill="none"
+          style={{ marginBottom: '20px' }}
+        >
+          {/* Back cloud (larger, outlined, flat base) */}
+          <path
+            d="M4 28h44c0-3.5-2.5-6.5-6-7.3 0-.2.1-.5.1-.7 0-4.4-3.6-8-8-8-.6 0-1.2.1-1.8.2C31 7.6 25.6 4 19 4c-6 0-11 4-12.5 9.5C2.5 14.5 0 18 0 22c0 3.3 2.7 6 6 6h-2z"
+            stroke={isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : theme.colors.text.secondary}
+            strokeWidth="2"
+            fill="none"
+          />
+          {/* Front cloud (smaller, solid fill, flat base, bottom right) */}
+          <path
+            d="M34 36h24c0-2.2-1.8-4-4-4 0-.1.1-.3.1-.4 0-2.8-2.2-5-5-5-.4 0-.7 0-1.1.1C47.2 24.1 44.4 22 41 22c-3.5 0-6.5 2.5-7.3 5.8C31.5 28.5 30 30.5 30 33c0 1.7 1.3 3 3 3h1z"
+            stroke={isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : theme.colors.text.tertiary}
+            strokeWidth="1.5"
+            fill={isDarkTheme ? '#2a2a2a' : '#c8c8c8'}
+          />
+        </svg>
+
         {/* Title */}
         <h1
           style={{
@@ -110,7 +134,7 @@ const WelcomeScreen = ({ onDismiss }) => {
             lineHeight: 1.5,
           }}
         >
-          Ask Claude to make interfaces on the fly and explore prompts in an imagined workspace.
+          Build, remix, and share interfaces with AI. Your creative workspace awaits.
         </p>
 
         {/* Let's go! Button */}
@@ -152,7 +176,7 @@ const WelcomeScreen = ({ onDismiss }) => {
             lineHeight: 1.6,
           }}
         >
-        Free during beta. Share feedback on{' '}
+        Experimental and free during beta. Share feedback on{' '}
         <a
           href="https://x.com/BrandeisPatrick"
           target="_blank"
