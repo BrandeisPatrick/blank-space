@@ -64,7 +64,7 @@ export const AIResponsePanel = ({
         position: 'fixed',
         top: FLOATING_WINDOWS.AI_RESPONSE.PANEL_TOP,
         right: FLOATING_WINDOWS.AI_RESPONSE.PANEL_RIGHT,
-        width: FLOATING_WINDOWS.AI_RESPONSE.PANEL_WIDTH,
+        width: `min(${FLOATING_WINDOWS.AI_RESPONSE.PANEL_WIDTH}, calc(100vw - 40px))`,
         maxHeight: FLOATING_WINDOWS.AI_RESPONSE.PANEL_MAX_HEIGHT,
         borderRadius: theme.radius['2xl'],
         ...createGlassEffect(theme),
@@ -72,6 +72,7 @@ export const AIResponsePanel = ({
         flexDirection: 'column',
         overflow: 'hidden',
         zIndex: Z_INDEX.AI_RESPONSE_PANEL,
+        boxSizing: 'border-box',
       }}
     >
         {/* Collapse button */}
