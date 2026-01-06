@@ -15,5 +15,6 @@ export const VISIBLE_MESSAGE_TYPES = ['user', 'assistant', 'complete', 'error'];
  * @returns {Array} Filtered messages
  */
 export const filterVisibleMessages = (messages) => {
+  if (!Array.isArray(messages)) return [];
   return messages.filter(msg => VISIBLE_MESSAGE_TYPES.includes(msg.type));
 };

@@ -7,6 +7,7 @@ import { ChatSidebar } from '../chat/ChatSidebar';
 import { ChatGreeting } from '../chat/ChatGreeting';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { ChatPanel } from '../chat/ChatPanel';
+import { AuthModal } from '../auth/AuthModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Apps icon for top-right navigation
@@ -25,6 +26,24 @@ const AppsIcon = ({ size = 24, color = "currentColor" }) => (
     <rect x="14" y="3" width="7" height="7" rx="1" />
     <rect x="3" y="14" width="7" height="7" rx="1" />
     <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
+// Hamburger menu icon for mobile
+const MenuIcon = ({ size = 24, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
   </svg>
 );
 
@@ -105,13 +124,16 @@ export const ChatPage = ({
       />
 
       {/* Mobile sidebar overlay */}
-      {isMobile && sidebarVisible && (
+      {isMobile && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.5)',
             zIndex: 40,
+            opacity: sidebarVisible ? 1 : 0,
+            pointerEvents: sidebarVisible ? 'auto' : 'none',
+            transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
           onClick={() => setSidebarVisible(false)}
         />
@@ -125,11 +147,47 @@ export const ChatPage = ({
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Top Right Apps Button */}
+        {/* Mobile hamburger menu button (top-left) */}
+        {isMobile && (
+          <div
+            data-sidebar
+            style={{
+              position: 'absolute',
+              top: theme.spacing.md,
+              left: theme.spacing.md,
+              zIndex: 10,
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSidebar();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: theme.radius.lg,
+                cursor: 'pointer',
+                color: theme.colors.text.secondary,
+                transition: `all ${theme.animation.fast}`,
+              }}
+              title="Menu"
+            >
+              <MenuIcon size={20} />
+            </button>
+          </div>
+        )}
+
+        {/* Top Right Computer Button */}
         <div style={{
           position: 'absolute',
-          top: theme.spacing.lg,
-          right: theme.spacing.lg,
+          top: isMobile ? theme.spacing.md : theme.spacing.lg,
+          right: isMobile ? theme.spacing.md : theme.spacing.lg,
           zIndex: 10,
         }}>
           <button
@@ -138,8 +196,8 @@ export const ChatPage = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '40px',
-              height: '40px',
+              width: isMobile ? '36px' : '40px',
+              height: isMobile ? '36px' : '40px',
               background: 'transparent',
               border: 'none',
               borderRadius: theme.radius.lg,
@@ -155,33 +213,30 @@ export const ChatPage = ({
               e.currentTarget.style.background = 'transparent';
               e.currentTarget.style.color = theme.colors.text.secondary;
             }}
-            title="Apps"
+            title="Computer"
           >
-            <AppsIcon size={22} />
+            <AppsIcon size={isMobile ? 20 : 22} />
           </button>
         </div>
 
-        {/* Chat Content */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: hasMessages ? 'flex-start' : 'center',
-          padding: hasMessages ? 0 : theme.spacing['3xl'],
-          paddingBottom: hasMessages ? '140px' : 0, // Space for fixed input only when messages exist
-          overflow: 'auto',
-        }}>
-          {!hasMessages ? (
-            // Empty state: Greeting + Category Pills + Input (all centered)
+        {!hasMessages ? (
+          // Empty state: Greeting + Input (centered)
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? theme.spacing.lg : theme.spacing['3xl'],
+          }}>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: theme.spacing.xl,
+              gap: isMobile ? theme.spacing.lg : theme.spacing.xl,
               maxWidth: '700px',
               width: '100%',
-              padding: `0 ${theme.spacing.lg}`,
+              padding: `0 ${isMobile ? theme.spacing.sm : theme.spacing.lg}`,
             }}>
               <ChatGreeting userName={user?.displayName || user?.email?.split('@')[0]} />
               <EnhancedChatInput
@@ -191,35 +246,60 @@ export const ChatPage = ({
                 onChangeModelTier={onChangeModelTier}
                 disabled={isAIProcessing}
                 centered={true}
+                isMobile={isMobile}
               />
             </div>
-          ) : (
-            // Messages view
+          </div>
+        ) : (
+          // Messages view with input at bottom - both aligned
+          <>
+            {/* Scrollable messages area */}
             <div style={{
-              width: '100%',
-              maxWidth: '800px',
-              padding: `${theme.spacing.xl} ${theme.spacing.lg}`,
+              flex: 1,
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}>
-              <ChatPanel
-                messages={chatMessages}
-                onFixBug={handleSend}
+              <div style={{
+                width: isMobile ? '95%' : '90%',
+                maxWidth: '800px',
+                paddingTop: isMobile ? theme.spacing.md : theme.spacing.xl,
+                paddingBottom: isMobile ? theme.spacing.md : theme.spacing.xl,
+              }}>
+                <ChatPanel
+                  messages={chatMessages}
+                  onFixBug={handleSend}
+                  isMobile={isMobile}
+                />
+              </div>
+            </div>
+
+            {/* Input at bottom - same alignment as messages */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: isMobile
+                ? `${theme.spacing.sm} ${theme.spacing.sm}`
+                : `${theme.spacing.md} ${theme.spacing.lg}`,
+              paddingBottom: isMobile ? theme.spacing.md : theme.spacing.xl,
+            }}>
+              <EnhancedChatInput
+                placeholder="Message..."
+                onSend={handleSend}
+                modelTier={modelTier}
+                onChangeModelTier={onChangeModelTier}
+                disabled={isAIProcessing}
+                centered={true}
+                isMobile={isMobile}
               />
             </div>
-          )}
-        </div>
-
-        {/* Chat Input - Fixed at bottom only when there are messages */}
-        {hasMessages && (
-          <EnhancedChatInput
-            placeholder="Message..."
-            onSend={handleSend}
-            modelTier={modelTier}
-            onChangeModelTier={onChangeModelTier}
-            disabled={isAIProcessing}
-            centered={false}
-          />
+          </>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal />
     </div>
   );
 };

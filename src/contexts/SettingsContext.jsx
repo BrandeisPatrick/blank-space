@@ -17,14 +17,14 @@ export const SettingsProvider = ({ children }) => {
   // UI state for auth modal
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // AI Generation Style settings (persisted to localStorage for guests)
+  // AI Generation Style settings (persisted to sessionStorage for guests)
   const [localAIColorPalette, setLocalAIColorPalette] = useLocalStorage('aiColorPalette', DEFAULT_COLOR_PALETTE);
   const [localAIUIStyle, setLocalAIUIStyle] = useLocalStorage('aiUIStyle', DEFAULT_UI_STYLE);
 
-  // Sync profile settings to localStorage when profile loads
+  // Sync profile settings to sessionStorage when profile loads
   useEffect(() => {
     if (user && profile?.settings) {
-      // Override localStorage with Firestore settings for authenticated users
+      // Override sessionStorage with Firestore settings for authenticated users
       if (profile.settings.aiColorPalette) {
         setLocalAIColorPalette(profile.settings.aiColorPalette);
       }

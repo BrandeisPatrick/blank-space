@@ -1,15 +1,15 @@
 import { useState, useCallback } from 'react';
 
 /**
- * Custom hook for persisting state to localStorage
- * @param {string} key - The localStorage key
+ * Custom hook for persisting state to sessionStorage
+ * @param {string} key - The sessionStorage key
  * @param {*} initialValue - Default value if key doesn't exist
  * @returns {[*, Function]} Tuple of [storedValue, setValue]
  */
 export function useLocalStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {
     try {
-      const item = localStorage.getItem(key);
+      const item = sessionStorage.getItem(key);
       return item !== null ? JSON.parse(item) : initialValue;
     } catch {
       return initialValue;
@@ -20,9 +20,9 @@ export function useLocalStorage(key, initialValue) {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      localStorage.setItem(key, JSON.stringify(valueToStore));
+      sessionStorage.setItem(key, JSON.stringify(valueToStore));
     } catch {
-      // Silent fail for localStorage errors
+      // Silent fail for sessionStorage errors
     }
   }, [key, storedValue]);
 

@@ -28,30 +28,36 @@ export default async function handler(req, res) {
     });
   }
 
+  // Determine model tier from model name
+  const { model = 'gemini-3-flash-preview' } = req.body;
+  const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
+
   // Verify authentication
   const authResult = await verifyAuth(req);
-  if (authResult.error) {
+
+  // Pro mode requires authentication
+  if (modelTier === 'pro' && authResult.error) {
     return res.status(authResult.status).json({
       error: authResult.error,
       requiresAuth: true,
     });
   }
 
-  const { userId } = authResult;
+  // For guests (lite mode only), use IP-based identifier for rate limiting
+  const userId = authResult.userId || `guest_${req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown'}`;
+  const isGuest = !authResult.userId;
 
-  // Determine model tier from model name
-  const { model = 'gemini-3-flash-preview' } = req.body;
-  const modelTier = model === 'gemini-3-pro-preview' ? 'pro' : 'lite';
-
-  // Check user quota
-  const quotaResult = await checkQuota(userId, modelTier);
-  if (!quotaResult.allowed) {
-    return res.status(429).json({
-      error: 'Quota exceeded',
-      message: quotaResult.error,
-      resetAt: quotaResult.resetAt,
-      limits: quotaResult.limits,
-    });
+  // Check user quota (skip for guests - they only have rate limiting)
+  if (!isGuest) {
+    const quotaResult = await checkQuota(userId, modelTier);
+    if (!quotaResult.allowed) {
+      return res.status(429).json({
+        error: 'Quota exceeded',
+        message: quotaResult.error,
+        resetAt: quotaResult.resetAt,
+        limits: quotaResult.limits,
+      });
+    }
   }
 
   // Get API key from environment (server-side only)

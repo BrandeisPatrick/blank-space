@@ -35,6 +35,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.11.0",
     "stripe": "^20.1.0"
   },
   "devDependencies": {

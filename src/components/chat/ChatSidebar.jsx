@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { getTheme } from '../../styles/theme';
+import { useConversation } from '../../contexts/ConversationContext';
 
 // Grok-style colors
 const GROK_COLORS = {
@@ -77,6 +77,21 @@ const UserIcon = ({ size = 20, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const SettingsIcon = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const SignOutIcon = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
 );
 
@@ -194,21 +209,46 @@ export const ChatSidebar = ({
   isMobile = false,
 }) => {
   const { mode } = useTheme();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { openAuthModal, openSettingsModal } = useSettings();
-  const theme = getTheme(mode);
+  const { conversations, activeConversationId, createConversation, switchConversation } = useConversation();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // User menu state
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
+
   const colors = mode === 'dark' ? GROK_COLORS.dark : GROK_COLORS.light;
   const sidebarWidth = expanded ? '250px' : '60px';
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
 
   // Check if on chat page (root)
   const isOnChatPage = location.pathname === '/' || location.pathname.startsWith('/chat');
   const isOnAppsPage = location.pathname === '/apps';
 
-  // Navigation handlers
+  // Navigation handlers - Create new conversation when clicking Chat
   const handleChat = () => {
+    createConversation();
+    navigate('/');
+    if (isMobile) onClose?.();
+  };
+
+  // Switch to an existing conversation
+  const handleConversationClick = (convId) => {
+    switchConversation(convId);
     navigate('/');
     if (isMobile) onClose?.();
   };
@@ -225,21 +265,19 @@ export const ChatSidebar = ({
 
   const handleUserClick = () => {
     if (user) {
-      openSettingsModal?.();
+      setShowUserMenu(!showUserMenu);
     } else {
       openAuthModal?.();
+      if (isMobile) onClose?.();
     }
-    if (isMobile) onClose?.();
   };
-
-  if (!visible && isMobile) return null;
 
   return (
     <div
       data-sidebar
       style={{
-        width: sidebarWidth,
-        minWidth: sidebarWidth,
+        width: isMobile ? '280px' : sidebarWidth,
+        minWidth: isMobile ? '280px' : sidebarWidth,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -247,12 +285,15 @@ export const ChatSidebar = ({
         gap: '4px',
         background: colors.bg,
         borderRight: `1px solid ${colors.border}`,
-        transition: 'width 0.2s ease, min-width 0.2s ease',
+        transition: isMobile
+          ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          : 'width 0.2s ease, min-width 0.2s ease',
         ...(isMobile && {
           position: 'fixed',
           left: 0,
           top: 0,
           zIndex: 50,
+          transform: visible ? 'translateX(0)' : 'translateX(-100%)',
         }),
       }}
     >
@@ -339,42 +380,57 @@ export const ChatSidebar = ({
             <span>History</span>
           </div>
 
-          {/* Date Group - Today */}
-          <div style={{
-            fontSize: '12px',
-            color: colors.textTertiary,
-            padding: '12px 12px 4px 12px',
-            fontWeight: 500,
-          }}>
-            Today
-          </div>
-
-          {/* Placeholder for conversations */}
-          <div style={{
-            fontSize: '13px',
-            color: colors.textTertiary,
-            padding: '8px 12px',
-          }}>
-            No recent conversations
-          </div>
-
-          {/* See all link */}
-          <button
-            style={{
-              display: 'block',
-              width: '100%',
-              textAlign: 'left',
-              padding: '8px 12px',
-              background: 'transparent',
-              border: 'none',
+          {/* Conversation List */}
+          {conversations.filter(c => c.messageCount > 0).length === 0 ? (
+            <div style={{
+              fontSize: '13px',
               color: colors.textTertiary,
-              fontSize: '12px',
-              cursor: 'pointer',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            See all
-          </button>
+              padding: '8px 12px',
+            }}>
+              No recent conversations
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {conversations
+                .filter(c => c.messageCount > 0)
+                .slice(0, 10)
+                .map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={() => handleConversationClick(conv.id)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      background: conv.id === activeConversationId ? colors.activeBg : 'transparent',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: conv.id === activeConversationId ? colors.textPrimary : colors.textSecondary,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (conv.id !== activeConversationId) {
+                        e.currentTarget.style.background = colors.hoverBg;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (conv.id !== activeConversationId) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    {conv.title}
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -385,7 +441,8 @@ export const ChatSidebar = ({
       <div style={{
         marginTop: 'auto',
         paddingTop: '8px',
-      }}>
+        position: 'relative',
+      }} ref={userMenuRef}>
         <SidebarItem
           icon={UserIcon}
           label={user ? (user.displayName || user.email?.split('@')[0] || 'Account') : 'Sign In'}
@@ -393,6 +450,90 @@ export const ChatSidebar = ({
           expanded={expanded}
           colors={colors}
         />
+
+        {/* User Menu Popup */}
+        {showUserMenu && user && (
+          <div style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: expanded ? '8px' : '50%',
+            transform: expanded ? 'none' : 'translateX(-50%)',
+            marginBottom: '8px',
+            background: colors.activeBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: '12px',
+            padding: '8px 0',
+            minWidth: '180px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            zIndex: 100,
+          }}>
+            {/* Settings */}
+            <button
+              onClick={() => {
+                setShowUserMenu(false);
+                openSettingsModal?.();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '10px 16px',
+                background: 'transparent',
+                border: 'none',
+                color: colors.textPrimary,
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <SettingsIcon size={18} color={colors.textSecondary} />
+              <span>Settings</span>
+            </button>
+
+            {/* Divider */}
+            <div style={{
+              height: '1px',
+              background: colors.border,
+              margin: '4px 12px',
+            }} />
+
+            {/* Sign Out */}
+            <button
+              onClick={async () => {
+                setShowUserMenu(false);
+                try {
+                  await signOut();
+                  navigate('/');
+                } catch (e) {
+                  console.error('Sign out failed:', e);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '10px 16px',
+                background: 'transparent',
+                border: 'none',
+                color: colors.textPrimary,
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <SignOutIcon size={18} color={colors.textSecondary} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

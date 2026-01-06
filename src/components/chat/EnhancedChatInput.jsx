@@ -91,12 +91,14 @@ export const EnhancedChatInput = ({
   isEditingArtifact = false,
   disabled = false,
   centered = false, // When true, use relative positioning (for centered layout)
+  isMobile: isMobileProp, // Optional prop, falls back to hook
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
   const { openAuthModal } = useSettings();
   const theme = getTheme(mode);
-  const isMobile = useIsMobile();
+  const isMobileHook = useIsMobile();
+  const isMobile = isMobileProp ?? isMobileHook;
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
   const [message, setMessage] = useState(initialMessage);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -237,11 +239,13 @@ export const EnhancedChatInput = ({
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: theme.spacing.md,
-        padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+        gap: isMobile ? theme.spacing.sm : theme.spacing.md,
+        padding: isMobile
+          ? `${theme.spacing.md} ${theme.spacing.md}`
+          : `${theme.spacing.lg} ${theme.spacing.xl}`,
         background: colors.inputBg,
         border: `1px solid ${colors.inputBorder}`,
-        borderRadius: LAYOUT.CHAT_INPUT_BORDER_RADIUS,
+        borderRadius: isMobile ? '28px' : LAYOUT.CHAT_INPUT_BORDER_RADIUS,
       }}>
         {/* Input Row - TOP */}
         <input
@@ -258,9 +262,9 @@ export const EnhancedChatInput = ({
             border: 'none',
             outline: 'none',
             color: theme.colors.text.primary,
-            fontSize: theme.typography.fontSize.lg,
+            fontSize: isMobile ? theme.typography.fontSize.base : theme.typography.fontSize.lg,
             fontFamily: theme.typography.fontFamily.sans,
-            padding: `${theme.spacing.sm} 0`,
+            padding: isMobile ? `${theme.spacing.xs} 0` : `${theme.spacing.sm} 0`,
             opacity: disabled ? 0.6 : 1,
           }}
         />
@@ -269,9 +273,9 @@ export const EnhancedChatInput = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing.sm,
-          marginLeft: `-${theme.spacing.sm}`,
-          marginRight: `-${theme.spacing.sm}`,
+          gap: isMobile ? theme.spacing.xs : theme.spacing.sm,
+          marginLeft: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
+          marginRight: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
         }}>
           {/* Plus Button (Dropdown Trigger) */}
           <button
@@ -282,8 +286,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
+              width: isMobile ? '36px' : '42px',
+              height: isMobile ? '36px' : '42px',
               background: showDropdown ? theme.colors.bg.tertiary : 'transparent',
               border: 'none',
               borderRadius: theme.radius.full,
@@ -305,7 +309,7 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <PlusIcon size={24} />
+            <PlusIcon size={isMobile ? 20 : 24} />
           </button>
 
           {/* Model Tier Dropdown */}
@@ -447,8 +451,8 @@ export const EnhancedChatInput = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
+              width: isMobile ? '36px' : '42px',
+              height: isMobile ? '36px' : '42px',
               background: message.trim() && !disabled ? '#C97D63' : theme.colors.bg.tertiary,
               border: 'none',
               borderRadius: theme.radius.full,
@@ -469,7 +473,7 @@ export const EnhancedChatInput = ({
               }
             }}
           >
-            <ArrowUpIcon size={24} />
+            <ArrowUpIcon size={isMobile ? 20 : 24} />
           </button>
         </div>
 
@@ -491,4 +495,5 @@ EnhancedChatInput.propTypes = {
   isEditingArtifact: PropTypes.bool,
   disabled: PropTypes.bool,
   centered: PropTypes.bool,
+  isMobile: PropTypes.bool,
 };

@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
@@ -6,7 +7,7 @@ import { ErrorMessage } from './ErrorMessage'
 import { LoadingDots } from '../ui/LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
-export const ChatPanel = ({ messages = [], onFixBug }) => {
+export const ChatPanel = ({ messages = [], onFixBug, isMobile = false }) => {
   const messagesEndRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -22,7 +23,7 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
   return (
     <div style={{
       height: '100%',
-      backgroundColor: theme.colors.bg.primary,
+      backgroundColor: 'transparent',
       display: 'flex',
       flexDirection: 'column'
     }}>
@@ -31,10 +32,10 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
         flex: 1,
         overflowY: 'auto',
         overflowX: 'hidden',
-        padding: theme.spacing.lg,
+        padding: isMobile ? theme.spacing.sm : theme.spacing.lg,
         display: 'flex',
         flexDirection: 'column',
-        gap: theme.spacing.lg,
+        gap: isMobile ? theme.spacing.md : theme.spacing.lg,
         minHeight: 0,
         maxHeight: '100%',
       }}>
@@ -78,7 +79,7 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
             {/* Regular messages */}
             {filterVisibleMessages(messages)
               .map((message, index) => (
-                <ChatMessage key={message.id || index} message={message} onFixBug={onFixBug} />
+                <ChatMessage key={message.id || index} message={message} onFixBug={onFixBug} isMobile={isMobile} />
               ))}
           </>
         )}
@@ -88,13 +89,17 @@ export const ChatPanel = ({ messages = [], onFixBug }) => {
   )
 }
 
-const ChatMessage = ({ message, onFixBug }) => {
+const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
   const isUser = message.type === 'user'
   const isError = message.type === 'error'
   const isLoading = message.isLoading
+
+  // Font sizes responsive to mobile
+  const fontSize = isMobile ? '14px' : '15px'
+  const codeFontSize = isMobile ? '12px' : '13px'
 
   // Error messages with error object (from preview/runtime errors)
   if (isError && message.error) {
@@ -116,11 +121,13 @@ const ChatMessage = ({ message, onFixBug }) => {
   if (isError) {
     return (
       <div style={{
-        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+        padding: isMobile
+          ? `${theme.spacing.sm} ${theme.spacing.md}`
+          : `${theme.spacing.md} ${theme.spacing.lg}`,
         background: '#fee2e2',
         borderRadius: theme.radius.lg,
         borderLeft: '4px solid #dc2626',
-        fontSize: theme.typography.fontSize.sm,
+        fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
         color: '#dc2626',
       }}>
         ⚠️ {message.content}
@@ -128,18 +135,16 @@ const ChatMessage = ({ message, onFixBug }) => {
     )
   }
 
-  // Loading message with animated dots or action text
+  // Loading message with animated dots or action text (Grok-style: left-aligned, minimal)
   if (isLoading) {
     return (
       <div style={{
-        background: theme.colors.bg.secondary,
+        alignSelf: 'flex-start',
         color: theme.colors.text.secondary,
-        padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-        borderRadius: theme.radius.lg,
-        fontSize: theme.typography.fontSize.sm,
-        lineHeight: theme.typography.lineHeight.relaxed,
-        width: 'fit-content',
-        border: `1px solid ${theme.colors.border}`,
+        padding: `${theme.spacing.xs} 0`,
+        fontFamily: theme.typography.fontFamily.sans,
+        fontSize,
+        lineHeight: '1.6',
         fontStyle: 'italic',
       }}>
         {message.content ? message.content : <LoadingDots />}
@@ -147,20 +152,58 @@ const ChatMessage = ({ message, onFixBug }) => {
     )
   }
 
-  // Regular user/assistant/complete messages - simplified, no avatars, all left-aligned
+  // Grok-style messages: user = right-aligned bubbles, AI = plain left-aligned text
+  if (isUser) {
+    return (
+      <div style={{
+        alignSelf: 'flex-end',
+        background: theme.colors.bg.tertiary,
+        color: theme.colors.text.primary,
+        padding: isMobile ? '10px 14px' : '12px 18px',
+        borderRadius: isMobile ? '18px' : '20px',
+        maxWidth: isMobile ? '85%' : '80%',
+        width: 'fit-content',
+        fontFamily: theme.typography.fontFamily.sans,
+        fontSize,
+        lineHeight: '1.5',
+        whiteSpace: 'pre-wrap',
+      }}>
+        {message.content}
+      </div>
+    )
+  }
+
+  // AI/assistant message - markdown rendered
   return (
-    <div style={{
-      background: isUser ? theme.colors.bg.tertiary : theme.colors.bg.secondary,
-      color: theme.colors.text.primary,
-      padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-      borderRadius: theme.radius.lg,
-      fontSize: theme.typography.fontSize.sm,
-      lineHeight: theme.typography.lineHeight.relaxed,
-      whiteSpace: 'pre-wrap',
-      width: '100%',
-      border: `1px solid ${theme.colors.border}`,
-    }}>
-      {message.content}
+    <div
+      style={{
+        alignSelf: 'flex-start',
+        color: theme.colors.text.primary,
+        padding: `${theme.spacing.xs} 0`,
+        maxWidth: isMobile ? '95%' : '90%',
+        fontFamily: theme.typography.fontFamily.sans,
+        fontSize,
+        lineHeight: '1.6',
+        fontWeight: 400,
+        letterSpacing: '0.01em',
+      }}
+      className="markdown-content"
+    >
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <p style={{ margin: isMobile ? '0 0 10px 0' : '0 0 12px 0' }}>{children}</p>,
+          ul: ({ children }) => <ul style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ul>,
+          ol: ({ children }) => <ol style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ol>,
+          li: ({ children }) => <li style={{ margin: isMobile ? '3px 0' : '4px 0' }}>{children}</li>,
+          strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+          code: ({ inline, children }) => inline
+            ? <code style={{ background: theme.colors.bg.tertiary, padding: '2px 6px', borderRadius: '4px', fontSize: codeFontSize }}>{children}</code>
+            : <pre style={{ background: theme.colors.bg.tertiary, padding: isMobile ? '10px' : '12px', borderRadius: '8px', overflow: 'auto', margin: isMobile ? '6px 0' : '8px 0', fontSize: codeFontSize }}><code>{children}</code></pre>,
+          a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>{children}</a>,
+        }}
+      >
+        {message.content}
+      </ReactMarkdown>
     </div>
   )
 }

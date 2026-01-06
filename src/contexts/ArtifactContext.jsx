@@ -31,24 +31,24 @@ export const ArtifactProvider = ({ children }) => {
   // Use ref to persist timeout across renders without causing re-renders
   const updateFilesTimeoutRef = useRef(null);
 
-  // Load artifacts from API (when authenticated) or localStorage (when guest)
+  // Load artifacts from API (when authenticated) or sessionStorage (when guest)
   useEffect(() => {
     if (user) {
       loadArtifactsFromAPI();
     } else {
-      // Load from localStorage for guest mode
+      // Load from sessionStorage for guest mode
       loadArtifactsFromLocalStorage();
     }
   }, [user]);
 
-  // localStorage helpers for guest mode
+  // sessionStorage helpers for guest mode
   const STORAGE_KEY = 'guestArtifacts';
   const ACTIVE_ARTIFACT_KEY = 'guestActiveArtifactId';
 
   const loadArtifactsFromLocalStorage = () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const activeId = localStorage.getItem(ACTIVE_ARTIFACT_KEY);
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      const activeId = sessionStorage.getItem(ACTIVE_ARTIFACT_KEY);
 
       if (stored) {
         const parsedArtifacts = JSON.parse(stored);
@@ -62,7 +62,7 @@ export const ArtifactProvider = ({ children }) => {
 
         setArtifacts(parsedArtifacts);
 
-        // Only restore activeArtifactId if explicitly saved in localStorage
+        // Only restore activeArtifactId if explicitly saved in sessionStorage
         // Don't auto-select first artifact to keep landing page clean
         if (activeId && parsedArtifacts.some(a => a && a.id === activeId)) {
           setActiveArtifactId(activeId);
@@ -74,7 +74,7 @@ export const ArtifactProvider = ({ children }) => {
         setActiveArtifactId(null);
       }
     } catch (error) {
-      console.error('Error loading from localStorage:', error);
+      console.error('Error loading from sessionStorage:', error);
       setArtifacts([]);
       setActiveArtifactId(null);
     }
@@ -82,12 +82,12 @@ export const ArtifactProvider = ({ children }) => {
 
   const saveArtifactsToLocalStorage = (artifactsToSave, activeId) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(artifactsToSave));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(artifactsToSave));
       if (activeId) {
-        localStorage.setItem(ACTIVE_ARTIFACT_KEY, activeId);
+        sessionStorage.setItem(ACTIVE_ARTIFACT_KEY, activeId);
       }
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      console.error('Error saving to sessionStorage:', error);
     }
   };
 
@@ -165,7 +165,7 @@ export const ArtifactProvider = ({ children }) => {
 
   // Create new artifact
   const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = [], icon = 'app') => {
-    // Guest mode: Create artifact in localStorage
+    // Guest mode: Create artifact in sessionStorage
     if (!user) {
       const newArtifact = {
         id: generateArtifactId(),
@@ -215,7 +215,7 @@ export const ArtifactProvider = ({ children }) => {
 
   // Update artifact
   const updateArtifact = async (id, updates) => {
-    // Guest mode: Update artifact in localStorage
+    // Guest mode: Update artifact in sessionStorage
     if (!user) {
       const updatedArtifacts = artifacts.map(artifact =>
         artifact.id === id
@@ -308,7 +308,7 @@ export const ArtifactProvider = ({ children }) => {
       newActiveId = remaining.length > 0 ? remaining[0].id : null;
     }
 
-    // Guest mode: Delete artifact from localStorage
+    // Guest mode: Delete artifact from sessionStorage
     if (!user) {
       setArtifacts(remaining);
       setActiveArtifactId(newActiveId);
@@ -341,9 +341,9 @@ export const ArtifactProvider = ({ children }) => {
     const artifact = artifacts.find(a => a.id === id);
     if (artifact) {
       setActiveArtifactId(id);
-      // Save active artifact ID to localStorage for guests
+      // Save active artifact ID to sessionStorage for guests
       if (!user) {
-        localStorage.setItem(ACTIVE_ARTIFACT_KEY, id);
+        sessionStorage.setItem(ACTIVE_ARTIFACT_KEY, id);
       }
     }
   };
@@ -365,7 +365,7 @@ export const ArtifactProvider = ({ children }) => {
       setArtifacts(updatedArtifacts);
       setActiveArtifactId(newArtifact.id);
 
-      // Save to localStorage for guests
+      // Save to sessionStorage for guests
       if (!user) {
         saveArtifactsToLocalStorage(updatedArtifacts, newArtifact.id);
       }
@@ -376,12 +376,12 @@ export const ArtifactProvider = ({ children }) => {
 
   // Clear all artifacts
   const clearAllArtifacts = async () => {
-    // Guest mode: Clear localStorage only
+    // Guest mode: Clear sessionStorage only
     if (!user) {
       setArtifacts([]);
       setActiveArtifactId(null);
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(ACTIVE_ARTIFACT_KEY);
       return;
     }
 
@@ -413,7 +413,7 @@ export const ArtifactProvider = ({ children }) => {
   const clearActiveArtifact = () => {
     setActiveArtifactId(null);
     if (!user) {
-      localStorage.removeItem(ACTIVE_ARTIFACT_KEY);
+      sessionStorage.removeItem(ACTIVE_ARTIFACT_KEY);
     }
   };
 

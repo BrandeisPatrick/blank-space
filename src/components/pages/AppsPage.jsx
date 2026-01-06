@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
@@ -14,10 +13,11 @@ import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
 import { AppStorePanel } from '../appstore/AppStorePanel';
 import { AuthModal } from '../auth/AuthModal';
 import { FloatingBrowserWindow } from '../ui/FloatingBrowserWindow';
+import { ChatSidebar } from '../chat/ChatSidebar';
 import { LAYOUT, SIZES } from '../../constants';
 
-// Chat icon for navigation back to chat
-const ChatIcon = ({ size = 24, color = "currentColor" }) => (
+// Hamburger menu icon for mobile
+const MenuIcon = ({ size = 24, color = "currentColor" }) => (
   <svg
     width={size}
     height={size}
@@ -28,7 +28,9 @@ const ChatIcon = ({ size = 24, color = "currentColor" }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
   </svg>
 );
 
@@ -48,12 +50,32 @@ export const AppsPage = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
 
-  // Navigate back to chat
-  const handleGoToChat = () => {
-    navigate('/');
-  };
+  // Sidebar state (same pattern as ChatPage)
+  const [sidebarExpanded, setSidebarExpanded] = useState(!isMobile);
+  const [sidebarVisible, setSidebarVisible] = useState(!isMobile);
+
+  // Handle sidebar toggle
+  const toggleSidebar = useCallback(() => {
+    if (isMobile) {
+      setSidebarVisible(!sidebarVisible);
+    } else {
+      setSidebarExpanded(!sidebarExpanded);
+    }
+  }, [isMobile, sidebarVisible, sidebarExpanded]);
+
+  // Close mobile sidebar when clicking outside
+  useEffect(() => {
+    if (isMobile && sidebarVisible) {
+      const handleClickOutside = (e) => {
+        if (!e.target.closest('[data-sidebar]')) {
+          setSidebarVisible(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobile, sidebarVisible]);
 
   // Enter edit mode (iOS-style jiggle mode for deletion)
   const enterEditMode = () => {
@@ -92,15 +114,37 @@ export const AppsPage = ({
 
   return (
     <div style={{
-      minHeight: '100vh',
-      width: '100vw',
       display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: currentTheme.backgroundColor,
-      backgroundImage: currentTheme.gradient,
-      color: theme.colors.text.primary,
-      fontFamily: theme.typography.fontFamily.sans,
+      width: '100vw',
+      height: '100dvh',
+      minHeight: '100vh',
+      overflow: 'hidden',
     }}>
+      {/* Sidebar */}
+      <ChatSidebar
+        expanded={sidebarExpanded}
+        visible={sidebarVisible}
+        onToggle={toggleSidebar}
+        onClose={() => setSidebarVisible(false)}
+        isMobile={isMobile}
+      />
+
+      {/* Mobile sidebar overlay */}
+      {isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 40,
+            opacity: sidebarVisible ? 1 : 0,
+            pointerEvents: sidebarVisible ? 'auto' : 'none',
+            transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onClick={() => setSidebarVisible(false)}
+        />
+      )}
+
       {/* Main Content */}
       <main style={{
         flex: 1,
@@ -108,47 +152,53 @@ export const AppsPage = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
+        backgroundColor: currentTheme.backgroundColor,
+        backgroundImage: currentTheme.gradient,
+        color: theme.colors.text.primary,
+        fontFamily: theme.typography.fontFamily.sans,
         paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
         paddingLeft: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
         paddingRight: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
         paddingBottom: theme.spacing['3xl'],
         position: 'relative',
+        overflow: 'auto',
       }}>
-        {/* Top Right Chat Button */}
-        <div style={{
-          position: 'absolute',
-          top: theme.spacing.lg,
-          right: theme.spacing.lg,
-          zIndex: 10,
-        }}>
-          <button
-            onClick={handleGoToChat}
+        {/* Mobile hamburger menu button (top-left) */}
+        {isMobile && (
+          <div
+            data-sidebar
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.lg,
-              cursor: 'pointer',
-              color: theme.colors.text.secondary,
-              transition: `all ${theme.animation.fast}`,
+              position: 'fixed',
+              top: theme.spacing.md,
+              left: theme.spacing.md,
+              zIndex: 10,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = theme.colors.bg.hover;
-              e.currentTarget.style.color = theme.colors.text.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = theme.colors.text.secondary;
-            }}
-            title="Chat"
           >
-            <ChatIcon size={22} />
-          </button>
-        </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSidebar();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                border: 'none',
+                borderRadius: theme.radius.lg,
+                cursor: 'pointer',
+                color: '#ffffff',
+                transition: `all ${theme.animation.fast}`,
+              }}
+              title="Menu"
+            >
+              <MenuIcon size={20} />
+            </button>
+          </div>
+        )}
 
         {/* Background Decorations */}
         {currentTheme.variant === 'stars' ? (
@@ -170,7 +220,7 @@ export const AppsPage = ({
           zIndex: LAYOUT.CONTENT_Z_INDEX,
           paddingLeft: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
           paddingRight: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_X.mobile, SIZES.SPACING.CONTENT_PADDING_X.desktop),
-          paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
+          paddingTop: isMobile ? theme.spacing['5xl'] : getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
         }}>
           {/* Done Button - Shows in edit mode */}
           {isEditMode && (

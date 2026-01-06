@@ -1,787 +1,128 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
-import { useSettings } from "./contexts/SettingsContext";
-import { useSubscription } from "./contexts/SubscriptionContext";
+import { useConversation } from "./contexts/ConversationContext";
 import { getTheme } from "./styles/theme";
-import { LandingPage, SignInPage, SignUpPage } from "./components/auth";
-import { ArtifactSidebar } from "./components/artifact";
-import { AIResponsePanel } from "./components/ui/AIResponsePanel";
-import { CollapsedChatIcon } from "./components/ui/CollapsedChatIcon";
-import { FloatingBrowserWindow } from "./components/ui/FloatingBrowserWindow";
-import LockScreen from "./components/ui/LockScreen";
-import WelcomeScreen from "./components/ui/WelcomeScreen";
-import { useIsMobile } from "./hooks/useIsMobile";
+import { ChatPage, AppsPage } from "./components/pages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { processMessage } from "./services/ToolOrchestrator.js";
-import { ROUTES, TIMING, MESSAGES } from "./constants";
+import { useAIChat } from "./hooks/useAIChat";
+import { TIMING } from "./constants";
 import "./styles/App.css";
 
 function App() {
-  const { mode, theme: wallpaperTheme, currentTheme } = useTheme();
+  const { mode } = useTheme();
   const theme = getTheme(mode);
-  const { user, loading: authLoading, getIdToken } = useAuth();
-  const { activeArtifact, updateArtifactFiles, updateChatHistory, createArtifact, activeArtifactId, clearActiveArtifact, updateArtifactIcon, renameArtifact } = useArtifacts();
-  const { aiColorPalette, aiUIStyle } = useSettings();
-  const { refreshUsage, incrementUsage } = useSubscription();
-  const isMobile = useIsMobile();
+  const { loading: authLoading } = useAuth();
+  const {
+    activeArtifact,
+    updateArtifactFiles,
+    updateChatHistory,
+    createArtifact,
+    activeArtifactId,
+    updateArtifactIcon,
+    renameArtifact
+  } = useArtifacts();
+  const { messages } = useConversation();
 
-  // Route state
-  const [currentRoute, setCurrentRoute] = useState(ROUTES.LANDING);
-
-  // AI processing state
-  const [isAIProcessing, setIsAIProcessing] = useState(false);
-  const [isDebugging, setIsDebugging] = useState(false);
-
-
-  // Model tier state - 'lite' or 'pro'
+  // Model tier state
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite');
 
-  // Migrate old tier values to valid ones
+  // Migrate old tier values
   useEffect(() => {
     if (modelTier !== 'lite' && modelTier !== 'pro') {
       setModelTier('lite');
     }
   }, [modelTier, setModelTier]);
 
-  // State management
-  const [chatMessages, setChatMessages] = useState([]);
+  // Files state for code editing
   const [files, setFiles] = useState(activeArtifact?.files || {});
   const [activeFile, setActiveFile] = useState('App.jsx');
 
-  // Error deduplication - track recent errors to prevent spam
+  // Error deduplication
   const recentErrors = useRef(new Map());
 
-  // Track current chat messages for saving to artifact
-  // Using ref to avoid including chatMessages in handleSendMessage dependencies
-  const chatMessagesRef = useRef([]);
-
-  // Track if initial message from URL was already processed
-  // Prevents effect from re-running when handleSendMessage changes
-  const initialMessageProcessedRef = useRef(false);
-
-  // Track previous artifact ID to detect actual switches
+  // Track artifact switches
   const previousArtifactIdRef = useRef(null);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    chatMessagesRef.current = chatMessages;
-  }, [chatMessages]);
+  // Use AI chat hook for message processing
+  const {
+    sendMessage,
+    debug,
+    isProcessing,
+    isDebugging,
+    setMessages: setChatMessages
+  } = useAIChat({
+    files,
+    setFiles,
+    modelTier,
+    activeArtifactId,
+    createArtifact,
+    updateArtifactFiles,
+    updateChatHistory,
+  });
 
-  // Sync files and chat history when SWITCHING to a different artifact
-  // Smart sync: only loads from artifact when state doesn't have current data
+  // Sync files when switching artifacts
   useEffect(() => {
     if (activeArtifact) {
-      // Determine if we should sync from artifact to state
-      // We should sync if:
-      // 1. Switching from one artifact to another (user clicked sidebar)
-      // 2. Initial page load with restored artifact (state is empty)
-      // We should NOT sync if:
-      // - We just created this artifact (state already has current data)
-
       const isSwitchingArtifacts = previousArtifactIdRef.current !== null &&
                                     previousArtifactIdRef.current !== activeArtifactId;
+      const stateIsEmpty = Object.keys(files).length === 0;
 
-      // Check if state is empty (indicates page load, not creation)
-      const stateIsEmpty = Object.keys(files).length === 0 && chatMessages.length === 0;
-
-      // Sync if switching artifacts OR if state is empty (page load/refresh)
-      const shouldSync = isSwitchingArtifacts || stateIsEmpty;
-
-      if (shouldSync) {
+      if (isSwitchingArtifacts || stateIsEmpty) {
         setFiles(activeArtifact.files);
         setChatMessages(activeArtifact.chatHistory || []);
 
-        // Set active file to first available file
         const fileNames = Object.keys(activeArtifact.files);
         if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
           setActiveFile(fileNames[0]);
         }
       }
     } else {
-      // Empty state - no artifacts
       setFiles({});
-      setChatMessages([]);
     }
-
-    // Update previous ID tracking
     previousArtifactIdRef.current = activeArtifactId;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeArtifactId]);
-  // Intentionally omitting activeArtifact, activeFile, files, chatMessages from dependencies:
-  // - We only want this to run when activeArtifactId changes, not on every state update
-  // - Using stale files/chatMessages in condition is intentional (checking "before" state)
-
-  // Panel visibility (legacy - keeping for compatibility)
-  const [showChat, setShowChat] = useState(true);
-  const [showCode, setShowCode] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
-  const [showArtifacts, setShowArtifacts] = useState(false);
-
-  // Floating window states
-  const [floatingChatVisible, setFloatingChatVisible] = useState(false);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
-  const [userRequestedBrowserWindow, setUserRequestedBrowserWindow] = useState(false);
-
-  // Welcome screen state - shown on first visit
-  const [showWelcomeScreen, setShowWelcomeScreen] = useState(() => {
-    return sessionStorage.getItem('welcomeScreenDismissed') !== 'true';
-  });
-
-  // Lock screen state - shown when clicking logo (clock display)
-  const [showLockScreen, setShowLockScreen] = useState(false);
-
-  // Handle welcome screen dismiss
-  const handleWelcomeScreenDismiss = useCallback(() => {
-    sessionStorage.setItem('welcomeScreenDismissed', 'true');
-    setShowWelcomeScreen(false);
-  }, []);
-
-  // Handle lock screen dismiss
-  const handleLockScreenDismiss = useCallback(() => {
-    setShowLockScreen(false);
-  }, []);
-
-  // Handle showing lock screen (when user clicks logo)
-  const handleShowLockScreen = useCallback(() => {
-    setShowLockScreen(true);
-  }, []);
-
-  // Compute browser window visibility from source-of-truth states
-  // Window shows when: has active artifact AND (user requested OR AI finished processing)
-  const browserWindowVisible = !!activeArtifact && (userRequestedBrowserWindow || !isAIProcessing);
-
-  // Show panel when AI starts processing (and expand if collapsed)
-  // Auto-collapse when AI finishes and artifact is created
-  const wasProcessingRef = useRef(false);
-  useEffect(() => {
-    if (isAIProcessing) {
-      setFloatingChatVisible(true);
-      setIsPanelCollapsed(false); // Expand when new processing starts
-      wasProcessingRef.current = true;
-    } else if (wasProcessingRef.current && activeArtifact) {
-      // AI just finished and we have an artifact - auto-collapse after brief delay
-      const timer = setTimeout(() => {
-        setIsPanelCollapsed(true);
-      }, 1500); // Brief delay so user can see completion
-      wasProcessingRef.current = false;
-      return () => clearTimeout(timer);
-    }
-  }, [isAIProcessing, activeArtifact]);
-
-  // Handle panel collapse/expand
-  const handleCollapsePanel = () => {
-    setIsPanelCollapsed(true);
-  };
-
-  const handleExpandPanel = () => {
-    setIsPanelCollapsed(false);
-  };
-
-  // Clean up old guest banner localStorage key
-  useEffect(() => {
-    localStorage.removeItem('guestBannerDismissed');
-  }, []);
-
-  // Helper to determine current UI state
-  const getUIState = useCallback(() => {
-    const hasArtifact = !!activeArtifact;
-    const hasMessages = chatMessages.length > 0;
-    const hasPendingWork = hasMessages || isAIProcessing;
-
-    if (!hasArtifact && !hasPendingWork) {
-      return 'EMPTY'; // No artifacts, no activity
-    } else if (!hasArtifact && hasPendingWork) {
-      return 'PENDING'; // Working on first artifact
-    } else {
-      return 'ACTIVE'; // Has artifact
-    }
-  }, [activeArtifact, chatMessages.length, isAIProcessing]);
-
-  // Helper function to set panel visibility based on device type and UI state
-  const setupPanelVisibility = useCallback(() => {
-    const uiState = getUIState();
-
-    // In empty state, hide all panels
-    if (uiState === 'EMPTY') {
-      setShowChat(false);
-      setShowCode(false);
-      setShowPreview(false);
-      return;
-    }
-
-    // In pending state (user just sent message from landing), show only chat
-    if (uiState === 'PENDING') {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-      return;
-    }
-
-    // In active state (has artifact), set based on device type
-    if (isMobile) {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    } else {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(true);
-    }
-  }, [isMobile, getUIState]);
-
-  // Auto-adjust panel visibility when UI state changes
-  useEffect(() => {
-    const uiState = getUIState();
-
-    // If transitioning to empty state, hide all panels
-    if (uiState === 'EMPTY' && showChat) {
-      setShowChat(false);
-      setShowCode(false);
-      setShowPreview(false);
-    }
-
-    // If transitioning from empty to pending (user sent first message)
-    // Show only chat panel to display the conversation
-    if (uiState === 'PENDING' && !showChat) {
-      setShowChat(true);
-      setShowCode(false);
-      setShowPreview(false);
-    }
-
-    // If transitioning from pending to active (artifact created)
-    // Setup panels based on device type
-    if (uiState === 'ACTIVE' && !showPreview && !isMobile) {
-      setupPanelVisibility();
-    }
-  }, [getUIState, showChat, showPreview, isMobile, setupPanelVisibility]);
-
-  // Navigation handlers
-  const handleTryNow = (message) => {
-    // Special case: empty string means user clicked artifact card (just open browser window)
-    if (message === '') {
-      setUserRequestedBrowserWindow(true);
-      return;
-    }
-
-    // Auto-submit the message if provided from landing page
-    if (message?.trim()) {
-      // Only clear artifact if starting completely fresh (no existing artifact)
-      if (!activeArtifact) {
-        clearActiveArtifact();
-      }
-
-      // Show floating chat panel and send message
-      setFloatingChatVisible(true);
-      handleSendMessage(message);
-    }
-  };
-
-  const handleNavigateToSignIn = () => setCurrentRoute(ROUTES.SIGNIN);
-  const handleNavigateToSignUp = () => setCurrentRoute(ROUTES.SIGNUP);
-  const handleNavigateToLanding = () => {
-    clearActiveArtifact(); // Clear active artifact so landing page always creates new
-    setUserRequestedBrowserWindow(false); // Reset user request flag
-    setCurrentRoute(ROUTES.LANDING);
-  };
-
-  const handleAuthSuccess = () => {
-    // Navigate to studio after successful sign-in/sign-up
-    setCurrentRoute(ROUTES.STUDIO);
-    setupPanelVisibility();
-  };
-
-  // Track rate limit warnings shown
-  const [rateLimitWarningsShown, setRateLimitWarningsShown] = useState({
-    fifty: false,
-    seventyFive: false
-  });
-
-  // Helper to add rate limit warning message
-  const addRateLimitWarning = (rateLimit) => {
-    const percentUsed = (rateLimit.used / rateLimit.limit) * 100;
-
-    // 50% warning
-    if (percentUsed >= 50 && percentUsed < 75 && !rateLimitWarningsShown.fifty) {
-      setChatMessages(prev => [...prev, {
-        type: 'assistant',
-        content: MESSAGES.RATE_LIMIT_50(rateLimit.used, rateLimit.limit, rateLimit.remaining),
-        timestamp: Date.now()
-      }]);
-      setRateLimitWarningsShown(prev => ({ ...prev, fifty: true }));
-    }
-
-    // 75% warning
-    if (percentUsed >= 75 && !rateLimitWarningsShown.seventyFive) {
-      setChatMessages(prev => [...prev, {
-        type: 'assistant',
-        content: MESSAGES.RATE_LIMIT_75(rateLimit.remaining),
-        timestamp: Date.now()
-      }]);
-      setRateLimitWarningsShown(prev => ({ ...prev, seventyFive: true }));
-    }
-  };
-
-  // Reset warnings at midnight
-  useEffect(() => {
-    const checkMidnight = () => {
-      const now = new Date();
-      if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0) {
-        setRateLimitWarningsShown({ fifty: false, seventyFive: false });
-      }
-    };
-
-    const interval = setInterval(checkMidnight, TIMING.MIDNIGHT_CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle preview errors with deduplication
-  // Layer 1: useCallback for stable reference (prevents infinite loops)
-  // Layer 2: Deduplication logic (prevents spam)
   const handlePreviewError = useCallback((error) => {
-    // Create unique signature for this error
     const signature = `${error.file || 'unknown'}:${error.line || 0}:${error.message}`;
     const lastShown = recentErrors.current.get(signature);
     const now = Date.now();
 
-    // Only add if this is a new error OR >DEDUP_WINDOW since last identical error
     if (!lastShown || now - lastShown > TIMING.ERROR_DEDUP_WINDOW_MS) {
       recentErrors.current.set(signature, now);
 
-      const errorMessage = {
+      setChatMessages(prev => [...prev, {
         type: 'error',
         error: error,
         timestamp: now
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
+      }]);
 
-      // Memory cleanup: prevent Map from growing unbounded
-      // Keep only the MAX_RECENT_ERRORS most recent errors
       if (recentErrors.current.size > TIMING.MAX_RECENT_ERRORS) {
         const entries = [...recentErrors.current.entries()];
-        // Remove oldest ERROR_CLEANUP_COUNT entries
         entries.slice(0, TIMING.ERROR_CLEANUP_COUNT).forEach(([sig]) => recentErrors.current.delete(sig));
       }
     }
-  }, []);
-
-  // Handle debug - unified handler for both runtime errors AND user-reported issues
-  const handleDebug = useCallback(async ({ errors = [], userDescription = '' }) => {
-    // Skip if nothing to debug or already debugging
-    if ((!errors.length && !userDescription) || isDebugging) return;
-
-    setIsDebugging(true);
-    setIsAIProcessing(true);
-    setFloatingChatVisible(true);
-    setIsPanelCollapsed(false);
-
-    // Create a loading message
-    const loadingMessageId = Date.now();
-    const loadingContent = userDescription ? 'Diagnosing issue...' : 'Analyzing errors...';
-    setChatMessages(prev => {
-      const newMessages = [...prev, {
-        id: loadingMessageId,
-        type: 'assistant',
-        content: loadingContent,
-        isLoading: true,
-        timestamp: loadingMessageId
-      }];
-      chatMessagesRef.current = newMessages;
-      return newMessages;
-    });
-
-    // Build debug message based on what we have
-    let debugMessage;
-    if (userDescription && errors.length > 0) {
-      const errorSummary = errors.map((err, i) =>
-        `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
-      ).join('\n');
-      debugMessage = `User reports: "${userDescription}"\n\nAlso seeing these errors:\n${errorSummary}`;
-    } else if (userDescription) {
-      debugMessage = `Fix this issue: ${userDescription}`;
-    } else {
-      const errorSummary = errors.map((err, i) =>
-        `${i + 1}. ${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ''})` : ''}`
-      ).join('\n');
-      debugMessage = `Fix the following errors in my code:\n${errorSummary}`;
-    }
-
-    // Callback for streaming updates
-    const onUpdate = (update) => {
-      if (update.type === 'tool_action') {
-        setChatMessages(prev => {
-          const newMessages = prev.map(msg =>
-            msg.id === loadingMessageId
-              ? { ...msg, content: update.action }
-              : msg
-          );
-          chatMessagesRef.current = newMessages;
-          return newMessages;
-        });
-      }
-    };
-
-    // Helper to remove loading message
-    const removeLoadingMessage = () => {
-      setChatMessages(prev => {
-        const newMessages = prev.filter(msg => msg.id !== loadingMessageId);
-        chatMessagesRef.current = newMessages;
-        return newMessages;
-      });
-    };
-
-    try {
-      const result = await processMessage(debugMessage, files, onUpdate, {
-        modelTier,
-        aiColorPalette,
-        aiUIStyle,
-        wallpaperTheme,
-        isDarkTheme: currentTheme?.isDark ?? mode === 'dark',
-        isDebugMode: true,
-        debugContext: { errors, userDescription },  // Unified debug context
-      });
-
-      if (result.success && result.fileOperations?.length > 0) {
-        // Apply fixes
-        const fixedFiles = { ...files };
-        result.fileOperations.forEach(op => {
-          fixedFiles[op.filename] = op.content;
-        });
-
-        setFiles(fixedFiles);
-        removeLoadingMessage();
-
-        // Increment usage after successful debug (1 credit for lite, 3 for pro)
-        incrementUsage(modelTier);
-
-        // Add success message
-        const fixedCount = result.fileOperations.length;
-        setChatMessages(prev => {
-          const newMessages = [...prev, {
-            type: 'assistant',
-            content: `Fixed ${fixedCount} file${fixedCount > 1 ? 's' : ''}. The errors should be resolved now.`,
-            timestamp: Date.now()
-          }];
-          chatMessagesRef.current = newMessages;
-          return newMessages;
-        });
-
-        // Update artifact
-        if (activeArtifactId) {
-          updateArtifactFiles(activeArtifactId, fixedFiles);
-          updateChatHistory(activeArtifactId, chatMessagesRef.current);
-        }
-      } else {
-        removeLoadingMessage();
-        setChatMessages(prev => {
-          const newMessages = [...prev, {
-            type: 'assistant',
-            content: result.response || 'I was unable to automatically fix the errors. Please check the code manually or describe the issue in more detail.',
-            timestamp: Date.now()
-          }];
-          chatMessagesRef.current = newMessages;
-          return newMessages;
-        });
-      }
-    } catch (error) {
-      console.error('Debug error:', error);
-      removeLoadingMessage();
-      setChatMessages(prev => {
-        const newMessages = [...prev, {
-          type: 'error',
-          content: 'An error occurred while trying to fix the code. Please try again.',
-          timestamp: Date.now()
-        }];
-        chatMessagesRef.current = newMessages;
-        return newMessages;
-      });
-    } finally {
-      setIsDebugging(false);
-      setIsAIProcessing(false);
-    }
-  }, [files, isDebugging, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, incrementUsage]);
-
-  // Handle chat message with AI agents
-  const handleSendMessage = useCallback(async (message) => {
-    // Add user message
-    const userMessage = {
-      type: 'user',
-      content: message,
-      timestamp: Date.now()
-    };
-    setChatMessages(prev => {
-      const newMessages = [...prev, userMessage];
-      chatMessagesRef.current = newMessages;
-      return newMessages;
-    });
-
-    // Set AI processing state
-    setIsAIProcessing(true);
-
-    // Add a loading message that will be updated with tool actions
-    const loadingMessageId = Date.now();
-    setChatMessages(prev => {
-      const newMessages = [...prev, {
-        id: loadingMessageId,
-        type: 'assistant',
-        content: '',
-        isLoading: true,
-        timestamp: loadingMessageId
-      }];
-      chatMessagesRef.current = newMessages;
-      return newMessages;
-    });
-
-    // Callback for streaming updates from agent
-    const onUpdate = (update) => {
-      // Handle tool_action - update the loading message with current action
-      if (update.type === 'tool_action') {
-        setChatMessages(prev => {
-          const newMessages = prev.map(msg =>
-            msg.id === loadingMessageId
-              ? { ...msg, content: update.action }
-              : msg
-          );
-          chatMessagesRef.current = newMessages;
-          return newMessages;
-        });
-        return; // Don't add new messages for tool actions
-      }
-
-      // Handle thinking/intent/plan - just update loading message
-      if (update.type === 'thinking' || update.type === 'intent' || update.type === 'plan') {
-        return; // Skip these, we show tool actions instead
-      }
-
-      setChatMessages(prev => {
-        const newMessages = [...prev, { ...update, timestamp: Date.now() }];
-        // Sync ref immediately for AI responses too
-        chatMessagesRef.current = newMessages;
-        return newMessages;
-      });
-    };
-
-    // Helper to remove the loading message
-    const removeLoadingMessage = () => {
-      setChatMessages(prev => {
-        const newMessages = prev.filter(msg => msg.id !== loadingMessageId);
-        chatMessagesRef.current = newMessages;
-        return newMessages;
-      });
-    };
-
-    try {
-      // Process message with AI agents
-      const result = await processMessage(message, files, onUpdate, {
-        modelTier,
-        aiColorPalette,
-        aiUIStyle,
-        wallpaperTheme,
-        isDarkTheme: currentTheme?.isDark ?? mode === 'dark'
-      });
-
-      if (result.success) {
-        // Remove loading message and mark processing complete
-        removeLoadingMessage();
-        setIsAIProcessing(false);
-
-        // Increment usage after successful generation (1 credit for lite, 3 for pro)
-        incrementUsage(modelTier);
-
-        // Handle chat intent - no file operations, just conversation
-        if (result.intent === 'chat') {
-          // Chat response already sent via onUpdate callback
-          // No artifact or file changes needed
-          return;
-        }
-
-        // Handle create/debug intent - both generate files and update artifact
-        if (result.fileOperations && result.fileOperations.length > 0) {
-          // Build new files from operations
-          const newFiles = { ...files };
-          result.fileOperations.forEach(op => {
-            newFiles[op.filename] = op.content;
-          });
-
-          // Get app name for messages
-          const appName = result.plan?.summary || 'Your app';
-
-          // Update loading message to show app is being created
-          setChatMessages(prev => {
-            const newMessages = prev.map(msg =>
-              msg.isLoading
-                ? { ...msg, content: `${appName} is being created...` }
-                : msg
-            );
-            chatMessagesRef.current = newMessages;
-            return newMessages;
-          });
-
-          // Create success message
-          const fileCount = result.fileOperations.length;
-          const successMessage = {
-            type: 'assistant',
-            content: `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
-            timestamp: Date.now()
-          };
-
-          // Update local state first (this prevents useEffect from overwriting)
-          setFiles(newFiles);
-          setChatMessages(prev => {
-            const filtered = prev.filter(msg => !msg.isLoading);
-            const newMessages = [...filtered, successMessage];
-            chatMessagesRef.current = newMessages;
-            return newMessages;
-          });
-
-          // Persist to artifact
-          if (!activeArtifactId) {
-            // Create new artifact
-            const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
-            try {
-              const newArtifactId = await createArtifact(artifactName, newFiles, chatMessagesRef.current);
-              if (!newArtifactId) {
-                throw new Error('Failed to create artifact');
-              }
-            } catch (error) {
-              console.error('Error creating artifact:', error);
-              setChatMessages(prev => [...prev, {
-                type: 'error',
-                content: 'Failed to save your project to the cloud, but files are available locally.',
-                timestamp: Date.now()
-              }]);
-              return;
-            }
-          } else {
-            // Update existing artifact
-            updateArtifactFiles(activeArtifactId, newFiles);
-            updateChatHistory(activeArtifactId, chatMessagesRef.current);
-          }
-
-          // Switch to the first created/modified file
-          setActiveFile(result.fileOperations[0].filename);
-
-          // Ensure panels are visible based on device
-          setupPanelVisibility();
-        }
-
-        // Check for rate limit info in result and show warnings
-        if (result.rateLimit) {
-          addRateLimitWarning(result.rateLimit);
-        }
-      } else {
-        // Handle error or incomplete result - remove loading and show error
-        removeLoadingMessage();
-        setIsAIProcessing(false);
-        setChatMessages(prev => [...prev, {
-          type: 'error',
-          content: 'Failed to generate code. Please try again.',
-          timestamp: Date.now()
-        }]);
-      }
-    } catch (error) {
-      console.error('Error processing message:', error);
-      removeLoadingMessage();
-      setIsAIProcessing(false);
-
-      // Handle quota exceeded error (new structure from backend)
-      if (error.isQuotaExceeded && error.quota) {
-        const { limitType, resetAt } = error.quota;
-        const resetDate = new Date(resetAt).toLocaleString();
-        setChatMessages(prev => [...prev, {
-          type: 'error',
-          content: MESSAGES.QUOTA_EXCEEDED(limitType, resetDate),
-          timestamp: Date.now()
-        }]);
-      // Handle legacy rate limit error
-      } else if (error.isRateLimit && error.rateLimit) {
-        setChatMessages(prev => [...prev, {
-          type: 'error',
-          content: MESSAGES.RATE_LIMIT_EXCEEDED(error.rateLimit.used, error.rateLimit.limit),
-          timestamp: Date.now()
-        }]);
-      } else {
-        setChatMessages(prev => [...prev, {
-          type: 'error',
-          content: 'An error occurred while processing your request. Please try again.',
-          timestamp: Date.now()
-        }]);
-      }
-    }
-  }, [files, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setupPanelVisibility, addRateLimitWarning, modelTier, incrementUsage]);
-  // Note: chatMessages intentionally omitted - using chatMessagesRef instead to avoid recreating function on every message
-
-  // Handle initial message from URL parameter (landing page → studio transition)
-  useEffect(() => {
-    // Only process if on studio route and haven't processed initial message yet
-    if (currentRoute === ROUTES.STUDIO && !initialMessageProcessedRef.current) {
-      const params = new URLSearchParams(window.location.search);
-
-      let messageToSend = null;
-
-      // Check for sessionStorage fallback first (for long messages)
-      if (params.get('hasPendingMessage') === 'true') {
-        messageToSend = sessionStorage.getItem('pendingMessage');
-        sessionStorage.removeItem('pendingMessage');
-      } else {
-        // Check URL parameter for regular messages
-        const initialMessage = params.get('initialMessage');
-        if (initialMessage) {
-          messageToSend = decodeURIComponent(initialMessage);
-        }
-      }
-
-      if (messageToSend) {
-        // Mark as processed to prevent re-running when handleSendMessage changes
-        initialMessageProcessedRef.current = true;
-
-        // Clear URL parameter immediately to prevent double-processing
-        window.history.replaceState({}, '', window.location.pathname);
-
-        // Send message after a small delay to ensure studio UI is mounted
-        const timeoutId = setTimeout(() => {
-          handleSendMessage(messageToSend);
-        }, 100);
-
-        // Cleanup: clear timeout if component unmounts or route changes
-        return () => clearTimeout(timeoutId);
-      }
-    }
-
-    // Reset flag when leaving studio route
-    if (currentRoute !== ROUTES.STUDIO) {
-      initialMessageProcessedRef.current = false;
-    }
-  }, [currentRoute, handleSendMessage]);
+  }, [setChatMessages]);
 
   // Handle file changes
-  const handleFileChange = (filename, newContent) => {
-    const updatedFiles = {
-      ...files,
-      [filename]: newContent
-    };
+  const handleFileChange = useCallback((filename, newContent) => {
+    const updatedFiles = { ...files, [filename]: newContent };
     setFiles(updatedFiles);
-    // Auto-save to artifact (only if there's an active artifact)
     if (activeArtifactId) {
       updateArtifactFiles(activeArtifactId, updatedFiles);
     }
-  };
+  }, [files, activeArtifactId, updateArtifactFiles]);
 
-  // Auto-navigate based on auth state
+  // Clean up old storage key
   useEffect(() => {
-    if (!authLoading) {
-      // If user is authenticated and on landing/signin/signup, go to studio
-      if (user && (currentRoute === ROUTES.LANDING || currentRoute === ROUTES.SIGNIN || currentRoute === ROUTES.SIGNUP)) {
-        setCurrentRoute(ROUTES.STUDIO);
-      }
-      // Guest mode: Allow unauthenticated users to access studio
-      // (removed redirect that sent guests back to landing)
-    }
-  }, [user, authLoading, currentRoute]);
+    sessionStorage.removeItem('guestBannerDismissed');
+  }, []);
 
-  // Show loading while checking auth state
+  // Auth loading screen
   if (authLoading) {
     return (
       <div style={{
@@ -793,14 +134,8 @@ function App() {
         backgroundColor: theme.colors.bg.primary,
         color: theme.colors.text.primary,
       }}>
-        <div style={{
-          textAlign: 'center',
-        }}>
-          <div style={{
-            marginBottom: theme.spacing.lg,
-            display: 'flex',
-            justifyContent: 'center',
-          }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ marginBottom: theme.spacing.lg, display: 'flex', justifyContent: 'center' }}>
             <svg
               width="64"
               height="80"
@@ -810,9 +145,7 @@ function App() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{
-                animation: 'pulse 2s ease-in-out infinite',
-              }}
+              style={{ animation: 'pulse 2s ease-in-out infinite' }}
             >
               <path d="M6.5 7h11" />
               <path d="M6.5 23h11" />
@@ -826,10 +159,7 @@ function App() {
               }
             `}</style>
           </div>
-          <p style={{
-            fontSize: theme.typography.fontSize.lg,
-            color: theme.colors.text.secondary,
-          }}>
+          <p style={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.text.secondary }}>
             Loading...
           </p>
         </div>
@@ -837,100 +167,64 @@ function App() {
     );
   }
 
-  // Show sign in page if route is SIGNIN
-  if (currentRoute === ROUTES.SIGNIN) {
-    return (
-      <SignInPage
-        onNavigateToMain={handleNavigateToLanding}
-        onNavigateToSignUp={handleNavigateToSignUp}
-        onSignInSuccess={handleAuthSuccess}
-      />
-    );
-  }
-
-  // Show sign up page if route is SIGNUP
-  if (currentRoute === ROUTES.SIGNUP) {
-    return (
-      <SignUpPage
-        onNavigateToMain={handleNavigateToLanding}
-        onNavigateToSignIn={handleNavigateToSignIn}
-        onSignUpSuccess={handleAuthSuccess}
-      />
-    );
-  }
-
-  // Show landing page with floating windows (default route)
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100dvh', minHeight: '100vh', overflow: 'hidden' }}>
-      {/* Landing Page as Background */}
-      <LandingPage
-        onTryNow={handleTryNow}
-        onSignIn={handleNavigateToSignIn}
-        modelTier={modelTier}
-        onChangeModelTier={setModelTier}
-        activeArtifact={activeArtifact}
-        isEditingArtifact={browserWindowVisible && !!activeArtifact}
-        onShowLockScreen={handleShowLockScreen}
-      />
-
-      {/* AI Response Panel - Shows when visible and not collapsed */}
-      <AIResponsePanel
-        visible={floatingChatVisible && !isPanelCollapsed}
-        messages={chatMessages}
-        onFixBug={handleSendMessage}
-        onCollapse={handleCollapsePanel}
-      />
-
-      {/* Collapsed Chat Icon - Shows when panel is collapsed */}
-      <CollapsedChatIcon
-        visible={floatingChatVisible && isPanelCollapsed}
-        onClick={handleExpandPanel}
-      />
-
-      {/* Floating Browser Window */}
-      <FloatingBrowserWindow
-        visible={browserWindowVisible}
-        artifact={activeArtifact}
-        files={files}
-        onClose={() => {
-          setUserRequestedBrowserWindow(false);
-          clearActiveArtifact(); // Clear artifact to fully exit editing mode (iOS-style)
-        }}
-        onFileChange={handleFileChange}
-        onError={handlePreviewError}
-        onDebug={(errors) => handleDebug({ errors })}
-        isDebugging={isDebugging}
-        onIconChange={(iconId) => {
-          if (activeArtifactId) {
-            updateArtifactIcon(activeArtifactId, iconId);
-          }
-        }}
-        onRename={(newName) => {
-          if (activeArtifactId) {
-            renameArtifact(activeArtifactId, newName);
-          }
-        }}
-      />
-
-      {/* Artifact Sidebar (still available) */}
-      <ArtifactSidebar
-        isOpen={showArtifacts}
-        onClose={() => setShowArtifacts(false)}
-      />
-
-      {/* Vercel Analytics */}
-      <Analytics />
-
-      {/* Welcome Screen Overlay - First visit */}
-      {showWelcomeScreen && (
-        <WelcomeScreen onDismiss={handleWelcomeScreenDismiss} />
-      )}
-
-      {/* Lock Screen Overlay - When clicking logo */}
-      {showLockScreen && (
-        <LockScreen onDismiss={handleLockScreenDismiss} />
-      )}
-    </div>
+    <BrowserRouter>
+      <div style={{ position: 'relative', width: '100vw', height: '100dvh', minHeight: '100vh', overflow: 'hidden' }}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ChatPage
+                chatMessages={messages}
+                onSendMessage={sendMessage}
+                isAIProcessing={isProcessing}
+                modelTier={modelTier}
+                onChangeModelTier={setModelTier}
+              />
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ChatPage
+                chatMessages={messages}
+                onSendMessage={sendMessage}
+                isAIProcessing={isProcessing}
+                modelTier={modelTier}
+                onChangeModelTier={setModelTier}
+              />
+            }
+          />
+          <Route
+            path="/chat/:conversationId"
+            element={
+              <ChatPage
+                chatMessages={messages}
+                onSendMessage={sendMessage}
+                isAIProcessing={isProcessing}
+                modelTier={modelTier}
+                onChangeModelTier={setModelTier}
+              />
+            }
+          />
+          <Route
+            path="/apps"
+            element={
+              <AppsPage
+                files={files}
+                onFileChange={handleFileChange}
+                onError={handlePreviewError}
+                onDebug={(errors) => debug({ errors })}
+                isDebugging={isDebugging}
+                onIconChange={(artifactId, iconId) => updateArtifactIcon(artifactId, iconId)}
+                onRename={(artifactId, newName) => renameArtifact(artifactId, newName)}
+              />
+            }
+          />
+        </Routes>
+        <Analytics />
+      </div>
+    </BrowserRouter>
   );
 }
 
