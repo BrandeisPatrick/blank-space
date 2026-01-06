@@ -198,7 +198,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
               color: theme.colors.text.tertiary,
               fontSize: theme.typography.fontSize.sm,
             }}>
-              No artifacts yet. Create one to get started!
+              No artifacts yet
             </div>
           ) : (
             artifacts.map((artifact) => (

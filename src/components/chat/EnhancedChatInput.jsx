@@ -4,12 +4,31 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
-import { createGlassEffect } from '../../styles/componentStyles';
 import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
 import { MODEL_TIERS } from '../../services/config/modelConfig';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
+
+// Grok-style colors - filled chat bar
+const GROK_INPUT_COLORS = {
+  dark: {
+    inputBg: '#1a1a1a',
+    inputBorder: '#1a1a1a',
+    dropdownBg: '#1a1a1a',
+    hoverBg: '#2a2a2a',
+    buttonBg: 'transparent',
+    buttonBorder: '#333333',
+  },
+  light: {
+    inputBg: '#f5f5f5',
+    inputBorder: '#f5f5f5',
+    dropdownBg: '#ffffff',
+    hoverBg: '#e8e8e8',
+    buttonBg: '#f5f5f5',
+    buttonBorder: '#e0e0e0',
+  },
+};
 
 // Plus icon for the dropdown trigger
 const PlusIcon = ({ size = 20, color = "currentColor" }) => (
@@ -62,14 +81,16 @@ const LockIcon = ({ size = 14, color = "currentColor" }) => (
 );
 
 export const EnhancedChatInput = ({
-  placeholder = "Let's make something",
+  placeholder = "Message...",
   onFocus,
   onSend,
   initialMessage = '',
   modelTier = 'lite',
   onChangeModelTier,
   activeArtifact = null,
-  isEditingArtifact = false
+  isEditingArtifact = false,
+  disabled = false,
+  centered = false, // When true, use relative positioning (for centered layout)
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
@@ -124,10 +145,6 @@ export const EnhancedChatInput = ({
   };
 
   const handleSend = () => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
     if (message.trim() && onSend) {
       onSend(message);
       setMessage('');
@@ -170,19 +187,33 @@ export const EnhancedChatInput = ({
     );
   };
 
+  // Get Grok-style colors based on mode
+  const colors = mode === 'dark' ? GROK_INPUT_COLORS.dark : GROK_INPUT_COLORS.light;
+
+  // Container styles based on centered prop
+  const containerStyle = centered
+    ? {
+        // Centered/inline positioning
+        position: 'relative',
+        width: '100%',
+        maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
+      }
+    : {
+        // Fixed bottom positioning
+        position: 'fixed',
+        bottom: isMobile && isKeyboardVisible
+          ? `${keyboardHeight + 10}px`
+          : theme.spacing.xl,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: LAYOUT.CHAT_INPUT_WIDTH,
+        maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
+        zIndex: LAYOUT.CHAT_INPUT_Z_INDEX,
+        transition: isMobile ? 'bottom 0.15s ease-out' : 'none',
+      };
+
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: isMobile && isKeyboardVisible
-        ? `${keyboardHeight + 10}px`
-        : theme.spacing.xl,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: LAYOUT.CHAT_INPUT_WIDTH,
-      maxWidth: LAYOUT.CHAT_INPUT_MAX_WIDTH,
-      zIndex: LAYOUT.CHAT_INPUT_Z_INDEX,
-      transition: isMobile ? 'bottom 0.15s ease-out' : 'none',
-    }}>
+    <div style={containerStyle}>
       {/* Dropdown Menu - Positioned above the input */}
       {showDropdown && (
         <div
@@ -192,34 +223,13 @@ export const EnhancedChatInput = ({
             bottom: '100%',
             left: 0,
             marginBottom: theme.spacing.sm,
-            ...createGlassEffect(theme),
-            background: mode === 'dark'
-              ? 'rgba(30, 30, 35, 0.6)'
-              : 'rgba(255, 255, 255, 0.65)',
+            background: colors.dropdownBg,
+            border: `1px solid ${colors.inputBorder}`,
             borderRadius: theme.radius.xl,
-            boxShadow: mode === 'dark'
-              ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
             minWidth: '200px',
             overflow: 'hidden',
-            animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <style>
-            {`
-              @keyframes dropdownFadeIn {
-                from {
-                  opacity: 0;
-                  transform: translateY(8px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-            `}
-          </style>
-
         </div>
       )}
 
@@ -229,14 +239,9 @@ export const EnhancedChatInput = ({
         flexDirection: 'column',
         gap: theme.spacing.md,
         padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-        ...createGlassEffect(theme),
-        background: mode === 'dark'
-          ? 'rgba(30, 30, 35, 0.6)'
-          : 'rgba(255, 255, 255, 0.65)',
+        background: colors.inputBg,
+        border: `1px solid ${colors.inputBorder}`,
         borderRadius: LAYOUT.CHAT_INPUT_BORDER_RADIUS,
-        boxShadow: mode === 'dark'
-          ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-          : '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
       }}>
         {/* Input Row - TOP */}
         <input
@@ -245,7 +250,8 @@ export const EnhancedChatInput = ({
           onChange={(e) => setMessage(e.target.value)}
           onFocus={handleFocus}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={disabled ? 'Generating...' : placeholder}
+          disabled={disabled}
           style={{
             width: '100%',
             background: 'transparent',
@@ -255,6 +261,7 @@ export const EnhancedChatInput = ({
             fontSize: theme.typography.fontSize.lg,
             fontFamily: theme.typography.fontFamily.sans,
             padding: `${theme.spacing.sm} 0`,
+            opacity: disabled ? 0.6 : 1,
           }}
         />
 
@@ -311,13 +318,8 @@ export const EnhancedChatInput = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.spacing.xs,
-                ...createGlassEffect(theme),
-                background: mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'rgba(255, 255, 255, 0.5)',
-                boxShadow: mode === 'dark'
-                  ? 'inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-                  : 'inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
+                background: colors.buttonBg,
+                border: `1px solid ${colors.buttonBorder}`,
                 cursor: 'pointer',
                 color: theme.colors.text.secondary,
                 fontSize: theme.typography.fontSize.sm,
@@ -329,15 +331,11 @@ export const EnhancedChatInput = ({
                 flexShrink: 0,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.15)'
-                  : 'rgba(255, 255, 255, 0.7)';
+                e.currentTarget.style.background = colors.hoverBg;
               }}
               onMouseLeave={(e) => {
                 if (!showModelDropdown) {
-                  e.currentTarget.style.background = mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.08)'
-                    : 'rgba(255, 255, 255, 0.5)';
+                  e.currentTarget.style.background = colors.buttonBg;
                 }
               }}
             >
@@ -353,23 +351,19 @@ export const EnhancedChatInput = ({
                   position: 'absolute',
                   bottom: '100%',
                   left: 0,
-                  marginBottom: theme.spacing.sm,
-                  ...createGlassEffect(theme),
-                  background: mode === 'dark'
-                    ? 'rgba(30, 30, 35, 0.6)'
-                    : 'rgba(255, 255, 255, 0.65)',
-                  borderRadius: theme.radius.xl,
-                  boxShadow: mode === 'dark'
-                    ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2)'
-                    : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.03)',
-                  minWidth: '140px',
+                  marginBottom: '8px',
+                  background: mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                  border: `1px solid ${mode === 'dark' ? '#333333' : '#e0e0e0'}`,
+                  borderRadius: '12px',
+                  minWidth: '160px',
                   overflow: 'hidden',
-                  animation: 'dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   zIndex: 100,
+                  padding: '4px',
                 }}
               >
                 {Object.entries(MODEL_TIERS).map(([key, tier]) => {
-                  const needsAuth = !user;
+                  const needsAuth = !user && key === 'pro';
+                  const isSelected = modelTier === key && !needsAuth;
                   return (
                     <div
                       key={key}
@@ -386,48 +380,50 @@ export const EnhancedChatInput = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                        padding: '10px 12px',
                         cursor: 'pointer',
-                        background: modelTier === key && !needsAuth
-                          ? (mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
+                        background: isSelected
+                          ? (mode === 'dark' ? '#2a2a2a' : '#f0f0f0')
                           : 'transparent',
-                        transition: `background ${theme.animation.fast}`,
-                        opacity: needsAuth ? 0.7 : 1,
+                        borderRadius: '8px',
+                        transition: 'background 0.15s ease',
+                        opacity: needsAuth ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => {
-                        if (modelTier !== key || needsAuth) {
-                          e.currentTarget.style.background = mode === 'dark'
-                            ? 'rgba(255,255,255,0.05)'
-                            : 'rgba(0,0,0,0.03)';
+                        if (!isSelected) {
+                          e.currentTarget.style.background = mode === 'dark' ? '#2a2a2a' : '#f5f5f5';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (modelTier !== key || needsAuth) {
+                        if (!isSelected) {
                           e.currentTarget.style.background = 'transparent';
                         }
                       }}
                     >
                       <div>
                         <div style={{
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          color: theme.colors.text.primary,
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          color: mode === 'dark' ? '#ffffff' : '#000000',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: theme.spacing.xs,
+                          gap: '6px',
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
                         }}>
                           {tier.name}
-                          {needsAuth && <LockIcon size={12} color={theme.colors.text.tertiary} />}
+                          {needsAuth && <LockIcon size={12} color={mode === 'dark' ? '#666666' : '#999999'} />}
                         </div>
                         <div style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.text.tertiary,
+                          fontSize: '12px',
+                          color: mode === 'dark' ? '#888888' : '#666666',
+                          marginTop: '2px',
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
                         }}>
                           {needsAuth ? 'Sign in required' : tier.description}
                         </div>
                       </div>
-                      {modelTier === key && !needsAuth && (
-                        <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
+                      {isSelected && (
+                        <span style={{ color: '#10b981', fontSize: '16px', fontWeight: 500 }}>✓</span>
                       )}
                     </div>
                   );
@@ -446,29 +442,29 @@ export const EnhancedChatInput = ({
           <button
             type="button"
             onClick={handleSend}
-            disabled={!message.trim()}
+            disabled={!message.trim() || disabled}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               width: '42px',
               height: '42px',
-              background: message.trim() ? '#C97D63' : theme.colors.bg.tertiary,
+              background: message.trim() && !disabled ? '#C97D63' : theme.colors.bg.tertiary,
               border: 'none',
               borderRadius: theme.radius.full,
-              cursor: message.trim() ? 'pointer' : 'not-allowed',
-              color: message.trim() ? '#ffffff' : theme.colors.text.tertiary,
+              cursor: message.trim() && !disabled ? 'pointer' : 'not-allowed',
+              color: message.trim() && !disabled ? '#ffffff' : theme.colors.text.tertiary,
               transition: `all ${theme.animation.fast}`,
-              opacity: message.trim() ? 1 : 0.5,
+              opacity: message.trim() && !disabled ? 1 : 0.5,
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
-              if (message.trim()) {
+              if (message.trim() && !disabled) {
                 e.currentTarget.style.background = '#d89077';
               }
             }}
             onMouseLeave={(e) => {
-              if (message.trim()) {
+              if (message.trim() && !disabled) {
                 e.currentTarget.style.background = '#C97D63';
               }
             }}
@@ -492,5 +488,7 @@ EnhancedChatInput.propTypes = {
   modelTier: PropTypes.oneOf(['lite', 'pro']),
   onChangeModelTier: PropTypes.func,
   activeArtifact: PropTypes.object,
-  isEditingArtifact: PropTypes.bool
+  isEditingArtifact: PropTypes.bool,
+  disabled: PropTypes.bool,
+  centered: PropTypes.bool,
 };

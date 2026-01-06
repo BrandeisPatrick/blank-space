@@ -34,7 +34,7 @@ export const ChatInput = ({ onSend }) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
+          placeholder="Message..."
           style={{
             flex: 1,
             padding: `${theme.spacing.md} ${theme.spacing.lg}`,

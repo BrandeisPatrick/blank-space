@@ -386,7 +386,7 @@ export const AuthModal = ({ onAuthSuccess }) => {
                   padding: 0,
                 }}
               >
-                {isSignUp ? 'Sign in' : 'Create one'}
+                {isSignUp ? 'Sign In' : 'Create One'}
               </button>
             </p>
           </div>
