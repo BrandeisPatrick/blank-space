@@ -1,14 +1,14 @@
 const lightTheme = {
   colors: {
-    // Custom lavender & terracotta UI palette
+    // Cool greyish white UI palette
     bg: {
-      primary: '#C9CAD8',      // Background lavender
-      secondary: '#F9F8F5',    // Off-white for cards/panels
-      tertiary: '#D3D3DE',     // Suggestion cards/chips
-      hover: '#D1D2DE',        // Slightly darker lavender
-      border: '#D1D2DE',       // Border color
+      primary: '#F5F5F7',      // Greyish white background
+      secondary: '#EFEFEF',    // Light grey for cards/panels
+      tertiary: '#E8E8EA',     // Cool grey for suggestion cards/chips
+      hover: '#EAEAEC',        // Grey hover state
+      border: '#DCDCDE',       // Cool grey border
     },
-    border: '#D1D2DE',         // Borders
+    border: '#DCDCDE',         // Borders
     text: {
       primary: '#403530',      // Dark gray/brown
       secondary: '#5a534e',    // Medium gray/brown
@@ -33,9 +33,9 @@ const lightTheme = {
       info: '#C97D63',         // Terracotta for info
     },
     gradient: {
-      primary: 'linear-gradient(145deg, #C9CAD8, #D1D2DE)',
-      subtle: 'linear-gradient(145deg, #D1D2DE, #C9CAD8)',
-      button: 'linear-gradient(145deg, #D3D3DE, #D1D2DE)',
+      primary: 'linear-gradient(145deg, #F5F5F7, #EAEAEC)',
+      subtle: 'linear-gradient(145deg, #EFEFEF, #F5F5F7)',
+      button: 'linear-gradient(145deg, #E8E8EA, #DCDCDE)',
     }
   },
   shadows: {
