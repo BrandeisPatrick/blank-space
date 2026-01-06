@@ -307,10 +307,10 @@ export const ChatSidebar = ({
           colors={colors}
         />
 
-        {/* Apps */}
+        {/* Computer */}
         <SidebarItem
           icon={AppsIcon}
-          label="Apps"
+          label="Computer"
           onClick={handleApps}
           active={isOnAppsPage}
           expanded={expanded}

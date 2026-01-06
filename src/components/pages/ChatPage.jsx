@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getTheme } from '../../styles/theme';
 import { ChatSidebar } from '../chat/ChatSidebar';
 import { ChatGreeting } from '../chat/ChatGreeting';
-import { CategoryPills } from '../chat/CategoryPills';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { ChatPanel } from '../chat/ChatPanel';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -75,20 +74,6 @@ export const ChatPage = ({
   // Navigate to apps page
   const handleGoToApps = () => {
     navigate('/apps');
-  };
-
-  // Handle category pill click
-  const handleCategoryClick = (category) => {
-    // Pre-fill a message based on category
-    const prompts = {
-      'Write': 'Help me write ',
-      'Learn': 'Explain how ',
-      'Code': 'Build me an app that ',
-      'Life stuff': 'Help me with ',
-      "AI's choice": 'Surprise me with something creative',
-    };
-    // Could auto-send or just focus the input with this text
-    console.log('Category clicked:', category, prompts[category]);
   };
 
   // Handle send message
@@ -207,7 +192,6 @@ export const ChatPage = ({
                 disabled={isAIProcessing}
                 centered={true}
               />
-              <CategoryPills onCategoryClick={handleCategoryClick} />
             </div>
           ) : (
             // Messages view
