@@ -1,34 +1,32 @@
 import { createContext, useContext, useMemo, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { themePresets, DEFAULT_THEME } from '../components/wallpaper/presets/wallpaperPresets';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  // Persisted theme selection
-  const [theme, setThemeState] = useLocalStorage('theme', DEFAULT_THEME);
+  // Persisted mode: 'light' or 'dark'
+  const [mode, setModeState] = useLocalStorage('themeMode', 'dark');
 
-  // Get current theme preset
-  const currentTheme = themePresets[theme] || themePresets[DEFAULT_THEME];
+  // Update mode
+  const setMode = useCallback((newMode) => {
+    if (newMode === 'light' || newMode === 'dark') {
+      setModeState(newMode);
+    }
+  }, [setModeState]);
 
-  // Derive mode from theme's isDark property
-  const mode = currentTheme.isDark ? 'dark' : 'light';
-
-  // Update theme
-  const setTheme = useCallback((newTheme) => {
-    setThemeState(newTheme);
-  }, [setThemeState]);
+  // Toggle between light and dark
+  const toggleMode = useCallback(() => {
+    setModeState(prev => prev === 'dark' ? 'light' : 'dark');
+  }, [setModeState]);
 
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
       mode,
-      theme,
-      setTheme,
-      currentTheme,
-      themePresets,
+      setMode,
+      toggleMode,
     }),
-    [mode, theme, setTheme, currentTheme]
+    [mode, setMode, toggleMode]
   );
 
   return (

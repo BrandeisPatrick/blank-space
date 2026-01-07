@@ -10,6 +10,31 @@
 
 import { verifyAuth, getFirestore } from './middleware/_auth.js';
 
+/**
+ * Bug #9 fix: Validate message structure
+ * Returns sanitized message or null if invalid
+ */
+function validateMessage(msg) {
+  if (!msg || typeof msg !== 'object') return null;
+
+  // Ensure required fields with safe defaults
+  return {
+    id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: msg.type || msg.role || 'user',
+    content: typeof msg.content === 'string' ? msg.content : '',
+    timestamp: msg.timestamp || Date.now(),
+    ...msg, // Preserve additional fields
+  };
+}
+
+/**
+ * Validate and sanitize messages array
+ */
+function validateMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+  return messages.map(validateMessage).filter(Boolean);
+}
+
 export default async function handler(req, res) {
   try {
     // Verify authentication for all operations
@@ -60,6 +85,7 @@ async function handleList(db, userId, res) {
     conversations.push({
       id: doc.id,
       title: data.title,
+      messages: data.messages || [],
       messageCount: data.messages?.length || 0,
       artifactId: data.artifactId || null,
       createdAt: data.createdAt,
@@ -80,9 +106,12 @@ async function handleList(db, userId, res) {
 async function handleCreate(db, userId, body, res) {
   const { title, messages = [], artifactId = null } = body;
 
+  // Bug #9 fix: Validate and sanitize messages
+  const validatedMessages = validateMessages(messages);
+
   const conversationData = {
     title: title || 'New conversation',
-    messages,
+    messages: validatedMessages,
     artifactId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -99,7 +128,7 @@ async function handleCreate(db, userId, body, res) {
     conversation: {
       id: conversationRef.id,
       ...conversationData,
-      messageCount: messages.length,
+      messageCount: validatedMessages.length,
     },
   });
 }
@@ -107,6 +136,7 @@ async function handleCreate(db, userId, body, res) {
 /**
  * Update existing conversation
  * Supports: adding messages, updating title, linking artifact
+ * Bug #10 fix: Uses transaction for message appending to prevent race conditions
  */
 async function handleUpdate(db, userId, body, res) {
   const { conversationId, updates } = body;
@@ -131,61 +161,115 @@ async function handleUpdate(db, userId, body, res) {
     .collection('conversations')
     .doc(conversationId);
 
-  const conversationDoc = await conversationRef.get();
+  // Check if this requires message appending (needs transaction)
+  const needsTransaction = updates.appendMessage || updates.appendMessages;
 
-  if (!conversationDoc.exists) {
-    return res.status(404).json({
-      error: 'Not found',
-      message: 'Conversation not found or you do not have permission to update it',
+  let result;
+
+  if (needsTransaction) {
+    // Bug #10 fix: Use transaction for atomic message appending
+    result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(conversationRef);
+
+      if (!doc.exists) {
+        throw new Error('NOT_FOUND');
+      }
+
+      const currentData = doc.data();
+      let newMessages = currentData.messages || [];
+
+      // Handle appending
+      if (updates.appendMessage) {
+        const validated = validateMessage(updates.appendMessage);
+        if (validated) {
+          newMessages = [...newMessages, validated];
+        }
+        delete updates.appendMessage;
+      } else if (updates.appendMessages) {
+        const validated = validateMessages(updates.appendMessages);
+        newMessages = [...newMessages, ...validated];
+        delete updates.appendMessages;
+      }
+
+      updates.messages = newMessages;
+
+      // Auto-generate title from first user message if not set
+      if (newMessages.length > 0 && currentData.title === 'New conversation') {
+        const firstUserMsg = newMessages.find(m => m.type === 'user' || m.role === 'user');
+        if (firstUserMsg && firstUserMsg.content) {
+          updates.title = firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+        }
+      }
+
+      const updateData = {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      delete updateData.id;
+      delete updateData.createdAt;
+
+      transaction.update(conversationRef, updateData);
+
+      return {
+        id: doc.id,
+        title: updateData.title || currentData.title,
+        messageCount: newMessages.length,
+        artifactId: updateData.artifactId || currentData.artifactId || null,
+        createdAt: currentData.createdAt,
+        updatedAt: updateData.updatedAt,
+      };
     });
-  }
+  } else {
+    // Non-transactional update (no message appending)
+    const conversationDoc = await conversationRef.get();
 
-  const currentData = conversationDoc.data();
-
-  // Handle message appending vs replacement
-  let newMessages = currentData.messages || [];
-  if (updates.appendMessage) {
-    // Append single message
-    newMessages = [...newMessages, updates.appendMessage];
-    delete updates.appendMessage;
-    updates.messages = newMessages;
-  } else if (updates.appendMessages) {
-    // Append multiple messages
-    newMessages = [...newMessages, ...updates.appendMessages];
-    delete updates.appendMessages;
-    updates.messages = newMessages;
-  }
-
-  // Auto-generate title from first user message if not set
-  if (updates.messages && updates.messages.length > 0 && currentData.title === 'New conversation') {
-    const firstUserMsg = updates.messages.find(m => m.type === 'user' || m.role === 'user');
-    if (firstUserMsg) {
-      updates.title = firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+    if (!conversationDoc.exists) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Conversation not found or you do not have permission to update it',
+      });
     }
-  }
 
-  const updateData = {
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
-  delete updateData.id;
-  delete updateData.createdAt;
+    const currentData = conversationDoc.data();
 
-  await conversationRef.update(updateData);
+    // Validate messages if being replaced
+    if (updates.messages) {
+      updates.messages = validateMessages(updates.messages);
+    }
 
-  const updatedDoc = await conversationRef.get();
-  const updatedData = updatedDoc.data();
+    // Auto-generate title from first user message if not set
+    if (updates.messages && updates.messages.length > 0 && currentData.title === 'New conversation') {
+      const firstUserMsg = updates.messages.find(m => m.type === 'user' || m.role === 'user');
+      if (firstUserMsg && firstUserMsg.content) {
+        updates.title = firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+      }
+    }
 
-  return res.status(200).json({
-    success: true,
-    conversation: {
+    const updateData = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    delete updateData.id;
+    delete updateData.createdAt;
+
+    await conversationRef.update(updateData);
+
+    const updatedDoc = await conversationRef.get();
+    const updatedData = updatedDoc.data();
+
+    result = {
       id: updatedDoc.id,
       title: updatedData.title,
       messageCount: updatedData.messages?.length || 0,
       artifactId: updatedData.artifactId || null,
       createdAt: updatedData.createdAt,
       updatedAt: updatedData.updatedAt,
-    },
+    };
+  }
+
+  return res.status(200).json({
+    success: true,
+    conversation: result,
   });
 }
 

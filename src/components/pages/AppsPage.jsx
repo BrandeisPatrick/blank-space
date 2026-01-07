@@ -5,7 +5,6 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { BackgroundWaves, StarryBackground } from '../wallpaper';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
 import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
@@ -44,7 +43,7 @@ export const AppsPage = ({
   onIconChange,
   onRename,
 }) => {
-  const { mode, theme: selectedTheme, currentTheme } = useTheme();
+  const { mode } = useTheme();
   const theme = getTheme(mode);
   const { artifacts, loadArtifact, deleteArtifact, activeArtifact, activeArtifactId, clearActiveArtifact } = useArtifacts();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -152,8 +151,7 @@ export const AppsPage = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        backgroundColor: currentTheme.backgroundColor,
-        backgroundImage: currentTheme.gradient,
+        backgroundColor: mode === 'dark' ? '#000000' : '#ffffff',
         color: theme.colors.text.primary,
         fontFamily: theme.typography.fontFamily.sans,
         paddingTop: getResponsiveSpacing(theme, isMobile, SIZES.SPACING.CONTENT_PADDING_Y.mobile, SIZES.SPACING.CONTENT_PADDING_Y.desktop),
@@ -185,12 +183,11 @@ export const AppsPage = ({
                 justifyContent: 'center',
                 width: '36px',
                 height: '36px',
-                background: 'rgba(0, 0, 0, 0.3)',
-                backdropFilter: 'blur(10px)',
+                background: 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.lg,
                 cursor: 'pointer',
-                color: '#ffffff',
+                color: theme.colors.text.secondary,
                 transition: `all ${theme.animation.fast}`,
               }}
               title="Menu"
@@ -200,12 +197,6 @@ export const AppsPage = ({
           </div>
         )}
 
-        {/* Background Decorations */}
-        {currentTheme.variant === 'stars' ? (
-          <StarryBackground starColors={currentTheme.starColors} />
-        ) : (
-          <BackgroundWaves variant="diagonal" preset={selectedTheme} />
-        )}
 
         {/* Content Container */}
         <div style={{

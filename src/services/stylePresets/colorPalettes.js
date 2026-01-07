@@ -2,14 +2,6 @@
 // Defines comprehensive color palette presets for AI-generated code styling
 
 export const COLOR_PALETTES = {
-  matchWallpaper: {
-    id: "matchWallpaper",
-    name: "Match Wallpaper",
-    description: "Derives colors from your selected wallpaper theme",
-    isSpecial: true,
-    preview: null,
-  },
-
   corporate: {
     id: "corporate",
     name: "Corporate",
@@ -161,4 +153,4 @@ export const COLOR_PALETTES = {
   },
 };
 
-export const DEFAULT_COLOR_PALETTE = "matchWallpaper";
+export const DEFAULT_COLOR_PALETTE = "vibrant";

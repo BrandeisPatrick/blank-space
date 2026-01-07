@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConversation } from '../../contexts/ConversationContext';
 import { getTheme } from '../../styles/theme';
 import { ChatSidebar } from '../chat/ChatSidebar';
 import { ChatGreeting } from '../chat/ChatGreeting';
@@ -57,6 +58,7 @@ export const ChatPage = ({
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
+  const { switchConversation, activeConversationId } = useConversation();
   const theme = getTheme(mode);
   const navigate = useNavigate();
   const { conversationId } = useParams();
@@ -64,6 +66,13 @@ export const ChatPage = ({
 
   const [sidebarExpanded, setSidebarExpanded] = useState(!isMobile);
   const [sidebarVisible, setSidebarVisible] = useState(!isMobile);
+
+  // Bug #7 fix: Switch to conversation when route parameter changes
+  useEffect(() => {
+    if (conversationId && conversationId !== activeConversationId) {
+      switchConversation(conversationId);
+    }
+  }, [conversationId, activeConversationId, switchConversation]);
 
   // Determine if we should show the empty state (greeting + pills) or messages
   const hasMessages = chatMessages.length > 0;

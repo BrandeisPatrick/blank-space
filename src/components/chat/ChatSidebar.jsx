@@ -211,7 +211,7 @@ export const ChatSidebar = ({
   const { mode } = useTheme();
   const { user, signOut } = useAuth();
   const { openAuthModal, openSettingsModal } = useSettings();
-  const { conversations, activeConversationId, createConversation, switchConversation } = useConversation();
+  const { conversations, activeConversationId, createConversation, switchConversation, isLoading } = useConversation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -381,7 +381,27 @@ export const ChatSidebar = ({
           </div>
 
           {/* Conversation List */}
-          {conversations.filter(c => c.messageCount > 0).length === 0 ? (
+          {isLoading ? (
+            <div style={{
+              fontSize: '13px',
+              color: colors.textTertiary,
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span style={{
+                width: '12px',
+                height: '12px',
+                border: `2px solid ${colors.textTertiary}`,
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }} />
+              Loading...
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : conversations.filter(c => c.messageCount > 0 || c.id === activeConversationId).length === 0 ? (
             <div style={{
               fontSize: '13px',
               color: colors.textTertiary,
@@ -392,7 +412,7 @@ export const ChatSidebar = ({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {conversations
-                .filter(c => c.messageCount > 0)
+                .filter(c => c.messageCount > 0 || c.id === activeConversationId)
                 .slice(0, 10)
                 .map(conv => (
                   <button
@@ -426,7 +446,7 @@ export const ChatSidebar = ({
                       }
                     }}
                   >
-                    {conv.title}
+                    {conv.title || 'New conversation'}
                   </button>
                 ))}
             </div>

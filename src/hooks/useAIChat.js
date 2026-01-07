@@ -19,7 +19,7 @@ export const useAIChat = ({
   updateArtifactFiles,
   updateChatHistory,
 }) => {
-  const { mode, theme: wallpaperTheme, currentTheme } = useTheme();
+  const { mode } = useTheme();
   const { aiColorPalette, aiUIStyle } = useSettings();
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact } = useConversation();
@@ -149,8 +149,7 @@ export const useAIChat = ({
         modelTier,
         aiColorPalette,
         aiUIStyle,
-        wallpaperTheme,
-        isDarkTheme: currentTheme?.isDark ?? mode === 'dark'
+        isDarkTheme: mode === 'dark'
       });
 
       if (result.success) {
@@ -260,7 +259,7 @@ export const useAIChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact]);
 
   /**
    * Debug handler for errors and user-reported issues
@@ -328,8 +327,7 @@ export const useAIChat = ({
         modelTier,
         aiColorPalette,
         aiUIStyle,
-        wallpaperTheme,
-        isDarkTheme: currentTheme?.isDark ?? mode === 'dark',
+        isDarkTheme: mode === 'dark',
         isDebugMode: true,
         debugContext: { errors, userDescription },
       });
@@ -391,7 +389,7 @@ export const useAIChat = ({
       setIsDebugging(false);
       setIsProcessing(false);
     }
-  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, wallpaperTheme, currentTheme, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage]);
+  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage]);
 
   return {
     // Message handling

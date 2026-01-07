@@ -78,9 +78,13 @@ export const ChatPanel = ({ messages = [], onFixBug, isMobile = false }) => {
           <>
             {/* Regular messages */}
             {filterVisibleMessages(messages)
-              .map((message, index) => (
-                <ChatMessage key={message.id || index} message={message} onFixBug={onFixBug} isMobile={isMobile} />
-              ))}
+              .map((message, index) => {
+                // Bug #8 fix: Generate stable key if message.id is missing
+                const key = message.id || `msg-${message.timestamp || index}-${message.type || 'unknown'}`;
+                return (
+                  <ChatMessage key={key} message={message} onFixBug={onFixBug} isMobile={isMobile} />
+                );
+              })}
           </>
         )}
         <div ref={messagesEndRef} />
@@ -117,20 +121,24 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
     return <ErrorMessage error={message.error} onFixBug={handleFixBug} />;
   }
 
-  // Legacy error messages (with content only)
+  // Legacy error messages (with content only) - Bug #13 fix: use theme-aware colors
   if (isError) {
+    const errorBg = mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fee2e2';
+    const errorColor = mode === 'dark' ? '#f87171' : '#dc2626';
+    const errorBorder = mode === 'dark' ? '#ef4444' : '#dc2626';
+
     return (
       <div style={{
         padding: isMobile
           ? `${theme.spacing.sm} ${theme.spacing.md}`
           : `${theme.spacing.md} ${theme.spacing.lg}`,
-        background: '#fee2e2',
+        background: errorBg,
         borderRadius: theme.radius.lg,
-        borderLeft: '4px solid #dc2626',
+        borderLeft: `4px solid ${errorBorder}`,
         fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
-        color: '#dc2626',
+        color: errorColor,
       }}>
-        ⚠️ {message.content}
+        ⚠️ {message.content || 'An error occurred'}
       </div>
     )
   }
@@ -147,10 +155,13 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
         lineHeight: '1.6',
         fontStyle: 'italic',
       }}>
-        {message.content ? message.content : <LoadingDots />}
+        {message.content || <LoadingDots />}
       </div>
     )
   }
+
+  // Bug #12 fix: Null check for content
+  const content = message.content || '';
 
   // Grok-style messages: user = right-aligned bubbles, AI = plain left-aligned text
   if (isUser) {
@@ -168,7 +179,7 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
         lineHeight: '1.5',
         whiteSpace: 'pre-wrap',
       }}>
-        {message.content}
+        {content}
       </div>
     )
   }
@@ -202,7 +213,7 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
           a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>{children}</a>,
         }}
       >
-        {message.content}
+        {content}
       </ReactMarkdown>
     </div>
   )

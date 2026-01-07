@@ -1,10 +1,7 @@
-import { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const ConversationContext = createContext();
-
-// SessionStorage key for guest users
-const STORAGE_KEY = 'conversations_guest';
 
 // Generate unique ID
 const generateId = () => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -13,7 +10,7 @@ const generateId = () => `conv_${Date.now()}_${Math.random().toString(36).substr
 const getConversationTitle = (messages) => {
   if (!Array.isArray(messages)) return 'New conversation';
   const firstUserMsg = messages.find(m => m.type === 'user' || m.role === 'user');
-  if (firstUserMsg) {
+  if (firstUserMsg && firstUserMsg.content) {
     return firstUserMsg.content.slice(0, 30) + (firstUserMsg.content.length > 30 ? '...' : '');
   }
   return 'New conversation';
@@ -23,39 +20,39 @@ export const ConversationProvider = ({ children }) => {
   const { user, getIdToken } = useAuth();
   const isAuthenticated = !!user;
 
-  // All conversations stored as array
-  const [conversations, setConversations] = useState(() => {
-    if (typeof window === 'undefined') return [{ id: generateId(), messages: [], createdAt: Date.now() }];
-
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.length > 0 ? parsed : [{ id: generateId(), messages: [], createdAt: Date.now() }];
-      }
-    } catch (e) {
-      console.error('Failed to load conversations:', e);
-    }
-    return [{ id: generateId(), messages: [], createdAt: Date.now() }];
+  // Create initial state with matching IDs
+  const initialState = useRef(() => {
+    const id = generateId();
+    return { id, conv: { id, messages: [], createdAt: Date.now() } };
   });
+  const getInitial = () => {
+    if (typeof initialState.current === 'function') {
+      initialState.current = initialState.current();
+    }
+    return initialState.current;
+  };
+
+  // All conversations stored as array - always start fresh (no persistence for guests)
+  const [conversations, setConversations] = useState(() => [getInitial().conv]);
 
   // Active conversation ID
-  const [activeConversationId, setActiveConversationId] = useState(() => {
-    if (typeof window === 'undefined') return null;
+  const [activeConversationId, setActiveConversationId] = useState(() => getInitial().id);
 
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.length > 0) return parsed[0].id;
-      }
-    } catch (e) {}
-    return conversations[0]?.id;
-  });
+  // Ref to track activeConversationId for closures (Bug #11 fix)
+  const activeConversationIdRef = useRef(activeConversationId);
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   // Loading state for Firestore operations
   const [isLoading, setIsLoading] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
+
+  // Track local IDs that are currently being created in Firestore (to prevent duplicates)
+  const creatingInFirestore = useRef(new Set());
+
+  // Track failed syncs for retry (Bug #3 fix)
+  const failedSyncs = useRef(new Map()); // Map<localId, { messages, retryCount }>
 
   // Fetch conversations from Firestore when authenticated
   useEffect(() => {
@@ -64,82 +61,37 @@ export const ConversationProvider = ({ children }) => {
     }
   }, [isAuthenticated]);
 
-  // Persist to sessionStorage for guests (debounced)
-  useEffect(() => {
-    if (!isAuthenticated) {
-      const timeoutId = setTimeout(() => {
-        try {
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-        } catch (e) {
-          console.error('Failed to save conversations:', e);
-        }
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [conversations, isAuthenticated]);
-
-  // Sync active conversation to Firestore for authenticated users (debounced)
+  // Sync active conversation messages to Firestore for authenticated users (debounced)
+  // ONLY syncs existing Firestore conversations - createConversation handles new ones
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const activeConv = conversations.find(c => c.id === activeConversationId);
     if (!activeConv || !activeConv.messages?.length) return;
 
+    // Skip local IDs - they need to be created via createConversation first
     const isLocalId = activeConversationId?.startsWith('conv_');
+    if (isLocalId) return;
 
     const timeoutId = setTimeout(async () => {
       try {
         const token = await getIdToken();
-        let convIdToSync = activeConversationId;
-
-        // If local ID, create conversation in Firestore first
-        if (isLocalId) {
-          console.log('[Sync] Creating conversation in Firestore first...');
-          const createResponse = await fetch('/api/conversations', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              title: activeConv.messages[0]?.content?.slice(0, 50) || 'New conversation',
-              messages: activeConv.messages,
-            }),
-          });
-
-          if (createResponse.ok) {
-            const data = await createResponse.json();
-            convIdToSync = data.conversation.id;
-            console.log('[Sync] Created conversation with ID:', convIdToSync);
-
-            // Update local state with Firestore ID
-            setConversations(prev => prev.map(c =>
-              c.id === activeConversationId ? { ...c, id: convIdToSync } : c
-            ));
-            setActiveConversationId(convIdToSync);
-          } else {
-            console.error('[Sync] Failed to create:', await createResponse.text());
-            return;
-          }
+        console.log('[Sync] Updating conversation:', activeConversationId);
+        const response = await fetch('/api/conversations', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            conversationId: activeConversationId,
+            updates: { messages: activeConv.messages },
+          }),
+        });
+        if (response.ok) {
+          console.log('[Sync] Successfully synced to Firestore');
         } else {
-          // Existing Firestore conversation, just update messages
-          console.log('[Sync] Updating conversation:', convIdToSync);
-          const response = await fetch('/api/conversations', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              conversationId: convIdToSync,
-              updates: { messages: activeConv.messages },
-            }),
-          });
-          if (response.ok) {
-            console.log('[Sync] Successfully synced to Firestore');
-          } else {
-            console.error('[Sync] Failed:', await response.text());
-          }
+          console.error('[Sync] Failed:', await response.text());
         }
       } catch (e) {
         console.error('Failed to sync conversation to Firestore:', e);
@@ -148,6 +100,64 @@ export const ConversationProvider = ({ children }) => {
 
     return () => clearTimeout(timeoutId);
   }, [conversations, activeConversationId, isAuthenticated, getIdToken]);
+
+  // Bug #3 fix: Retry failed syncs periodically
+  useEffect(() => {
+    if (!isAuthenticated || failedSyncs.current.size === 0) return;
+
+    const retryInterval = setInterval(async () => {
+      const entries = Array.from(failedSyncs.current.entries());
+      for (const [localId, { messages, retryCount }] of entries) {
+        // Only retry up to 3 times
+        if (retryCount >= 3) {
+          console.log('[Retry] Max retries reached for:', localId);
+          failedSyncs.current.delete(localId);
+          continue;
+        }
+
+        // Check if conversation still exists locally
+        const conv = conversations.find(c => c.id === localId);
+        if (!conv) {
+          failedSyncs.current.delete(localId);
+          continue;
+        }
+
+        console.log('[Retry] Retrying sync for:', localId, `(attempt ${retryCount + 1})`);
+
+        try {
+          const token = await getIdToken();
+          const title = messages[0]?.content?.slice(0, 50) || 'New conversation';
+          const response = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ title, messages: conv.messages }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const firestoreId = data.conversation.id;
+            console.log('[Retry] Success! New ID:', firestoreId);
+            failedSyncs.current.delete(localId);
+
+            // Update local state with Firestore ID
+            setConversations(prev => prev.map(c =>
+              c.id === localId ? { ...c, id: firestoreId } : c
+            ));
+            if (activeConversationIdRef.current === localId) {
+              setActiveConversationId(firestoreId);
+            }
+          }
+        } catch (e) {
+          console.error('[Retry] Failed:', e);
+        }
+      }
+    }, 10000); // Retry every 10 seconds
+
+    return () => clearInterval(retryInterval);
+  }, [isAuthenticated, getIdToken, conversations]);
 
   // Fetch conversations from API
   const fetchConversations = useCallback(async () => {
@@ -167,7 +177,7 @@ export const ConversationProvider = ({ children }) => {
           const convs = data.conversations.map(c => ({
             id: c.id,
             title: c.title,
-            messages: [], // Messages loaded on demand
+            messages: c.messages || [],
             messageCount: c.messageCount,
             artifactId: c.artifactId,
             createdAt: new Date(c.createdAt).getTime(),
@@ -196,33 +206,128 @@ export const ConversationProvider = ({ children }) => {
     return conv?.messages || [];
   }, [conversations, activeConversationId]);
 
+  // Helper to create conversation in Firestore (used by addMessage and setMessages)
+  const createInFirestore = useCallback(async (localId, messages) => {
+    // Bug #1 fix: Check BEFORE any state updates
+    if (creatingInFirestore.current.has(localId)) {
+      console.log('[Firestore] Skipping - conversation already being created:', localId);
+      return null;
+    }
+
+    // Mark as creating immediately (synchronous lock)
+    creatingInFirestore.current.add(localId);
+
+    try {
+      const token = await getIdToken();
+      const title = messages[0]?.content?.slice(0, 50) || 'New conversation';
+
+      console.log('[Firestore] Creating conversation for local ID:', localId);
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, messages }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const firestoreId = data.conversation.id;
+        console.log('[Firestore] Created with ID:', firestoreId);
+
+        // Bug #3 fix: Clear from failed syncs on success
+        failedSyncs.current.delete(localId);
+
+        return firestoreId;
+      } else {
+        const errorText = await response.text();
+        console.error('[Firestore] Failed to create:', errorText);
+
+        // Bug #3 fix: Track failed sync for retry
+        const existing = failedSyncs.current.get(localId) || { retryCount: 0 };
+        failedSyncs.current.set(localId, {
+          messages,
+          retryCount: existing.retryCount + 1,
+        });
+
+        return null;
+      }
+    } catch (e) {
+      console.error('[Firestore] Error creating conversation:', e);
+
+      // Bug #3 fix: Track failed sync for retry
+      const existing = failedSyncs.current.get(localId) || { retryCount: 0 };
+      failedSyncs.current.set(localId, {
+        messages,
+        retryCount: existing.retryCount + 1,
+      });
+
+      return null;
+    } finally {
+      creatingInFirestore.current.delete(localId);
+    }
+  }, [getIdToken]);
+
   // Add message to current conversation
-  const addMessage = useCallback((message) => {
+  const addMessage = useCallback(async (message) => {
     const enrichedMessage = {
       ...message,
       id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: message.timestamp || Date.now(),
     };
 
+    // Bug #11 fix: Use ref for current conversation ID
+    const currentConvId = activeConversationIdRef.current;
+    const isLocalId = currentConvId?.startsWith('conv_');
+
+    // Bug #1 fix: Check for duplicate creation BEFORE state update
+    const shouldCreateInFirestore = isAuthenticated && isLocalId && !creatingInFirestore.current.has(currentConvId);
+
     // Update local state immediately
-    // Firestore sync is handled by the debounced effect above
-    setConversations(prev => prev.map(conv =>
-      conv.id === activeConversationId
-        ? { ...conv, messages: [...conv.messages, enrichedMessage], updatedAt: Date.now() }
-        : conv
-    ));
-  }, [activeConversationId]);
+    let allMessages = [];
+    setConversations(prev => {
+      const conv = prev.find(c => c.id === currentConvId);
+      allMessages = [...(conv?.messages || []), enrichedMessage];
+      return prev.map(c =>
+        c.id === currentConvId
+          ? { ...c, messages: allMessages, updatedAt: Date.now() }
+          : c
+      );
+    });
+
+    // Create in Firestore if needed
+    if (shouldCreateInFirestore) {
+      const firestoreId = await createInFirestore(currentConvId, allMessages);
+
+      if (firestoreId) {
+        // Bug #2 fix: Atomic update - batch ID replacement in single state update
+        setConversations(prev => {
+          const updated = prev.map(c =>
+            c.id === currentConvId ? { ...c, id: firestoreId } : c
+          );
+          // Also update activeConversationId if it still matches
+          if (activeConversationIdRef.current === currentConvId) {
+            setActiveConversationId(firestoreId);
+          }
+          return updated;
+        });
+      }
+    }
+  }, [isAuthenticated, createInFirestore]);
 
   // Clear messages in current conversation
   const clearMessages = useCallback(async () => {
+    const currentConvId = activeConversationIdRef.current;
+
     setConversations(prev => prev.map(conv =>
-      conv.id === activeConversationId
+      conv.id === currentConvId
         ? { ...conv, messages: [], updatedAt: Date.now() }
         : conv
     ));
 
     // Only sync to Firestore if it's a real Firestore ID (not local)
-    const isLocalId = activeConversationId?.startsWith('conv_');
+    const isLocalId = currentConvId?.startsWith('conv_');
     if (isAuthenticated && !isLocalId) {
       try {
         const token = await getIdToken();
@@ -233,7 +338,7 @@ export const ConversationProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            conversationId: activeConversationId,
+            conversationId: currentConvId,
             updates: { messages: [] },
           }),
         });
@@ -241,72 +346,67 @@ export const ConversationProvider = ({ children }) => {
         console.error('Failed to clear messages:', e);
       }
     }
-  }, [activeConversationId, isAuthenticated, getIdToken]);
+  }, [isAuthenticated, getIdToken]);
 
   // Set all messages for current conversation (supports functional updates like setState)
-  const setMessages = useCallback((newMessagesOrFn) => {
+  const setMessages = useCallback(async (newMessagesOrFn) => {
+    // Bug #11 fix: Use ref for current conversation ID
+    const currentConvId = activeConversationIdRef.current;
+    const isLocalId = currentConvId?.startsWith('conv_');
+
+    // Bug #1 fix: Check for duplicate creation BEFORE state update
+    const shouldCreateInFirestore = isAuthenticated && isLocalId && !creatingInFirestore.current.has(currentConvId);
+
+    let newMessages;
     setConversations(prev => {
-      const conv = prev.find(c => c.id === activeConversationId);
+      const conv = prev.find(c => c.id === currentConvId);
       const currentMessages = conv?.messages || [];
 
       // Support both direct value and functional update
-      const newMessages = typeof newMessagesOrFn === 'function'
+      newMessages = typeof newMessagesOrFn === 'function'
         ? newMessagesOrFn(currentMessages)
         : newMessagesOrFn;
 
       return prev.map(c =>
-        c.id === activeConversationId
+        c.id === currentConvId
           ? { ...c, messages: newMessages, updatedAt: Date.now() }
           : c
       );
     });
-    // Note: Firestore sync is debounced via the sessionStorage effect
-    // For real-time sync, we'd need to track and sync here
-  }, [activeConversationId]);
+
+    // Create in Firestore if needed
+    if (shouldCreateInFirestore && newMessages?.length > 0) {
+      const firestoreId = await createInFirestore(currentConvId, newMessages);
+
+      if (firestoreId) {
+        // Bug #2 fix: Atomic update - batch ID replacement
+        setConversations(prev => {
+          const updated = prev.map(c =>
+            c.id === currentConvId ? { ...c, id: firestoreId } : c
+          );
+          if (activeConversationIdRef.current === currentConvId) {
+            setActiveConversationId(firestoreId);
+          }
+          return updated;
+        });
+      }
+    }
+  }, [isAuthenticated, createInFirestore]);
 
   // Get full conversation object by ID
   const getConversation = useCallback((convId) => {
     return conversations.find(c => c.id === convId);
   }, [conversations]);
 
-  // Create a new conversation
-  const createConversation = useCallback(async () => {
+  // Create a new conversation (local only - Firestore creation happens when first message is added)
+  const createConversation = useCallback(() => {
     const localId = generateId();
     const newConv = { id: localId, messages: [], createdAt: Date.now() };
     setConversations(prev => [newConv, ...prev]);
     setActiveConversationId(localId);
-
-    if (isAuthenticated) {
-      try {
-        console.log('[Create] Creating conversation in Firestore...');
-        const token = await getIdToken();
-        const response = await fetch('/api/conversations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ title: 'New conversation' }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const firestoreId = data.conversation.id;
-          console.log('[Create] Got Firestore ID:', firestoreId);
-          // Update with server-generated ID
-          setConversations(prev => prev.map(c =>
-            c.id === localId ? { ...c, id: firestoreId } : c
-          ));
-          setActiveConversationId(firestoreId);
-          return firestoreId;
-        }
-      } catch (e) {
-        console.error('Failed to create conversation:', e);
-      }
-    }
-
+    console.log('[Create] Created local conversation:', localId);
     return localId;
-  }, [isAuthenticated, getIdToken]);
+  }, []);
 
   // Switch to a different conversation
   const switchConversation = useCallback((convId) => {

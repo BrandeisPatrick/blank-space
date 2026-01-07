@@ -59,9 +59,8 @@ async function executeFunction(name, args, executor, context) {
 export async function processWithGemini(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
     modelTier = 'lite',
-    aiColorPalette = 'matchWallpaper',
+    aiColorPalette = 'vibrant',
     aiUIStyle = 'glassmorphism',
-    wallpaperTheme = 'starry',
     isDarkTheme = true,
     isDebugMode = false,
     debugErrors = []
@@ -168,7 +167,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       currentFiles,
       aiColorPalette,
       aiUIStyle,
-      wallpaperTheme,
       isDarkTheme,
       isDebugMode: useDebugMode,
       debugContext: debugContext,

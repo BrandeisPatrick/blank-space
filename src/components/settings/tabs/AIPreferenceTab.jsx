@@ -4,7 +4,7 @@ import { getTheme } from '../../../styles/theme';
 import { COLOR_PALETTES } from '../../../services/stylePresets/colorPalettes';
 import { UI_STYLES } from '../../../services/stylePresets/uiStyles';
 
-// Palette icon for "Match Wallpaper" option
+// Palette icon for color palette options
 const PaletteIcon = ({ size = 20, color = '#6B7280' }) => (
   <svg
     width={size}

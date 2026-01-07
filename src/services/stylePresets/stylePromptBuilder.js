@@ -1,9 +1,8 @@
 // Style Prompt Builder
 // Builds comprehensive styling section for AI system prompts based on user preferences
 
-import { COLOR_PALETTES } from "./colorPalettes";
+import { COLOR_PALETTES, DEFAULT_COLOR_PALETTE } from "./colorPalettes";
 import { UI_STYLES } from "./uiStyles";
-import { deriveColorsFromWallpaper } from "./wallpaperMapping";
 import { replaceColorTokens } from "../prompts/utils/tokenReplacer.js";
 
 /**
@@ -180,34 +179,28 @@ ${heroEntries}
  * @param {Object} options
  * @param {string} options.colorPaletteId - Selected color palette ID
  * @param {string} options.uiStyleId - Selected UI style ID
- * @param {string} options.wallpaperTheme - Current wallpaper theme key (for matchWallpaper)
  * @param {boolean} options.isDarkTheme - Whether current theme is dark
  * @returns {string} Formatted prompt section for styling
  */
 export function buildStylePrompt({
-  colorPaletteId = "matchWallpaper",
+  colorPaletteId = DEFAULT_COLOR_PALETTE,
   uiStyleId = "glassmorphism",
-  wallpaperTheme = "starry",
   isDarkTheme = true,
 }) {
   let colors;
   let paletteName;
 
   // Get color palette
-  if (colorPaletteId === "matchWallpaper") {
-    colors = deriveColorsFromWallpaper(wallpaperTheme, isDarkTheme);
-    paletteName = `${colors.themeName} (from wallpaper)`;
+  const palette = COLOR_PALETTES[colorPaletteId] || COLOR_PALETTES[DEFAULT_COLOR_PALETTE];
+  if (palette && palette.colors) {
+    colors = palette.colors;
+    colors.isDark = palette.isDark;
+    paletteName = palette.name;
   } else {
-    const palette = COLOR_PALETTES[colorPaletteId];
-    if (palette && palette.colors) {
-      colors = palette.colors;
-      colors.isDark = palette.isDark;
-      paletteName = palette.name;
-    } else {
-      // Fallback
-      colors = deriveColorsFromWallpaper("starry", true);
-      paletteName = "Default";
-    }
+    // Fallback to cyber neon dark
+    colors = COLOR_PALETTES.cyberNeon.colors;
+    colors.isDark = true;
+    paletteName = "Default";
   }
 
   // Get UI style

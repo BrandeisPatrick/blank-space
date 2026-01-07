@@ -1,1 +1,0 @@
-export { DiagonalWaves } from './DiagonalWaves';

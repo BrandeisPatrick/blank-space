@@ -24,9 +24,8 @@ import { buildSystemPrompt, CHAT_SYSTEM_PROMPT, generateAppNameOpenAI, formatToo
 export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
     modelTier = 'lite',
-    aiColorPalette = 'matchWallpaper',
+    aiColorPalette = 'vibrant',
     aiUIStyle = 'glassmorphism',
-    wallpaperTheme = 'starry',
     isDarkTheme = true,
     isDebugMode = false,
     debugErrors = []
@@ -136,7 +135,6 @@ export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate
       currentFiles,
       aiColorPalette,
       aiUIStyle,
-      wallpaperTheme,
       isDarkTheme,
       isDebugMode,
       debugErrors

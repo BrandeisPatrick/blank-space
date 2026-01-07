@@ -30,23 +30,6 @@ const GROK_INPUT_COLORS = {
   },
 };
 
-// Plus icon for the dropdown trigger
-const PlusIcon = ({ size = 20, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
 // Chevron down icon for dropdown
 const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
   <svg
@@ -101,31 +84,18 @@ export const EnhancedChatInput = ({
   const isMobile = isMobileProp ?? isMobileHook;
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
   const [message, setMessage] = useState(initialMessage);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const dropdownRef = useRef(null);
-  const buttonRef = useRef(null);
   const modelDropdownRef = useRef(null);
   const modelButtonRef = useRef(null);
 
-  // Update message when initialMessage prop changes
+  // Bug #15 fix: Update message when initialMessage prop changes (including to empty)
   useEffect(() => {
-    if (initialMessage) {
-      setMessage(initialMessage);
-    }
+    setMessage(initialMessage || '');
   }, [initialMessage]);
 
-  // Close dropdowns when clicking outside
+  // Close model dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowDropdown(false);
-      }
       if (
         modelDropdownRef.current &&
         !modelDropdownRef.current.contains(event.target) &&
@@ -158,10 +128,6 @@ export const EnhancedChatInput = ({
       e.preventDefault();
       handleSend();
     }
-  };
-
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
   };
 
   // Editing Indicator - shared component for desktop and mobile
@@ -216,25 +182,6 @@ export const EnhancedChatInput = ({
 
   return (
     <div style={containerStyle}>
-      {/* Dropdown Menu - Positioned above the input */}
-      {showDropdown && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            marginBottom: theme.spacing.sm,
-            background: colors.dropdownBg,
-            border: `1px solid ${colors.inputBorder}`,
-            borderRadius: theme.radius.xl,
-            minWidth: '200px',
-            overflow: 'hidden',
-          }}
-        >
-        </div>
-      )}
-
       {/* Main Input Container */}
       <div style={{
         display: 'flex',
@@ -277,41 +224,6 @@ export const EnhancedChatInput = ({
           marginLeft: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
           marginRight: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
         }}>
-          {/* Plus Button (Dropdown Trigger) */}
-          <button
-            ref={buttonRef}
-            type="button"
-            onClick={toggleDropdown}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: isMobile ? '36px' : '42px',
-              height: isMobile ? '36px' : '42px',
-              background: showDropdown ? theme.colors.bg.tertiary : 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.full,
-              cursor: 'pointer',
-              color: showDropdown ? theme.colors.text.primary : theme.colors.text.tertiary,
-              transition: `all ${theme.animation.fast}`,
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              if (!showDropdown) {
-                e.currentTarget.style.background = theme.colors.bg.tertiary;
-                e.currentTarget.style.color = theme.colors.text.primary;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!showDropdown) {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = theme.colors.text.tertiary;
-              }
-            }}
-          >
-            <PlusIcon size={isMobile ? 20 : 24} />
-          </button>
-
           {/* Model Tier Dropdown */}
           <div style={{ position: 'relative' }}>
             <button
