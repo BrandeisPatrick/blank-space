@@ -310,8 +310,13 @@ async function handleDelete(db, userId, conversationId, res) {
 
 /**
  * Get single conversation with full messages (for internal use)
+ * Validates and sanitizes messages before returning
  */
 export async function getConversation(db, userId, conversationId) {
+  if (!conversationId || typeof conversationId !== 'string') {
+    return null;
+  }
+
   const conversationRef = db
     .collection('users')
     .doc(userId)
@@ -324,8 +329,14 @@ export async function getConversation(db, userId, conversationId) {
     return null;
   }
 
+  const data = conversationDoc.data();
+
   return {
     id: conversationDoc.id,
-    ...conversationDoc.data(),
+    title: data.title || 'New conversation',
+    messages: validateMessages(data.messages || []),
+    artifactId: data.artifactId || null,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
   };
 }

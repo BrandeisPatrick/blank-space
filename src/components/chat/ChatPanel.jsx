@@ -80,7 +80,8 @@ export const ChatPanel = ({ messages = [], onFixBug, isMobile = false }) => {
             {filterVisibleMessages(messages)
               .map((message, index) => {
                 // Bug #8 fix: Generate stable key if message.id is missing
-                const key = message.id || `msg-${message.timestamp || index}-${message.type || 'unknown'}`;
+                // Use index as final fallback to ensure unique keys
+                const key = message.id || `msg-${message.timestamp || index}-${message.type || index}`;
                 return (
                   <ChatMessage key={key} message={message} onFixBug={onFixBug} isMobile={isMobile} />
                 );

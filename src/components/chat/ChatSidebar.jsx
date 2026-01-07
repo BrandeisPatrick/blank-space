@@ -1,10 +1,43 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
+
+// Constants
+const CONVERSATION_DISPLAY_LIMIT = 10;
+
+// Helper: Group conversations by date (Today, Yesterday, by Year)
+const groupConversationsByDate = (conversations) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+
+  const groups = {
+    today: [],
+    yesterday: [],
+    byYear: {},
+  };
+
+  conversations.forEach(conv => {
+    const timestamp = conv.updatedAt || conv.createdAt;
+    const date = new Date(timestamp);
+
+    if (date >= today) {
+      groups.today.push(conv);
+    } else if (date >= yesterday) {
+      groups.yesterday.push(conv);
+    } else {
+      const year = date.getFullYear().toString();
+      if (!groups.byYear[year]) groups.byYear[year] = [];
+      groups.byYear[year].push(conv);
+    }
+  });
+
+  return groups;
+};
 
 // Grok-style colors
 const GROK_COLORS = {
@@ -95,15 +128,11 @@ const SignOutIcon = ({ size = 18, color = "currentColor" }) => (
   </svg>
 );
 
-// Sidebar navigation item with Grok-style pill
+// Sidebar navigation item - cleaner minimal style
 const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -112,18 +141,14 @@ const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) =
         height: '40px',
         padding: expanded ? '0 12px' : 0,
         justifyContent: expanded ? 'flex-start' : 'center',
-        background: active
-          ? colors.activeBg
-          : isHovered
-            ? colors.hoverBg
-            : 'transparent',
+        background: active ? colors.activeBg : 'transparent',
         border: 'none',
         borderRadius: '8px',
         cursor: 'pointer',
-        color: active || isHovered ? colors.textPrimary : colors.textSecondary,
-        transition: 'all 0.15s ease',
+        color: active ? colors.textPrimary : colors.textSecondary,
+        transition: 'color 0.15s ease, background 0.15s ease',
         fontSize: '14px',
-        fontWeight: 500,
+        fontWeight: 400,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       title={!expanded ? label : undefined}
@@ -134,30 +159,63 @@ const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) =
   );
 };
 
-// Search bar component (Grok-style)
-const SearchBar = ({ expanded, colors, onClick }) => {
-  const [isHovered, setIsHovered] = useState(false);
+// Conversation item - cleaner minimal style
+const ConversationItem = ({ conv, isActive, colors, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      display: 'block',
+      width: '100%',
+      textAlign: 'left',
+      padding: '8px 12px',
+      background: isActive ? colors.activeBg : 'transparent',
+      border: 'none',
+      borderRadius: '6px',
+      color: isActive ? colors.textPrimary : colors.textSecondary,
+      fontSize: '14px',
+      fontWeight: 400,
+      cursor: 'pointer',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      transition: 'background 0.15s ease, color 0.15s ease',
+    }}
+    onMouseEnter={(e) => {
+      if (!isActive) {
+        e.currentTarget.style.background = colors.hoverBg;
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (!isActive) {
+        e.currentTarget.style.background = 'transparent';
+      }
+    }}
+  >
+    {conv.title || 'New conversation'}
+  </button>
+);
 
+// Search bar component (Grok-style) - disabled until search is implemented
+const SearchBar = ({ expanded, colors }) => {
   if (!expanded) {
     return (
       <button
-        onClick={onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        disabled
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           width: '40px',
           height: '40px',
-          background: isHovered ? colors.hoverBg : 'transparent',
+          background: 'transparent',
           border: 'none',
           borderRadius: '8px',
-          cursor: 'pointer',
-          color: isHovered ? colors.textPrimary : colors.textSecondary,
-          transition: 'all 0.15s ease',
+          cursor: 'not-allowed',
+          color: colors.textTertiary,
+          opacity: 0.5,
         }}
-        title="Search"
+        title="Search (coming soon)"
       >
         <SearchIcon size={20} />
       </button>
@@ -166,24 +224,23 @@ const SearchBar = ({ expanded, colors, onClick }) => {
 
   return (
     <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      disabled
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
         width: '100%',
         padding: '10px 12px',
-        background: isHovered ? colors.hoverBg : 'transparent',
+        background: 'transparent',
         border: `1px solid ${colors.border}`,
         borderRadius: '8px',
-        cursor: 'pointer',
-        color: colors.textSecondary,
-        transition: 'all 0.15s ease',
+        cursor: 'not-allowed',
+        color: colors.textTertiary,
+        opacity: 0.5,
         fontSize: '14px',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
+      title="Coming soon"
     >
       <SearchIcon size={18} />
       <span>Search</span>
@@ -222,6 +279,26 @@ export const ChatSidebar = ({
   const colors = mode === 'dark' ? GROK_COLORS.dark : GROK_COLORS.light;
   const sidebarWidth = expanded ? '250px' : '60px';
 
+  // Filter, sort, and group conversations by date for display
+  const { groupedConversations, totalCount, hasMore } = useMemo(() => {
+    const filtered = conversations.filter(
+      c => c.messageCount > 0 || c.id === activeConversationId
+    );
+    const sorted = [...filtered].sort(
+      (a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)
+    );
+
+    // Limit to display count
+    const limited = sorted.slice(0, CONVERSATION_DISPLAY_LIMIT);
+    const groups = groupConversationsByDate(limited);
+
+    return {
+      groupedConversations: groups,
+      totalCount: sorted.length,
+      hasMore: sorted.length > CONVERSATION_DISPLAY_LIMIT,
+    };
+  }, [conversations, activeConversationId]);
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -254,8 +331,7 @@ export const ChatSidebar = ({
   };
 
   const handleSearch = () => {
-    // TODO: Open search modal
-    console.log('Search clicked');
+    // Search not yet implemented - show tooltip hint instead
   };
 
   const handleApps = () => {
@@ -375,6 +451,7 @@ export const ChatSidebar = ({
             color: colors.textSecondary,
             fontSize: '14px',
             fontWeight: 500,
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}>
             <HistoryIcon size={18} />
             <span>History</span>
@@ -383,12 +460,13 @@ export const ChatSidebar = ({
           {/* Conversation List */}
           {isLoading ? (
             <div style={{
-              fontSize: '13px',
+              fontSize: '14px',
               color: colors.textTertiary,
               padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}>
               <span style={{
                 width: '12px',
@@ -401,54 +479,120 @@ export const ChatSidebar = ({
               Loading...
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
-          ) : conversations.filter(c => c.messageCount > 0 || c.id === activeConversationId).length === 0 ? (
+          ) : totalCount === 0 ? (
             <div style={{
-              fontSize: '13px',
+              fontSize: '14px',
               color: colors.textTertiary,
               padding: '8px 12px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}>
               No recent conversations
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {conversations
-                .filter(c => c.messageCount > 0 || c.id === activeConversationId)
-                .slice(0, 10)
-                .map(conv => (
-                  <button
-                    key={conv.id}
-                    onClick={() => handleConversationClick(conv.id)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '10px 12px',
-                      background: conv.id === activeConversationId ? colors.activeBg : 'transparent',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: conv.id === activeConversationId ? colors.textPrimary : colors.textSecondary,
-                      fontSize: '13px',
-                      cursor: 'pointer',
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {/* Today */}
+              {groupedConversations.today.length > 0 && (
+                <>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: colors.textTertiary,
+                    padding: '8px 12px 4px',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}>
+                    Today
+                  </div>
+                  {groupedConversations.today.map(conv => (
+                    <ConversationItem
+                      key={conv.id}
+                      conv={conv}
+                      isActive={conv.id === activeConversationId}
+                      colors={colors}
+                      onClick={() => handleConversationClick(conv.id)}
+                    />
+                  ))}
+                </>
+              )}
+
+              {/* Yesterday */}
+              {groupedConversations.yesterday.length > 0 && (
+                <>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: colors.textTertiary,
+                    padding: '8px 12px 4px',
+                    marginTop: groupedConversations.today.length > 0 ? '8px' : 0,
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}>
+                    Yesterday
+                  </div>
+                  {groupedConversations.yesterday.map(conv => (
+                    <ConversationItem
+                      key={conv.id}
+                      conv={conv}
+                      isActive={conv.id === activeConversationId}
+                      colors={colors}
+                      onClick={() => handleConversationClick(conv.id)}
+                    />
+                  ))}
+                </>
+              )}
+
+              {/* By Year */}
+              {Object.keys(groupedConversations.byYear)
+                .sort((a, b) => Number(b) - Number(a))
+                .map(year => (
+                  <div key={year}>
+                    <div style={{
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: colors.textTertiary,
+                      padding: '8px 12px 4px',
+                      marginTop: (groupedConversations.today.length > 0 || groupedConversations.yesterday.length > 0) ? '8px' : 0,
                       fontFamily: 'system-ui, -apple-system, sans-serif',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (conv.id !== activeConversationId) {
-                        e.currentTarget.style.background = colors.hoverBg;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (conv.id !== activeConversationId) {
-                        e.currentTarget.style.background = 'transparent';
-                      }
-                    }}
-                  >
-                    {conv.title || 'New conversation'}
-                  </button>
+                    }}>
+                      {year}
+                    </div>
+                    {groupedConversations.byYear[year].map(conv => (
+                      <ConversationItem
+                        key={conv.id}
+                        conv={conv}
+                        isActive={conv.id === activeConversationId}
+                        colors={colors}
+                        onClick={() => handleConversationClick(conv.id)}
+                      />
+                    ))}
+                  </div>
                 ))}
+
+              {/* See all link */}
+              {hasMore && (
+                <button
+                  onClick={() => {
+                    // TODO: Navigate to full history view or expand list
+                    console.log('See all clicked - expand history');
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                    marginTop: '8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: colors.textTertiary,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    transition: 'color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = colors.textSecondary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = colors.textTertiary}
+                >
+                  See all →
+                </button>
+              )}
             </div>
           )}
         </div>

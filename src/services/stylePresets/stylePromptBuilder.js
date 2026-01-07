@@ -197,10 +197,10 @@ export function buildStylePrompt({
     colors.isDark = palette.isDark;
     paletteName = palette.name;
   } else {
-    // Fallback to cyber neon dark
-    colors = COLOR_PALETTES.cyberNeon.colors;
-    colors.isDark = true;
-    paletteName = "Default";
+    // Fallback to vibrant (the default palette)
+    colors = COLOR_PALETTES.vibrant.colors;
+    colors.isDark = COLOR_PALETTES.vibrant.isDark;
+    paletteName = "Vibrant";
   }
 
   // Get UI style

@@ -1,5 +1,8 @@
 import { useTheme } from '../../../contexts/ThemeContext';
-import { getTheme } from '../../../styles/theme';
+import { getTheme, themes as themeConfigs } from '../../../styles/theme';
+
+// Selection accent color (consistent across themes)
+const SELECTION_COLOR = '#3B82F6';
 
 // Sun icon for light mode
 const SunIcon = ({ size = 24, color = "currentColor" }) => (
@@ -27,9 +30,13 @@ export const ThemeTab = () => {
   const { mode, setMode } = useTheme();
   const theme = getTheme(mode);
 
+  // Get actual theme colors for accurate preview
+  const lightTheme = themeConfigs.light;
+  const darkTheme = themeConfigs.dark;
+
   const themes = [
-    { id: 'light', name: 'Light', icon: SunIcon, bg: '#ffffff', border: '#e0e0e0' },
-    { id: 'dark', name: 'Dark', icon: MoonIcon, bg: '#000000', border: '#333333' },
+    { id: 'light', name: 'Light', icon: SunIcon, bg: lightTheme.bg.primary, border: lightTheme.border, textColor: lightTheme.text.primary },
+    { id: 'dark', name: 'Dark', icon: MoonIcon, bg: darkTheme.bg.primary, border: darkTheme.border, textColor: darkTheme.text.primary },
   ];
 
   return (
@@ -43,7 +50,7 @@ export const ThemeTab = () => {
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: theme.spacing.md,
       }}>
-        {themes.map(({ id, name, icon: Icon, bg, border }) => {
+        {themes.map(({ id, name, icon: Icon, bg, border, textColor }) => {
           const isSelected = mode === id;
           return (
             <button
@@ -69,17 +76,17 @@ export const ThemeTab = () => {
                 borderRadius: theme.radius.md,
                 background: bg,
                 border: isSelected
-                  ? '2px solid #3B82F6'
+                  ? `2px solid ${SELECTION_COLOR}`
                   : `1px solid ${border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: `all ${theme.animation.fast}`,
                 boxShadow: isSelected
-                  ? '0 0 0 2px rgba(59, 130, 246, 0.2)'
+                  ? `0 0 0 2px ${SELECTION_COLOR}33`
                   : 'none',
               }}>
-                <Icon size={32} color={id === 'dark' ? '#ffffff' : '#000000'} />
+                <Icon size={32} color={textColor} />
               </div>
 
               {/* Name */}
@@ -87,7 +94,7 @@ export const ThemeTab = () => {
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                 fontFamily: theme.typography.fontFamily.sans,
-                color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
               }}>
                 {name}
               </span>

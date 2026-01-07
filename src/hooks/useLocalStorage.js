@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react';
 
 /**
  * Custom hook for persisting state to sessionStorage
+ * Note: This uses sessionStorage (clears on tab close), not localStorage (persists)
  * @param {string} key - The sessionStorage key
  * @param {*} initialValue - Default value if key doesn't exist
  * @returns {[*, Function]} Tuple of [storedValue, setValue]
  */
-export function useLocalStorage(key, initialValue) {
+export function useSessionStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {
     try {
       const item = sessionStorage.getItem(key);
@@ -28,3 +29,6 @@ export function useLocalStorage(key, initialValue) {
 
   return [storedValue, setValue];
 }
+
+// Backwards-compatible alias (legacy name)
+export const useLocalStorage = useSessionStorage;

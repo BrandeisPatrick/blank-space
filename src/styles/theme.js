@@ -103,6 +103,12 @@ const darkTheme = {
   },
 }
 
+// Export raw theme configs for preview purposes
+export const themes = {
+  light: lightTheme.colors,
+  dark: darkTheme.colors,
+};
+
 export const getTheme = (mode) => {
   const baseTheme = mode === 'light' ? lightTheme : darkTheme
   return {
