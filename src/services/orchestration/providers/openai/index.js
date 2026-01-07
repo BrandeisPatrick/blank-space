@@ -24,8 +24,8 @@ import { buildSystemPrompt, CHAT_SYSTEM_PROMPT, generateAppNameOpenAI, formatToo
 export async function processWithOpenAI(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
     modelTier = 'lite',
-    aiColorPalette = 'vibrant',
-    aiUIStyle = 'glassmorphism',
+    aiColorPalette = 'dark-professional',
+    aiUIStyle = 'dark-professional',
     isDarkTheme = true,
     isDebugMode = false,
     debugErrors = []

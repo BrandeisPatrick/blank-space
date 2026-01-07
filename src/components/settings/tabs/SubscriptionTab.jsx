@@ -95,7 +95,7 @@ export const SubscriptionTab = () => {
       <div style={sectionStyle}>
         <h3 style={{
           fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
+          fontWeight: theme.typography.fontWeight.medium,
           color: theme.colors.foreground,
           marginBottom: theme.spacing.lg,
         }}>
@@ -143,7 +143,7 @@ export const SubscriptionTab = () => {
       <div style={sectionStyle}>
         <h3 style={{
           fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
+          fontWeight: theme.typography.fontWeight.medium,
           color: theme.colors.foreground,
           marginBottom: theme.spacing.md,
         }}>
@@ -178,7 +178,7 @@ export const SubscriptionTab = () => {
       <div style={sectionStyle}>
         <h3 style={{
           fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
+          fontWeight: theme.typography.fontWeight.medium,
           color: theme.colors.foreground,
           marginBottom: theme.spacing.sm,
         }}>

@@ -52,20 +52,20 @@ const lightTheme = {
 
 const darkTheme = {
   colors: {
-    // Dark neumorphic palette
+    // Grok-style dark palette (from dark.design/website/grok)
     bg: {
-      primary: '#1a1a1a',      // Dark grey base
-      secondary: '#212121',    // Slightly lighter grey
+      primary: '#000000',      // Pure black base
+      secondary: '#1a1a1a',    // Dark grey
       tertiary: '#2a2a2a',     // Medium grey for active states
       hover: '#333333',        // Lighter grey for hover
-      border: '#404040',       // Border color in bg context
+      border: '#1f1f1f',       // Border color in bg context
     },
-    border: '#404040',         // Border grey
+    border: '#1f1f1f',         // Subtle dark border
     text: {
-      primary: '#ffffff',      // Pure white
-      secondary: '#e0e0e0',    // Light grey
-      tertiary: '#b0b0b0',     // Medium grey
-      disabled: '#707070',     // Dark grey
+      primary: '#f9f9f9',      // Off-white (Grok style)
+      secondary: '#7e7e7e',    // Medium grey (Grok style)
+      tertiary: '#666666',     // Darker grey
+      disabled: '#505050',     // Dark grey
     },
     accent: {
       primary: '#ffffff',      // White for buttons in dark mode
@@ -196,7 +196,7 @@ export const getTheme = (mode) => {
     },
     typography: {
       fontFamily: {
-        sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        sans: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         mono: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
       },
       fontSize: {

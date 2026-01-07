@@ -23,7 +23,8 @@ export const FloatingBrowserWindow = ({
   onDebug,
   isDebugging = false,
   onIconChange,
-  onRename
+  onRename,
+  sidebarWidth = 250, // Sidebar width in pixels for fullscreen positioning
 }) => {
   const [view, setView] = useState('preview') // 'preview' or 'code'
   const [activeFile, setActiveFile] = useState('App.jsx')
@@ -34,7 +35,7 @@ export const FloatingBrowserWindow = ({
   const [editedName, setEditedName] = useState('')
   const [zoom, setZoom] = useState(100)
   const [showAppSettings, setShowAppSettings] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(true)
   const [preFullscreenState, setPreFullscreenState] = useState(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -45,7 +46,7 @@ export const FloatingBrowserWindow = ({
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50))
   const handleZoomReset = () => setZoom(100)
 
-  // Fullscreen toggle
+  // Fullscreen toggle - respects sidebar on desktop
   const toggleFullscreen = () => {
     if (isFullscreen) {
       // Restore previous state
@@ -56,13 +57,16 @@ export const FloatingBrowserWindow = ({
       setIsFullscreen(false)
       setPreFullscreenState(null)
     } else {
-      // Save current state and go fullscreen
+      // Save current state and go fullscreen (respecting sidebar)
       setPreFullscreenState({
         position: { ...position },
         size: { ...size }
       })
-      setPosition({ x: 0, y: 0 })
-      setSize({ width: window.innerWidth, height: window.innerHeight })
+      // On mobile, use full width; on desktop, account for sidebar
+      const offsetX = isMobile ? 0 : sidebarWidth
+      const availableWidth = isMobile ? window.innerWidth : window.innerWidth - sidebarWidth
+      setPosition({ x: offsetX, y: 0 })
+      setSize({ width: availableWidth, height: window.innerHeight })
       setIsFullscreen(true)
     }
   }
@@ -99,11 +103,19 @@ export const FloatingBrowserWindow = ({
   // Reset size and position when mobile state changes or window becomes visible
   useEffect(() => {
     if (visible) {
-      const dims = getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
-      setSize({ width: dims.width, height: dims.height });
-      setPosition({ x: dims.x, y: dims.y });
+      if (isFullscreen) {
+        // Start in fullscreen mode (respecting sidebar on desktop)
+        const offsetX = isMobile ? 0 : sidebarWidth;
+        const availableWidth = isMobile ? window.innerWidth : window.innerWidth - sidebarWidth;
+        setSize({ width: availableWidth, height: window.innerHeight });
+        setPosition({ x: offsetX, y: 0 });
+      } else {
+        const dims = getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
+        setSize({ width: dims.width, height: dims.height });
+        setPosition({ x: dims.x, y: dims.y });
+      }
     }
-  }, [isMobile, visible, setSize, setPosition]);
+  }, [isMobile, visible, setSize, setPosition, isFullscreen, sidebarWidth]);
 
   if (!visible || !artifact) {
     return null;

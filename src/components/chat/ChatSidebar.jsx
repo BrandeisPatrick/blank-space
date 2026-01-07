@@ -39,15 +39,15 @@ const groupConversationsByDate = (conversations) => {
   return groups;
 };
 
-// Grok-style colors
+// Grok-style colors (from dark.design/website/grok)
 const GROK_COLORS = {
   dark: {
     bg: '#000000',
     activeBg: '#1a1a1a',
     hoverBg: '#1a1a1a',
-    border: '#2a2a2a',
-    textPrimary: '#ffffff',
-    textSecondary: '#888888',
+    border: '#1f1f1f',
+    textPrimary: '#f9f9f9',
+    textSecondary: '#7e7e7e',
     textTertiary: '#666666',
   },
   light: {
@@ -55,7 +55,7 @@ const GROK_COLORS = {
     activeBg: '#f0f0f0',
     hoverBg: '#f5f5f5',
     border: '#e0e0e0',
-    textPrimary: '#000000',
+    textPrimary: '#1a1a1a',
     textSecondary: '#666666',
     textTertiary: '#888888',
   },
@@ -167,8 +167,8 @@ const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) =
         color: active ? colors.textPrimary : colors.textSecondary,
         transition: 'color 0.15s ease, background 0.15s ease',
         fontSize: '14px',
-        fontWeight: 700,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontWeight: 400,
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
       }}
       title={!expanded ? label : undefined}
     >
@@ -189,12 +189,12 @@ const ConversationItem = ({ conv, isActive, colors, onClick }) => (
       padding: '8px 12px',
       background: isActive ? colors.activeBg : 'transparent',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       color: isActive ? colors.textPrimary : colors.textSecondary,
       fontSize: '14px',
-      fontWeight: 700,
+      fontWeight: 400,
       cursor: 'pointer',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -257,8 +257,8 @@ const SearchBar = ({ expanded, colors }) => {
         color: colors.textTertiary,
         opacity: 0.5,
         fontSize: '14px',
-        fontWeight: 700,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontWeight: 400,
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
       }}
       title="Coming soon"
     >
@@ -477,8 +477,8 @@ export const ChatSidebar = ({
               cursor: 'pointer',
               color: colors.textSecondary,
               fontSize: '14px',
-              fontWeight: 700,
-              fontFamily: 'system-ui, -apple-system, sans-serif',
+              fontWeight: 400,
+              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
               transition: 'color 0.15s ease',
             }}
             onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary}
@@ -526,10 +526,10 @@ export const ChatSidebar = ({
                 <>
                   <div style={{
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 500,
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                   }}>
                     Today
                   </div>
@@ -550,11 +550,11 @@ export const ChatSidebar = ({
                 <>
                   <div style={{
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 500,
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
                     marginTop: groupedConversations.today.length > 0 ? '8px' : 0,
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                   }}>
                     Yesterday
                   </div>
@@ -577,11 +577,11 @@ export const ChatSidebar = ({
                   <div key={year}>
                     <div style={{
                       fontSize: '12px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       color: colors.textTertiary,
                       padding: '8px 12px 4px',
                       marginTop: (groupedConversations.today.length > 0 || groupedConversations.yesterday.length > 0) ? '8px' : 0,
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                     }}>
                       {year}
                     </div>
@@ -656,7 +656,7 @@ export const ChatSidebar = ({
             marginBottom: '8px',
             background: colors.activeBg,
             border: `1px solid ${colors.border}`,
-            borderRadius: '12px',
+            borderRadius: '8px',
             padding: '8px 0',
             minWidth: '180px',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
@@ -678,9 +678,9 @@ export const ChatSidebar = ({
                 border: 'none',
                 color: colors.textPrimary,
                 fontSize: '14px',
-                fontWeight: 700,
+                fontWeight: 400,
                 cursor: 'pointer',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                 transition: 'background 0.15s ease',
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
@@ -718,9 +718,9 @@ export const ChatSidebar = ({
                 border: 'none',
                 color: colors.textPrimary,
                 fontSize: '14px',
-                fontWeight: 700,
+                fontWeight: 400,
                 cursor: 'pointer',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                 transition: 'background 0.15s ease',
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}

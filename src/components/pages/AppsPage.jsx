@@ -238,7 +238,7 @@ export const AppsPage = ({
                     padding: '8px 20px',
                     borderRadius: theme.radius['2.5xl'],
                     fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.semibold,
+                    fontWeight: theme.typography.fontWeight.medium,
                     cursor: 'pointer',
                     transition: `all ${theme.animation.fast}`,
                     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
@@ -297,6 +297,7 @@ export const AppsPage = ({
         isDebugging={isDebugging}
         onIconChange={(iconId) => onIconChange?.(activeArtifactId, iconId)}
         onRename={(newName) => onRename?.(activeArtifactId, newName)}
+        sidebarWidth={sidebarExpanded ? 250 : 60}
       />
 
       {/* Settings Panel Modal */}

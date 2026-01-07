@@ -8,7 +8,7 @@ export const SettingsAppCard = ({ isEditMode = false, onEnterEditMode }) => {
   const { mode } = useTheme();
   const { openSettings } = useSettings();
 
-  const iconColor = mode === 'dark' ? '#ffffff' : '#6B7280';
+  const iconColor = mode === 'dark' ? '#f9f9f9' : '#6B7280';
 
   // Long press handler to enter edit mode
   const longPressHandlers = useLongPress(

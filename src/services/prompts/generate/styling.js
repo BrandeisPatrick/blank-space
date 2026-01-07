@@ -8,21 +8,17 @@
  */
 export function buildStylingPrompt(options = {}) {
   const {
-    aiUIStyle = 'glassmorphism',
+    aiUIStyle = 'dark-professional',
     isDarkTheme = true
   } = options;
 
   const themeMode = isDarkTheme ? 'dark' : 'light';
 
   const styleDescriptions = {
-    glassmorphism: 'frosted glass effects, blur backdrops, subtle transparency, soft shadows',
-    minimal: 'clean lines, lots of whitespace, simple typography, subtle accents',
-    brutalist: 'bold contrasts, raw edges, strong typography, unconventional layouts',
-    neomorphism: 'soft shadows, subtle depth, muted colors, tactile feel',
-    retro: 'vintage colors, nostalgic typography, playful elements'
+    'dark-professional': 'pure black background, off-white text (#f9f9f9), subtle borders (#1f1f1f), consistent rounded-lg, font-normal/medium weights only'
   };
 
-  const styleDesc = styleDescriptions[aiUIStyle] || styleDescriptions.glassmorphism;
+  const styleDesc = styleDescriptions[aiUIStyle] || styleDescriptions['dark-professional'];
 
   return `
 # STYLING GUIDELINES

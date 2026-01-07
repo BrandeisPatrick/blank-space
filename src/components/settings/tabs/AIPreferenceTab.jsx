@@ -89,7 +89,7 @@ export const AIPreferenceTab = () => {
                 )}
                 <span style={{
                   fontSize: theme.typography.fontSize.xs,
-                  fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                  fontWeight: isSelected ? theme.typography.fontWeight.medium : theme.typography.fontWeight.normal,
                   color: isSelected ? '#3B82F6' : theme.colors.text.primary,
                   whiteSpace: 'nowrap',
                 }}>

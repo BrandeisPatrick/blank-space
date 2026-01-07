@@ -184,7 +184,7 @@ ${heroEntries}
  */
 export function buildStylePrompt({
   colorPaletteId = DEFAULT_COLOR_PALETTE,
-  uiStyleId = "glassmorphism",
+  uiStyleId = "dark-professional",
   isDarkTheme = true,
 }) {
   let colors;
@@ -197,14 +197,14 @@ export function buildStylePrompt({
     colors.isDark = palette.isDark;
     paletteName = palette.name;
   } else {
-    // Fallback to vibrant (the default palette)
-    colors = COLOR_PALETTES.vibrant.colors;
-    colors.isDark = COLOR_PALETTES.vibrant.isDark;
-    paletteName = "Vibrant";
+    // Fallback to dark-professional (the default palette)
+    colors = COLOR_PALETTES["dark-professional"].colors;
+    colors.isDark = COLOR_PALETTES["dark-professional"].isDark;
+    paletteName = "Dark Professional";
   }
 
   // Get UI style
-  const style = UI_STYLES[uiStyleId] || UI_STYLES.glassmorphism;
+  const style = UI_STYLES[uiStyleId] || UI_STYLES["dark-professional"];
 
   // Build the complete prompt section
   return `

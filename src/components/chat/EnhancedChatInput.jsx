@@ -268,7 +268,7 @@ export const EnhancedChatInput = ({
                   marginBottom: '8px',
                   background: mode === 'dark' ? '#1a1a1a' : '#ffffff',
                   border: `1px solid ${mode === 'dark' ? '#333333' : '#e0e0e0'}`,
-                  borderRadius: '16px',
+                  borderRadius: '8px',
                   minWidth: '160px',
                   overflow: 'hidden',
                   zIndex: 100,
@@ -318,20 +318,20 @@ export const EnhancedChatInput = ({
                         <div style={{
                           fontSize: '14px',
                           fontWeight: 500,
-                          color: mode === 'dark' ? '#ffffff' : '#000000',
+                          color: mode === 'dark' ? '#f9f9f9' : '#1a1a1a',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                         }}>
                           {tier.name}
                           {needsAuth && <LockIcon size={12} color={mode === 'dark' ? '#666666' : '#999999'} />}
                         </div>
                         <div style={{
                           fontSize: '12px',
-                          color: mode === 'dark' ? '#888888' : '#666666',
+                          color: mode === 'dark' ? '#7e7e7e' : '#666666',
                           marginTop: '2px',
-                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                         }}>
                           {needsAuth ? 'Sign in required' : tier.description}
                         </div>

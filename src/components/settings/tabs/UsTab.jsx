@@ -26,7 +26,7 @@ export const UsTab = () => {
         <h3 style={{
           margin: `0 0 ${theme.spacing.sm} 0`,
           fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
+          fontWeight: theme.typography.fontWeight.medium,
           fontFamily: theme.typography.fontFamily.sans,
           color: theme.colors.text.primary,
         }}>

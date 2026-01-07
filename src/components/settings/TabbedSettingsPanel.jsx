@@ -135,7 +135,7 @@ export const TabbedSettingsPanel = () => {
           <h2 style={{
             margin: 0,
             fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
+            fontWeight: theme.typography.fontWeight.medium,
             fontFamily: theme.typography.fontFamily.sans,
             color: theme.colors.text.primary,
           }}>
@@ -191,8 +191,8 @@ export const TabbedSettingsPanel = () => {
                     cursor: 'pointer',
                     color: isActive ? '#3B82F6' : theme.colors.text.secondary,
                     fontWeight: isActive
-                      ? theme.typography.fontWeight.semibold
-                      : theme.typography.fontWeight.medium,
+                      ? theme.typography.fontWeight.medium
+                      : theme.typography.fontWeight.normal,
                     fontSize: theme.typography.fontSize.sm,
                     fontFamily: theme.typography.fontFamily.sans,
                     marginBottom: '-1px',

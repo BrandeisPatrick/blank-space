@@ -92,7 +92,7 @@ export const ThemeTab = () => {
               {/* Name */}
               <span style={{
                 fontSize: theme.typography.fontSize.sm,
-                fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                fontWeight: isSelected ? theme.typography.fontWeight.medium : theme.typography.fontWeight.normal,
                 fontFamily: theme.typography.fontFamily.sans,
                 color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
               }}>
