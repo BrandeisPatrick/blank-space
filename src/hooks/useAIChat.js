@@ -22,11 +22,19 @@ export const useAIChat = ({
   const { mode } = useTheme();
   const { aiColorPalette, aiUIStyle } = useSettings();
   const { incrementUsage } = useSubscription();
-  const { messages, setMessages, linkArtifact } = useConversation();
+  const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDebugging, setIsDebugging] = useState(false);
+
+  // Track conversation intent - only classified once at conversation start
+  const [conversationIntent, setConversationIntent] = useState(null);
+
+  // Reset intent when conversation changes
+  useEffect(() => {
+    setConversationIntent(null);
+  }, [activeConversationId]);
 
   // Track messages in ref to avoid stale closures
   const messagesRef = useRef(messages);
@@ -145,12 +153,24 @@ export const useAIChat = ({
     };
 
     try {
+      // Get conversation history for context (exclude loading messages)
+      const conversationHistory = messagesRef.current
+        .filter(msg => !msg.isLoading && (msg.type === 'user' || msg.type === 'assistant'))
+        .map(msg => ({ role: msg.type, content: msg.content }));
+
       const result = await processMessage(message, files, onUpdate, {
         modelTier,
         aiColorPalette,
         aiUIStyle,
-        isDarkTheme: mode === 'dark'
+        isDarkTheme: mode === 'dark',
+        conversationHistory,
+        conversationIntent  // Pass stored intent (null for first message)
       });
+
+      // Store intent from first message for subsequent messages
+      if (result.intent && !conversationIntent) {
+        setConversationIntent(result.intent);
+      }
 
       if (result.success) {
         removeLoadingMessage();
@@ -259,7 +279,7 @@ export const useAIChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent]);
 
   /**
    * Debug handler for errors and user-reported issues

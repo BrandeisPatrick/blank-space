@@ -38,7 +38,7 @@ const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke={color}
-    strokeWidth="2"
+    strokeWidth="3"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
@@ -221,8 +221,6 @@ export const EnhancedChatInput = ({
           display: 'flex',
           alignItems: 'center',
           gap: isMobile ? theme.spacing.xs : theme.spacing.sm,
-          marginLeft: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
-          marginRight: isMobile ? `-${theme.spacing.xs}` : `-${theme.spacing.sm}`,
         }}>
           {/* Model Tier Dropdown */}
           <div style={{ position: 'relative' }}>
@@ -233,16 +231,16 @@ export const EnhancedChatInput = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: theme.spacing.xs,
+                gap: theme.spacing.sm,
                 background: colors.buttonBg,
-                border: `1px solid ${colors.buttonBorder}`,
+                border: 'none',
                 cursor: 'pointer',
                 color: theme.colors.text.secondary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.bold,
                 fontFamily: theme.typography.fontFamily.sans,
-                padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-                borderRadius: theme.radius.full,
+                padding: `6px 14px`,
+                borderRadius: '12px',
                 transition: `all ${theme.animation.fast}`,
                 flexShrink: 0,
               }}
@@ -270,11 +268,11 @@ export const EnhancedChatInput = ({
                   marginBottom: '8px',
                   background: mode === 'dark' ? '#1a1a1a' : '#ffffff',
                   border: `1px solid ${mode === 'dark' ? '#333333' : '#e0e0e0'}`,
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   minWidth: '160px',
                   overflow: 'hidden',
                   zIndex: 100,
-                  padding: '4px',
+                  padding: '6px',
                 }}
               >
                 {Object.entries(MODEL_TIERS).map(([key, tier]) => {

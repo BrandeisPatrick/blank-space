@@ -122,24 +122,18 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
     return <ErrorMessage error={message.error} onFixBug={handleFixBug} />;
   }
 
-  // Legacy error messages (with content only) - Bug #13 fix: use theme-aware colors
+  // Legacy error messages (with content only) - simple plain text style
   if (isError) {
-    const errorBg = mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fee2e2';
-    const errorColor = mode === 'dark' ? '#f87171' : '#dc2626';
-    const errorBorder = mode === 'dark' ? '#ef4444' : '#dc2626';
-
     return (
       <div style={{
-        padding: isMobile
-          ? `${theme.spacing.sm} ${theme.spacing.md}`
-          : `${theme.spacing.md} ${theme.spacing.lg}`,
-        background: errorBg,
-        borderRadius: theme.radius.lg,
-        borderLeft: `4px solid ${errorBorder}`,
-        fontSize: isMobile ? theme.typography.fontSize.xs : theme.typography.fontSize.sm,
-        color: errorColor,
+        alignSelf: 'flex-start',
+        padding: `${theme.spacing.xs} 0`,
+        fontFamily: theme.typography.fontFamily.sans,
+        fontSize,
+        lineHeight: '1.6',
+        color: '#888888',
       }}>
-        ⚠️ {message.content || 'An error occurred'}
+        {message.content || 'An error occurred'}
       </div>
     )
   }

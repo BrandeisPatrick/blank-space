@@ -97,6 +97,25 @@ const HistoryIcon = ({ size = 20, color = "currentColor" }) => (
   </svg>
 );
 
+const ChevronIcon = ({ size = 16, color = "currentColor", expanded = false }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      transition: 'transform 0.2s ease',
+      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+    }}
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 const AppsIcon = ({ size = 20, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -148,7 +167,7 @@ const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) =
         color: active ? colors.textPrimary : colors.textSecondary,
         transition: 'color 0.15s ease, background 0.15s ease',
         fontSize: '14px',
-        fontWeight: 400,
+        fontWeight: 700,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       title={!expanded ? label : undefined}
@@ -173,7 +192,7 @@ const ConversationItem = ({ conv, isActive, colors, onClick }) => (
       borderRadius: '6px',
       color: isActive ? colors.textPrimary : colors.textSecondary,
       fontSize: '14px',
-      fontWeight: 400,
+      fontWeight: 700,
       cursor: 'pointer',
       fontFamily: 'system-ui, -apple-system, sans-serif',
       overflow: 'hidden',
@@ -238,6 +257,7 @@ const SearchBar = ({ expanded, colors }) => {
         color: colors.textTertiary,
         opacity: 0.5,
         fontSize: '14px',
+        fontWeight: 700,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       title="Coming soon"
@@ -274,6 +294,7 @@ export const ChatSidebar = ({
 
   // User menu state
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(true);
   const userMenuRef = useRef(null);
 
   const colors = mode === 'dark' ? GROK_COLORS.dark : GROK_COLORS.light;
@@ -442,23 +463,33 @@ export const ChatSidebar = ({
           overflow: 'auto',
           marginTop: '16px',
         }}>
-          {/* History Header */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            color: colors.textSecondary,
-            fontSize: '14px',
-            fontWeight: 500,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}>
-            <HistoryIcon size={18} />
+          {/* History Header - Collapsible */}
+          <button
+            onClick={() => setHistoryExpanded(!historyExpanded)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: colors.textSecondary,
+              fontSize: '14px',
+              fontWeight: 700,
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary}
+            onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary}
+          >
+            <ChevronIcon size={16} color="currentColor" expanded={historyExpanded} />
             <span>History</span>
-          </div>
+          </button>
 
-          {/* Conversation List */}
-          {isLoading ? (
+          {/* Conversation List - Only show when expanded */}
+          {historyExpanded && (isLoading ? (
             <div style={{
               fontSize: '14px',
               color: colors.textTertiary,
@@ -495,7 +526,7 @@ export const ChatSidebar = ({
                 <>
                   <div style={{
                     fontSize: '12px',
-                    fontWeight: 500,
+                    fontWeight: 700,
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
                     fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -519,7 +550,7 @@ export const ChatSidebar = ({
                 <>
                   <div style={{
                     fontSize: '12px',
-                    fontWeight: 500,
+                    fontWeight: 700,
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
                     marginTop: groupedConversations.today.length > 0 ? '8px' : 0,
@@ -546,7 +577,7 @@ export const ChatSidebar = ({
                   <div key={year}>
                     <div style={{
                       fontSize: '12px',
-                      fontWeight: 500,
+                      fontWeight: 700,
                       color: colors.textTertiary,
                       padding: '8px 12px 4px',
                       marginTop: (groupedConversations.today.length > 0 || groupedConversations.yesterday.length > 0) ? '8px' : 0,
@@ -594,7 +625,7 @@ export const ChatSidebar = ({
                 </button>
               )}
             </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -647,6 +678,7 @@ export const ChatSidebar = ({
                 border: 'none',
                 color: colors.textPrimary,
                 fontSize: '14px',
+                fontWeight: 700,
                 cursor: 'pointer',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
                 transition: 'background 0.15s ease',
@@ -686,6 +718,7 @@ export const ChatSidebar = ({
                 border: 'none',
                 color: colors.textPrimary,
                 fontSize: '14px',
+                fontWeight: 700,
                 cursor: 'pointer',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
                 transition: 'background 0.15s ease',

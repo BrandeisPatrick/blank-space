@@ -9,9 +9,8 @@ import { ToolRegistry } from '../../../tools/ToolRegistry.js';
 import { ToolExecutor } from '../../../tools/ToolExecutor.js';
 import { SessionManager } from '../../../session/SessionManager.js';
 import { coreTools } from '../../../tools/core/index.js';
-import { classifyIntent } from '../../../intentClassifier.js';
 import { convertToolsToGeminiFormat } from './toolAdapter.js';
-import { buildSystemPrompt, CHAT_SYSTEM_PROMPT, generateAppNameGemini, formatToolAction } from '../../../prompts/index.js';
+import { buildSystemPrompt, generateAppNameGemini, formatToolAction } from '../../../prompts/index.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
 import { auth } from '../../../../config/firebase.js';
 
@@ -78,67 +77,11 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
   };
 
   // Track if we should use debug mode for this request
+  // Note: Intent is already classified by orchestration layer - this only handles create/debug
   let useDebugMode = isDebugMode;
   let debugContext = options.debugContext || null;
 
   try {
-    // Skip intent classification if already in debug mode
-    if (!isDebugMode) {
-      // Classify intent (async - uses AI)
-      const hasExistingFiles = Object.keys(currentFiles).length > 0;
-      const intentResult = await classifyIntent(userMessage, hasExistingFiles);
-      console.log(`[Gemini Provider] Intent: "${userMessage.slice(0, 50)}..." → ${intentResult.intent} (${intentResult.source})`);
-
-      // Handle chat intent - return conversational response
-      if (intentResult.intent === 'chat') {
-        sendUpdate({
-          type: 'tool_action',
-          action: 'Thinking...'
-        });
-
-        const chatHeaders = await getAuthHeaders();
-        const chatApiResponse = await fetch('/api/gemini', {
-          method: 'POST',
-          headers: chatHeaders,
-          body: JSON.stringify({
-            action: 'generate',
-            model,
-            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            systemInstruction: CHAT_SYSTEM_PROMPT
-          })
-        });
-
-        if (!chatApiResponse.ok) {
-          const errorData = await chatApiResponse.json().catch(() => ({}));
-          throw new Error(errorData.message || `API error: ${chatApiResponse.status}`);
-        }
-
-        const chatData = await chatApiResponse.json();
-        const responseContent = chatData.text || 'I can help you build web apps! Try describing what you want to create.';
-
-        sendUpdate({
-          type: 'assistant',
-          content: responseContent
-        });
-
-        return {
-          success: true,
-          intent: 'chat',
-          fileOperations: [],
-          response: responseContent
-        };
-      }
-
-      // Handle debug intent - enable debug mode and continue with code generation
-      if (intentResult.intent === 'debug') {
-        console.log(`[Gemini Provider] Debug intent detected, enabling debug mode`);
-        useDebugMode = true;
-        debugContext = { errors: [], userDescription: userMessage };
-      }
-
-      // For 'create' intent, just continue with code generation below
-    }
-
     // Code generation (for both create and debug intents)
     const sessionManager = new SessionManager();
     const sessionId = sessionManager.createSession('user-session').id;

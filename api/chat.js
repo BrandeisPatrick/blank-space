@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless Function
  * Securely proxies OpenAI API requests
- * Keeps API key server-side only
+ * Supports web search for conversational queries
  */
 
 import { checkRateLimit } from './utils/_rateLimit.js';
@@ -33,8 +33,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Extract request body
-    const { model, messages, temperature, max_tokens, max_completion_tokens, tools, tool_choice } = req.body;
+    const {
+      model,
+      messages,
+      temperature,
+      max_tokens,
+      max_completion_tokens,
+      tools,
+      tool_choice,
+      web_search = false  // Enable web search for chat intent
+    } = req.body;
 
     // Validate required fields
     if (!model || !messages) {
@@ -44,7 +52,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Build request body for OpenAI
+    // Use Responses API for web search (gpt-4o and newer support this)
+    if (web_search) {
+      return handleWebSearchRequest(req, res, apiKey);
+    }
+
+    // Standard Chat Completions API
     const openaiRequestBody = {
       model,
       messages,
@@ -100,4 +113,142 @@ export default async function handler(req, res) {
       message: error.message
     });
   }
+}
+
+/**
+ * Handle web search request using OpenAI Responses API
+ * Uses gpt-5-mini with web_search_preview tool for real-time information
+ */
+async function handleWebSearchRequest(req, res, apiKey) {
+  const {
+    model = 'gpt-5-mini',
+    messages,
+    max_tokens = 1000,
+  } = req.body;
+
+  // Convert messages to Responses API format
+  const input = messages.map(msg => ({
+    role: msg.role === 'system' ? 'developer' : msg.role,
+    content: msg.content
+  }));
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        input,
+        tools: [{ type: 'web_search' }],
+        max_output_tokens: max_tokens,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('OpenAI Responses API error:', response.status, errorData);
+
+      return res.status(response.status).json({
+        error: 'OpenAI API error',
+        message: errorData.error?.message || 'Unknown error from OpenAI',
+        details: errorData
+      });
+    }
+
+    const data = await response.json();
+    console.log('[WebSearch] Response received:', JSON.stringify(data, null, 2));
+
+    // Normalize to Chat Completions format for compatibility
+    const content = extractResponseContent(data);
+    const citations = extractCitations(data);
+
+    if (!content) {
+      console.error('[WebSearch] Failed to extract content from response');
+    }
+
+    return res.status(200).json({
+      id: data.id,
+      object: 'chat.completion',
+      created: Date.now(),
+      model: data.model,
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: content,
+        },
+        finish_reason: data.status === 'completed' ? 'stop' : data.status,
+      }],
+      // Include citations for web search results
+      citations: citations,
+      usage: data.usage ? {
+        prompt_tokens: data.usage.input_tokens || 0,
+        completion_tokens: data.usage.output_tokens || 0,
+        total_tokens: (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0),
+      } : {},
+    });
+
+  } catch (error) {
+    console.error('Web search request error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+}
+
+/**
+ * Extract text content from Responses API response
+ */
+function extractResponseContent(data) {
+  // Try convenience property first (newer API versions)
+  if (data.output_text) {
+    return data.output_text;
+  }
+  // Parse structured output
+  if (data.output && Array.isArray(data.output)) {
+    const text = data.output
+      .filter(item => item.type === 'message' && item.content)
+      .flatMap(item => item.content)
+      .filter(block => block.type === 'output_text')
+      .map(block => block.text)
+      .join('');
+    if (!text) {
+      console.error('[WebSearch] No text found in output items:', JSON.stringify(data.output, null, 2));
+    }
+    return text;
+  }
+  console.error('[WebSearch] Unexpected response format - no output_text or output array');
+  return '';
+}
+
+/**
+ * Extract citations from web search results
+ */
+function extractCitations(data) {
+  const citations = [];
+  if (data.output && Array.isArray(data.output)) {
+    data.output.forEach(item => {
+      if (item.type === 'message' && item.content) {
+        item.content.forEach(block => {
+          if (block.type === 'output_text' && block.annotations) {
+            block.annotations.forEach(annotation => {
+              if (annotation.type === 'url_citation') {
+                citations.push({
+                  url: annotation.url,
+                  title: annotation.title || annotation.url,
+                  start_index: annotation.start_index,
+                  end_index: annotation.end_index,
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+  return citations;
 }
