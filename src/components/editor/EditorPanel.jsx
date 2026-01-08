@@ -44,12 +44,12 @@ export const EditorPanel = ({ files, activeFile: initialActiveFile, onFileChange
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: mode === 'dark' ? '#1e1e1e' : '#ffffff',
-        color: mode === 'dark' ? '#cccccc' : '#333333',
+        background: theme.colors.bg.primary,
+        color: theme.colors.text.primary,
       }}>
         <div style={{ textAlign: 'center', marginTop: '-70px' }}>
           <div style={{ marginBottom: theme.spacing.lg, opacity: 0.6, display: 'flex', justifyContent: 'center' }}>
-            <DocumentIcon size={48} color={mode === 'dark' ? '#888888' : '#999999'} />
+            <DocumentIcon size={48} color={theme.colors.text.tertiary} />
           </div>
           <div style={{
             fontSize: theme.typography.fontSize.lg,
@@ -92,8 +92,8 @@ export const EditorPanel = ({ files, activeFile: initialActiveFile, onFileChange
               fontSize: '12px',
               fontFamily: 'Monaco, Menlo, "Ubuntu Mono", "Consolas", monospace',
               color: selectedFile === filename
-                ? (mode === 'dark' ? '#ffffff' : '#333333')
-                : (mode === 'dark' ? '#969696' : '#666666'),
+                ? theme.colors.text.primary
+                : theme.colors.text.secondary,
               whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
             }}

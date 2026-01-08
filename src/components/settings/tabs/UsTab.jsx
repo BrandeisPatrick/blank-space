@@ -61,7 +61,7 @@ export const UsTab = () => {
           }}
         >
           <XIcon size={28} color="currentColor" />
-          <span style={{ fontSize: theme.typography.fontSize.xs }}>X</span>
+          <span style={{ fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.sans }}>X</span>
         </a>
 
         <a
@@ -79,7 +79,7 @@ export const UsTab = () => {
           }}
         >
           <InstagramIcon size={28} color="currentColor" />
-          <span style={{ fontSize: theme.typography.fontSize.xs }}>Instagram</span>
+          <span style={{ fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.sans }}>Instagram</span>
         </a>
 
         <a
@@ -97,7 +97,7 @@ export const UsTab = () => {
           }}
         >
           <DiscordIcon size={28} color="currentColor" />
-          <span style={{ fontSize: theme.typography.fontSize.xs }}>Discord</span>
+          <span style={{ fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.sans }}>Discord</span>
         </a>
       </div>
 
@@ -110,6 +110,7 @@ export const UsTab = () => {
         <span style={{
           fontSize: theme.typography.fontSize.sm,
           color: theme.colors.text.tertiary,
+          fontFamily: theme.typography.fontFamily.sans,
         }}>
           Open sourced at GitHub
         </span>
@@ -129,7 +130,7 @@ export const UsTab = () => {
             }}
           >
             <GitHubIcon size={28} color="currentColor" />
-            <span style={{ fontSize: theme.typography.fontSize.xs }}>GitHub</span>
+            <span style={{ fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.sans }}>GitHub</span>
           </a>
           <a
             href="https://www.linkedin.com/in/patrick-pinyuan-li/"
@@ -146,7 +147,7 @@ export const UsTab = () => {
             }}
           >
             <LinkedInIcon size={28} color="currentColor" />
-            <span style={{ fontSize: theme.typography.fontSize.xs }}>LinkedIn</span>
+            <span style={{ fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.sans }}>LinkedIn</span>
           </a>
         </div>
       </div>

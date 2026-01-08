@@ -1,5 +1,6 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { getTheme } from '../../styles/theme';
 import { AppCard } from '../ui/AppCard';
 import { SettingsIcon } from '../icons';
 import { useLongPress } from '../../hooks/useLongPress';
@@ -7,8 +8,9 @@ import { useLongPress } from '../../hooks/useLongPress';
 export const SettingsAppCard = ({ isEditMode = false, onEnterEditMode }) => {
   const { mode } = useTheme();
   const { openSettings } = useSettings();
+  const theme = getTheme(mode);
 
-  const iconColor = mode === 'dark' ? '#f9f9f9' : '#6B7280';
+  const iconColor = theme.colors.text.primary;
 
   // Long press handler to enter edit mode
   const longPressHandlers = useLongPress(

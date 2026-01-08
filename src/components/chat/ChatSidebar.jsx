@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
+import { getTheme } from '../../styles/theme';
 
 // Constants
 const CONVERSATION_DISPLAY_LIMIT = 10;
@@ -39,27 +41,6 @@ const groupConversationsByDate = (conversations) => {
   return groups;
 };
 
-// Grok-style colors (from dark.design/website/grok)
-const GROK_COLORS = {
-  dark: {
-    bg: '#000000',
-    activeBg: '#1a1a1a',
-    hoverBg: '#1a1a1a',
-    border: '#1f1f1f',
-    textPrimary: '#f9f9f9',
-    textSecondary: '#7e7e7e',
-    textTertiary: '#666666',
-  },
-  light: {
-    bg: '#ffffff',
-    activeBg: '#f0f0f0',
-    hoverBg: '#f5f5f5',
-    border: '#e0e0e0',
-    textPrimary: '#1a1a1a',
-    textSecondary: '#666666',
-    textTertiary: '#888888',
-  },
-};
 
 // Icons
 const LogoIcon = ({ size = 24, color = "currentColor" }) => (
@@ -164,11 +145,11 @@ const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) =
         border: 'none',
         borderRadius: '8px',
         cursor: 'pointer',
-        color: active ? colors.textPrimary : colors.textSecondary,
+        color: colors.textPrimary,
         transition: 'color 0.15s ease, background 0.15s ease',
         fontSize: '14px',
         fontWeight: 400,
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        fontFamily: colors.fontFamily,
       }}
       title={!expanded ? label : undefined}
     >
@@ -190,11 +171,11 @@ const ConversationItem = ({ conv, isActive, colors, onClick }) => (
       background: isActive ? colors.activeBg : 'transparent',
       border: 'none',
       borderRadius: '8px',
-      color: isActive ? colors.textPrimary : colors.textSecondary,
+      color: colors.textPrimary,
       fontSize: '14px',
       fontWeight: 400,
       cursor: 'pointer',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      fontFamily: colors.fontFamily,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -258,7 +239,7 @@ const SearchBar = ({ expanded, colors }) => {
         opacity: 0.5,
         fontSize: '14px',
         fontWeight: 400,
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        fontFamily: colors.fontFamily,
       }}
       title="Coming soon"
     >
@@ -287,17 +268,31 @@ export const ChatSidebar = ({
 }) => {
   const { mode } = useTheme();
   const { user, signOut } = useAuth();
-  const { openAuthModal, openSettingsModal } = useSettings();
+  const { openAuthModal, openSettings } = useSettings();
   const { conversations, activeConversationId, createConversation, switchConversation, isLoading } = useConversation();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = getTheme(mode);
 
   // User menu state
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const userMenuRef = useRef(null);
+  const userButtonRef = useRef(null);
+  const portalMenuRef = useRef(null);
 
-  const colors = mode === 'dark' ? GROK_COLORS.dark : GROK_COLORS.light;
+  // Use theme colors for consistency
+  const colors = {
+    bg: theme.colors.bg.primary,
+    activeBg: theme.colors.bg.secondary,
+    hoverBg: theme.colors.bg.secondary,
+    border: theme.colors.border,
+    textPrimary: theme.colors.text.primary,
+    textSecondary: theme.colors.text.secondary,
+    textTertiary: theme.colors.text.tertiary,
+    fontFamily: theme.typography.fontFamily.sans,
+  };
   const sidebarWidth = expanded ? '250px' : '60px';
 
   // Filter, sort, and group conversations by date for display
@@ -323,7 +318,9 @@ export const ChatSidebar = ({
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+      const clickedInUserMenu = userMenuRef.current && userMenuRef.current.contains(e.target);
+      const clickedInPortalMenu = portalMenuRef.current && portalMenuRef.current.contains(e.target);
+      if (!clickedInUserMenu && !clickedInPortalMenu) {
         setShowUserMenu(false);
       }
     };
@@ -362,6 +359,13 @@ export const ChatSidebar = ({
 
   const handleUserClick = () => {
     if (user) {
+      if (!showUserMenu && userButtonRef.current) {
+        const rect = userButtonRef.current.getBoundingClientRect();
+        setMenuPosition({
+          top: rect.top - 8, // Position above the button with 8px gap
+          left: rect.left,
+        });
+      }
       setShowUserMenu(!showUserMenu);
     } else {
       openAuthModal?.();
@@ -461,7 +465,7 @@ export const ChatSidebar = ({
         <div style={{
           flex: 1,
           overflow: 'auto',
-          marginTop: '16px',
+          marginTop: '4px',
         }}>
           {/* History Header - Collapsible */}
           <button
@@ -469,23 +473,24 @@ export const ChatSidebar = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
+              gap: '12px',
+              padding: '0 12px',
               width: '100%',
+              height: '40px',
               background: 'transparent',
               border: 'none',
+              borderRadius: '8px',
               cursor: 'pointer',
-              color: colors.textSecondary,
+              color: colors.textPrimary,
               fontSize: '14px',
               fontWeight: 400,
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-              transition: 'color 0.15s ease',
+              fontFamily: colors.fontFamily,
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary}
-            onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary}
           >
-            <ChevronIcon size={16} color="currentColor" expanded={historyExpanded} />
-            <span>History</span>
+            <HistoryIcon size={20} color="currentColor" />
+            <span style={{ flex: 1, textAlign: 'left' }}>History</span>
+            <ChevronIcon size={14} color="currentColor" expanded={historyExpanded} />
           </button>
 
           {/* Conversation List - Only show when expanded */}
@@ -497,7 +502,7 @@ export const ChatSidebar = ({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
+              fontFamily: colors.fontFamily,
             }}>
               <span style={{
                 width: '12px',
@@ -515,7 +520,7 @@ export const ChatSidebar = ({
               fontSize: '14px',
               color: colors.textTertiary,
               padding: '8px 12px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
+              fontFamily: colors.fontFamily,
             }}>
               No recent conversations
             </div>
@@ -529,7 +534,7 @@ export const ChatSidebar = ({
                     fontWeight: 500,
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
-                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                    fontFamily: theme.typography.fontFamily.sans,
                   }}>
                     Today
                   </div>
@@ -554,7 +559,7 @@ export const ChatSidebar = ({
                     color: colors.textTertiary,
                     padding: '8px 12px 4px',
                     marginTop: groupedConversations.today.length > 0 ? '8px' : 0,
-                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                    fontFamily: theme.typography.fontFamily.sans,
                   }}>
                     Yesterday
                   </div>
@@ -581,7 +586,7 @@ export const ChatSidebar = ({
                       color: colors.textTertiary,
                       padding: '8px 12px 4px',
                       marginTop: (groupedConversations.today.length > 0 || groupedConversations.yesterday.length > 0) ? '8px' : 0,
-                      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                      fontFamily: theme.typography.fontFamily.sans,
                     }}>
                       {year}
                     </div>
@@ -615,7 +620,7 @@ export const ChatSidebar = ({
                     color: colors.textTertiary,
                     fontSize: '13px',
                     cursor: 'pointer',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontFamily: colors.fontFamily,
                     transition: 'color 0.15s ease',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.color = colors.textSecondary}
@@ -636,37 +641,38 @@ export const ChatSidebar = ({
       <div style={{
         marginTop: 'auto',
         paddingTop: '8px',
-        position: 'relative',
       }} ref={userMenuRef}>
-        <SidebarItem
-          icon={UserIcon}
-          label={user ? (user.displayName || user.email?.split('@')[0] || 'Account') : 'Sign In'}
-          onClick={handleUserClick}
-          expanded={expanded}
-          colors={colors}
-        />
+        <div ref={userButtonRef}>
+          <SidebarItem
+            icon={UserIcon}
+            label={user ? (user.displayName || user.email?.split('@')[0] || 'Account') : 'Sign In'}
+            onClick={handleUserClick}
+            expanded={expanded}
+            colors={colors}
+          />
+        </div>
 
-        {/* User Menu Popup */}
-        {showUserMenu && user && (
-          <div style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: expanded ? '8px' : '50%',
-            transform: expanded ? 'none' : 'translateX(-50%)',
-            marginBottom: '8px',
-            background: colors.activeBg,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '8px',
-            padding: '8px 0',
-            minWidth: '180px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-            zIndex: 100,
-          }}>
+        {/* User Menu Popup - Portal to document.body */}
+        {showUserMenu && user && createPortal(
+          <div
+            ref={portalMenuRef}
+            style={{
+              position: 'fixed',
+              top: menuPosition.top - 100, // Position menu above the button (menu height ~100px)
+              left: menuPosition.left,
+              background: theme.colors.bg.secondary,
+              border: `1px solid ${colors.border}`,
+              borderRadius: '12px',
+              padding: '8px 0',
+              minWidth: '180px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              zIndex: 1000,
+            }}>
             {/* Settings */}
             <button
               onClick={() => {
                 setShowUserMenu(false);
-                openSettingsModal?.();
+                openSettings?.();
               }}
               style={{
                 display: 'flex',
@@ -680,7 +686,7 @@ export const ChatSidebar = ({
                 fontSize: '14px',
                 fontWeight: 400,
                 cursor: 'pointer',
-                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                fontFamily: theme.typography.fontFamily.sans,
                 transition: 'background 0.15s ease',
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
@@ -720,7 +726,7 @@ export const ChatSidebar = ({
                 fontSize: '14px',
                 fontWeight: 400,
                 cursor: 'pointer',
-                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                fontFamily: theme.typography.fontFamily.sans,
                 transition: 'background 0.15s ease',
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
@@ -729,7 +735,8 @@ export const ChatSidebar = ({
               <SignOutIcon size={18} color={colors.textSecondary} />
               <span>Sign Out</span>
             </button>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

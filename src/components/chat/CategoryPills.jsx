@@ -52,13 +52,9 @@ const categories = [
 const CategoryPill = ({ label, icon: Icon, onClick, theme, mode }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Hollow pill style like Grok
-  const borderColor = mode === 'dark'
-    ? (isHovered ? '#555555' : '#333333')
-    : (isHovered ? '#c0c0c0' : '#d0d0d0');
-  const textColor = mode === 'dark'
-    ? (isHovered ? '#ffffff' : '#888888')
-    : (isHovered ? '#000000' : '#666666');
+  // Hollow pill style like Grok - use theme colors
+  const borderColor = isHovered ? theme.colors.border : theme.colors.border;
+  const textColor = isHovered ? theme.colors.text.primary : theme.colors.text.secondary;
 
   return (
     <button
@@ -77,7 +73,7 @@ const CategoryPill = ({ label, icon: Icon, onClick, theme, mode }) => {
         color: textColor,
         fontSize: '14px',
         fontWeight: 500,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: theme.typography.fontFamily.sans,
         transition: 'all 0.15s ease',
         whiteSpace: 'nowrap',
       }}

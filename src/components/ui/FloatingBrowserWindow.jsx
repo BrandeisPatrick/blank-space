@@ -2,14 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
-import { createGlassEffect, getFloatingWindowDimensions } from '../../styles/componentStyles'
-import { SIZES, Z_INDEX } from '../../constants'
-import { useDraggable } from '../../hooks/useDraggable'
-import { useResizable } from '../../hooks/useResizable'
+import { Z_INDEX } from '../../constants'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PreviewPanel } from '../preview/PreviewPanel'
 import { EditorPanel } from '../editor/EditorPanel'
-import { XIcon, EyeIcon, CodeIcon, SettingsIcon } from '../icons'
+import { EyeIcon, CodeIcon, SettingsIcon } from '../icons'
 import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
 import { AppSettingsModal } from './AppSettingsModal'
 
@@ -24,9 +21,9 @@ export const FloatingBrowserWindow = ({
   isDebugging = false,
   onIconChange,
   onRename,
-  sidebarWidth = 250, // Sidebar width in pixels for fullscreen positioning
+  sidebarWidth = 250,
 }) => {
-  const [view, setView] = useState('preview') // 'preview' or 'code'
+  const [view, setView] = useState('preview')
   const [activeFile, setActiveFile] = useState('App.jsx')
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [iconButtonRect, setIconButtonRect] = useState(null)
@@ -35,8 +32,6 @@ export const FloatingBrowserWindow = ({
   const [editedName, setEditedName] = useState('')
   const [zoom, setZoom] = useState(100)
   const [showAppSettings, setShowAppSettings] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(true)
-  const [preFullscreenState, setPreFullscreenState] = useState(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
   const isMobile = useIsMobile()
@@ -45,31 +40,6 @@ export const FloatingBrowserWindow = ({
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200))
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50))
   const handleZoomReset = () => setZoom(100)
-
-  // Fullscreen toggle - respects sidebar on desktop
-  const toggleFullscreen = () => {
-    if (isFullscreen) {
-      // Restore previous state
-      if (preFullscreenState) {
-        setPosition(preFullscreenState.position)
-        setSize(preFullscreenState.size)
-      }
-      setIsFullscreen(false)
-      setPreFullscreenState(null)
-    } else {
-      // Save current state and go fullscreen (respecting sidebar)
-      setPreFullscreenState({
-        position: { ...position },
-        size: { ...size }
-      })
-      // On mobile, use full width; on desktop, account for sidebar
-      const offsetX = isMobile ? 0 : sidebarWidth
-      const availableWidth = isMobile ? window.innerWidth : window.innerWidth - sidebarWidth
-      setPosition({ x: offsetX, y: 0 })
-      setSize({ width: availableWidth, height: window.innerHeight })
-      setIsFullscreen(true)
-    }
-  }
 
   // Get the current icon component and color
   const CurrentIcon = getIconById(artifact?.icon || 'app')
@@ -85,136 +55,67 @@ export const FloatingBrowserWindow = ({
     }
   }, [files, activeFile])
 
-  // Responsive window sizing using centralized values
-  const { width: windowWidth, height: windowHeight, x: initialX, y: initialY } =
-    getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
-
-  const { position, setPosition, isDragging, handleMouseDown: handleDrag, handleTouchStart, style: dragStyle } = useDraggable(
-    { x: initialX, y: initialY },
-    '.window-titlebar' // Only allow dragging from titlebar
-  )
-
-  const minWidth = isMobile ? SIZES.FLOATING_WINDOW.MIN_WIDTH.mobile : SIZES.FLOATING_WINDOW.MIN_WIDTH.desktop;
-  const { size, setSize, style: resizeStyle, ResizeHandles } = useResizable(
-    { width: windowWidth, height: windowHeight },
-    { width: minWidth, height: SIZES.FLOATING_WINDOW.MIN_HEIGHT }
-  )
-
-  // Reset size and position when mobile state changes or window becomes visible
-  useEffect(() => {
-    if (visible) {
-      if (isFullscreen) {
-        // Start in fullscreen mode (respecting sidebar on desktop)
-        const offsetX = isMobile ? 0 : sidebarWidth;
-        const availableWidth = isMobile ? window.innerWidth : window.innerWidth - sidebarWidth;
-        setSize({ width: availableWidth, height: window.innerHeight });
-        setPosition({ x: offsetX, y: 0 });
-      } else {
-        const dims = getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
-        setSize({ width: dims.width, height: dims.height });
-        setPosition({ x: dims.x, y: dims.y });
-      }
-    }
-  }, [isMobile, visible, setSize, setPosition, isFullscreen, sidebarWidth]);
-
   if (!visible || !artifact) {
     return null;
   }
+
+  // Calculate fullscreen dimensions (respecting sidebar on desktop)
+  const offsetX = isMobile ? 0 : sidebarWidth
+  const width = isMobile ? window.innerWidth : window.innerWidth - sidebarWidth
+  const height = window.innerHeight
 
   return (
     <div
       style={{
         position: 'fixed',
         top: 0,
-        left: 0,
-        ...dragStyle,
-        ...resizeStyle,
+        left: offsetX,
+        width: width,
+        height: height,
         zIndex: 50,
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: isFullscreen ? 0 : theme.radius['2xl'],
-        background: mode === 'dark' ? 'rgba(30, 30, 35, 0.85)' : 'rgba(255, 255, 255, 0.6)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: isFullscreen ? 'none' : (mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.4)'),
-        boxShadow: isFullscreen ? 'none' : (mode === 'dark'
-          ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)'
-          : '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)'),
+        background: theme.colors.bg.primary,
         overflow: 'hidden',
-        transition: `border-radius ${theme.animation.fast}, border ${theme.animation.fast}, box-shadow ${theme.animation.fast}`,
       }}
     >
-      {/* Window Chrome - Liquid Glass Style */}
+      {/* Title Bar */}
       <div
-        className="window-titlebar"
-        onMouseDown={handleDrag}
-        onTouchStart={handleTouchStart}
         style={{
-          padding: `2px ${theme.spacing.sm}`,
-          background: mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(50, 50, 60, 0.3) 0%, rgba(40, 45, 55, 0.25) 100%)'
-            : 'linear-gradient(135deg, rgba(200, 190, 220, 0.2) 0%, rgba(180, 200, 220, 0.15) 100%)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.2)',
+          padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+          minHeight: '48px',
+          background: theme.colors.bg.primary,
+          borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
         }}
       >
-        {/* Left: Window Control Buttons */}
+        {/* Left: Close Button */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {/* Minimize Button (Yellow) */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
+            onClick={onClose}
             style={{
               width: '14px',
               height: '14px',
               borderRadius: '50%',
-              background: '#febc2e',
+              background: '#ff5f57',
               border: 'none',
               cursor: 'pointer',
               transition: `all ${theme.animation.fast}`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f5a623'
+              e.currentTarget.style.background = '#ff4136'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#febc2e'
+              e.currentTarget.style.background = '#ff5f57'
             }}
-            title="Minimize window"
-          />
-          {/* Fullscreen Button (Green) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFullscreen();
-            }}
-            style={{
-              width: '14px',
-              height: '14px',
-              borderRadius: '50%',
-              background: isFullscreen ? '#34c759' : '#28cd41',
-              border: 'none',
-              cursor: 'pointer',
-              transition: `all ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#2db640'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = isFullscreen ? '#34c759' : '#28cd41'
-            }}
-            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            title="Close"
           />
         </div>
 
-        {/* Center: Title (Desktop only - on mobile everything is right-aligned) */}
+        {/* Center: Title (Desktop only) */}
         {!isMobile && (
           <div style={{
             flex: 1,
@@ -250,14 +151,13 @@ export const FloatingBrowserWindow = ({
                   width: '100%',
                   maxWidth: '300px',
                   padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                  letterSpacing: '-0.01em',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.normal,
+                  fontFamily: theme.typography.fontFamily.sans,
                   color: theme.colors.text.primary,
-                  background: theme.colors.bg.primary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radius.md,
+                  background: theme.colors.bg.secondary,
+                  border: `1px solid ${mode === 'dark' ? '#1f1f1f' : '#e0e0e0'}`,
+                  borderRadius: theme.radius.lg,
                   textAlign: 'center',
                   outline: 'none',
                 }}
@@ -265,24 +165,22 @@ export const FloatingBrowserWindow = ({
               />
             ) : (
               <span
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   setEditedName(artifact?.name || 'Untitled');
                   setIsEditingName(true);
                 }}
                 style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                  letterSpacing: '-0.01em',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.normal,
+                  fontFamily: theme.typography.fontFamily.sans,
                   color: theme.colors.text.primary,
                   cursor: 'text',
                   padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                  borderRadius: theme.radius.md,
+                  borderRadius: theme.radius.lg,
                   transition: `all ${theme.animation.fast}`,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = theme.colors.bg.primary;
+                  e.currentTarget.style.background = theme.colors.bg.secondary;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
@@ -295,7 +193,7 @@ export const FloatingBrowserWindow = ({
           </div>
         )}
 
-        {/* Right: Settings (mobile) + Zoom + Icon Picker + View Toggle */}
+        {/* Right: Controls */}
         <div style={{
           display: 'flex',
           gap: theme.spacing.sm,
@@ -305,11 +203,7 @@ export const FloatingBrowserWindow = ({
           {/* Settings Button - Mobile only */}
           {isMobile && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAppSettings(true);
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => setShowAppSettings(true)}
               style={{
                 width: '32px',
                 height: '32px',
@@ -317,10 +211,9 @@ export const FloatingBrowserWindow = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'transparent',
-                border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: theme.radius.md,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.lg,
                 cursor: 'pointer',
-                transition: `all ${theme.animation.fast}`,
               }}
               title="App settings"
             >
@@ -328,19 +221,19 @@ export const FloatingBrowserWindow = ({
             </button>
           )}
 
-          {/* Zoom Controls - Show in preview mode */}
+          {/* Zoom Controls - Preview mode only */}
           {view === 'preview' && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing.xs,
               background: 'transparent',
-              borderRadius: theme.radius.md,
+              borderRadius: theme.radius.lg,
               padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-              border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
+              border: `1px solid ${theme.colors.border}`,
             }}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+                onClick={handleZoomOut}
                 style={{
                   width: '24px',
                   height: '24px',
@@ -353,13 +246,13 @@ export const FloatingBrowserWindow = ({
                   cursor: 'pointer',
                   color: theme.colors.text.secondary,
                   fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
                 }}
               >
                 −
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); handleZoomReset(); }}
+                onClick={handleZoomReset}
                 style={{
                   padding: `0 ${theme.spacing.xs}`,
                   background: 'transparent',
@@ -367,14 +260,15 @@ export const FloatingBrowserWindow = ({
                   cursor: 'pointer',
                   color: theme.colors.text.primary,
                   fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  fontWeight: theme.typography.fontWeight.normal,
+                  fontFamily: theme.typography.fontFamily.sans,
                   minWidth: '40px',
                 }}
               >
                 {zoom}%
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+                onClick={handleZoomIn}
                 style={{
                   width: '24px',
                   height: '24px',
@@ -387,7 +281,7 @@ export const FloatingBrowserWindow = ({
                   cursor: 'pointer',
                   color: theme.colors.text.secondary,
                   fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
                 }}
               >
                 +
@@ -395,20 +289,17 @@ export const FloatingBrowserWindow = ({
             </div>
           )}
 
-          {/* Category Icon Button - Desktop only */}
+          {/* Icon Button - Desktop only */}
           {!isMobile && (
             <button
               ref={iconButtonRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                // Get button position for portal
+              onClick={() => {
                 if (iconButtonRef.current) {
                   const rect = iconButtonRef.current.getBoundingClientRect();
                   setIconButtonRect(rect);
                 }
                 setShowIconPicker(!showIconPicker);
               }}
-              onMouseDown={(e) => e.stopPropagation()}
               style={{
                 width: '32px',
                 height: '32px',
@@ -416,16 +307,9 @@ export const FloatingBrowserWindow = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'transparent',
-                border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: theme.radius.md,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.lg,
                 cursor: 'pointer',
-                transition: `all ${theme.animation.fast}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
               }}
               title="Change icon"
             >
@@ -438,65 +322,59 @@ export const FloatingBrowserWindow = ({
             display: 'flex',
             gap: theme.spacing.xs,
             background: 'transparent',
-            borderRadius: theme.radius.md,
+            borderRadius: theme.radius.lg,
             padding: theme.spacing.xs,
-            border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.3)',
+            border: `1px solid ${theme.colors.border}`,
           }}>
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setView('preview')
-              }}
+              onClick={() => setView('preview')}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
                 background: view === 'preview'
-                  ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)')
+                  ? (theme.colors.bg.secondary)
                   : 'transparent',
                 border: 'none',
-                borderRadius: theme.radius.sm,
+                borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.spacing.xs,
-                transition: `all ${theme.animation.fast}`,
               }}
             >
-              <EyeIcon size={16} color={view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary} />
+              <EyeIcon size={16} color={view === 'preview' ? (theme.colors.text.primary) : (theme.colors.text.secondary)} />
               {!isMobile && (
                 <span style={{
                   fontSize: theme.typography.fontSize.xs,
-                  color: view === 'preview' ? theme.colors.text.primary : theme.colors.text.tertiary,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  color: view === 'preview' ? (theme.colors.text.primary) : (theme.colors.text.secondary),
+                  fontWeight: theme.typography.fontWeight.normal,
+                  fontFamily: theme.typography.fontFamily.sans,
                 }}>
                   Preview
                 </span>
               )}
             </button>
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setView('code')
-              }}
+              onClick={() => setView('code')}
               style={{
                 padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
                 background: view === 'code'
-                  ? (mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)')
+                  ? (theme.colors.bg.secondary)
                   : 'transparent',
                 border: 'none',
-                borderRadius: theme.radius.sm,
+                borderRadius: theme.radius.md,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.spacing.xs,
-                transition: `all ${theme.animation.fast}`,
               }}
             >
-              <CodeIcon size={16} color={view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary} />
+              <CodeIcon size={16} color={view === 'code' ? (theme.colors.text.primary) : (theme.colors.text.secondary)} />
               {!isMobile && (
                 <span style={{
                   fontSize: theme.typography.fontSize.xs,
-                  color: view === 'code' ? theme.colors.text.primary : theme.colors.text.tertiary,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  color: view === 'code' ? (theme.colors.text.primary) : (theme.colors.text.secondary),
+                  fontWeight: theme.typography.fontWeight.normal,
+                  fontFamily: theme.typography.fontFamily.sans,
                 }}>
                   Code
                 </span>
@@ -506,7 +384,7 @@ export const FloatingBrowserWindow = ({
         </div>
       </div>
 
-      {/* Window Content */}
+      {/* Content */}
       <div style={{
         flex: 1,
         overflow: 'hidden',
@@ -523,10 +401,7 @@ export const FloatingBrowserWindow = ({
         )}
       </div>
 
-      {/* Resize Handles - hidden in fullscreen mode */}
-      {!isFullscreen && <ResizeHandles />}
-
-      {/* Icon Picker - Rendered via Portal to escape overflow:hidden (Desktop only) */}
+      {/* Icon Picker Portal - Desktop only */}
       {!isMobile && showIconPicker && iconButtonRect && createPortal(
         <div
           style={{

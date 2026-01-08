@@ -8,7 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { getTheme } from '../../../styles/theme';
 
-const UsageBar = ({ label, used, limit, resetAt, theme, mode }) => {
+const UsageBar = ({ label, used, limit, resetAt, theme, mode, colors }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));
   const isWarning = percent >= 75;
   const isExceeded = percent >= 100;
@@ -34,9 +34,10 @@ const UsageBar = ({ label, used, limit, resetAt, theme, mode }) => {
         justifyContent: 'space-between',
         marginBottom: '6px',
         fontSize: theme.typography.fontSize.sm,
+        fontFamily: theme.typography.fontFamily.sans,
       }}>
-        <span style={{ color: theme.colors.foreground }}>{label}</span>
-        <span style={{ color: theme.colors.mutedForeground }}>
+        <span style={{ color: colors.textPrimary }}>{label}</span>
+        <span style={{ color: colors.textSecondary }}>
           {used} / {limit}
           {resetAt && <span style={{ marginLeft: '8px', opacity: 0.7 }}>({formatResetTime(resetAt)})</span>}
         </span>
@@ -71,17 +72,20 @@ export const SubscriptionTab = () => {
   const { user } = useAuth();
   const { usage, loading } = useSubscription();
 
-  const sectionStyle = {
-    background: mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
+  const colors = {
+    textPrimary: theme.colors.text.primary,
+    textSecondary: theme.colors.text.secondary,
+    separator: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
   };
 
   if (!user) {
     return (
       <div style={{ padding: theme.spacing.lg, textAlign: 'center' }}>
-        <p style={{ color: theme.colors.mutedForeground }}>
+        <p style={{
+          color: colors.textSecondary,
+          fontFamily: theme.typography.fontFamily.sans,
+          fontSize: theme.typography.fontSize.sm,
+        }}>
           Sign in to view your account
         </p>
       </div>
@@ -89,21 +93,28 @@ export const SubscriptionTab = () => {
   }
 
   return (
-    <div style={{ padding: theme.spacing.lg }}>
+    <div style={{ padding: `${theme.spacing.md} 0` }}>
 
       {/* Usage */}
-      <div style={sectionStyle}>
+      <div style={{ paddingBottom: theme.spacing.xl }}>
         <h3 style={{
-          fontSize: theme.typography.fontSize.lg,
+          fontSize: theme.typography.fontSize.base,
           fontWeight: theme.typography.fontWeight.medium,
-          color: theme.colors.foreground,
+          color: colors.textPrimary,
+          fontFamily: theme.typography.fontFamily.sans,
+          margin: 0,
           marginBottom: theme.spacing.lg,
         }}>
           Usage
         </h3>
 
         {loading ? (
-          <p style={{ color: theme.colors.mutedForeground, fontSize: theme.typography.fontSize.sm }}>
+          <p style={{
+            color: colors.textSecondary,
+            fontSize: theme.typography.fontSize.sm,
+            fontFamily: theme.typography.fontFamily.sans,
+            margin: 0,
+          }}>
             Loading...
           </p>
         ) : usage ? (
@@ -115,6 +126,7 @@ export const SubscriptionTab = () => {
               resetAt={usage.daily?.resetAt}
               theme={theme}
               mode={mode}
+              colors={colors}
             />
             <UsageBar
               label="Monthly"
@@ -123,29 +135,42 @@ export const SubscriptionTab = () => {
               resetAt={usage.monthly?.resetAt}
               theme={theme}
               mode={mode}
+              colors={colors}
             />
             <p style={{
-              color: theme.colors.mutedForeground,
+              color: colors.textSecondary,
               fontSize: theme.typography.fontSize.xs,
-              marginTop: theme.spacing.sm,
+              margin: 0,
+              marginTop: theme.spacing.xs,
+              fontFamily: theme.typography.fontFamily.sans,
             }}>
               Pro model uses 3 credits per request
             </p>
           </>
         ) : (
-          <p style={{ color: theme.colors.mutedForeground, fontSize: theme.typography.fontSize.sm }}>
+          <p style={{
+            color: colors.textSecondary,
+            fontSize: theme.typography.fontSize.sm,
+            fontFamily: theme.typography.fontFamily.sans,
+            margin: 0,
+          }}>
             No usage data available
           </p>
         )}
       </div>
 
+      {/* Separator line */}
+      <div style={{ height: '1px', background: colors.separator, marginBottom: theme.spacing.xl }} />
+
       {/* Features */}
-      <div style={sectionStyle}>
+      <div style={{ paddingBottom: theme.spacing.xl }}>
         <h3 style={{
-          fontSize: theme.typography.fontSize.lg,
+          fontSize: theme.typography.fontSize.base,
           fontWeight: theme.typography.fontWeight.medium,
-          color: theme.colors.foreground,
+          color: colors.textPrimary,
+          margin: 0,
           marginBottom: theme.spacing.md,
+          fontFamily: theme.typography.fontFamily.sans,
         }}>
           Included Features
         </h3>
@@ -153,8 +178,9 @@ export const SubscriptionTab = () => {
           margin: 0,
           padding: 0,
           listStyle: 'none',
-          color: theme.colors.mutedForeground,
+          color: colors.textPrimary,
           fontSize: theme.typography.fontSize.sm,
+          fontFamily: theme.typography.fontFamily.sans,
         }}>
           {[
             'Lite Model (1 credit/request)',
@@ -174,20 +200,26 @@ export const SubscriptionTab = () => {
         </ul>
       </div>
 
+      {/* Separator line */}
+      <div style={{ height: '1px', background: colors.separator, marginBottom: theme.spacing.xl }} />
+
       {/* Coming Soon */}
-      <div style={sectionStyle}>
+      <div>
         <h3 style={{
-          fontSize: theme.typography.fontSize.lg,
+          fontSize: theme.typography.fontSize.base,
           fontWeight: theme.typography.fontWeight.medium,
-          color: theme.colors.foreground,
+          color: colors.textPrimary,
+          margin: 0,
           marginBottom: theme.spacing.sm,
+          fontFamily: theme.typography.fontFamily.sans,
         }}>
           Subscription Plans
         </h3>
         <p style={{
-          color: theme.colors.mutedForeground,
+          color: colors.textSecondary,
           fontSize: theme.typography.fontSize.sm,
           margin: 0,
+          fontFamily: theme.typography.fontFamily.sans,
         }}>
           Coming soon! Unlock higher limits and premium features.
         </p>

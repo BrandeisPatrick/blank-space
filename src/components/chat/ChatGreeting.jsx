@@ -1,4 +1,9 @@
+import { useTheme } from '../../contexts/ThemeContext';
+
 export const ChatGreeting = () => {
+  const { mode } = useTheme();
+  const bannerSrc = mode === 'light' ? '/blankspace-banner-light.png' : '/blankspace-banner.png';
+
   return (
     <div style={{
       display: 'flex',
@@ -6,7 +11,7 @@ export const ChatGreeting = () => {
       justifyContent: 'center',
     }}>
       <img
-        src="/blankspace-banner.png"
+        src={bannerSrc}
         alt="BlankSpace"
         style={{
           height: '48px',

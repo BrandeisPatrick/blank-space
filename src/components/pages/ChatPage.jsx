@@ -9,6 +9,7 @@ import { ChatGreeting } from '../chat/ChatGreeting';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { ChatPanel } from '../chat/ChatPanel';
 import { AuthModal } from '../auth/AuthModal';
+import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Apps icon for top-right navigation
@@ -309,6 +310,9 @@ export const ChatPage = ({
 
       {/* Auth Modal */}
       <AuthModal />
+
+      {/* Settings Panel */}
+      <TabbedSettingsPanel />
     </div>
   );
 };

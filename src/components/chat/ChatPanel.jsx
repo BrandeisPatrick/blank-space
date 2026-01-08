@@ -131,7 +131,7 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
         fontFamily: theme.typography.fontFamily.sans,
         fontSize,
         lineHeight: '1.6',
-        color: '#7e7e7e',
+        color: theme.colors.text.secondary,
       }}>
         {message.content || 'An error occurred'}
       </div>

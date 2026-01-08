@@ -217,22 +217,3 @@ export const getResponsiveSpacing = (theme, isMobile, mobileKey, desktopKey) => 
   return isMobile ? theme.spacing[mobileKey] : theme.spacing[desktopKey];
 };
 
-/**
- * Returns responsive dimensions for the floating browser window
- * @param {boolean} isMobile - Current mobile state
- * @param {Object} sizes - SIZES.FLOATING_WINDOW from constants
- * @returns {Object} Object with width, height, x, y
- *
- * @example
- * const { width, height, x, y } = getFloatingWindowDimensions(isMobile, SIZES.FLOATING_WINDOW);
- */
-export const getFloatingWindowDimensions = (isMobile, sizes) => {
-  const width = isMobile ? window.innerWidth : sizes.WIDTH.desktop;
-  const height = isMobile
-    ? Math.floor(window.innerHeight * sizes.HEIGHT_MULTIPLIER.mobile)
-    : sizes.HEIGHT.desktop;
-  const x = isMobile ? sizes.POSITION_X.mobile : (window.innerWidth - width) / 2;
-  const y = isMobile ? sizes.POSITION_Y.mobile : (window.innerHeight - height) / 2;
-
-  return { width, height, x, y };
-};

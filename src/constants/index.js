@@ -127,16 +127,6 @@ export const SIZES = {
     FONT_SIZE: { mobile: 'xs', desktop: 'base' },
     PADDING: { mobile: ['sm', 'md'], desktop: ['md', 'lg'] },
   },
-  // Floating browser window
-  FLOATING_WINDOW: {
-    WIDTH: { mobile: null, desktop: 800 }, // null means 100vw
-    HEIGHT_MULTIPLIER: { mobile: 0.65, desktop: null }, // mobile uses vh multiplier, desktop uses fixed
-    HEIGHT: { mobile: null, desktop: 600 }, // null means use multiplier
-    POSITION_X: { mobile: 0, desktop: null }, // null means centered
-    POSITION_Y: { mobile: 60, desktop: null }, // null means centered
-    MIN_WIDTH: { mobile: 280, desktop: 400 },
-    MIN_HEIGHT: 300,
-  },
   // Top bar
   TOPBAR: {
     HEIGHT: { mobile: 60, desktop: 70 },
@@ -178,12 +168,6 @@ export const Z_INDEX = {
  * Floating window dimensions and positioning
  */
 export const FLOATING_WINDOWS = {
-  BROWSER: {
-    DEFAULT_WIDTH: 800,
-    DEFAULT_HEIGHT: 600,
-    MIN_WIDTH: 400,
-    MIN_HEIGHT: 300
-  },
   AI_RESPONSE: {
     PANEL_TOP: '100px',
     PANEL_RIGHT: '20px',
