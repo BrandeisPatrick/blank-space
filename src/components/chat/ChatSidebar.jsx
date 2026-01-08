@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
 import { getTheme } from '../../styles/theme';
+import SearchHistoryModal from './SearchHistoryModal';
 
 // Constants
 const CONVERSATION_DISPLAY_LIMIT = 10;
@@ -196,12 +197,13 @@ const ConversationItem = ({ conv, isActive, colors, onClick }) => (
   </button>
 );
 
-// Search bar component (Grok-style) - disabled until search is implemented
-const SearchBar = ({ expanded, colors }) => {
+// Search bar component (Grok-style)
+const SearchBar = ({ expanded, colors, onClick, disabled }) => {
   if (!expanded) {
     return (
       <button
-        disabled
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -211,11 +213,22 @@ const SearchBar = ({ expanded, colors }) => {
           background: 'transparent',
           border: 'none',
           borderRadius: '8px',
-          cursor: 'not-allowed',
+          cursor: disabled ? 'default' : 'pointer',
           color: colors.textTertiary,
-          opacity: 0.5,
+          opacity: disabled ? 0.5 : 1,
+          transition: 'color 0.15s ease, background 0.15s ease',
         }}
-        title="Search (coming soon)"
+        onMouseEnter={(e) => {
+          if (!disabled) {
+            e.currentTarget.style.color = colors.textPrimary;
+            e.currentTarget.style.background = colors.hoverBg;
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = colors.textTertiary;
+          e.currentTarget.style.background = 'transparent';
+        }}
+        title={disabled ? "Sign in to search history" : "Search (Ctrl+K)"}
       >
         <SearchIcon size={20} />
       </button>
@@ -224,7 +237,8 @@ const SearchBar = ({ expanded, colors }) => {
 
   return (
     <button
-      disabled
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -234,14 +248,25 @@ const SearchBar = ({ expanded, colors }) => {
         background: 'transparent',
         border: `1px solid ${colors.border}`,
         borderRadius: '8px',
-        cursor: 'not-allowed',
+        cursor: disabled ? 'default' : 'pointer',
         color: colors.textTertiary,
-        opacity: 0.5,
+        opacity: disabled ? 0.5 : 1,
         fontSize: '14px',
         fontWeight: 400,
         fontFamily: colors.fontFamily,
+        transition: 'border-color 0.15s ease, color 0.15s ease',
       }}
-      title="Coming soon"
+      onMouseEnter={(e) => {
+        if (!disabled) {
+          e.currentTarget.style.borderColor = colors.textTertiary;
+          e.currentTarget.style.color = colors.textSecondary;
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = colors.border;
+        e.currentTarget.style.color = colors.textTertiary;
+      }}
+      title={disabled ? "Sign in to search history" : "Search conversations"}
     >
       <SearchIcon size={18} />
       <span>Search</span>
@@ -278,9 +303,22 @@ export const ChatSidebar = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const userMenuRef = useRef(null);
   const userButtonRef = useRef(null);
   const portalMenuRef = useRef(null);
+
+  // Keyboard shortcut for search (Ctrl+K / Cmd+K) - only for authenticated users
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k' && user) {
+        e.preventDefault();
+        setShowSearchModal(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [user]);
 
   // Use theme colors for consistency
   const colors = {
@@ -349,7 +387,7 @@ export const ChatSidebar = ({
   };
 
   const handleSearch = () => {
-    // Search not yet implemented - show tooltip hint instead
+    setShowSearchModal(true);
   };
 
   const handleApps = () => {
@@ -430,7 +468,7 @@ export const ChatSidebar = ({
 
       {/* Search Bar */}
       <div style={{ marginBottom: '8px' }}>
-        <SearchBar expanded={expanded} colors={colors} onClick={handleSearch} />
+        <SearchBar expanded={expanded} colors={colors} onClick={handleSearch} disabled={!user} />
       </div>
 
       {/* Navigation Items */}
@@ -460,8 +498,8 @@ export const ChatSidebar = ({
         />
       </div>
 
-      {/* History Section */}
-      {expanded && (
+      {/* History Section - only show for authenticated users */}
+      {expanded && user && (
         <div style={{
           flex: 1,
           overflow: 'auto',
@@ -602,13 +640,10 @@ export const ChatSidebar = ({
                   </div>
                 ))}
 
-              {/* See all link */}
-              {hasMore && (
+              {/* See all link - only show for authenticated users */}
+              {user && (
                 <button
-                  onClick={() => {
-                    // TODO: Navigate to full history view or expand list
-                    console.log('See all clicked - expand history');
-                  }}
+                  onClick={() => setShowSearchModal(true)}
                   style={{
                     display: 'block',
                     width: '100%',
@@ -634,8 +669,8 @@ export const ChatSidebar = ({
         </div>
       )}
 
-      {/* Spacer when collapsed */}
-      {!expanded && <div style={{ flex: 1 }} />}
+      {/* Spacer when collapsed or when not logged in */}
+      {(!expanded || !user) && <div style={{ flex: 1 }} />}
 
       {/* User Section */}
       <div style={{
@@ -739,6 +774,22 @@ export const ChatSidebar = ({
           document.body
         )}
       </div>
+
+      {/* Search History Modal */}
+      <SearchHistoryModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSelectConversation={(convId) => {
+          switchConversation(convId);
+          navigate('/');
+          if (isMobile) onClose?.();
+        }}
+        onCreateNew={() => {
+          createConversation();
+          navigate('/');
+          if (isMobile) onClose?.();
+        }}
+      />
     </div>
   );
 };

@@ -29,3 +29,23 @@ body {
   min-height: 100dvh;
   min-height: 100vh; /* Fallback for older browsers */
 }
+
+/* Dark scrollbar utility - unified scrollbar styling */
+.dark-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 3px;
+}
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 transparent;
+}
