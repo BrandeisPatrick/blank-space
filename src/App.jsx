@@ -6,9 +6,9 @@ import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { useConversation } from "./contexts/ConversationContext";
 import { getTheme } from "./styles/theme";
-import { ChatPage, AppsPage } from "./components/pages";
+import { ChatPage, ComputerPage } from "./components/pages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { useAIChat } from "./hooks/useAIChat";
+import { useChat } from "./hooks/useChat";
 import { TIMING } from "./constants";
 import "./styles/App.css";
 
@@ -54,7 +54,7 @@ function App() {
     isProcessing,
     isDebugging,
     setMessages: setChatMessages
-  } = useAIChat({
+  } = useChat({
     files,
     setFiles,
     modelTier,
@@ -210,7 +210,7 @@ function App() {
           <Route
             path="/apps"
             element={
-              <AppsPage
+              <ComputerPage
                 files={files}
                 onFileChange={handleFileChange}
                 onError={handlePreviewError}

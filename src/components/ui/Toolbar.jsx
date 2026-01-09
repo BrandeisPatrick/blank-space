@@ -7,7 +7,7 @@ import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentS
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { PANELS, LABELS, SIZES } from '../../constants';
 
-export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggleArtifacts, onNavigateToHome }) => {
+export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onToggleArtifacts, onNavigateToHome }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const { activeArtifact, renameArtifact } = useArtifacts();
@@ -335,7 +335,7 @@ export const TopBar = ({ showChat, showCode, showPreview, onTogglePanel, onToggl
   );
 };
 
-TopBar.propTypes = {
+Toolbar.propTypes = {
   showChat: PropTypes.bool.isRequired,
   showCode: PropTypes.bool.isRequired,
   showPreview: PropTypes.bool.isRequired,

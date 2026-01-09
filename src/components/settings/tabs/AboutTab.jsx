@@ -8,7 +8,7 @@ import {
   DiscordIcon,
 } from '../../icons/icons';
 
-export const UsTab = () => {
+export const AboutTab = () => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
 
@@ -155,4 +155,4 @@ export const UsTab = () => {
   );
 };
 
-export default UsTab;
+export default AboutTab;

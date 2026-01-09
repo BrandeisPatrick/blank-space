@@ -6,7 +6,7 @@ import { Z_INDEX } from '../../constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { AccountTab } from './tabs/AccountTab';
 import { ThemeTab } from './tabs/ThemeTab';
-import { UsTab } from './tabs/UsTab';
+import { AboutTab } from './tabs/AboutTab';
 import { SubscriptionTab } from './tabs/SubscriptionTab';
 import { CloseIcon } from '../icons/icons';
 
@@ -55,7 +55,7 @@ const TABS = [
   { id: 'us', label: 'Us', icon: UsIcon },
 ];
 
-export const TabbedSettingsPanel = () => {
+export const Modal = () => {
   const { mode } = useTheme();
   const { isSettingsOpen, closeSettings } = useSettings();
   const theme = getTheme(mode);
@@ -83,7 +83,7 @@ export const TabbedSettingsPanel = () => {
       case 'subscription':
         return <SubscriptionTab />;
       case 'us':
-        return <UsTab />;
+        return <AboutTab />;
       default:
         return <AccountTab />;
     }
@@ -283,4 +283,4 @@ export const TabbedSettingsPanel = () => {
   );
 };
 
-export default TabbedSettingsPanel;
+export default Modal;

@@ -3,11 +3,11 @@ import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
-import { ErrorMessage } from './ErrorMessage'
+import { Error } from './Error'
 import { LoadingDots } from '../ui/LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
-export const ChatPanel = ({ messages = [], onFixBug, isMobile = false }) => {
+export const Messages = ({ messages = [], onFixBug, isMobile = false }) => {
   const messagesEndRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -119,7 +119,7 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
       }
     };
 
-    return <ErrorMessage error={message.error} onFixBug={handleFixBug} />;
+    return <Error error={message.error} onFixBug={handleFixBug} />;
   }
 
   // Legacy error messages (with content only) - simple plain text style

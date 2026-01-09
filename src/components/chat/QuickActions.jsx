@@ -84,7 +84,7 @@ const CategoryPill = ({ label, icon: Icon, onClick, theme, mode }) => {
   );
 };
 
-export const CategoryPills = ({ onCategoryClick }) => {
+export const QuickActions = ({ onCategoryClick }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
 
@@ -110,8 +110,8 @@ export const CategoryPills = ({ onCategoryClick }) => {
   );
 };
 
-CategoryPills.propTypes = {
+QuickActions.propTypes = {
   onCategoryClick: PropTypes.func,
 };
 
-export default CategoryPills;
+export default QuickActions;

@@ -10,7 +10,7 @@ import { EyeIcon, CodeIcon, SettingsIcon } from '../icons'
 import { IconPicker, getIconById, getIconColorById } from '../artifact/IconPicker'
 import { AppSettingsModal } from './AppSettingsModal'
 
-export const FloatingBrowserWindow = ({
+export const PreviewWindow = ({
   visible = false,
   artifact = null,
   files = {},

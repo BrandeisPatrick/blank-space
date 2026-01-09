@@ -10,7 +10,7 @@ import { TIMING, MESSAGES } from '../constants';
  * Custom hook for AI chat processing
  * Handles message sending, debugging, and agentic loops
  */
-export const useAIChat = ({
+export const useChat = ({
   files,
   setFiles,
   modelTier,
@@ -424,4 +424,4 @@ export const useAIChat = ({
   };
 };
 
-export default useAIChat;
+export default useChat;

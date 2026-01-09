@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 
-export const ChatInput = ({ onSend }) => {
+export const Input = ({ onSend }) => {
   const [message, setMessage] = useState('')
   const { mode } = useTheme()
   const theme = getTheme(mode)

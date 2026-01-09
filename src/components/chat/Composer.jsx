@@ -63,7 +63,7 @@ const LockIcon = ({ size = 14, color = "currentColor" }) => (
   </svg>
 );
 
-export const EnhancedChatInput = ({
+export const Composer = ({
   placeholder = "Message...",
   onFocus,
   onSend,
@@ -394,7 +394,7 @@ export const EnhancedChatInput = ({
   );
 };
 
-EnhancedChatInput.propTypes = {
+Composer.propTypes = {
   placeholder: PropTypes.string,
   onFocus: PropTypes.func,
   onSend: PropTypes.func.isRequired,

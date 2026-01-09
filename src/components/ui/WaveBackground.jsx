@@ -1,7 +1,7 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 
-export const BackgroundDecoration = () => {
+export const WaveBackground = () => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
 

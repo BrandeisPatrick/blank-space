@@ -1,7 +1,7 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 
-export const ErrorMessage = ({ error, onFixBug }) => {
+export const Error = ({ error, onFixBug }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
 

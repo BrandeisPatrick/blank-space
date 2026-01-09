@@ -4,12 +4,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConversation } from '../../contexts/ConversationContext';
 import { getTheme } from '../../styles/theme';
-import { ChatSidebar } from '../chat/ChatSidebar';
-import { ChatGreeting } from '../chat/ChatGreeting';
-import { EnhancedChatInput } from '../chat/EnhancedChatInput';
-import { ChatPanel } from '../chat/ChatPanel';
+import { Sidebar } from '../chat/Sidebar';
+import { Banner } from '../chat/Banner';
+import { Composer } from '../chat/Composer';
+import { Messages } from '../chat/Messages';
 import { AuthModal } from '../auth/AuthModal';
-import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
+import { Modal as SettingsModal } from '../settings/Modal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Apps icon for top-right navigation
@@ -65,8 +65,8 @@ export const ChatPage = ({
   const { conversationId } = useParams();
   const isMobile = useIsMobile();
 
-  const [sidebarExpanded, setSidebarExpanded] = useState(!isMobile);
-  const [sidebarVisible, setSidebarVisible] = useState(!isMobile);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isMobile);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(!isMobile);
 
   // Bug #7 fix: Switch to conversation when route parameter changes
   useEffect(() => {
@@ -81,24 +81,24 @@ export const ChatPage = ({
   // Handle sidebar toggle
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
-      setSidebarVisible(!sidebarVisible);
+      setIsSidebarVisible(!isSidebarVisible);
     } else {
-      setSidebarExpanded(!sidebarExpanded);
+      setIsSidebarExpanded(!isSidebarExpanded);
     }
-  }, [isMobile, sidebarVisible, sidebarExpanded]);
+  }, [isMobile, isSidebarVisible, isSidebarExpanded]);
 
   // Close mobile sidebar when clicking outside
   useEffect(() => {
-    if (isMobile && sidebarVisible) {
+    if (isMobile && isSidebarVisible) {
       const handleClickOutside = (e) => {
         if (!e.target.closest('[data-sidebar]')) {
-          setSidebarVisible(false);
+          setIsSidebarVisible(false);
         }
       };
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isMobile, sidebarVisible]);
+  }, [isMobile, isSidebarVisible]);
 
   // Navigate to apps page
   const handleGoToApps = () => {
@@ -125,11 +125,11 @@ export const ChatPage = ({
       overflow: 'hidden',
     }}>
       {/* Sidebar */}
-      <ChatSidebar
-        expanded={sidebarExpanded}
-        visible={sidebarVisible}
+      <Sidebar
+        expanded={isSidebarExpanded}
+        visible={isSidebarVisible}
         onToggle={toggleSidebar}
-        onClose={() => setSidebarVisible(false)}
+        onClose={() => setIsSidebarVisible(false)}
         isMobile={isMobile}
       />
 
@@ -141,11 +141,11 @@ export const ChatPage = ({
             inset: 0,
             background: 'rgba(0, 0, 0, 0.5)',
             zIndex: 40,
-            opacity: sidebarVisible ? 1 : 0,
-            pointerEvents: sidebarVisible ? 'auto' : 'none',
+            opacity: isSidebarVisible ? 1 : 0,
+            pointerEvents: isSidebarVisible ? 'auto' : 'none',
             transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
-          onClick={() => setSidebarVisible(false)}
+          onClick={() => setIsSidebarVisible(false)}
         />
       )}
 
@@ -248,8 +248,8 @@ export const ChatPage = ({
               width: '100%',
               padding: `0 ${isMobile ? theme.spacing.sm : theme.spacing.lg}`,
             }}>
-              <ChatGreeting userName={user?.displayName || user?.email?.split('@')[0]} />
-              <EnhancedChatInput
+              <Banner userName={user?.displayName || user?.email?.split('@')[0]} />
+              <Composer
                 placeholder="Message..."
                 onSend={handleSend}
                 modelTier={modelTier}
@@ -277,7 +277,7 @@ export const ChatPage = ({
                 paddingTop: isMobile ? theme.spacing.md : theme.spacing.xl,
                 paddingBottom: isMobile ? theme.spacing.md : theme.spacing.xl,
               }}>
-                <ChatPanel
+                <Messages
                   messages={chatMessages}
                   onFixBug={handleSend}
                   isMobile={isMobile}
@@ -294,7 +294,7 @@ export const ChatPage = ({
                 : `${theme.spacing.md} ${theme.spacing.lg}`,
               paddingBottom: isMobile ? theme.spacing.md : theme.spacing.xl,
             }}>
-              <EnhancedChatInput
+              <Composer
                 placeholder="Message..."
                 onSend={handleSend}
                 modelTier={modelTier}
@@ -312,7 +312,7 @@ export const ChatPage = ({
       <AuthModal />
 
       {/* Settings Panel */}
-      <TabbedSettingsPanel />
+      <SettingsModal />
     </div>
   );
 };

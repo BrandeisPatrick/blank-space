@@ -7,12 +7,12 @@ import { useArtifacts } from '../../contexts/ArtifactContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
-import { TabbedSettingsPanel } from '../settings/TabbedSettingsPanel';
+import { Modal as SettingsModal } from '../settings/Modal';
 import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
 import { AppStorePanel } from '../appstore/AppStorePanel';
 import { AuthModal } from '../auth/AuthModal';
-import { FloatingBrowserWindow } from '../ui/FloatingBrowserWindow';
-import { ChatSidebar } from '../chat/ChatSidebar';
+import { PreviewWindow } from '../ui/PreviewWindow';
+import { Sidebar } from '../chat/Sidebar';
 import { LAYOUT, SIZES } from '../../constants';
 
 // Hamburger menu icon for mobile
@@ -33,7 +33,7 @@ const MenuIcon = ({ size = 24, color = "currentColor" }) => (
   </svg>
 );
 
-export const AppsPage = ({
+export const ComputerPage = ({
   // Props for browser window functionality
   files = {},
   onFileChange,
@@ -51,30 +51,30 @@ export const AppsPage = ({
   const isMobile = useIsMobile();
 
   // Sidebar state (same pattern as ChatPage)
-  const [sidebarExpanded, setSidebarExpanded] = useState(!isMobile);
-  const [sidebarVisible, setSidebarVisible] = useState(!isMobile);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isMobile);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(!isMobile);
 
   // Handle sidebar toggle
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
-      setSidebarVisible(!sidebarVisible);
+      setIsSidebarVisible(!isSidebarVisible);
     } else {
-      setSidebarExpanded(!sidebarExpanded);
+      setIsSidebarExpanded(!isSidebarExpanded);
     }
-  }, [isMobile, sidebarVisible, sidebarExpanded]);
+  }, [isMobile, isSidebarVisible, isSidebarExpanded]);
 
   // Close mobile sidebar when clicking outside
   useEffect(() => {
-    if (isMobile && sidebarVisible) {
+    if (isMobile && isSidebarVisible) {
       const handleClickOutside = (e) => {
         if (!e.target.closest('[data-sidebar]')) {
-          setSidebarVisible(false);
+          setIsSidebarVisible(false);
         }
       };
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isMobile, sidebarVisible]);
+  }, [isMobile, isSidebarVisible]);
 
   // Enter edit mode (iOS-style jiggle mode for deletion)
   const enterEditMode = () => {
@@ -120,11 +120,11 @@ export const AppsPage = ({
       overflow: 'hidden',
     }}>
       {/* Sidebar */}
-      <ChatSidebar
-        expanded={sidebarExpanded}
-        visible={sidebarVisible}
+      <Sidebar
+        expanded={isSidebarExpanded}
+        visible={isSidebarVisible}
         onToggle={toggleSidebar}
-        onClose={() => setSidebarVisible(false)}
+        onClose={() => setIsSidebarVisible(false)}
         isMobile={isMobile}
       />
 
@@ -136,11 +136,11 @@ export const AppsPage = ({
             inset: 0,
             background: 'rgba(0, 0, 0, 0.5)',
             zIndex: 40,
-            opacity: sidebarVisible ? 1 : 0,
-            pointerEvents: sidebarVisible ? 'auto' : 'none',
+            opacity: isSidebarVisible ? 1 : 0,
+            pointerEvents: isSidebarVisible ? 'auto' : 'none',
             transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
-          onClick={() => setSidebarVisible(false)}
+          onClick={() => setIsSidebarVisible(false)}
         />
       )}
 
@@ -286,7 +286,7 @@ export const AppsPage = ({
       </main>
 
       {/* Floating Browser Window */}
-      <FloatingBrowserWindow
+      <PreviewWindow
         visible={browserWindowVisible}
         artifact={activeArtifact}
         files={files}
@@ -297,11 +297,11 @@ export const AppsPage = ({
         isDebugging={isDebugging}
         onIconChange={(iconId) => onIconChange?.(activeArtifactId, iconId)}
         onRename={(newName) => onRename?.(activeArtifactId, newName)}
-        sidebarWidth={sidebarExpanded ? 250 : 60}
+        sidebarWidth={isSidebarExpanded ? 250 : 60}
       />
 
       {/* Settings Panel Modal */}
-      <TabbedSettingsPanel />
+      <SettingsModal />
 
       {/* AppStore Panel Modal */}
       <AppStorePanel />
@@ -312,7 +312,7 @@ export const AppsPage = ({
   );
 };
 
-AppsPage.propTypes = {
+ComputerPage.propTypes = {
   files: PropTypes.object,
   onFileChange: PropTypes.func,
   onError: PropTypes.func,
@@ -322,4 +322,4 @@ AppsPage.propTypes = {
   onRename: PropTypes.func,
 };
 
-export default AppsPage;
+export default ComputerPage;

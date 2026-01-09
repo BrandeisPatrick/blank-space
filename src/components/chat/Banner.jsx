@@ -1,6 +1,6 @@
 import { useTheme } from '../../contexts/ThemeContext';
 
-export const ChatGreeting = () => {
+export const Banner = () => {
   const { mode } = useTheme();
   const bannerSrc = mode === 'light' ? '/blankspace-banner-light.png' : '/blankspace-banner.png';
 
@@ -23,4 +23,4 @@ export const ChatGreeting = () => {
   );
 };
 
-export default ChatGreeting;
+export default Banner;

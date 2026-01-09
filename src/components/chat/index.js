@@ -2,10 +2,11 @@
  * Chat Components - Barrel Export
  */
 
-export { ChatPanel } from './ChatPanel';
-export { ChatInput } from './ChatInput';
-export { EnhancedChatInput } from './EnhancedChatInput';
-export { ErrorMessage } from './ErrorMessage';
-export { ChatSidebar } from './ChatSidebar';
-export { ChatGreeting } from './ChatGreeting';
-export { CategoryPills } from './CategoryPills';
+export { Messages } from './Messages';
+export { Input } from './Input';
+export { Composer } from './Composer';
+export { Error } from './Error';
+export { Sidebar } from './Sidebar';
+export { Banner } from './Banner';
+export { QuickActions } from './QuickActions';
+export { SearchModal } from './SearchModal';

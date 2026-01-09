@@ -3,4 +3,4 @@
  */
 
 export { ChatPage } from './ChatPage';
-export { AppsPage } from './AppsPage';
+export { ComputerPage } from './ComputerPage';
