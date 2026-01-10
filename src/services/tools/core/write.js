@@ -4,6 +4,7 @@
  */
 
 import { Tool } from '../Tool.js';
+import { autoFixCommonIssues } from '../../utils/code/autoFix.js';
 
 export const writeTool = new Tool({
   name: 'write',
@@ -29,13 +30,19 @@ export const writeTool = new Tool({
     }
 
     try {
-      fs.write(path, content);
+      // Auto-fix common issues in JS/JSX files (require→import, propTypes, etc.)
+      let processedContent = content;
+      if (path.endsWith('.js') || path.endsWith('.jsx')) {
+        processedContent = autoFixCommonIssues(content, path);
+      }
+
+      fs.write(path, processedContent);
 
       return {
         success: true,
         path,
-        size: content.length,
-        lines: content.split('\n').length,
+        size: processedContent.length,
+        lines: processedContent.split('\n').length,
         message: `File written: ${path}`
       };
     } catch (error) {

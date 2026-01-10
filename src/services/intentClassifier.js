@@ -5,6 +5,16 @@
  * - With existing files: debug or chat
  */
 
+import { fetchWithRetry } from './utils/fetchWithRetry.js';
+
+// Retry configuration for intent classification (lightweight, fast timeout)
+const INTENT_RETRY_CONFIG = {
+  timeout: 15000,    // 15s timeout for classification
+  maxRetries: 2,     // 2 retries before fallback
+  baseDelay: 500,
+  context: 'Intent Classifier'
+};
+
 // Classification prompt for NEW app (no existing files)
 const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
 - "create": build an app, make something, generate code, design UI
@@ -38,7 +48,7 @@ export async function classifyIntent(message, hasExistingFiles = false) {
     // Use different prompts based on context
     const prompt = hasExistingFiles ? EDITING_APP_PROMPT : NEW_APP_PROMPT;
 
-    const response = await fetch('/api/chat', {
+    const response = await fetchWithRetry('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -48,7 +58,7 @@ export async function classifyIntent(message, hasExistingFiles = false) {
         ],
         max_tokens: 10
       })
-    });
+    }, INTENT_RETRY_CONFIG);
 
     if (!response.ok) {
       console.warn('[Intent Classifier] API error, using fallback');

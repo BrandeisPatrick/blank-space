@@ -13,6 +13,15 @@ import { convertToolsToGeminiFormat } from './toolAdapter.js';
 import { buildSystemPrompt, generateAppNameGemini, formatToolAction } from '../../../prompts/index.js';
 import { getModelForTier } from '../../../config/modelConfig.js';
 import { auth } from '../../../../config/firebase.js';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry.js';
+
+// Retry configuration for Gemini API calls
+const GEMINI_RETRY_CONFIG = {
+  timeout: 60000,    // 60s timeout for code generation
+  maxRetries: 3,
+  baseDelay: 1000,
+  context: 'Gemini Provider'
+};
 
 /**
  * Get auth headers for API requests
@@ -133,8 +142,8 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     // Get auth headers once for the loop
     const loopHeaders = await getAuthHeaders();
 
-    // Send initial message to /api/gemini
-    let apiResponse = await fetch('/api/gemini', {
+    // Send initial message to /api/gemini (with retry/timeout)
+    let apiResponse = await fetchWithRetry('/api/gemini', {
       method: 'POST',
       headers: loopHeaders,
       body: JSON.stringify({
@@ -146,7 +155,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         tools: geminiTools,
         thinkingConfig: { thinkingLevel: 'low' }
       })
-    });
+    }, GEMINI_RETRY_CONFIG);
 
     if (!apiResponse.ok) {
       const errorData = await apiResponse.json().catch(() => ({}));
@@ -197,7 +206,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         });
       }
 
-      // Send function responses back via /api/gemini
+      // Send function responses back via /api/gemini (with retry/timeout)
       const functionResponseParts = functionResponses.map(fr => ({
         functionResponse: {
           name: fr.name,
@@ -205,7 +214,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         }
       }));
 
-      apiResponse = await fetch('/api/gemini', {
+      apiResponse = await fetchWithRetry('/api/gemini', {
         method: 'POST',
         headers: loopHeaders,
         body: JSON.stringify({
@@ -217,7 +226,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
           tools: geminiTools,
           thinkingConfig: { thinkingLevel: 'low' }
         })
-      });
+      }, GEMINI_RETRY_CONFIG);
 
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json().catch(() => ({}));

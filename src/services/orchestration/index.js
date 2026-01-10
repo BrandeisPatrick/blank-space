@@ -8,6 +8,15 @@
 import { processWithGemini } from './providers/gemini/index.js';
 import { classifyIntent } from '../intentClassifier.js';
 import { CHAT_SYSTEM_PROMPT } from '../prompts/index.js';
+import { fetchWithRetry } from '../utils/fetchWithRetry.js';
+
+// Retry configuration for chat API calls (web search may be slow)
+const CHAT_RETRY_CONFIG = {
+  timeout: 45000,    // 45s timeout for chat with web search
+  maxRetries: 3,
+  baseDelay: 1000,
+  context: 'Chat Handler'
+};
 
 /**
  * Process a user message through the appropriate LLM provider
@@ -92,7 +101,7 @@ async function handleChatIntent(userMessage, sendUpdate, options, intent) {
   messages.push({ role: 'user', content: userMessage });
 
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetchWithRetry('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -101,7 +110,7 @@ async function handleChatIntent(userMessage, sendUpdate, options, intent) {
         max_tokens: 4096,
         web_search: true  // Enable web search
       })
-    });
+    }, CHAT_RETRY_CONFIG);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
