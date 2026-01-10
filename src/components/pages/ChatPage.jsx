@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConversation } from '../../contexts/ConversationContext';
+import { useArtifacts } from '../../contexts/ArtifactContext';
 import { getTheme } from '../../styles/theme';
 import { Sidebar } from '../chat/Sidebar';
 import { Banner } from '../chat/Banner';
@@ -60,6 +61,10 @@ export const ChatPage = ({
   const { mode } = useTheme();
   const { user } = useAuth();
   const { switchConversation, activeConversationId } = useConversation();
+  const { artifacts } = useArtifacts();
+
+  // Get apps from artifacts (real installed apps with proper names)
+  const apps = artifacts.map(a => ({ id: a.id, title: a.name }));
   const theme = getTheme(mode);
   const navigate = useNavigate();
   const { conversationId } = useParams();
@@ -67,6 +72,7 @@ export const ChatPage = ({
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isMobile);
   const [isSidebarVisible, setIsSidebarVisible] = useState(!isMobile);
+  const [editingApp, setEditingApp] = useState(null); // App being edited/debugged
 
   // Bug #7 fix: Switch to conversation when route parameter changes
   useEffect(() => {
@@ -103,6 +109,21 @@ export const ChatPage = ({
   // Navigate to apps page
   const handleGoToApps = () => {
     navigate('/apps');
+  };
+
+  // Handle start debug session for an app
+  const handleStartDebug = (app) => {
+    setEditingApp({ ...app, name: app.title, mode: 'debug' });
+  };
+
+  // Handle start edit session for an app
+  const handleStartEdit = (app) => {
+    setEditingApp({ ...app, name: app.title, mode: 'edit' });
+  };
+
+  // Clear editing mode
+  const handleClearEditing = () => {
+    setEditingApp(null);
   };
 
   // Handle send message
@@ -257,6 +278,11 @@ export const ChatPage = ({
                 disabled={isAIProcessing}
                 centered={true}
                 isMobile={isMobile}
+                apps={apps}
+                onStartDebug={handleStartDebug}
+                onStartEdit={handleStartEdit}
+                activeArtifact={editingApp}
+                isEditingArtifact={!!editingApp}
               />
             </div>
           </div>
@@ -279,7 +305,7 @@ export const ChatPage = ({
               }}>
                 <Messages
                   messages={chatMessages}
-                  onFixBug={handleSend}
+                  onDebug={handleSend}
                   isMobile={isMobile}
                 />
               </div>
@@ -302,6 +328,11 @@ export const ChatPage = ({
                 disabled={isAIProcessing}
                 centered={true}
                 isMobile={isMobile}
+                apps={apps}
+                onStartDebug={handleStartDebug}
+                onStartEdit={handleStartEdit}
+                activeArtifact={editingApp}
+                isEditingArtifact={!!editingApp}
               />
             </div>
           </>

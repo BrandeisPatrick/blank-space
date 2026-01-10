@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { COLORS, LAYOUT } from '../../constants';
 import { MODEL_TIERS } from '../../services/config/modelConfig';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
+import { AppsModal } from './AppsModal';
 
 // Grok-style colors - filled chat bar
 const GROK_INPUT_COLORS = {
@@ -63,6 +64,25 @@ const LockIcon = ({ size = 14, color = "currentColor" }) => (
   </svg>
 );
 
+// Apps/Grid icon
+const AppsIcon = ({ size = 18, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
 export const Composer = ({
   placeholder = "Message...",
   onFocus,
@@ -75,6 +95,10 @@ export const Composer = ({
   disabled = false,
   centered = false, // When true, use relative positioning (for centered layout)
   isMobile: isMobileProp, // Optional prop, falls back to hook
+  // New props for apps dropdown
+  apps = [],
+  onStartDebug,
+  onStartEdit,
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
@@ -85,17 +109,26 @@ export const Composer = ({
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
   const [message, setMessage] = useState(initialMessage);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showAppsPopover, setShowAppsPopover] = useState(false);
+  const [showAppsModal, setShowAppsModal] = useState(false);
   const modelDropdownRef = useRef(null);
   const modelButtonRef = useRef(null);
+  const appsPopoverRef = useRef(null);
+  const appsButtonRef = useRef(null);
+
+  // Limit apps to 4 most recent, show "Show All" if more
+  const recentApps = useMemo(() => apps.slice(0, 4), [apps]);
+  const hasMoreApps = apps.length > 4;
 
   // Bug #15 fix: Update message when initialMessage prop changes (including to empty)
   useEffect(() => {
     setMessage(initialMessage || '');
   }, [initialMessage]);
 
-  // Close model dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Model dropdown
       if (
         modelDropdownRef.current &&
         !modelDropdownRef.current.contains(event.target) &&
@@ -103,6 +136,15 @@ export const Composer = ({
         !modelButtonRef.current.contains(event.target)
       ) {
         setShowModelDropdown(false);
+      }
+      // Apps popover
+      if (
+        appsPopoverRef.current &&
+        !appsPopoverRef.current.contains(event.target) &&
+        appsButtonRef.current &&
+        !appsButtonRef.current.contains(event.target)
+      ) {
+        setShowAppsPopover(false);
       }
     };
 
@@ -134,6 +176,10 @@ export const Composer = ({
   const EditingIndicator = () => {
     if (!isEditingArtifact || !activeArtifact) return null;
 
+    const isDebugMode = activeArtifact.mode === 'debug';
+    const label = isDebugMode ? 'Debugging' : 'Editing';
+    const indicatorColor = isDebugMode ? '#8b5cf6' : COLORS.PRO_COMPONENTS_BLUE;
+
     return (
       <div style={{
         display: 'flex',
@@ -142,10 +188,10 @@ export const Composer = ({
         fontSize: isMobile ? theme.typography.fontSize.sm : theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.medium,
         fontFamily: theme.typography.fontFamily.sans,
-        color: COLORS.PRO_COMPONENTS_BLUE,
+        color: indicatorColor,
         ...(isMobile && { marginTop: `-${theme.spacing.xs}` }),
       }}>
-        <span>Editing</span>
+        <span>{label}</span>
         <span style={isMobile ? {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -346,6 +392,166 @@ export const Composer = ({
             )}
           </div>
 
+          {/* Apps Button - only show if there are apps */}
+          {apps.length > 0 && (
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={appsButtonRef}
+                type="button"
+                onClick={() => setShowAppsPopover(!showAppsPopover)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '36px',
+                  height: '36px',
+                  background: showAppsPopover ? colors.hoverBg : colors.buttonBg,
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: theme.colors.text.secondary,
+                  borderRadius: '12px',
+                  transition: `all ${theme.animation.fast}`,
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.hoverBg;
+                }}
+                onMouseLeave={(e) => {
+                  if (!showAppsPopover) {
+                    e.currentTarget.style.background = colors.buttonBg;
+                  }
+                }}
+                title="Your Apps"
+              >
+                <AppsIcon size={18} color={theme.colors.text.secondary} />
+              </button>
+
+              {/* Apps Popover */}
+              {showAppsPopover && (
+                <div
+                  ref={appsPopoverRef}
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: 0,
+                    marginBottom: '8px',
+                    background: theme.colors.bg.secondary,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '12px',
+                    minWidth: '280px',
+                    maxWidth: '320px',
+                    overflow: 'hidden',
+                    zIndex: 100,
+                    boxShadow: mode === 'dark'
+                      ? '0 8px 32px rgba(0,0,0,0.4)'
+                      : '0 8px 32px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  {/* Header */}
+                  <div style={{
+                    padding: '12px 16px',
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: theme.colors.text.secondary,
+                    fontFamily: theme.typography.fontFamily.sans,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    Your Apps
+                  </div>
+
+                  {/* Apps List */}
+                  <div style={{
+                    maxHeight: '240px',
+                    overflowY: 'auto',
+                  }}>
+                    {recentApps.map((app) => (
+                      <div
+                        key={app.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 16px',
+                          borderBottom: `1px solid ${theme.colors.border}`,
+                        }}
+                      >
+                        {/* App Name */}
+                        <div style={{
+                          flex: 1,
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          color: theme.colors.text.primary,
+                          fontFamily: theme.typography.fontFamily.sans,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginRight: '12px',
+                        }}>
+                          {app.title}
+                        </div>
+
+                        {/* Action Button */}
+                        <button
+                          onClick={() => {
+                            setShowAppsPopover(false);
+                            onStartEdit && onStartEdit(app);
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            background: mode === 'dark' ? '#374151' : '#e5e7eb',
+                            border: 'none',
+                            borderRadius: '6px',
+                            color: theme.colors.text.primary,
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: theme.typography.fontFamily.sans,
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Show All Button */}
+                  {hasMoreApps && (
+                    <button
+                      onClick={() => {
+                        setShowAppsPopover(false);
+                        setShowAppsModal(true);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderTop: `1px solid ${theme.colors.border}`,
+                        color: theme.colors.text.secondary,
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        fontFamily: theme.typography.fontFamily.sans,
+                        textAlign: 'center',
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = mode === 'dark' ? '#1a1a1a' : '#f5f5f5';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      Show All ({apps.length})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Editing Indicator (desktop - inline) */}
           {!isMobile && <EditingIndicator />}
 
@@ -390,6 +596,14 @@ export const Composer = ({
         {/* Editing Indicator (mobile - separate row) */}
         {isMobile && <EditingIndicator />}
       </div>
+
+      {/* Apps Modal */}
+      <AppsModal
+        isOpen={showAppsModal}
+        onClose={() => setShowAppsModal(false)}
+        apps={apps}
+        onStartEdit={onStartEdit}
+      />
     </div>
   );
 };
@@ -406,4 +620,7 @@ Composer.propTypes = {
   disabled: PropTypes.bool,
   centered: PropTypes.bool,
   isMobile: PropTypes.bool,
+  apps: PropTypes.array,
+  onStartDebug: PropTypes.func,
+  onStartEdit: PropTypes.func,
 };

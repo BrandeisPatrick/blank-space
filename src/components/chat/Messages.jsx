@@ -3,11 +3,10 @@ import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
-import { Error } from './Error'
 import { LoadingDots } from '../ui/LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
-export const Messages = ({ messages = [], onFixBug, isMobile = false }) => {
+export const Messages = ({ messages = [], onDebug, isMobile = false }) => {
   const messagesEndRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -83,7 +82,7 @@ export const Messages = ({ messages = [], onFixBug, isMobile = false }) => {
                 // Use index as final fallback to ensure unique keys
                 const key = message.id || `msg-${message.timestamp || index}-${message.type || index}`;
                 return (
-                  <ChatMessage key={key} message={message} onFixBug={onFixBug} isMobile={isMobile} />
+                  <ChatMessage key={key} message={message} onDebug={onDebug} isMobile={isMobile} />
                 );
               })}
           </>
@@ -94,7 +93,7 @@ export const Messages = ({ messages = [], onFixBug, isMobile = false }) => {
   )
 }
 
-const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
+const ChatMessage = ({ message, onDebug, isMobile = false }) => {
   const { mode } = useTheme()
   const theme = getTheme(mode)
 
@@ -106,36 +105,9 @@ const ChatMessage = ({ message, onFixBug, isMobile = false }) => {
   const fontSize = isMobile ? '14px' : '15px'
   const codeFontSize = isMobile ? '12px' : '13px'
 
-  // Error messages with error object (from preview/runtime errors)
-  if (isError && message.error) {
-    const handleFixBug = () => {
-      if (onFixBug) {
-        // Format error message for AI
-        const errorContext = message.error.file
-          ? `Syntax error in ${message.error.file}: ${message.error.message}${message.error.line ? ` (line ${message.error.line})` : ''}\nSource: ${message.error.file}${message.error.line ? `:${message.error.line}` : ''}\nfix this bug`
-          : `Error: ${message.error.message}\nfix this bug`;
-
-        onFixBug(errorContext);
-      }
-    };
-
-    return <Error error={message.error} onFixBug={handleFixBug} />;
-  }
-
-  // Legacy error messages (with content only) - simple plain text style
+  // Error messages should not be shown in chat - only in preview panel
   if (isError) {
-    return (
-      <div style={{
-        alignSelf: 'flex-start',
-        padding: `${theme.spacing.xs} 0`,
-        fontFamily: theme.typography.fontFamily.sans,
-        fontSize,
-        lineHeight: '1.6',
-        color: theme.colors.text.secondary,
-      }}>
-        {message.content || 'An error occurred'}
-      </div>
-    )
+    return null;
   }
 
   // Loading message with animated dots or action text (Grok-style: left-aligned, minimal)
