@@ -290,13 +290,15 @@ export const ChatPage = ({
           // Messages view with input at bottom - both aligned
           <>
             {/* Scrollable messages area */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}>
+            <div
+              className="dark-scrollbar"
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}>
               <div style={{
                 width: isMobile ? '95%' : '90%',
                 maxWidth: '800px',

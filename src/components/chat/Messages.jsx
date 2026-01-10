@@ -27,17 +27,13 @@ export const Messages = ({ messages = [], onDebug, isMobile = false }) => {
       flexDirection: 'column'
     }}>
       {/* Messages container */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: isMobile ? theme.spacing.sm : theme.spacing.lg,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: isMobile ? theme.spacing.md : theme.spacing.lg,
-        minHeight: 0,
-        maxHeight: '100%',
-      }}>
+      <div
+        style={{
+          padding: isMobile ? theme.spacing.sm : theme.spacing.lg,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? theme.spacing.md : theme.spacing.lg,
+        }}>
         {messages.length === 0 ? (
           <div style={{
             display: 'flex',
