@@ -57,6 +57,12 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     console.log(`[Orchestration] New conversation intent: "${userMessage.slice(0, 50)}..." → ${intent} (${intentResult.source})`);
   }
 
+  // Show intent in thinking block
+  sendUpdate({
+    type: 'intent',
+    content: `Intent: ${intent}`
+  });
+
   // Route based on intent
   if (intent === 'chat') {
     // Chat intent → OpenAI with web search

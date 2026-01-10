@@ -6,6 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
+import { useArtifacts } from '../../contexts/ArtifactContext';
 import { getTheme } from '../../styles/theme';
 import SearchModal from './SearchModal';
 import {
@@ -339,6 +340,7 @@ export const Sidebar = ({
   const { user, signOut } = useAuth();
   const { openAuthModal, openSettings } = useSettings();
   const { conversations, activeConversationId, createConversation, switchConversation, isLoading } = useConversation();
+  const { clearActiveArtifact } = useArtifacts();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = getTheme(mode);
@@ -397,10 +399,11 @@ export const Sidebar = ({
 
   // Memoized handlers
   const handleChat = useCallback(() => {
+    clearActiveArtifact(); // Clear previous app files so new "create" intents work
     createConversation();
     navigate('/');
     if (isMobile) onClose?.();
-  }, [createConversation, navigate, isMobile, onClose]);
+  }, [clearActiveArtifact, createConversation, navigate, isMobile, onClose]);
 
   const handleConversationClick = useCallback((convId) => {
     switchConversation(convId);
@@ -452,10 +455,11 @@ export const Sidebar = ({
   }, [switchConversation, navigate, isMobile, onClose]);
 
   const handleCreateNew = useCallback(() => {
+    clearActiveArtifact(); // Clear previous app files so new "create" intents work
     createConversation();
     navigate('/');
     if (isMobile) onClose?.();
-  }, [createConversation, navigate, isMobile, onClose]);
+  }, [clearActiveArtifact, createConversation, navigate, isMobile, onClose]);
 
   return (
     <div

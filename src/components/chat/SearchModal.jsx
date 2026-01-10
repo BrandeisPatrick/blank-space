@@ -342,7 +342,7 @@ export const SearchModal = ({ isOpen, onClose, onSelectConversation, onCreateNew
               }}
             >
               <ChatIcon size={18} />
-              <span style={{ marginLeft: '12px' }}>Create New Private Chat</span>
+              <span style={{ marginLeft: '12px' }}>New Chat</span>
             </button>
 
             {/* Conversations List */}

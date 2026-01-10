@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
 import { LoadingDots } from '../ui/LoadingDots'
+import { ThinkingBlock } from '../ui/ThinkingBlock'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
 export const Messages = ({ messages = [], onDebug, isMobile = false }) => {
@@ -106,19 +107,30 @@ const ChatMessage = ({ message, onDebug, isMobile = false }) => {
     return null;
   }
 
-  // Loading message with animated dots or action text (Grok-style: left-aligned, minimal)
+  // Loading message with thinking steps
   if (isLoading) {
     return (
       <div style={{
         alignSelf: 'flex-start',
-        color: theme.colors.text.secondary,
         padding: `${theme.spacing.xs} 0`,
-        fontFamily: theme.typography.fontFamily.sans,
-        fontSize,
-        lineHeight: '1.6',
-        fontStyle: 'italic',
+        maxWidth: isMobile ? '95%' : '90%',
       }}>
-        {message.content || <LoadingDots />}
+        {/* Show thinking steps while loading */}
+        {message.thinking && message.thinking.length > 0 ? (
+          <ThinkingBlock
+            steps={message.thinking}
+            isComplete={false}
+          />
+        ) : (
+          <div style={{
+            color: theme.colors.text.secondary,
+            fontFamily: theme.typography.fontFamily.sans,
+            fontSize,
+            lineHeight: '1.6',
+          }}>
+            <LoadingDots />
+          </div>
+        )}
       </div>
     )
   }
@@ -147,37 +159,52 @@ const ChatMessage = ({ message, onDebug, isMobile = false }) => {
     )
   }
 
-  // AI/assistant message - markdown rendered
+  // AI/assistant message - markdown rendered with optional thinking block
   return (
     <div
       style={{
         alignSelf: 'flex-start',
-        color: theme.colors.text.primary,
         padding: `${theme.spacing.xs} 0`,
         maxWidth: isMobile ? '95%' : '90%',
-        fontFamily: theme.typography.fontFamily.sans,
-        fontSize,
-        lineHeight: '1.6',
-        fontWeight: 400,
-        letterSpacing: '0.01em',
       }}
-      className="markdown-content"
     >
-      <ReactMarkdown
-        components={{
-          p: ({ children }) => <p style={{ margin: isMobile ? '0 0 10px 0' : '0 0 12px 0' }}>{children}</p>,
-          ul: ({ children }) => <ul style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ul>,
-          ol: ({ children }) => <ol style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ol>,
-          li: ({ children }) => <li style={{ margin: isMobile ? '3px 0' : '4px 0' }}>{children}</li>,
-          strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
-          code: ({ inline, children }) => inline
-            ? <code style={{ background: theme.colors.bg.tertiary, padding: '2px 6px', borderRadius: '4px', fontSize: codeFontSize }}>{children}</code>
-            : <pre style={{ background: theme.colors.bg.tertiary, padding: isMobile ? '10px' : '12px', borderRadius: '8px', overflow: 'auto', margin: isMobile ? '6px 0' : '8px 0', fontSize: codeFontSize }}><code>{children}</code></pre>,
-          a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>{children}</a>,
+      {/* Collapsed thinking block (if thinking steps exist) */}
+      {message.thinking && message.thinking.length > 0 && (
+        <ThinkingBlock
+          steps={message.thinking}
+          duration={message.thinkingDuration}
+          isComplete={true}
+        />
+      )}
+
+      {/* Message content */}
+      <div
+        style={{
+          color: theme.colors.text.primary,
+          fontFamily: theme.typography.fontFamily.sans,
+          fontSize,
+          lineHeight: '1.6',
+          fontWeight: 400,
+          letterSpacing: '0.01em',
         }}
+        className="markdown-content"
       >
-        {content}
-      </ReactMarkdown>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p style={{ margin: isMobile ? '0 0 10px 0' : '0 0 12px 0' }}>{children}</p>,
+            ul: ({ children }) => <ul style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ul>,
+            ol: ({ children }) => <ol style={{ margin: isMobile ? '6px 0' : '8px 0', paddingLeft: isMobile ? '16px' : '20px' }}>{children}</ol>,
+            li: ({ children }) => <li style={{ margin: isMobile ? '3px 0' : '4px 0' }}>{children}</li>,
+            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+            code: ({ inline, children }) => inline
+              ? <code style={{ background: theme.colors.bg.tertiary, padding: '2px 6px', borderRadius: '4px', fontSize: codeFontSize }}>{children}</code>
+              : <pre style={{ background: theme.colors.bg.tertiary, padding: isMobile ? '10px' : '12px', borderRadius: '8px', overflow: 'auto', margin: isMobile ? '6px 0' : '8px 0', fontSize: codeFontSize }}><code>{children}</code></pre>,
+            a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>{children}</a>,
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
     </div>
   )
 }

@@ -10,15 +10,22 @@ import { fetchWithRetry } from './utils/fetchWithRetry.js';
 // Retry configuration for intent classification (lightweight, fast timeout)
 const INTENT_RETRY_CONFIG = {
   timeout: 15000,    // 15s timeout for classification
-  maxRetries: 2,     // 2 retries before fallback
+  maxRetries: 2,
   baseDelay: 500,
   context: 'Intent Classifier'
 };
 
 // Classification prompt for NEW app (no existing files)
 const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
-- "create": build an app, make something, generate code, design UI
-- "chat": asking questions, greetings, conversation, help requests
+- "create": User is REQUESTING you to build/create an app, website, or code for them
+- "chat": User is ASKING a question, seeking information, or having a conversation
+
+Key distinction:
+- "create a todo app" → create (requesting you to build)
+- "can you make a calculator?" → create (requesting you to build)
+- "does X support Y?" → chat (asking a question)
+- "how do I create X?" → chat (asking for information)
+- "what is React?" → chat (asking a question)
 
 Respond with ONLY ONE WORD: create or chat`;
 
@@ -61,8 +68,8 @@ export async function classifyIntent(message, hasExistingFiles = false) {
     }, INTENT_RETRY_CONFIG);
 
     if (!response.ok) {
-      console.warn('[Intent Classifier] API error, using fallback');
-      return fallbackClassify(message, hasExistingFiles);
+      console.warn('[Intent Classifier] API error, defaulting to chat');
+      return { intent: 'chat', confidence: 0.5, source: 'default' };
     }
 
     const data = await response.json();
@@ -76,54 +83,14 @@ export async function classifyIntent(message, hasExistingFiles = false) {
       return { intent: result, confidence: 0.9, source: 'ai' };
     }
 
-    // Unexpected response, use fallback
-    console.warn(`[Intent Classifier] Unexpected AI response: "${result}", using fallback`);
-    return fallbackClassify(message, hasExistingFiles);
+    // Unexpected AI response, default to chat (safer)
+    console.warn(`[Intent Classifier] Unexpected AI response: "${result}", defaulting to chat`);
+    return { intent: 'chat', confidence: 0.5, source: 'default' };
 
   } catch (error) {
-    console.warn('[Intent Classifier] Error, using fallback:', error.message);
-    return fallbackClassify(message, hasExistingFiles);
+    console.warn('[Intent Classifier] Error, defaulting to chat:', error.message);
+    return { intent: 'chat', confidence: 0.5, source: 'default' };
   }
 }
 
-/**
- * Simple keyword-based fallback classifier
- */
-function fallbackClassify(message, hasExistingFiles = false) {
-  // Check for chat patterns first
-  const chatPatterns = [
-    /^(what|how|why|when|where|who|which)\s/i,
-    /\?$/,
-    /^(can|could|do|does|is|are)\s+(you|it|this)/i,
-    /^(tell|explain|help)\s+me/i,
-  ];
-
-  for (const pattern of chatPatterns) {
-    if (pattern.test(message)) {
-      return { intent: 'chat', confidence: 0.7, source: 'fallback' };
-    }
-  }
-
-  // Default based on context
-  if (hasExistingFiles) {
-    return { intent: 'debug', confidence: 0.6, source: 'fallback' };
-  } else {
-    return { intent: 'create', confidence: 0.6, source: 'fallback' };
-  }
-}
-
-/**
- * @deprecated Use classifyIntent() instead
- */
-export function isCreateIntent(message) {
-  return fallbackClassify(message, false).intent === 'create';
-}
-
-/**
- * @deprecated Use classifyIntent() instead
- */
-export function isChatIntent(message) {
-  return fallbackClassify(message, false).intent === 'chat';
-}
-
-export default { classifyIntent, isCreateIntent, isChatIntent };
+export default { classifyIntent };

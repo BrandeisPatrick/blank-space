@@ -39,6 +39,10 @@ export const useChat = ({
   // Track messages in ref to avoid stale closures
   const messagesRef = useRef(messages);
 
+  // Track thinking steps for collapsed thinking UI
+  const thinkingStepsRef = useRef([]);
+  const thinkingStartTimeRef = useRef(null);
+
   // Keep ref in sync
   useEffect(() => {
     messagesRef.current = messages;
@@ -104,6 +108,10 @@ export const useChat = ({
 
     setIsProcessing(true);
 
+    // Reset thinking state for new message
+    thinkingStepsRef.current = [];
+    thinkingStartTimeRef.current = Date.now();
+
     // Add loading message
     const loadingMessageId = Date.now();
     setMessages(prev => {
@@ -112,6 +120,7 @@ export const useChat = ({
         type: 'assistant',
         content: '',
         isLoading: true,
+        thinking: [],
         timestamp: loadingMessageId
       }];
       messagesRef.current = newMessages;
@@ -120,11 +129,33 @@ export const useChat = ({
 
     // Streaming update callback
     const onUpdate = (update) => {
+      // Collect thinking steps for collapsed thinking UI
+      if (update.type === 'thinking' || update.type === 'intent' || update.type === 'plan') {
+        if (update.content) {
+          thinkingStepsRef.current = [...thinkingStepsRef.current, update.content];
+          // Update loading message with thinking steps
+          setMessages(prev => {
+            const newMessages = prev.map(msg =>
+              msg.id === loadingMessageId
+                ? { ...msg, thinking: [...thinkingStepsRef.current] }
+                : msg
+            );
+            messagesRef.current = newMessages;
+            return newMessages;
+          });
+        }
+        return;
+      }
+
       if (update.type === 'tool_action') {
+        // Add tool action to thinking steps
+        if (update.action) {
+          thinkingStepsRef.current = [...thinkingStepsRef.current, update.action];
+        }
         setMessages(prev => {
           const newMessages = prev.map(msg =>
             msg.id === loadingMessageId
-              ? { ...msg, content: update.action }
+              ? { ...msg, content: update.action, thinking: [...thinkingStepsRef.current] }
               : msg
           );
           messagesRef.current = newMessages;
@@ -133,12 +164,21 @@ export const useChat = ({
         return;
       }
 
-      if (update.type === 'thinking' || update.type === 'intent' || update.type === 'plan') {
-        return;
-      }
+      // For assistant messages (chat responses), attach thinking data
+      const thinkingDuration = thinkingStartTimeRef.current
+        ? Date.now() - thinkingStartTimeRef.current
+        : null;
+      const messageWithThinking = {
+        ...update,
+        thinking: thinkingStepsRef.current.length > 0 ? [...thinkingStepsRef.current] : null,
+        thinkingDuration,
+        timestamp: Date.now()
+      };
 
       setMessages(prev => {
-        const newMessages = [...prev, { ...update, timestamp: Date.now() }];
+        // Replace loading message with final response
+        const filtered = prev.filter(msg => msg.id !== loadingMessageId);
+        const newMessages = [...filtered, messageWithThinking];
         messagesRef.current = newMessages;
         return newMessages;
       });
@@ -191,11 +231,16 @@ export const useChat = ({
 
           const appName = result.plan?.summary || 'Your app';
 
-          // Success message
+          // Success message with thinking data
           const fileCount = result.fileOperations.length;
+          const thinkingDuration = thinkingStartTimeRef.current
+            ? Date.now() - thinkingStartTimeRef.current
+            : null;
           const successMessage = {
             type: 'assistant',
             content: `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
+            thinking: thinkingStepsRef.current.length > 0 ? [...thinkingStepsRef.current] : null,
+            thinkingDuration,
             timestamp: Date.now()
           };
 
