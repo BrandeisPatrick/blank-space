@@ -3,4 +3,3 @@
  */
 
 export * from './codeCleanup';
-export * from './autoFix';

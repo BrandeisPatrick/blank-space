@@ -109,10 +109,24 @@ export async function fetchWithRetry(url, options = {}, config = {}) {
       clearTimeout(timeoutId);
       lastError = error;
 
-      // Handle timeout (AbortError)
+      // Handle timeout (AbortError) - create new error since DOMException.message is read-only
       if (error.name === 'AbortError') {
-        error.message = `Request timeout after ${timeout}ms`;
-        error.isTimeout = true;
+        const timeoutError = new Error(`Request timeout after ${timeout}ms`);
+        timeoutError.isTimeout = true;
+        timeoutError.name = 'TimeoutError';
+        lastError = timeoutError;
+
+        // Don't retry on last attempt
+        if (attempt === maxRetries - 1) {
+          throw timeoutError;
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.warn(
+          `[${context}] Request timeout (attempt ${attempt + 1}/${maxRetries}). Retrying in ${delay}ms...`
+        );
+        await sleep(delay);
+        continue;
       }
 
       // Check if error is retryable
