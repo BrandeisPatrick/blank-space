@@ -35,7 +35,7 @@ const groupConversationsByDate = (conversations) => {
   const groups = { today: [], yesterday: [], byYear: {} };
 
   conversations.forEach(conv => {
-    const timestamp = conv.updatedAt || conv.createdAt;
+    const timestamp = conv.createdAt;
     const date = new Date(timestamp);
 
     if (date >= today) {
