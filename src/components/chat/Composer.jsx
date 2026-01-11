@@ -28,6 +28,40 @@ const GROK_INPUT_COLORS = {
   },
 };
 
+// Plus icon for image upload
+const PlusIcon = ({ size = 18, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+// Close/X icon for removing images
+const CloseIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 // Apps/Grid icon
 const AppsIcon = ({ size = 18, color = "currentColor" }) => (
   <svg
@@ -70,8 +104,10 @@ export const Composer = ({
   const [message, setMessage] = useState(initialMessage);
   const [showAppsPopover, setShowAppsPopover] = useState(false);
   const [showAppsModal, setShowAppsModal] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]); // Array of {file, preview, base64}
   const appsPopoverRef = useRef(null);
   const appsButtonRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Limit apps to 4 most recent, show "Show All" if more
   const recentApps = useMemo(() => apps.slice(0, 4), [apps]);
@@ -107,9 +143,18 @@ export const Composer = ({
   };
 
   const handleSend = () => {
-    if (message.trim() && onSend) {
-      onSend(message);
+    const hasContent = message.trim() || selectedImages.length > 0;
+    if (hasContent && onSend) {
+      // Pass both text and images
+      const images = selectedImages.map(img => ({
+        base64: img.base64,
+        mimeType: img.mimeType,
+      }));
+      onSend(message, images.length > 0 ? images : null);
       setMessage('');
+      // Clear images and revoke URLs
+      selectedImages.forEach(img => URL.revokeObjectURL(img.preview));
+      setSelectedImages([]);
     }
   };
 
@@ -119,6 +164,66 @@ export const Composer = ({
       handleSend();
     }
   };
+
+  // Handle image file selection
+  const handleImageSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    // Convert each image to base64 and create preview URL
+    const newImages = await Promise.all(
+      imageFiles.map(async (file) => {
+        const base64 = await fileToBase64(file);
+        const preview = URL.createObjectURL(file);
+        return {
+          file,
+          preview,
+          base64,
+          mimeType: file.type,
+        };
+      })
+    );
+
+    setSelectedImages(prev => [...prev, ...newImages]);
+    // Reset file input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Convert file to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Remove the data:image/xxx;base64, prefix
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Remove an image from selection
+  const handleRemoveImage = (index) => {
+    setSelectedImages(prev => {
+      const newImages = [...prev];
+      // Revoke object URL to prevent memory leaks
+      URL.revokeObjectURL(newImages[index].preview);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
+
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      selectedImages.forEach(img => URL.revokeObjectURL(img.preview));
+    };
+  }, []);
 
   // Editing Indicator - shared component for desktop and mobile
   const EditingIndicator = () => {
@@ -210,12 +315,108 @@ export const Composer = ({
           }}
         />
 
+        {/* Image Preview Row - show when images selected */}
+        {selectedImages.length > 0 && (
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            paddingBottom: theme.spacing.sm,
+          }}>
+            {selectedImages.map((img, index) => (
+              <div
+                key={index}
+                style={{
+                  position: 'relative',
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                <img
+                  src={img.preview}
+                  alt={`Selected ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                  }}
+                >
+                  <CloseIcon size={10} color="#fff" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Controls Row - BOTTOM */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: isMobile ? theme.spacing.xs : theme.spacing.sm,
         }}>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageSelect}
+            style={{ display: 'none' }}
+          />
+
+          {/* Plus button for image upload */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              background: colors.buttonBg,
+              border: `1px solid ${mode === 'dark' ? '#333' : '#ddd'}`,
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              color: theme.colors.text.secondary,
+              borderRadius: '50%',
+              transition: `all ${theme.animation.fast}`,
+              flexShrink: 0,
+              opacity: disabled ? 0.5 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (!disabled) e.currentTarget.style.background = colors.hoverBg;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = colors.buttonBg;
+            }}
+            title="Add image"
+          >
+            <PlusIcon size={18} color={theme.colors.text.secondary} />
+          </button>
+
           {/* Apps Button - only show if there are apps */}
           {apps.length > 0 && (
             <div style={{ position: 'relative' }}>
@@ -383,38 +584,44 @@ export const Composer = ({
           <div style={{ flex: 1 }} />
 
           {/* Send Button */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!message.trim() || disabled}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: isMobile ? '36px' : '42px',
-              height: isMobile ? '36px' : '42px',
-              background: message.trim() && !disabled ? '#C97D63' : theme.colors.bg.tertiary,
-              border: 'none',
-              borderRadius: theme.radius.full,
-              cursor: message.trim() && !disabled ? 'pointer' : 'not-allowed',
-              color: message.trim() && !disabled ? '#ffffff' : theme.colors.text.tertiary,
-              transition: `all ${theme.animation.fast}`,
-              opacity: message.trim() && !disabled ? 1 : 0.5,
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              if (message.trim() && !disabled) {
-                e.currentTarget.style.background = '#d89077';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (message.trim() && !disabled) {
-                e.currentTarget.style.background = '#C97D63';
-              }
-            }}
-          >
-            <ArrowUpIcon size={isMobile ? 20 : 24} />
-          </button>
+          {(() => {
+            const hasContent = message.trim() || selectedImages.length > 0;
+            const canSend = hasContent && !disabled;
+            return (
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!canSend}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: isMobile ? '36px' : '42px',
+                  height: isMobile ? '36px' : '42px',
+                  background: canSend ? '#C97D63' : theme.colors.bg.tertiary,
+                  border: 'none',
+                  borderRadius: theme.radius.full,
+                  cursor: canSend ? 'pointer' : 'not-allowed',
+                  color: canSend ? '#ffffff' : theme.colors.text.tertiary,
+                  transition: `all ${theme.animation.fast}`,
+                  opacity: canSend ? 1 : 0.5,
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (canSend) {
+                    e.currentTarget.style.background = '#d89077';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (canSend) {
+                    e.currentTarget.style.background = '#C97D63';
+                  }
+                }}
+              >
+                <ArrowUpIcon size={isMobile ? 20 : 24} />
+              </button>
+            );
+          })()}
         </div>
 
         {/* Editing Indicator (mobile - separate row) */}

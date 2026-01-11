@@ -34,7 +34,7 @@ const CHAT_RETRY_CONFIG = {
  * @returns {Promise<Object>} Result with {success, fileOperations, intent}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { modelTier = 'lite', conversationIntent = null } = options;
+  const { modelTier = 'lite', conversationIntent = null, images = null } = options;
 
   // Callback wrapper for updates
   const sendUpdate = (update) => {
@@ -66,12 +66,12 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
   // Route based on intent
   if (intent === 'chat') {
     // Chat intent → OpenAI with web search
-    console.log(`[Orchestration] Routing to OpenAI (chat with web search)`);
-    return handleChatIntent(userMessage, sendUpdate, options, intent);
+    console.log(`[Orchestration] Routing to OpenAI (chat with web search)${images ? ' with images' : ''}`);
+    return handleChatIntent(userMessage, sendUpdate, options, intent, images);
   } else {
     // Create/debug intent → Gemini for code generation
-    console.log(`[Orchestration] Routing to Gemini (code generation, tier: ${modelTier})`);
-    const result = await processWithGemini(userMessage, currentFiles, onUpdate, options);
+    console.log(`[Orchestration] Routing to Gemini (code generation, tier: ${modelTier})${images ? ' with images' : ''}`);
+    const result = await processWithGemini(userMessage, currentFiles, onUpdate, { ...options, images });
     return { ...result, intent };
   }
 }
@@ -80,12 +80,12 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
  * Handle chat intent using OpenAI with web search
  * Uses gpt-5-mini with web_search_preview for real-time information
  */
-async function handleChatIntent(userMessage, sendUpdate, options, intent) {
+async function handleChatIntent(userMessage, sendUpdate, options, intent, images = null) {
   const { conversationHistory = [] } = options;
 
   sendUpdate({
     type: 'tool_action',
-    action: 'Searching and thinking...'
+    action: images ? 'Analyzing image...' : 'Searching and thinking...'
   });
 
   // Build messages with conversation history
@@ -103,8 +103,24 @@ async function handleChatIntent(userMessage, sendUpdate, options, intent) {
     }
   });
 
-  // Add current user message
-  messages.push({ role: 'user', content: userMessage });
+  // Add current user message (with images if provided)
+  if (images && images.length > 0) {
+    // Format as multimodal content for OpenAI
+    const content = [
+      { type: 'text', text: userMessage || 'What is in this image?' }
+    ];
+    images.forEach(img => {
+      content.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:${img.mimeType};base64,${img.base64}`
+        }
+      });
+    });
+    messages.push({ role: 'user', content });
+  } else {
+    messages.push({ role: 'user', content: userMessage });
+  }
 
   try {
     const response = await fetchWithRetry('/api/chat', {

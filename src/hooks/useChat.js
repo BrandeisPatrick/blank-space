@@ -92,12 +92,15 @@ export const useChat = ({
   /**
    * Send a message and process with AI
    * Handles the full agentic loop (up to 15 iterations)
+   * @param {string} message - The text message
+   * @param {Array|null} images - Array of {base64, mimeType} objects
    */
-  const sendMessage = useCallback(async (message) => {
-    // Add user message
+  const sendMessage = useCallback(async (message, images = null) => {
+    // Add user message (with images if provided)
     const userMessage = {
       type: 'user',
       content: message,
+      images: images, // Store images with message for display
       timestamp: Date.now()
     };
     setMessages(prev => {
@@ -204,7 +207,8 @@ export const useChat = ({
         aiUIStyle,
         isDarkTheme: mode === 'dark',
         conversationHistory,
-        conversationIntent  // Pass stored intent (null for first message)
+        conversationIntent,  // Pass stored intent (null for first message)
+        images  // Pass images for multimodal support
       });
 
       // Store intent from first message for subsequent messages

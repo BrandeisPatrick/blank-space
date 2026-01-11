@@ -136,6 +136,7 @@ async function handleChatRequest(req, res, ai) {
   const {
     model = 'gemini-3-flash-preview',
     message,
+    imageParts,  // Array of {inlineData: {mimeType, data}} for image uploads
     history = [],
     systemInstruction,
     tools,
@@ -169,8 +170,15 @@ async function handleChatRequest(req, res, ai) {
   if (functionResponses) {
     // Continue conversation with function call results
     response = await chat.sendMessage({ message: functionResponses });
+  } else if (imageParts && imageParts.length > 0) {
+    // Build multimodal message with text and images
+    const parts = [
+      { text: message || 'What is in this image?' },
+      ...imageParts  // Already in {inlineData: {mimeType, data}} format
+    ];
+    response = await chat.sendMessage({ message: parts });
   } else {
-    // Send new user message
+    // Send new user message (text only)
     response = await chat.sendMessage({ message });
   }
 

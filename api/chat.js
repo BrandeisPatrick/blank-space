@@ -127,9 +127,10 @@ async function handleWebSearchRequest(req, res, apiKey) {
   } = req.body;
 
   // Convert messages to Responses API format
+  // Handle both string content and array content (for images)
   const input = messages.map(msg => ({
     role: msg.role === 'system' ? 'developer' : msg.role,
-    content: msg.content
+    content: msg.content  // Pass through as-is (supports both string and array format)
   }));
 
   try {

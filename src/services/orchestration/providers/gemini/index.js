@@ -71,7 +71,8 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     aiUIStyle = 'dark-professional',
     isDarkTheme = true,
     isDebugMode = false,
-    debugErrors = []
+    debugErrors = [],
+    images = null  // Array of {base64, mimeType} for image uploads
   } = options;
 
   // Get the actual model ID from the tier
@@ -126,7 +127,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
 
     sendUpdate({
       type: 'thinking',
-      content: 'Analyzing your request with Gemini...'
+      content: images ? 'Analyzing image with Gemini...' : 'Analyzing your request with Gemini...'
     });
 
     const isEditing = Object.keys(currentFiles).length > 0;
@@ -142,6 +143,14 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     // Get auth headers once for the loop
     const loopHeaders = await getAuthHeaders();
 
+    // Format images for Gemini API (inlineData format)
+    const imageParts = images ? images.map(img => ({
+      inlineData: {
+        mimeType: img.mimeType,
+        data: img.base64
+      }
+    })) : null;
+
     // Send initial message to /api/gemini (with retry/timeout)
     let apiResponse = await fetchWithRetry('/api/gemini', {
       method: 'POST',
@@ -150,6 +159,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'chat',
         model,
         message: userMessage,
+        imageParts,  // Include images if provided
         history: [],
         systemInstruction: systemPrompt,
         tools: geminiTools,

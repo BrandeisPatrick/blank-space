@@ -154,6 +154,29 @@ const ChatMessage = ({ message, onDebug, isMobile = false }) => {
         lineHeight: '1.5',
         whiteSpace: 'pre-wrap',
       }}>
+        {/* Display images if present */}
+        {message.images && message.images.length > 0 && (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: content ? '8px' : 0,
+          }}>
+            {message.images.map((img, idx) => (
+              <img
+                key={idx}
+                src={`data:${img.mimeType};base64,${img.base64}`}
+                alt={`Uploaded ${idx + 1}`}
+                style={{
+                  maxWidth: '200px',
+                  maxHeight: '200px',
+                  borderRadius: '8px',
+                  objectFit: 'cover',
+                }}
+              />
+            ))}
+          </div>
+        )}
         {content}
       </div>
     )
