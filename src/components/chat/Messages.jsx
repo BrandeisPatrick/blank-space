@@ -162,19 +162,24 @@ const ChatMessage = ({ message, onDebug, isMobile = false }) => {
             gap: '8px',
             marginBottom: content ? '8px' : 0,
           }}>
-            {message.images.map((img, idx) => (
-              <img
-                key={idx}
-                src={`data:${img.mimeType};base64,${img.base64}`}
-                alt={`Uploaded ${idx + 1}`}
-                style={{
-                  maxWidth: '200px',
-                  maxHeight: '200px',
-                  borderRadius: '8px',
-                  objectFit: 'cover',
-                }}
-              />
-            ))}
+            {message.images.map((img, idx) => {
+              // Use Storage URL if available, otherwise fall back to base64 data URL
+              const src = img.url || (img.base64 ? `data:${img.mimeType};base64,${img.base64}` : null);
+              if (!src) return null;
+              return (
+                <img
+                  key={idx}
+                  src={src}
+                  alt={`Uploaded ${idx + 1}`}
+                  style={{
+                    maxWidth: '200px',
+                    maxHeight: '200px',
+                    borderRadius: '8px',
+                    objectFit: 'cover',
+                  }}
+                />
+              );
+            })}
           </div>
         )}
         {content}

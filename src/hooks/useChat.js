@@ -1,10 +1,32 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useConversation } from '../contexts/ConversationContext';
+import { useAuth } from '../contexts/AuthContext';
+import { storage } from '../config/firebase';
 import { processMessage } from '../services/ToolOrchestrator.js';
 import { TIMING, MESSAGES } from '../constants';
+
+/**
+ * Upload an image to Firebase Storage and return the download URL
+ */
+async function uploadChatImage(userId, image) {
+  const { base64, mimeType, filename } = image;
+  const ext = mimeType.split('/')[1] || 'png';
+  const storagePath = `users/${userId}/chat-images/${Date.now()}-${filename || 'image'}.${ext}`;
+  const storageRef = ref(storage, storagePath);
+
+  // Convert base64 to blob
+  const response = await fetch(`data:${mimeType};base64,${base64}`);
+  const blob = await response.blob();
+
+  await uploadBytes(storageRef, blob);
+  const url = await getDownloadURL(storageRef);
+
+  return { url, mimeType };
+}
 
 /**
  * Custom hook for AI chat processing
@@ -23,6 +45,7 @@ export const useChat = ({
   const { aiColorPalette, aiUIStyle } = useSettings();
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
+  const { user } = useAuth();
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
@@ -93,14 +116,34 @@ export const useChat = ({
    * Send a message and process with AI
    * Handles the full agentic loop (up to 15 iterations)
    * @param {string} message - The text message
-   * @param {Array|null} images - Array of {base64, mimeType} objects
+   * @param {Array|null} images - Array of {base64, mimeType, filename} objects
    */
   const sendMessage = useCallback(async (message, images = null) => {
-    // Add user message (with images if provided)
+    // Upload images to Firebase Storage and get URLs for persistence
+    // Keep base64 for LLM API (transient, not stored)
+    let imageUrlsForStorage = null;
+    const imageBase64ForLLM = images; // Original base64 for API calls
+
+    if (images && images.length > 0 && user?.uid && storage) {
+      try {
+        imageUrlsForStorage = await Promise.all(
+          images.map(img => uploadChatImage(user.uid, img))
+        );
+      } catch (err) {
+        console.error('[useChat] Image upload failed:', err);
+        // Fall back to base64 if upload fails (will cause Firestore issues with large images)
+        imageUrlsForStorage = images.map(img => ({ url: null, mimeType: img.mimeType, base64: img.base64 }));
+      }
+    } else if (images && images.length > 0) {
+      // Guest user or no storage - use base64 (ephemeral, may fail to persist)
+      imageUrlsForStorage = images.map(img => ({ mimeType: img.mimeType, base64: img.base64 }));
+    }
+
+    // Add user message with URLs for persistence (not base64)
     const userMessage = {
       type: 'user',
       content: message,
-      images: images, // Store images with message for display
+      images: imageUrlsForStorage, // URLs for display and persistence
       timestamp: Date.now()
     };
     setMessages(prev => {
@@ -208,7 +251,7 @@ export const useChat = ({
         isDarkTheme: mode === 'dark',
         conversationHistory,
         conversationIntent,  // Pass stored intent (null for first message)
-        images  // Pass images for multimodal support
+        images: imageBase64ForLLM  // Pass base64 images for LLM API (not the stored URLs)
       });
 
       // Store intent from first message for subsequent messages
@@ -328,7 +371,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user]);
 
   /**
    * Debug handler for errors and user-reported issues

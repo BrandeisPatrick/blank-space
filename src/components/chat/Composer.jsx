@@ -145,10 +145,11 @@ export const Composer = ({
   const handleSend = () => {
     const hasContent = message.trim() || selectedImages.length > 0;
     if (hasContent && onSend) {
-      // Pass both text and images
+      // Pass text and images with filename for storage upload
       const images = selectedImages.map(img => ({
         base64: img.base64,
         mimeType: img.mimeType,
+        filename: img.file?.name || 'image',
       }));
       onSend(message, images.length > 0 ? images : null);
       setMessage('');

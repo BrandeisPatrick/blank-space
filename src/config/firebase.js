@@ -6,6 +6,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -35,12 +36,14 @@ const missingVars = requiredEnvVars.filter(
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 
 if (missingVars.length === 0) {
   try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
 
     // Optional: Connect to Firebase Emulators for local development
     // Uncomment these lines if you want to use Firebase Emulators
@@ -54,7 +57,8 @@ if (missingVars.length === 0) {
     app = null;
     auth = null;
     db = null;
+    storage = null;
   }
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };
