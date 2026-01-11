@@ -182,9 +182,9 @@ export const ChatPage = ({
   };
 
   // Handle send message
-  const handleSend = (message) => {
+  const handleSend = (message, images = null) => {
     if (onSendMessage) {
-      onSendMessage(message);
+      onSendMessage(message, images);
     }
   };
 
