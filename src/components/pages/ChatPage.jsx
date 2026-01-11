@@ -284,7 +284,7 @@ export const ChatPage = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'transparent',
+                background: showModelDropdown ? theme.colors.bg.hover : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 color: theme.colors.text.primary,
