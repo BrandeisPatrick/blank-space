@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "https://www.blankspace.build", "https://blankspace.build"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
+  }
+]

@@ -126,11 +126,39 @@ async function handleWebSearchRequest(req, res, apiKey) {
     max_tokens = 1000,
   } = req.body;
 
+  /**
+   * Transform Chat Completions content format to Responses API format
+   * - 'text' → 'input_text'
+   * - 'image_url' → 'input_image' with flattened URL
+   */
+  function transformContentForResponsesAPI(content) {
+    // String content stays as-is
+    if (typeof content === 'string') {
+      return content;
+    }
+    // Array content needs type transformation
+    if (Array.isArray(content)) {
+      return content.map(item => {
+        if (item.type === 'text') {
+          return { type: 'input_text', text: item.text };
+        }
+        if (item.type === 'image_url') {
+          return {
+            type: 'input_image',
+            image_url: item.image_url?.url || item.image_url
+          };
+        }
+        return item;
+      });
+    }
+    return content;
+  }
+
   // Convert messages to Responses API format
   // Handle both string content and array content (for images)
   const input = messages.map(msg => ({
     role: msg.role === 'system' ? 'developer' : msg.role,
-    content: msg.content  // Pass through as-is (supports both string and array format)
+    content: transformContentForResponsesAPI(msg.content)
   }));
 
   try {
