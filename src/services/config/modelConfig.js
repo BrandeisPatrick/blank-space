@@ -132,12 +132,12 @@ export const MODELS = MODEL_CONFIGS;
 export const MODEL_TIERS = {
   lite: {
     id: 'gemini-3-flash-preview',
-    name: 'Lite',
+    name: 'Bina Lite',
     description: 'Fast',
   },
   pro: {
     id: 'gemini-3-pro-preview',
-    name: 'Pro',
+    name: 'Bina Pro',
     description: 'Most capable',
   },
 };

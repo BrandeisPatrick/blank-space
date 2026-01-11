@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
 import { useArtifacts } from '../../contexts/ArtifactContext';
 import { getTheme } from '../../styles/theme';
@@ -12,6 +13,7 @@ import { Messages } from '../chat/Messages';
 import { AuthModal } from '../auth/AuthModal';
 import { Modal as SettingsModal } from '../settings/Modal';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { MODEL_TIERS } from '../../services/config/modelConfig';
 
 // Apps icon for top-right navigation
 const AppsIcon = ({ size = 24, color = "currentColor" }) => (
@@ -29,6 +31,39 @@ const AppsIcon = ({ size = 24, color = "currentColor" }) => (
     <rect x="14" y="3" width="7" height="7" rx="1" />
     <rect x="3" y="14" width="7" height="7" rx="1" />
     <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
+// Chevron down icon for model dropdown
+const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+// Lock icon for auth-required features
+const LockIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
@@ -60,6 +95,7 @@ export const ChatPage = ({
 }) => {
   const { mode } = useTheme();
   const { user } = useAuth();
+  const { openAuthModal } = useSettings();
   const { switchConversation, activeConversationId } = useConversation();
   const { artifacts } = useArtifacts();
 
@@ -73,6 +109,9 @@ export const ChatPage = ({
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isMobile);
   const [isSidebarVisible, setIsSidebarVisible] = useState(!isMobile);
   const [editingApp, setEditingApp] = useState(null); // App being edited/debugged
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const modelDropdownRef = useRef(null);
+  const modelButtonRef = useRef(null);
 
   // Bug #7 fix: Switch to conversation when route parameter changes
   useEffect(() => {
@@ -80,6 +119,22 @@ export const ChatPage = ({
       switchConversation(conversationId);
     }
   }, [conversationId, activeConversationId, switchConversation]);
+
+  // Close model dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        modelDropdownRef.current &&
+        !modelDropdownRef.current.contains(event.target) &&
+        modelButtonRef.current &&
+        !modelButtonRef.current.contains(event.target)
+      ) {
+        setShowModelDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Determine if we should show the empty state (greeting + pills) or messages
   const hasMessages = chatMessages.length > 0;
@@ -214,6 +269,138 @@ export const ChatPage = ({
           </div>
         )}
 
+        {/* Top Left Model Selector */}
+        <div style={{
+          position: 'absolute',
+          top: isMobile ? theme.spacing.md : theme.spacing.lg,
+          left: isMobile ? '56px' : theme.spacing.lg,
+          zIndex: 10,
+        }}>
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={modelButtonRef}
+              onClick={() => setShowModelDropdown(!showModelDropdown)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: theme.colors.text.primary,
+                fontSize: isMobile ? '14px' : '16px',
+                fontWeight: 500,
+                fontFamily: theme.typography.fontFamily.sans,
+                padding: '6px 8px',
+                borderRadius: '8px',
+                transition: `all ${theme.animation.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = theme.colors.bg.hover;
+              }}
+              onMouseLeave={(e) => {
+                if (!showModelDropdown) {
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+            >
+              <span>{MODEL_TIERS[modelTier]?.name || 'Bina Lite'}</span>
+              <ChevronDownIcon size={14} color={theme.colors.text.secondary} />
+            </button>
+
+            {/* Model Dropdown Menu */}
+            {showModelDropdown && (
+              <div
+                ref={modelDropdownRef}
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '4px',
+                  background: theme.colors.bg.secondary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '12px',
+                  minWidth: '180px',
+                  overflow: 'hidden',
+                  zIndex: 100,
+                  padding: '6px',
+                  boxShadow: mode === 'dark'
+                    ? '0 8px 32px rgba(0,0,0,0.4)'
+                    : '0 8px 32px rgba(0,0,0,0.15)',
+                }}
+              >
+                {Object.entries(MODEL_TIERS).map(([key, tier]) => {
+                  const needsAuth = !user && key === 'pro';
+                  const isSelected = modelTier === key && !needsAuth;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => {
+                        if (needsAuth) {
+                          setShowModelDropdown(false);
+                          openAuthModal();
+                        } else {
+                          onChangeModelTier && onChangeModelTier(key);
+                          setShowModelDropdown(false);
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        background: isSelected
+                          ? (mode === 'dark' ? '#2a2a2a' : '#f0f0f0')
+                          : 'transparent',
+                        borderRadius: '8px',
+                        transition: 'background 0.15s ease',
+                        opacity: needsAuth ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = mode === 'dark' ? '#2a2a2a' : '#f5f5f5';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      <div>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          color: theme.colors.text.primary,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontFamily: theme.typography.fontFamily.sans,
+                        }}>
+                          {tier.name}
+                          {needsAuth && <LockIcon size={12} color={theme.colors.text.tertiary} />}
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: theme.colors.text.secondary,
+                          marginTop: '2px',
+                          fontFamily: theme.typography.fontFamily.sans,
+                        }}>
+                          {needsAuth ? 'Sign in required' : tier.description}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span style={{ color: '#10b981', fontSize: '16px', fontWeight: 500 }}>✓</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Top Right Computer Button */}
         <div style={{
           position: 'absolute',
@@ -273,8 +460,6 @@ export const ChatPage = ({
               <Composer
                 placeholder="Message..."
                 onSend={handleSend}
-                modelTier={modelTier}
-                onChangeModelTier={onChangeModelTier}
                 disabled={isAIProcessing}
                 centered={true}
                 isMobile={isMobile}
@@ -325,8 +510,6 @@ export const ChatPage = ({
               <Composer
                 placeholder="Message..."
                 onSend={handleSend}
-                modelTier={modelTier}
-                onChangeModelTier={onChangeModelTier}
                 disabled={isAIProcessing}
                 centered={true}
                 isMobile={isMobile}

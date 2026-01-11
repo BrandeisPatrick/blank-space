@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { useSettings } from '../../contexts/SettingsContext';
 import { getTheme } from '../../styles/theme';
 import { ArrowUpIcon } from '../icons/icons';
 import { COLORS, LAYOUT } from '../../constants';
-import { MODEL_TIERS } from '../../services/config/modelConfig';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
 import { AppsModal } from './AppsModal';
@@ -30,39 +27,6 @@ const GROK_INPUT_COLORS = {
     buttonBorder: '#e0e0e0',
   },
 };
-
-// Chevron down icon for dropdown
-const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-// Lock icon for auth-required features
-const LockIcon = ({ size = 14, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 
 // Apps/Grid icon
 const AppsIcon = ({ size = 18, color = "currentColor" }) => (
@@ -88,8 +52,6 @@ export const Composer = ({
   onFocus,
   onSend,
   initialMessage = '',
-  modelTier = 'lite',
-  onChangeModelTier,
   activeArtifact = null,
   isEditingArtifact = false,
   disabled = false,
@@ -101,18 +63,13 @@ export const Composer = ({
   onStartEdit,
 }) => {
   const { mode } = useTheme();
-  const { user } = useAuth();
-  const { openAuthModal } = useSettings();
   const theme = getTheme(mode);
   const isMobileHook = useIsMobile();
   const isMobile = isMobileProp ?? isMobileHook;
   const { isKeyboardVisible, keyboardHeight } = useVirtualKeyboard();
   const [message, setMessage] = useState(initialMessage);
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [showAppsPopover, setShowAppsPopover] = useState(false);
   const [showAppsModal, setShowAppsModal] = useState(false);
-  const modelDropdownRef = useRef(null);
-  const modelButtonRef = useRef(null);
   const appsPopoverRef = useRef(null);
   const appsButtonRef = useRef(null);
 
@@ -128,15 +85,6 @@ export const Composer = ({
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Model dropdown
-      if (
-        modelDropdownRef.current &&
-        !modelDropdownRef.current.contains(event.target) &&
-        modelButtonRef.current &&
-        !modelButtonRef.current.contains(event.target)
-      ) {
-        setShowModelDropdown(false);
-      }
       // Apps popover
       if (
         appsPopoverRef.current &&
@@ -268,130 +216,6 @@ export const Composer = ({
           alignItems: 'center',
           gap: isMobile ? theme.spacing.xs : theme.spacing.sm,
         }}>
-          {/* Model Tier Dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              ref={modelButtonRef}
-              type="button"
-              onClick={() => setShowModelDropdown(!showModelDropdown)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                background: colors.buttonBg,
-                border: 'none',
-                cursor: 'pointer',
-                color: theme.colors.text.secondary,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.bold,
-                fontFamily: theme.typography.fontFamily.sans,
-                padding: `6px 14px`,
-                borderRadius: '12px',
-                transition: `all ${theme.animation.fast}`,
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = colors.hoverBg;
-              }}
-              onMouseLeave={(e) => {
-                if (!showModelDropdown) {
-                  e.currentTarget.style.background = colors.buttonBg;
-                }
-              }}
-            >
-              <span>{MODEL_TIERS[modelTier]?.name || 'Regular'}</span>
-              <ChevronDownIcon size={14} color={theme.colors.text.secondary} />
-            </button>
-
-            {/* Model Dropdown Menu */}
-            {showModelDropdown && (
-              <div
-                ref={modelDropdownRef}
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  marginBottom: '8px',
-                  background: theme.colors.bg.secondary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '8px',
-                  minWidth: '160px',
-                  overflow: 'hidden',
-                  zIndex: 100,
-                  padding: '6px',
-                }}
-              >
-                {Object.entries(MODEL_TIERS).map(([key, tier]) => {
-                  const needsAuth = !user && key === 'pro';
-                  const isSelected = modelTier === key && !needsAuth;
-                  return (
-                    <div
-                      key={key}
-                      onClick={() => {
-                        if (needsAuth) {
-                          setShowModelDropdown(false);
-                          openAuthModal();
-                        } else {
-                          onChangeModelTier && onChangeModelTier(key);
-                          setShowModelDropdown(false);
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        cursor: 'pointer',
-                        background: isSelected
-                          ? (mode === 'dark' ? '#2a2a2a' : '#f0f0f0')
-                          : 'transparent',
-                        borderRadius: '8px',
-                        transition: 'background 0.15s ease',
-                        opacity: needsAuth ? 0.6 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.background = mode === 'dark' ? '#2a2a2a' : '#f5f5f5';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.background = 'transparent';
-                        }
-                      }}
-                    >
-                      <div>
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          color: theme.colors.text.primary,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontFamily: theme.typography.fontFamily.sans,
-                        }}>
-                          {tier.name}
-                          {needsAuth && <LockIcon size={12} color={theme.colors.text.tertiary} />}
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: theme.colors.text.secondary,
-                          marginTop: '2px',
-                          fontFamily: theme.typography.fontFamily.sans,
-                        }}>
-                          {needsAuth ? 'Sign in required' : tier.description}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <span style={{ color: '#10b981', fontSize: '16px', fontWeight: 500 }}>✓</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Apps Button - only show if there are apps */}
           {apps.length > 0 && (
             <div style={{ position: 'relative' }}>
@@ -613,8 +437,6 @@ Composer.propTypes = {
   onFocus: PropTypes.func,
   onSend: PropTypes.func.isRequired,
   initialMessage: PropTypes.string,
-  modelTier: PropTypes.oneOf(['lite', 'pro']),
-  onChangeModelTier: PropTypes.func,
   activeArtifact: PropTypes.object,
   isEditingArtifact: PropTypes.bool,
   disabled: PropTypes.bool,
