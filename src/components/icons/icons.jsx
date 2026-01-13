@@ -3,6 +3,47 @@
  * Clean, scalable icons to replace emoji in the UI
  */
 
+import { motion } from 'framer-motion';
+
+// Brand Logo - modern rounded B
+export const BrandLogo = ({ size = 22, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M5 3a1 1 0 0 1 1-1h6.5a5.5 5.5 0 0 1 4 9.3A6 6 0 0 1 13 22H6a1 1 0 0 1-1-1V3zm3 8h4.5a2.5 2.5 0 0 0 0-5H8v5zm0 3v5h5a3 3 0 1 0 0-6H8z" fillRule="evenodd" />
+  </svg>
+);
+
+// Animated Chat Icon - bouncing dots on hover
+export const AnimatedChatIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    {isHovered && [8, 12, 16].map((cx, i) => (
+      <motion.circle key={cx} cx={cx} cy="10" r="1" fill={color} stroke="none"
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.15 }}
+      />
+    ))}
+  </svg>
+);
+
+// Animated Computer Icon - lines draw on hover
+export const AnimatedComputerIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M8 21h8" />
+    <path d="M12 17v4" />
+    {isHovered && (
+      <>
+        <motion.line x1="6" y1="8" x2="14" y2="8" strokeWidth="1.5"
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3 }}
+        />
+        <motion.line x1="6" y1="11" x2="10" y2="11" strokeWidth="1.5"
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.15 }}
+        />
+      </>
+    )}
+  </svg>
+);
+
 export const LightningIcon = ({ size = 48, color = "currentColor" }) => (
   <svg
     width={size}
@@ -787,6 +828,23 @@ export const HistoryIcon = ({ size = 20, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+// Animated History Icon - clock hands tick on hover
+export const AnimatedHistoryIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    {isHovered ? (
+      <motion.polyline
+        points="12 6 12 12 16 14"
+        animate={{ rotate: [0, -30, 0] }}
+        transition={{ duration: 0.4 }}
+        style={{ transformOrigin: '12px 12px' }}
+      />
+    ) : (
+      <polyline points="12 6 12 12 16 14" />
+    )}
   </svg>
 );
 

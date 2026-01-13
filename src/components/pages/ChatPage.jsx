@@ -401,42 +401,6 @@ export const ChatPage = ({
           </div>
         </div>
 
-        {/* Top Right Computer Button */}
-        <div style={{
-          position: 'absolute',
-          top: isMobile ? theme.spacing.md : theme.spacing.lg,
-          right: isMobile ? theme.spacing.md : theme.spacing.lg,
-          zIndex: 10,
-        }}>
-          <button
-            onClick={handleGoToApps}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: isMobile ? '36px' : '40px',
-              height: isMobile ? '36px' : '40px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.lg,
-              cursor: 'pointer',
-              color: theme.colors.text.secondary,
-              transition: `all ${theme.animation.fast}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = theme.colors.bg.hover;
-              e.currentTarget.style.color = theme.colors.text.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = theme.colors.text.secondary;
-            }}
-            title="Computer"
-          >
-            <AppsIcon size={isMobile ? 20 : 22} />
-          </button>
-        </div>
-
         {!hasMessages ? (
           // Empty state: Greeting + Input (centered)
           <div style={{

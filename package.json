@@ -30,6 +30,7 @@
     "@vercel/analytics": "^1.6.1",
     "firebase": "^12.4.0",
     "firebase-admin": "^13.5.0",
+    "framer-motion": "^12.26.2",
     "openai": "^6.5.0",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",

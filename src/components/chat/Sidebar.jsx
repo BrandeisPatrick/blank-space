@@ -10,13 +10,13 @@ import { useArtifacts } from '../../contexts/ArtifactContext';
 import { getTheme } from '../../styles/theme';
 import SearchModal from './SearchModal';
 import {
-  LogoIcon,
+  BrandLogo,
   PanelsIcon,
   SearchIcon,
-  ChatIcon,
-  HistoryIcon,
+  AnimatedChatIcon,
+  AnimatedComputerIcon,
+  AnimatedHistoryIcon,
   ChevronRightIcon,
-  AppsIcon,
   UserIcon,
   SettingsIcon,
   SignOutIcon,
@@ -53,39 +53,41 @@ const groupConversationsByDate = (conversations) => {
 };
 
 // Sidebar navigation item - minimal style with transparent background
-const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) => (
-  <button
-    onClick={onClick}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: expanded ? '12px' : 0,
-      width: expanded ? '100%' : '40px',
-      height: '40px',
-      padding: expanded ? '0 12px' : 0,
-      justifyContent: expanded ? 'flex-start' : 'center',
-      background: active ? colors.activeBg : 'transparent',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      color: colors.textPrimary,
-      transition: 'background 0.15s ease',
-      fontSize: '14px',
-      fontWeight: 400,
-      fontFamily: colors.fontFamily,
-    }}
-    onMouseEnter={(e) => {
-      if (!active) e.currentTarget.style.background = colors.hoverBg;
-    }}
-    onMouseLeave={(e) => {
-      if (!active) e.currentTarget.style.background = 'transparent';
-    }}
-    title={!expanded ? label : undefined}
-  >
-    <Icon size={20} />
-    {expanded && <span>{label}</span>}
-  </button>
-);
+const SidebarItem = ({ icon: Icon, label, onClick, active, expanded, colors }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: expanded ? '12px' : 0,
+        width: expanded ? '100%' : '40px',
+        height: '40px',
+        padding: expanded ? '0 12px' : 0,
+        justifyContent: expanded ? 'flex-start' : 'center',
+        background: active ? colors.activeBg : (isHovered ? colors.hoverBg : 'transparent'),
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        color: colors.textPrimary,
+        transition: 'background 0.15s ease',
+        fontSize: '14px',
+        fontWeight: 400,
+        fontFamily: colors.fontFamily,
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title={!expanded ? label : undefined}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+        <Icon size={20} isHovered={isHovered} />
+      </span>
+      {expanded && <span>{label}</span>}
+    </button>
+  );
+};
 
 SidebarItem.propTypes = {
   icon: PropTypes.elementType.isRequired,
@@ -94,6 +96,42 @@ SidebarItem.propTypes = {
   active: PropTypes.bool,
   expanded: PropTypes.bool,
   colors: PropTypes.object.isRequired,
+};
+
+// History header with animated icon
+const HistoryHeader = ({ onClick, isExpanded, colors }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '0 12px',
+        width: '100%',
+        height: '40px',
+        background: isHovered ? colors.hoverBg : 'transparent',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        color: colors.textPrimary,
+        fontSize: '14px',
+        fontWeight: 400,
+        fontFamily: colors.fontFamily,
+        transition: 'background 0.15s ease',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+        <AnimatedHistoryIcon size={20} isHovered={isHovered} />
+      </span>
+      <span style={{ flex: 1, textAlign: 'left' }}>History</span>
+      <ChevronRightIcon size={14} expanded={isExpanded} />
+    </button>
+  );
 };
 
 // Conversation item - minimal style
@@ -461,9 +499,20 @@ export const Sidebar = ({
     if (isMobile) onClose?.();
   }, [clearActiveArtifact, createConversation, navigate, isMobile, onClose]);
 
+  // Handle click on empty space to toggle sidebar
+  const handleSidebarClick = (e) => {
+    // Only toggle if clicking directly on the sidebar container or empty divs
+    const tag = e.target.tagName.toLowerCase();
+    const isInteractive = ['button', 'a', 'input', 'svg', 'path', 'span', 'circle', 'rect', 'line'].includes(tag);
+    if (!isInteractive) {
+      onToggle?.();
+    }
+  };
+
   return (
     <div
       data-sidebar
+      onClick={handleSidebarClick}
       style={{
         width: isMobile ? '280px' : sidebarWidth,
         minWidth: isMobile ? '280px' : sidebarWidth,
@@ -474,6 +523,7 @@ export const Sidebar = ({
         gap: '4px',
         background: colors.bg,
         borderRight: `1px solid ${colors.border}`,
+        cursor: 'pointer',
         transition: isMobile
           ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           : 'width 0.2s ease, min-width 0.2s ease',
@@ -514,7 +564,7 @@ export const Sidebar = ({
           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           title="Toggle Sidebar"
         >
-          {expanded ? <PanelsIcon size={22} /> : <LogoIcon size={22} />}
+          <BrandLogo size={28} />
         </button>
       </div>
 
@@ -524,9 +574,9 @@ export const Sidebar = ({
       </div>
 
       {/* Navigation Items */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: expanded ? 'stretch' : 'center' }}>
         <SidebarItem
-          icon={ChatIcon}
+          icon={AnimatedChatIcon}
           label="Chat"
           onClick={handleChat}
           active={isOnChatPage}
@@ -534,7 +584,7 @@ export const Sidebar = ({
           colors={colors}
         />
         <SidebarItem
-          icon={AppsIcon}
+          icon={AnimatedComputerIcon}
           label="Computer"
           onClick={handleApps}
           active={isOnAppsPage}
@@ -547,32 +597,11 @@ export const Sidebar = ({
       {expanded && user && (
         <div className="dark-scrollbar" style={{ flex: 1, overflow: 'auto', marginTop: '4px' }}>
           {/* History Header - Collapsible */}
-          <button
+          <HistoryHeader
             onClick={() => setIsHistoryExpanded(prev => !prev)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '0 12px',
-              width: '100%',
-              height: '40px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              color: colors.textPrimary,
-              fontSize: '14px',
-              fontWeight: 400,
-              fontFamily: colors.fontFamily,
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >
-            <HistoryIcon size={20} />
-            <span style={{ flex: 1, textAlign: 'left' }}>History</span>
-            <ChevronRightIcon size={14} expanded={isHistoryExpanded} />
-          </button>
+            isExpanded={isHistoryExpanded}
+            colors={colors}
+          />
 
           {/* Conversation List */}
           {isHistoryExpanded && (isLoading ? (
