@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/blankspace-banner.png" width="50%" alt="blank space"/>
+  <img src="./public/images/banner-dark.png" width="50%" alt="blank space"/>
 </p>
 
 <p align="center">
@@ -42,7 +42,7 @@ Open-source AI app builder. Fast, simple, self-hostable (optimized for mobile).
 ## 🎬 Demo
 
 <p align="center">
-  <img src="./public/blank-space-demo.gif" width="800" alt="Blank Space Demo">
+  <img src="./public/docs/blank-space-demo.gif" width="800" alt="Blank Space Demo">
 </p>
 
 ---

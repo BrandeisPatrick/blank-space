@@ -2,7 +2,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 export const Banner = () => {
   const { mode } = useTheme();
-  const bannerSrc = mode === 'light' ? '/blankspace-banner-light.png' : '/blankspace-banner.png';
+  const bannerSrc = mode === 'light' ? '/images/banner-light.png' : '/images/banner-dark.png';
 
   return (
     <div style={{
