@@ -530,6 +530,20 @@ export const ConversationProvider = ({ children }) => {
     await updateInFirestore(currentConvId, { artifactId });
   }, [updateInFirestore]);
 
+  // Clear all conversations (used after server-side deletion)
+  const clearAllConversations = useCallback(() => {
+    // Clear any pending syncs
+    failedSyncs.current.clear();
+    creatingInFirestore.current.clear();
+
+    // Create fresh conversation
+    const newConv = createInitialConversation();
+    setConversations([newConv]);
+    setActiveConversationId(newConv.id);
+
+    console.log('[Clear] All conversations cleared locally');
+  }, []);
+
   // Get conversation list with titles
   const conversationList = useMemo(() => {
     return conversations.map(conv => ({
@@ -557,13 +571,14 @@ export const ConversationProvider = ({ children }) => {
       deleteConversation,
       getConversation,
       linkArtifact,
+      clearAllConversations,
       // Loading state
       isLoading,
       isSynced,
       // Refresh
       refresh: fetchConversations,
     }),
-    [messages, addMessage, clearMessages, setMessages, conversationList, activeConversationId, createConversation, switchConversation, deleteConversation, getConversation, linkArtifact, isLoading, isSynced, fetchConversations]
+    [messages, addMessage, clearMessages, setMessages, conversationList, activeConversationId, createConversation, switchConversation, deleteConversation, getConversation, linkArtifact, clearAllConversations, isLoading, isSynced, fetchConversations]
   );
 
   return (

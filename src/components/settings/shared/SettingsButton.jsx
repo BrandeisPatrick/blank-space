@@ -45,6 +45,8 @@ export const SettingsButton = ({ children, onClick, variant = 'default' }) => {
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         whiteSpace: 'nowrap',
+        minWidth: '90px',
+        textAlign: 'center',
       }}
     >
       {children}

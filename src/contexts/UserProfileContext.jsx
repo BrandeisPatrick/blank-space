@@ -145,6 +145,24 @@ export const UserProfileProvider = ({ children }) => {
     }
   }, [user, makeAuthenticatedRequest]);
 
+  // Delete all conversation data only
+  const deleteConversationData = useCallback(async () => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    setError(null);
+
+    try {
+      const result = await makeAuthenticatedRequest('/api/conversations/clear', {
+        method: 'DELETE',
+      });
+      return { success: true, deletedCount: result.deletedCount };
+    } catch (error) {
+      console.error('Error deleting conversation data:', error);
+      setError(error.message);
+      return { success: false, error: error.message };
+    }
+  }, [user, makeAuthenticatedRequest]);
+
   // Clear error
   const clearError = useCallback(() => setError(null), []);
 
@@ -157,9 +175,10 @@ export const UserProfileProvider = ({ children }) => {
       updateProfile,
       updateSettings,
       deleteAccountData,
+      deleteConversationData,
       clearError,
     }),
-    [profile, loading, error, loadProfile, updateProfile, updateSettings, deleteAccountData, clearError]
+    [profile, loading, error, loadProfile, updateProfile, updateSettings, deleteAccountData, deleteConversationData, clearError]
   );
 
   return (
