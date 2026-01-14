@@ -57,19 +57,24 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     console.log(`[Orchestration] New conversation intent: "${userMessage.slice(0, 50)}..." → ${intent} (${intentResult.source})`);
   }
 
-  // Show intent in thinking block
-  sendUpdate({
-    type: 'intent',
-    content: `Intent: ${intent}`
-  });
-
-  // Route based on intent
+  // Route based on intent and show agent info
   if (intent === 'chat') {
     // Chat intent → OpenAI with web search
+    const llmModel = 'gpt-5-mini';
+    sendUpdate({
+      type: 'intent',
+      content: ['Agent: Chat', `LLM: ${llmModel}`]
+    });
     console.log(`[Orchestration] Routing to OpenAI (chat with web search)${images ? ' with images' : ''}`);
     return handleChatIntent(userMessage, sendUpdate, options, intent, images);
   } else {
     // Create/debug intent → Gemini for code generation
+    const agentName = intent === 'create' ? 'Code' : 'Debug';
+    const llmModel = modelTier === 'pro' ? 'gemini-3-pro' : 'gemini-3-flash';
+    sendUpdate({
+      type: 'intent',
+      content: [`Agent: ${agentName}`, `LLM: ${llmModel}`]
+    });
     console.log(`[Orchestration] Routing to Gemini (code generation, tier: ${modelTier})${images ? ' with images' : ''}`);
     const result = await processWithGemini(userMessage, currentFiles, onUpdate, { ...options, images });
     return { ...result, intent };

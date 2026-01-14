@@ -13,7 +13,6 @@ import {
   SendIcon,
   ChevronDownIcon,
 } from '../icons/icons';
-import { LoadingDots } from '../ui/LoadingDots';
 
 const AVAILABLE_MODELS = [
   { id: 'gpt-4o-mini', name: 'Lite', description: 'Fast & efficient' },
@@ -494,7 +493,7 @@ export const ChatAppPanel = () => {
               color: theme.colors.text.secondary,
               fontSize: theme.typography.fontSize.sm,
             }}>
-              <LoadingDots />
+              Thinking...
             </div>
           )}
 

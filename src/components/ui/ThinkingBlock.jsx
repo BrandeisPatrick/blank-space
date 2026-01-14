@@ -11,8 +11,8 @@ export const ThinkingBlock = ({ steps = [], duration, isComplete = true }) => {
   const theme = getTheme(mode);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Don't render if no steps
-  if (!steps || steps.length === 0) return null;
+  // Don't render completed block with no steps
+  if (isComplete && (!steps || steps.length === 0)) return null;
 
   // Format duration (ms to seconds)
   const formatDuration = (ms) => {

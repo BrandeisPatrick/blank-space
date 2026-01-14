@@ -183,7 +183,9 @@ export const useChat = ({
       // Collect thinking steps for collapsed thinking UI
       if (update.type === 'thinking' || update.type === 'intent' || update.type === 'plan') {
         if (update.content) {
-          thinkingStepsRef.current = [...thinkingStepsRef.current, update.content];
+          // Support array content for multiple rows
+          const newSteps = Array.isArray(update.content) ? update.content : [update.content];
+          thinkingStepsRef.current = [...thinkingStepsRef.current, ...newSteps];
           // Update loading message with thinking steps
           setMessages(prev => {
             const newMessages = prev.map(msg =>

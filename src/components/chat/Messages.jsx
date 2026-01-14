@@ -3,7 +3,6 @@ import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
-import { LoadingDots } from '../ui/LoadingDots'
 import { ThinkingBlock } from '../ui/ThinkingBlock'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
@@ -115,22 +114,10 @@ const ChatMessage = ({ message, onDebug, isMobile = false }) => {
         padding: `${theme.spacing.xs} 0`,
         maxWidth: isMobile ? '95%' : '90%',
       }}>
-        {/* Show thinking steps while loading */}
-        {message.thinking && message.thinking.length > 0 ? (
-          <ThinkingBlock
-            steps={message.thinking}
-            isComplete={false}
-          />
-        ) : (
-          <div style={{
-            color: theme.colors.text.secondary,
-            fontFamily: theme.typography.fontFamily.sans,
-            fontSize,
-            lineHeight: '1.6',
-          }}>
-            <LoadingDots />
-          </div>
-        )}
+        <ThinkingBlock
+          steps={message.thinking || []}
+          isComplete={false}
+        />
       </div>
     )
   }

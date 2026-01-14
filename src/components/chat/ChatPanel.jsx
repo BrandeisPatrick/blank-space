@@ -3,7 +3,6 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { LightningIcon } from '../icons'
 import { ErrorMessage } from './ErrorMessage'
-import { LoadingDots } from '../ui/LoadingDots'
 import { filterVisibleMessages } from '../../utils/messageUtils'
 
 export const ChatPanel = ({ messages = [], onFixBug }) => {
@@ -142,7 +141,7 @@ const ChatMessage = ({ message, onFixBug }) => {
         border: `1px solid ${theme.colors.border}`,
         fontStyle: 'italic',
       }}>
-        {message.content ? message.content : <LoadingDots />}
+        {message.content || 'Thinking...'}
       </div>
     )
   }
