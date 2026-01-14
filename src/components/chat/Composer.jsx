@@ -105,9 +105,16 @@ export const Composer = ({
   const [showAppsPopover, setShowAppsPopover] = useState(false);
   const [showAppsModal, setShowAppsModal] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]); // Array of {file, preview, base64}
+  // @ mention state
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [mentionedApp, setMentionedApp] = useState(null);
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const appsPopoverRef = useRef(null);
   const appsButtonRef = useRef(null);
   const fileInputRef = useRef(null);
+  const mentionDropdownRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Limit apps to 4 most recent, show "Show All" if more
   const recentApps = useMemo(() => apps.slice(0, 4), [apps]);
@@ -130,6 +137,15 @@ export const Composer = ({
       ) {
         setShowAppsPopover(false);
       }
+      // Mention dropdown
+      if (
+        mentionDropdownRef.current &&
+        !mentionDropdownRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowMentionDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -142,6 +158,61 @@ export const Composer = ({
     }
   };
 
+  // Handle input change with @ mention detection
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setMessage(value);
+
+    // Find the @ symbol before cursor
+    let atIndex = -1;
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      if (value[i] === '@') {
+        atIndex = i;
+        break;
+      }
+      // Stop if we hit a space (means we're not in a mention)
+      if (value[i] === ' ' && i < cursorPos - 1) {
+        break;
+      }
+    }
+
+    if (atIndex !== -1) {
+      const afterAt = value.slice(atIndex + 1, cursorPos);
+      // Show dropdown if @ is followed by non-space characters or nothing
+      if (!afterAt.includes(' ')) {
+        setShowMentionDropdown(true);
+        setMentionFilter(afterAt.toLowerCase());
+        setMentionStartIndex(atIndex);
+      } else {
+        setShowMentionDropdown(false);
+      }
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  // Handle selecting an app from mention dropdown
+  const handleSelectMentionApp = (app) => {
+    // Replace @partial with @appName
+    const beforeAt = message.slice(0, mentionStartIndex);
+    const afterMention = message.slice(mentionStartIndex + 1 + mentionFilter.length);
+    const newMessage = `${beforeAt}@${app.title} ${afterMention}`;
+    setMessage(newMessage);
+    setMentionedApp(app);
+    setShowMentionDropdown(false);
+    // Focus back on input
+    inputRef.current?.focus();
+  };
+
+  // Filter apps for mention dropdown
+  const filteredMentionApps = useMemo(() => {
+    if (!mentionFilter) return apps;
+    return apps.filter(app =>
+      app.title.toLowerCase().includes(mentionFilter)
+    );
+  }, [apps, mentionFilter]);
+
   const handleSend = () => {
     const hasContent = message.trim() || selectedImages.length > 0;
     if (hasContent && onSend) {
@@ -151,8 +222,10 @@ export const Composer = ({
         mimeType: img.mimeType,
         filename: img.file?.name || 'image',
       }));
-      onSend(message, images.length > 0 ? images : null);
+      // Pass mentionedApp if an app was mentioned
+      onSend(message, images.length > 0 ? images : null, mentionedApp);
       setMessage('');
+      setMentionedApp(null); // Clear mentioned app after send
       // Clear images and revoke URLs
       selectedImages.forEach(img => URL.revokeObjectURL(img.preview));
       setSelectedImages([]);
@@ -295,26 +368,78 @@ export const Composer = ({
         borderRadius: isMobile ? '28px' : LAYOUT.CHAT_INPUT_BORDER_RADIUS,
       }}>
         {/* Input Row - TOP */}
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onFocus={handleFocus}
-          onKeyDown={handleKeyDown}
-          placeholder={disabled ? 'Generating...' : placeholder}
-          disabled={disabled}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: theme.colors.text.primary,
-            fontSize: isMobile ? theme.typography.fontSize.base : theme.typography.fontSize.lg,
-            fontFamily: theme.typography.fontFamily.sans,
-            padding: isMobile ? `${theme.spacing.xs} 0` : `${theme.spacing.sm} 0`,
-            opacity: disabled ? 0.6 : 1,
-          }}
-        />
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={message}
+            onChange={handleInputChange}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
+            placeholder={disabled ? 'Generating...' : placeholder}
+            disabled={disabled}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: theme.colors.text.primary,
+              fontSize: isMobile ? theme.typography.fontSize.base : theme.typography.fontSize.lg,
+              fontFamily: theme.typography.fontFamily.sans,
+              padding: isMobile ? `${theme.spacing.xs} 0` : `${theme.spacing.sm} 0`,
+              opacity: disabled ? 0.6 : 1,
+            }}
+          />
+
+          {/* @ Mention Dropdown */}
+          {showMentionDropdown && filteredMentionApps.length > 0 && (
+            <div
+              ref={mentionDropdownRef}
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: '8px',
+                background: theme.colors.bg.secondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.lg,
+                minWidth: '200px',
+                maxWidth: '300px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 100,
+                boxShadow: mode === 'dark'
+                  ? '0 8px 32px rgba(0,0,0,0.4)'
+                  : '0 8px 32px rgba(0,0,0,0.15)',
+              }}
+            >
+              {filteredMentionApps.map((app) => (
+                <div
+                  key={app.id}
+                  onClick={() => handleSelectMentionApp(app)}
+                  style={{
+                    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                    cursor: 'pointer',
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.sans,
+                    color: theme.colors.text.primary,
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    transition: `background ${theme.animation.fast}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = theme.colors.bg.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <span style={{ color: theme.colors.accent.ios, fontWeight: 500 }}>@</span>
+                  {app.title}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Image Preview Row - show when images selected */}
         {selectedImages.length > 0 && (

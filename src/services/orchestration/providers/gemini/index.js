@@ -112,8 +112,15 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     const executor = new ToolExecutor(toolRegistry);
     const context = { fs: vfs };
 
-    // Convert tools to Gemini format
-    const geminiTools = convertToolsToGeminiFormat(toolRegistry);
+    // Convert tools to Gemini format - create two tool sets for two-phase execution
+    const allGeminiTools = convertToolsToGeminiFormat(toolRegistry);
+
+    // Phase 1 tools: read-only (glob, read) - for planning
+    const readOnlyToolNames = ['glob', 'read'];
+    const planningTools = allGeminiTools.filter(toolDef => {
+      const funcName = toolDef.functionDeclarations?.[0]?.name;
+      return readOnlyToolNames.includes(funcName);
+    });
 
     // Build system prompt (use local debug state which may have been set by intent classification)
     const systemPrompt = buildSystemPrompt({
@@ -125,20 +132,10 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       debugContext: debugContext,
     });
 
-    sendUpdate({
-      type: 'thinking',
-      content: images ? 'Analyzing image with Gemini...' : 'Analyzing your request with Gemini...'
-    });
-
     const isEditing = Object.keys(currentFiles).length > 0;
     if (isEditing) {
       console.log(`[Gemini Provider] Edit mode for ${Object.keys(currentFiles).length} existing file(s)`);
     }
-
-    // Tool calling loop using /api/gemini serverless function
-    let loopCount = 0;
-    const maxLoops = 15;
-    let history = [];
 
     // Get auth headers once for the loop
     const loopHeaders = await getAuthHeaders();
@@ -151,7 +148,22 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       }
     })) : null;
 
-    // Send initial message to /api/gemini (with retry/timeout)
+    // ========================================
+    // PHASE 1: Planning (read-only tools)
+    // ========================================
+    console.log('[Gemini Provider] Phase 1: Planning (read-only tools)');
+    sendUpdate({
+      type: 'thinking',
+      content: 'Planning...'
+    });
+
+    let loopCount = 0;
+    const maxPlanningLoops = 10;
+    const maxExecutionLoops = 15;
+    let history = [];
+    let planText = '';
+
+    // Send initial message with planning tools only
     let apiResponse = await fetchWithRetry('/api/gemini', {
       method: 'POST',
       headers: loopHeaders,
@@ -159,17 +171,16 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'chat',
         model,
         message: userMessage,
-        imageParts,  // Include images if provided
+        imageParts,
         history: [],
         systemInstruction: systemPrompt,
-        tools: geminiTools,
+        tools: planningTools,  // Read-only tools for planning
         thinkingConfig: { thinkingLevel: 'low' }
       })
     }, GEMINI_RETRY_CONFIG);
 
     if (!apiResponse.ok) {
       const errorData = await apiResponse.json().catch(() => ({}));
-      // Handle quota exceeded (429) with proper error structure
       if (apiResponse.status === 429 && errorData.quota) {
         const err = new Error(errorData.message || 'Quota exceeded');
         err.isQuotaExceeded = true;
@@ -183,20 +194,127 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     let response = await apiResponse.json();
     history = response.history || [];
 
-    while (loopCount < maxLoops) {
+    // Phase 1 loop: execute read-only tools until we get a plan (text response)
+    while (loopCount < maxPlanningLoops) {
       loopCount++;
+
+      // Check for text response (the plan)
+      if (response.text && response.text.trim()) {
+        planText = response.text.trim();
+        console.log(`[Gemini Provider] Plan received after ${loopCount} loop(s)`);
+        sendUpdate({
+          type: 'plan',
+          content: planText
+        });
+        break;
+      }
 
       // Check for function calls
       const functionCalls = response.functionCalls;
       if (!functionCalls || functionCalls.length === 0) {
-        // No more function calls - we're done
-        console.log(`[Gemini Provider] Completed after ${loopCount} loop(s)`);
+        console.log(`[Gemini Provider] No function calls or plan in loop ${loopCount}`);
         break;
       }
 
       console.log(`[Gemini Provider] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
 
-      // Execute function calls locally
+      // Execute read-only function calls
+      const functionResponses = [];
+      for (const fc of functionCalls) {
+        const toolName = fc.name;
+        const params = fc.args || {};
+
+        // Only allow read-only tools in planning phase
+        if (!readOnlyToolNames.includes(toolName)) {
+          console.warn(`[Gemini Provider] Blocked non-read tool in planning phase: ${toolName}`);
+          functionResponses.push({
+            name: toolName,
+            response: { success: false, error: 'Tool not available in planning phase. Output your plan first.' },
+          });
+          continue;
+        }
+
+        sendUpdate({
+          type: 'tool_action',
+          action: formatToolAction(toolName, params),
+          tool: toolName,
+          params
+        });
+
+        const result = await executeFunction(toolName, params, executor, context);
+        functionResponses.push({
+          name: toolName,
+          response: result,
+        });
+      }
+
+      // Send function responses back
+      const functionResponseParts = functionResponses.map(fr => ({
+        functionResponse: {
+          name: fr.name,
+          response: fr.response
+        }
+      }));
+
+      apiResponse = await fetchWithRetry('/api/gemini', {
+        method: 'POST',
+        headers: loopHeaders,
+        body: JSON.stringify({
+          action: 'chat',
+          model,
+          history,
+          functionResponses: functionResponseParts,
+          systemInstruction: systemPrompt,
+          tools: planningTools,  // Still read-only tools
+          thinkingConfig: { thinkingLevel: 'low' }
+        })
+      }, GEMINI_RETRY_CONFIG);
+
+      if (!apiResponse.ok) {
+        const errorData = await apiResponse.json().catch(() => ({}));
+        if (apiResponse.status === 429 && errorData.quota) {
+          const err = new Error(errorData.message || 'Quota exceeded');
+          err.isQuotaExceeded = true;
+          err.quota = errorData.quota;
+          err.upgradeUrl = errorData.upgradeUrl || '/pricing';
+          throw err;
+        }
+        throw new Error(errorData.message || `API error: ${apiResponse.status}`);
+      }
+
+      response = await apiResponse.json();
+      history = response.history || history;
+    }
+
+    // ========================================
+    // PHASE 2: Execution (all tools)
+    // ========================================
+    console.log('[Gemini Provider] Phase 2: Execution (all tools)');
+    sendUpdate({
+      type: 'thinking',
+      content: 'Implementing...'
+    });
+
+    // DON'T send new message - just continue processing pending function calls
+    // The last response from Phase 1 might have function calls waiting to be executed
+    // History is already preserved from Phase 1
+
+    // Phase 2 loop: execute all tools (including write/validate now)
+    let executionLoops = 0;
+    while (executionLoops < maxExecutionLoops) {
+      executionLoops++;
+      loopCount++;
+
+      // Check for function calls
+      const functionCalls = response.functionCalls;
+      if (!functionCalls || functionCalls.length === 0) {
+        console.log(`[Gemini Provider] Completed after ${loopCount} total loop(s)`);
+        break;
+      }
+
+      console.log(`[Gemini Provider] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
+
+      // Execute all function calls
       const functionResponses = [];
       for (const fc of functionCalls) {
         const toolName = fc.name;
@@ -216,7 +334,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         });
       }
 
-      // Send function responses back via /api/gemini (with retry/timeout)
+      // Send function responses back
       const functionResponseParts = functionResponses.map(fr => ({
         functionResponse: {
           name: fr.name,
@@ -233,14 +351,13 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
           history,
           functionResponses: functionResponseParts,
           systemInstruction: systemPrompt,
-          tools: geminiTools,
+          tools: allGeminiTools,
           thinkingConfig: { thinkingLevel: 'low' }
         })
       }, GEMINI_RETRY_CONFIG);
 
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json().catch(() => ({}));
-        // Handle quota exceeded (429) with proper error structure
         if (apiResponse.status === 429 && errorData.quota) {
           const err = new Error(errorData.message || 'Quota exceeded');
           err.isQuotaExceeded = true;
@@ -255,7 +372,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       history = response.history || history;
     }
 
-    if (loopCount >= maxLoops) {
+    if (loopCount >= maxPlanningLoops + maxExecutionLoops) {
       console.warn('[Gemini Provider] Max loops reached');
     }
 

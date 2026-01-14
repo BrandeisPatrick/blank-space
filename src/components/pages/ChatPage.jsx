@@ -182,9 +182,20 @@ export const ChatPage = ({
   };
 
   // Handle send message
-  const handleSend = (message, images = null) => {
+  const handleSend = (message, images = null, mentionedApp = null) => {
     if (onSendMessage) {
-      onSendMessage(message, images);
+      // If an app was mentioned via @, pass it as options for debug mode
+      if (mentionedApp) {
+        const app = artifacts.find(a => a.id === mentionedApp.id);
+        const appFiles = app?.files || {};
+        onSendMessage(message, images, {
+          mentionedAppId: mentionedApp.id,
+          mentionedAppFiles: appFiles,
+          isDebugMode: true
+        });
+      } else {
+        onSendMessage(message, images);
+      }
     }
   };
 

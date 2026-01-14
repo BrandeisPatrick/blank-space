@@ -117,8 +117,13 @@ export const useChat = ({
    * Handles the full agentic loop (up to 15 iterations)
    * @param {string} message - The text message
    * @param {Array|null} images - Array of {base64, mimeType, filename} objects
+   * @param {Object|null} options - Optional config: { mentionedAppId, mentionedAppFiles, isDebugMode }
    */
-  const sendMessage = useCallback(async (message, images = null) => {
+  const sendMessage = useCallback(async (message, images = null, options = null) => {
+    // Extract options for @app mention support
+    const { mentionedAppId, mentionedAppFiles, isDebugMode } = options || {};
+    // Use mentioned app's files if provided, otherwise use current files
+    const filesToProcess = mentionedAppFiles || files;
     // Upload images to Firebase Storage and get URLs for persistence
     // Keep base64 for LLM API (transient, not stored)
     let imageUrlsForStorage = null;
@@ -244,14 +249,15 @@ export const useChat = ({
         .filter(msg => !msg.isLoading && (msg.type === 'user' || msg.type === 'assistant'))
         .map(msg => ({ role: msg.type, content: msg.content }));
 
-      const result = await processMessage(message, files, onUpdate, {
+      const result = await processMessage(message, filesToProcess, onUpdate, {
         modelTier,
         aiColorPalette,
         aiUIStyle,
         isDarkTheme: mode === 'dark',
         conversationHistory,
-        conversationIntent,  // Pass stored intent (null for first message)
-        images: imageBase64ForLLM  // Pass base64 images for LLM API (not the stored URLs)
+        conversationIntent: isDebugMode ? 'debug' : conversationIntent,  // Force debug if @app mentioned
+        images: imageBase64ForLLM,  // Pass base64 images for LLM API (not the stored URLs)
+        mentionedAppId,  // Pass mentioned app ID for context
       });
 
       // Store intent from first message for subsequent messages
@@ -271,12 +277,15 @@ export const useChat = ({
 
         // Create/debug intent - handle file operations
         if (result.fileOperations && result.fileOperations.length > 0) {
-          const newFiles = { ...files };
+          // Use mentioned app files as base, or current files
+          const baseFiles = mentionedAppFiles || files;
+          const newFiles = { ...baseFiles };
           result.fileOperations.forEach(op => {
             newFiles[op.filename] = op.content;
           });
 
           const appName = result.plan?.summary || 'Your app';
+          const isDebugging = isDebugMode || mentionedAppId;
 
           // Success message with thinking data
           const fileCount = result.fileOperations.length;
@@ -285,7 +294,9 @@ export const useChat = ({
             : null;
           const successMessage = {
             type: 'assistant',
-            content: `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
+            content: isDebugging
+              ? `Fixed ${fileCount} file${fileCount > 1 ? 's' : ''}. Your app should work now!`
+              : `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
             thinking: thinkingStepsRef.current.length > 0 ? [...thinkingStepsRef.current] : null,
             thinkingDuration,
             timestamp: Date.now()
@@ -299,8 +310,9 @@ export const useChat = ({
             return newMessages;
           });
 
-          // Persist to artifact
-          if (!activeArtifactId) {
+          // Persist to artifact - use mentionedAppId if editing via @mention
+          const targetArtifactId = mentionedAppId || activeArtifactId;
+          if (!targetArtifactId) {
             const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
             try {
               const newArtifactId = await createArtifact(artifactName, newFiles, messagesRef.current);
@@ -316,8 +328,8 @@ export const useChat = ({
               }]);
             }
           } else {
-            updateArtifactFiles(activeArtifactId, newFiles);
-            updateChatHistory(activeArtifactId, messagesRef.current);
+            updateArtifactFiles(targetArtifactId, newFiles);
+            updateChatHistory(targetArtifactId, messagesRef.current);
           }
 
           return {

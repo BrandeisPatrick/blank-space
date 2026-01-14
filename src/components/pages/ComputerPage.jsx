@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
@@ -39,12 +40,14 @@ export const ComputerPage = ({
   onFileChange,
   onError,
   onDebug,
+  onDebugNewChat,
   isDebugging = false,
   onIconChange,
   onRename,
 }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const navigate = useNavigate();
   const { artifacts, loadArtifact, deleteArtifact, activeArtifact, activeArtifactId, clearActiveArtifact } = useArtifacts();
   const [isEditMode, setIsEditMode] = useState(false);
   const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
@@ -294,6 +297,14 @@ export const ComputerPage = ({
         onFileChange={onFileChange}
         onError={onError}
         onDebug={onDebug}
+        onDebugNewChat={(debugInfo) => {
+          // Navigate to chat first, then send the debug message
+          navigate('/chat');
+          // Call the debug handler which will send the message
+          if (onDebugNewChat) {
+            onDebugNewChat(debugInfo);
+          }
+        }}
         isDebugging={isDebugging}
         onIconChange={(iconId) => onIconChange?.(activeArtifactId, iconId)}
         onRename={(newName) => onRename?.(activeArtifactId, newName)}
@@ -317,6 +328,7 @@ ComputerPage.propTypes = {
   onFileChange: PropTypes.func,
   onError: PropTypes.func,
   onDebug: PropTypes.func,
+  onDebugNewChat: PropTypes.func,
   isDebugging: PropTypes.bool,
   onIconChange: PropTypes.func,
   onRename: PropTypes.func,

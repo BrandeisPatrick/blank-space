@@ -134,8 +134,26 @@ ${toolUsage.rules.map(r => `- ${r}`).join('\n')}
   prompt += buildStylingRules();
   prompt += buildValidationRules();
 
-  // Add execution pattern
+  // Add two-phase execution pattern
   prompt += `
+# TWO-PHASE WORKFLOW
+
+## PHASE 1 - PLANNING (read-only tools available: glob, read)
+In this phase you can ONLY use glob() and read() to explore.
+1. IF existing files: Use read() to understand the current code
+2. Analyze what needs to be built or modified
+3. OUTPUT YOUR PLAN as a text response describing:
+   - What files you will create/modify
+   - The structure and components you'll build
+   - Any key implementation details
+
+## PHASE 2 - EXECUTION (all tools available: glob, read, write, validate)
+After outputting your plan, you'll get access to write() and validate().
+1. Call write() to create/modify files
+2. Call validate() after writing JS/JSX files
+3. If validation fails, fix errors and rewrite
+4. STOP when all files pass validation
+
 # SELF-CHECK BEFORE WRITING
 Before calling write(), verify:
 - ES6 imports only (not require)
@@ -143,14 +161,6 @@ Before calling write(), verify:
 - Functional components only (no class components)
 - No initialization code (no createRoot, render, document.getElementById)
 - Proper exports (export default or export const)
-
-# EXECUTION PATTERN
-1. IF existing files: Use read() FIRST
-2. Understand current code before modifications
-3. Call write() to create/modify files
-4. Call validate() after writing JS/JSX files to check for errors
-5. If validation fails, fix errors and rewrite
-6. STOP CONDITION: When ALL files pass validation, STOP immediately. Do NOT make more tool calls. Do NOT edit or improve further. Return a brief success message.
 `;
 
   // Add style system

@@ -17,6 +17,7 @@ function App() {
   const theme = getTheme(mode);
   const { loading: authLoading } = useAuth();
   const {
+    artifacts,
     activeArtifact,
     updateArtifactFiles,
     updateChatHistory,
@@ -117,6 +118,31 @@ function App() {
     }
   }, [files, activeArtifactId, updateArtifactFiles]);
 
+  // Handle debug from preview window - starts new chat with auto-send
+  const handleDebugNewChat = useCallback(({ appId, appName, errors }) => {
+    // Get the app's files
+    const app = artifacts.find(a => a.id === appId);
+    const appFiles = app?.files || {};
+
+    // Build debug message with full error details (including source file and line)
+    const errorText = errors.slice(0, 3).map(e => {
+      let errorLine = e.message;
+      if (e.source || e.line) {
+        const location = [e.source, e.line].filter(Boolean).join(':');
+        errorLine += ` (${location})`;
+      }
+      return errorLine;
+    }).join('\n');
+    const debugMessage = `@${appName}\n\n${errorText}\n\nFix the bug`;
+
+    // Send with mentionedApp options
+    sendMessage(debugMessage, null, {
+      mentionedAppId: appId,
+      mentionedAppFiles: appFiles,
+      isDebugMode: true
+    });
+  }, [artifacts, sendMessage]);
+
   // Clean up old storage key
   useEffect(() => {
     sessionStorage.removeItem('guestBannerDismissed');
@@ -215,6 +241,7 @@ function App() {
                 onFileChange={handleFileChange}
                 onError={handlePreviewError}
                 onDebug={(errors) => debug({ errors })}
+                onDebugNewChat={handleDebugNewChat}
                 isDebugging={isDebugging}
                 onIconChange={(artifactId, iconId) => updateArtifactIcon(artifactId, iconId)}
                 onRename={(artifactId, newName) => renameArtifact(artifactId, newName)}

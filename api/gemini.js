@@ -78,9 +78,9 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     if (action === 'chat') {
-      return handleChatRequest(req, res, ai);
+      return await handleChatRequest(req, res, ai);
     } else {
-      return handleGenerateRequest(req, res, ai);
+      return await handleGenerateRequest(req, res, ai);
     }
 
   } catch (error) {

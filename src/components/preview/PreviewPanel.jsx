@@ -4,7 +4,7 @@ import { getTheme } from '../../styles/theme'
 import { parse } from '@babel/parser'
 import { GlobeIcon } from '../icons'
 
-export const PreviewPanel = ({ files, onError, onDebug, isDebugging = false, zoom: externalZoom, hideHeader = false }) => {
+export const PreviewPanel = ({ files, onError, onDebug, onDebugNewChat, isDebugging = false, zoom: externalZoom, hideHeader = false, activeArtifact = null }) => {
   const iframeRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -597,11 +597,10 @@ ${stripped}
         style={{
           flex: 1,
           background: '#ffffff',
-          borderRadius: errors.length > 0 ? '0' : `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
+          borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
           overflow: 'hidden',
           border: `2px solid ${theme.colors.bg.border}`,
           borderTop: 'none',
-          borderBottom: errors.length > 0 ? 'none' : `2px solid ${theme.colors.bg.border}`,
           position: 'relative',
         }}
       >
@@ -625,153 +624,113 @@ ${stripped}
             title="Website Preview"
           />
         </div>
-      </div>
 
-      {/* Error Display Section */}
-      {errors.length > 0 && (
-        <div style={{
-          background: theme.colors.bg.secondary,
-          borderTop: `1px solid ${theme.colors.bg.border}`,
-          borderLeft: `2px solid ${theme.colors.bg.border}`,
-          borderRight: `2px solid ${theme.colors.bg.border}`,
-          borderBottom: `2px solid ${theme.colors.bg.border}`,
-          borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`,
-        }}>
-          {/* Error Header with Debug Button */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-              background: mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2',
-              borderBottom: showErrors ? `1px solid ${theme.colors.bg.border}` : 'none',
-            }}
-          >
-            {/* Left: Error count (clickable to expand/collapse) */}
-            <div
-              onClick={() => setShowErrors(!showErrors)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                cursor: 'pointer',
-                flex: 1,
-              }}
-            >
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: theme.radius.full,
-                background: '#ef4444',
-                boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)',
-              }} />
-              <span style={{
-                color: mode === 'dark' ? '#fca5a5' : '#dc2626',
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                fontFamily: theme.typography.fontFamily.sans,
-              }}>
-                {errors.length} Error{errors.length > 1 ? 's' : ''} Found
-              </span>
-              <span style={{
-                transform: showErrors ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: `transform ${theme.animation.fast}`,
-                color: mode === 'dark' ? '#fca5a5' : '#dc2626',
-                fontSize: '12px',
-              }}>
-                ▼
-              </span>
-            </div>
-
-            {/* Right: Debug Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (onDebug) {
-                  onDebug(errors)
-                } else {
-                  setErrors([])
-                  setShowErrors(false)
-                }
-              }}
-              disabled={isDebugging}
-              style={{
-                background: isDebugging
-                  ? (mode === 'dark' ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)')
-                  : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                border: 'none',
-                color: '#ffffff',
-                cursor: isDebugging ? 'wait' : 'pointer',
-                padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                borderRadius: theme.radius.lg,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                fontFamily: theme.typography.fontFamily.sans,
-                transition: `all ${theme.animation.fast}`,
-                boxShadow: isDebugging ? 'none' : '0 2px 8px rgba(99, 102, 241, 0.3)',
-                opacity: isDebugging ? 0.8 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isDebugging ? (
-                <>
-                  <span style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                  }} />
-                  Fixing...
-                </>
-              ) : (
-                'Debug'
-              )}
-            </button>
-          </div>
-
-          {/* Error List */}
-          {showErrors && (
+        {/* Error Overlay - minimal style inside preview area */}
+        {errors.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '32px',
+            background: theme.colors.bg.primary,
+            zIndex: 10,
+          }}>
             <div style={{
-              maxHeight: '200px',
-              overflowY: 'auto',
-              background: theme.colors.bg.primary,
+              maxWidth: '480px',
+              width: '100%',
             }}>
-              {errors.map((error, index) => (
-                <div key={index} style={{
-                  padding: `${theme.spacing.md} ${theme.spacing.md}`,
-                  borderBottom: index < errors.length - 1 ? `1px solid ${theme.colors.bg.border}` : 'none',
+              <div style={{
+                color: theme.colors.text.tertiary,
+                marginBottom: theme.spacing.lg,
+                fontSize: theme.typography.fontSize.base,
+                fontFamily: theme.typography.fontFamily.sans,
+                fontWeight: theme.typography.fontWeight.normal,
+                lineHeight: theme.typography.lineHeight.normal,
+              }}>
+                {errors.length} error{errors.length > 1 ? 's' : ''}
+              </div>
+
+              {errors.slice(0, 3).map((error, i) => (
+                <div key={i} style={{
+                  marginBottom: theme.spacing.md,
+                  fontFamily: theme.typography.fontFamily.mono,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.normal,
+                  color: theme.colors.text.primary,
+                  lineHeight: theme.typography.lineHeight.relaxed,
+                  wordBreak: 'break-word',
                 }}>
-                  <div style={{
-                    color: mode === 'dark' ? '#fca5a5' : '#dc2626',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    fontFamily: theme.typography.fontFamily.sans,
-                    marginBottom: '4px',
-                    lineHeight: 1.4,
-                  }}>
-                    {error.message}
-                  </div>
-                  {error.source && (
-                    <div style={{
-                      color: theme.colors.text.tertiary,
-                      fontSize: theme.typography.fontSize.xs,
-                      fontFamily: theme.typography.fontFamily.mono,
-                    }}>
-                      {error.source}{error.line ? `:${error.line}` : ''}
-                    </div>
-                  )}
+                  {error.message}
                 </div>
               ))}
+
+              {errors.length > 3 && (
+                <div style={{
+                  color: theme.colors.text.tertiary,
+                  fontSize: theme.typography.fontSize.base,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  fontWeight: theme.typography.fontWeight.normal,
+                  lineHeight: theme.typography.lineHeight.normal,
+                  marginBottom: theme.spacing.md,
+                }}>
+                  +{errors.length - 3} more error{errors.length - 3 > 1 ? 's' : ''}
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  // Use new chat debug flow if available, otherwise fall back to old behavior
+                  if (onDebugNewChat && activeArtifact) {
+                    onDebugNewChat({
+                      appId: activeArtifact.id,
+                      appName: activeArtifact.name,
+                      errors: errors
+                    });
+                  } else {
+                    onDebug?.(errors);
+                  }
+                }}
+                disabled={isDebugging}
+                style={{
+                  marginTop: theme.spacing.xl,
+                  padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+                  background: 'transparent',
+                  color: theme.colors.text.primary,
+                  border: `1px solid ${theme.colors.bg.border}`,
+                  borderRadius: theme.radius.md,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  cursor: isDebugging ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  opacity: isDebugging ? 0.6 : 1,
+                }}
+              >
+                {isDebugging ? (
+                  <>
+                    <span style={{
+                      width: '14px',
+                      height: '14px',
+                      border: `2px solid ${theme.colors.bg.border}`,
+                      borderTopColor: theme.colors.text.primary,
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }} />
+                    Fixing...
+                  </>
+                ) : (
+                  'Debug'
+                )}
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

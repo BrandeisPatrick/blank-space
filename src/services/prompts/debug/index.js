@@ -104,9 +104,22 @@ ${problemSection}
 # CURRENT FILES:
 ${fileList}
 
-# MANDATORY FIRST STEP - READ EVERYTHING:
-You MUST read ALL files before making any changes. Use read() on each file listed above.
-Do NOT skip this step. Do NOT assume you know what the code does.
+# TWO-PHASE WORKFLOW
+
+## PHASE 1 - PLANNING (read-only tools available: glob, read)
+In this phase you can ONLY use glob() and read() to explore.
+1. Use read() on EACH file listed above
+2. Do NOT skip this step. Do NOT assume you know what the code does.
+3. After reading, OUTPUT YOUR ANALYSIS as a text response:
+   - What is the root cause of the error?
+   - Which file(s) need to be modified?
+   - What specific changes will you make?
+
+## PHASE 2 - EXECUTION (all tools available: glob, read, write, validate)
+After outputting your plan, you'll get access to write() and validate().
+1. Implement your fix using write()
+2. Call validate() to check for errors
+3. If validation fails, fix and rewrite
 
 ${debuggingSection}
 
@@ -122,5 +135,5 @@ ${buildCommonFixes()}
 - Use Tailwind CSS for styling
 - Keep the app's original purpose
 
-Start by reading ALL the files listed above, then apply your fix.`;
+Start by reading ALL the files listed above.`;
 }
