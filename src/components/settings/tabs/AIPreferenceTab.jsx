@@ -3,8 +3,10 @@ import { useSettings } from '../../../contexts/SettingsContext';
 import { getTheme } from '../../../styles/theme';
 import { COLOR_PALETTES } from '../../../services/stylePresets/colorPalettes';
 import { UI_STYLES } from '../../../services/stylePresets/uiStyles';
+import { SettingsSection, SettingsSeparator } from '../shared';
 
-// Palette icon for "Match Wallpaper" option
+const SELECTION_COLOR = '#3B82F6';
+
 const PaletteIcon = ({ size = 20, color = '#6B7280' }) => (
   <svg
     width={size}
@@ -28,20 +30,12 @@ export const AIPreferenceTab = () => {
   const { aiColorPalette, setAIColorPalette, aiUIStyle, setAIUIStyle } = useSettings();
   const theme = getTheme(mode);
 
+  const borderColor = mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
   return (
-    <>
-      {/* Color Palette */}
-      <div style={{ marginBottom: theme.spacing.lg }}>
-        <label style={{
-          display: 'block',
-          fontSize: theme.typography.fontSize.xs,
-          color: theme.colors.text.tertiary,
-          marginBottom: theme.spacing.sm,
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}>
-          Color Palette
-        </label>
+    <div style={{ padding: `${theme.spacing.md} 0` }}>
+      {/* Color Palette Section */}
+      <SettingsSection title="Color Palette">
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
@@ -54,43 +48,38 @@ export const AIPreferenceTab = () => {
                 key={key}
                 onClick={() => setAIColorPalette(key)}
                 style={{
-                  padding: theme.spacing.sm,
+                  padding: theme.spacing.md,
                   borderRadius: theme.radius.lg,
-                  border: isSelected
-                    ? '2px solid #3B82F6'
-                    : mode === 'dark'
-                      ? '1px solid rgba(255, 255, 255, 0.1)'
-                      : '1px solid rgba(0, 0, 0, 0.1)',
+                  border: isSelected ? `2px solid ${SELECTION_COLOR}` : `1px solid ${borderColor}`,
                   background: 'transparent',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: theme.spacing.xs,
+                  gap: theme.spacing.sm,
                   transition: `all ${theme.animation.fast}`,
-                  boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
                 }}
               >
-                {/* Color preview */}
                 {palette.preview ? (
-                  <div style={{ display: 'flex', gap: '3px' }}>
+                  <div style={{ display: 'flex', gap: '4px' }}>
                     {palette.preview.map((color, i) => (
                       <div key={i} style={{
-                        width: '14px',
-                        height: '14px',
+                        width: '16px',
+                        height: '16px',
                         borderRadius: '50%',
                         background: color,
-                        border: mode === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                        border: `1px solid ${borderColor}`,
                       }} />
                     ))}
                   </div>
                 ) : (
-                  <PaletteIcon size={18} color={isSelected ? '#3B82F6' : theme.colors.text.secondary} />
+                  <PaletteIcon size={20} color={isSelected ? SELECTION_COLOR : theme.colors.text.secondary} />
                 )}
                 <span style={{
                   fontSize: theme.typography.fontSize.xs,
-                  fontWeight: isSelected ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
                   whiteSpace: 'nowrap',
                 }}>
                   {palette.name}
@@ -99,20 +88,12 @@ export const AIPreferenceTab = () => {
             );
           })}
         </div>
-      </div>
+      </SettingsSection>
 
-      {/* UI Style */}
-      <div>
-        <label style={{
-          display: 'block',
-          fontSize: theme.typography.fontSize.xs,
-          color: theme.colors.text.tertiary,
-          marginBottom: theme.spacing.sm,
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}>
-          UI Style
-        </label>
+      <SettingsSeparator />
+
+      {/* UI Style Section */}
+      <SettingsSection title="UI Style">
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
@@ -127,30 +108,27 @@ export const AIPreferenceTab = () => {
                 style={{
                   padding: theme.spacing.md,
                   borderRadius: theme.radius.lg,
-                  border: isSelected
-                    ? '2px solid #3B82F6'
-                    : mode === 'dark'
-                      ? '1px solid rgba(255, 255, 255, 0.1)'
-                      : '1px solid rgba(0, 0, 0, 0.1)',
+                  border: isSelected ? `2px solid ${SELECTION_COLOR}` : `1px solid ${borderColor}`,
                   background: 'transparent',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: `all ${theme.animation.fast}`,
-                  boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
                 }}
               >
                 <div style={{
                   fontWeight: theme.typography.fontWeight.medium,
-                  color: isSelected ? '#3B82F6' : theme.colors.text.primary,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
                   fontSize: theme.typography.fontSize.sm,
-                  marginBottom: '2px',
+                  marginBottom: theme.spacing.xs,
                 }}>
                   {style.name}
                 </div>
                 <div style={{
                   fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.text.tertiary,
-                  lineHeight: 1.3,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: theme.colors.text.secondary,
+                  lineHeight: 1.4,
                 }}>
                   {style.description}
                 </div>
@@ -158,8 +136,8 @@ export const AIPreferenceTab = () => {
             );
           })}
         </div>
-      </div>
-    </>
+      </SettingsSection>
+    </div>
   );
 };
 

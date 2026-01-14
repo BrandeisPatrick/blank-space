@@ -7,13 +7,13 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSubscription } from '../../../contexts/SubscriptionContext';
 import { getTheme } from '../../../styles/theme';
+import { SettingsSection, SettingsSeparator } from '../shared';
 
 const UsageBar = ({ label, used, limit, resetAt, theme, mode, colors }) => {
   const percent = Math.min(100, Math.round((used / limit) * 100));
   const isWarning = percent >= 75;
   const isExceeded = percent >= 100;
 
-  // Format reset time
   const formatResetTime = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -32,11 +32,16 @@ const UsageBar = ({ label, used, limit, resetAt, theme, mode, colors }) => {
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: '6px',
+        marginBottom: theme.spacing.xs,
         fontSize: theme.typography.fontSize.sm,
         fontFamily: theme.typography.fontFamily.sans,
       }}>
-        <span style={{ color: colors.textPrimary }}>{label}</span>
+        <span style={{
+          color: colors.textPrimary,
+          fontWeight: theme.typography.fontWeight.medium,
+        }}>
+          {label}
+        </span>
         <span style={{ color: colors.textSecondary }}>
           {used} / {limit}
           {resetAt && <span style={{ marginLeft: '8px', opacity: 0.7 }}>({formatResetTime(resetAt)})</span>}
@@ -44,21 +49,19 @@ const UsageBar = ({ label, used, limit, resetAt, theme, mode, colors }) => {
       </div>
       <div style={{
         width: '100%',
-        height: '10px',
-        background: mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-        borderRadius: '5px',
+        height: '8px',
+        background: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+        borderRadius: '4px',
         overflow: 'hidden',
       }}>
         <div style={{
           width: `${Math.max(percent, 2)}%`,
           minWidth: percent > 0 ? '8px' : '0',
           height: '100%',
-          background: isExceeded
-            ? 'linear-gradient(90deg, #ef4444, #dc2626)'
-            : isWarning
-              ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-              : 'linear-gradient(90deg, #C97D63, #b06b52)',
-          borderRadius: '5px',
+          background: mode === 'dark'
+            ? (isExceeded ? 'rgba(255,255,255,0.6)' : isWarning ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.4)')
+            : (isExceeded ? 'rgba(0,0,0,0.5)' : isWarning ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.3)'),
+          borderRadius: '4px',
           transition: 'width 0.3s ease',
         }} />
       </div>
@@ -75,18 +78,18 @@ export const SubscriptionTab = () => {
   const colors = {
     textPrimary: theme.colors.text.primary,
     textSecondary: theme.colors.text.secondary,
-    separator: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
   };
 
   if (!user) {
     return (
-      <div style={{ padding: theme.spacing.lg, textAlign: 'center' }}>
+      <div style={{ padding: `${theme.spacing.xl} 0`, textAlign: 'center' }}>
         <p style={{
           color: colors.textSecondary,
           fontFamily: theme.typography.fontFamily.sans,
           fontSize: theme.typography.fontSize.sm,
+          margin: 0,
         }}>
-          Sign in to view your account
+          Sign in to view your subscription
         </p>
       </div>
     );
@@ -94,20 +97,8 @@ export const SubscriptionTab = () => {
 
   return (
     <div style={{ padding: `${theme.spacing.md} 0` }}>
-
-      {/* Usage */}
-      <div style={{ paddingBottom: theme.spacing.xl }}>
-        <h3 style={{
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: colors.textPrimary,
-          fontFamily: theme.typography.fontFamily.sans,
-          margin: 0,
-          marginBottom: theme.spacing.lg,
-        }}>
-          Usage
-        </h3>
-
+      {/* Usage Section */}
+      <SettingsSection title="Usage">
         {loading ? (
           <p style={{
             color: colors.textSecondary,
@@ -141,7 +132,6 @@ export const SubscriptionTab = () => {
               color: colors.textSecondary,
               fontSize: theme.typography.fontSize.xs,
               margin: 0,
-              marginTop: theme.spacing.xs,
               fontFamily: theme.typography.fontFamily.sans,
             }}>
               Pro model uses 3 credits per request
@@ -157,23 +147,12 @@ export const SubscriptionTab = () => {
             No usage data available
           </p>
         )}
-      </div>
+      </SettingsSection>
 
-      {/* Separator line */}
-      <div style={{ height: '1px', background: colors.separator, marginBottom: theme.spacing.xl }} />
+      <SettingsSeparator />
 
-      {/* Features */}
-      <div style={{ paddingBottom: theme.spacing.xl }}>
-        <h3 style={{
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: colors.textPrimary,
-          margin: 0,
-          marginBottom: theme.spacing.md,
-          fontFamily: theme.typography.fontFamily.sans,
-        }}>
-          Included Features
-        </h3>
+      {/* Features Section */}
+      <SettingsSection title="Included Features">
         <ul style={{
           margin: 0,
           padding: 0,
@@ -193,28 +172,17 @@ export const SubscriptionTab = () => {
               gap: theme.spacing.sm,
               marginBottom: theme.spacing.sm,
             }}>
-              <span style={{ color: '#10b981' }}>✓</span>
+              <span style={{ color: colors.textSecondary }}>✓</span>
               {feature}
             </li>
           ))}
         </ul>
-      </div>
+      </SettingsSection>
 
-      {/* Separator line */}
-      <div style={{ height: '1px', background: colors.separator, marginBottom: theme.spacing.xl }} />
+      <SettingsSeparator />
 
-      {/* Coming Soon */}
-      <div>
-        <h3 style={{
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: colors.textPrimary,
-          margin: 0,
-          marginBottom: theme.spacing.sm,
-          fontFamily: theme.typography.fontFamily.sans,
-        }}>
-          Subscription Plans
-        </h3>
+      {/* Coming Soon Section */}
+      <SettingsSection title="Subscription Plans">
         <p style={{
           color: colors.textSecondary,
           fontSize: theme.typography.fontSize.sm,
@@ -223,7 +191,7 @@ export const SubscriptionTab = () => {
         }}>
           Coming soon! Unlock higher limits and premium features.
         </p>
-      </div>
+      </SettingsSection>
     </div>
   );
 };

@@ -1,10 +1,9 @@
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getTheme, themes as themeConfigs } from '../../../styles/theme';
+import { SettingsSection, SettingsSeparator } from '../shared';
 
-// Selection accent color (consistent across themes)
 const SELECTION_COLOR = '#3B82F6';
 
-// Sun icon for light mode
 const SunIcon = ({ size = 24, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="5" />
@@ -19,7 +18,6 @@ const SunIcon = ({ size = 24, color = "currentColor" }) => (
   </svg>
 );
 
-// Moon icon for dark mode
 const MoonIcon = ({ size = 24, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -30,7 +28,6 @@ export const ThemeTab = () => {
   const { mode, setMode } = useTheme();
   const theme = getTheme(mode);
 
-  // Get actual theme colors for accurate preview
   const lightTheme = themeConfigs.light;
   const darkTheme = themeConfigs.dark;
 
@@ -40,68 +37,56 @@ export const ThemeTab = () => {
   ];
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.lg,
-    }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: theme.spacing.md,
-      }}>
-        {themes.map(({ id, name, icon: Icon, bg, border, textColor }) => {
-          const isSelected = mode === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setMode(id)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                padding: theme.spacing.md,
-                background: 'transparent',
-                border: 'none',
-                borderRadius: theme.radius.lg,
-                cursor: 'pointer',
-                transition: `all ${theme.animation.fast}`,
-              }}
-            >
-              {/* Theme preview */}
-              <div style={{
-                width: '100%',
-                aspectRatio: '16 / 10',
-                borderRadius: theme.radius.md,
-                background: bg,
-                border: isSelected
-                  ? `2px solid ${SELECTION_COLOR}`
-                  : `1px solid ${border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: `all ${theme.animation.fast}`,
-                boxShadow: isSelected
-                  ? `0 0 0 2px ${SELECTION_COLOR}33`
-                  : 'none',
-              }}>
-                <Icon size={32} color={textColor} />
-              </div>
-
-              {/* Name */}
-              <span style={{
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: isSelected ? theme.typography.fontWeight.medium : theme.typography.fontWeight.normal,
-                fontFamily: theme.typography.fontFamily.sans,
-                color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
-              }}>
-                {name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div style={{ padding: `${theme.spacing.md} 0` }}>
+      <SettingsSection title="Appearance">
+        <div style={{
+          display: 'flex',
+          gap: theme.spacing.md,
+        }}>
+          {themes.map(({ id, name, icon: Icon, bg, border, textColor }) => {
+            const isSelected = mode === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setMode(id)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.lg,
+                  background: 'transparent',
+                  border: isSelected
+                    ? `2px solid ${SELECTION_COLOR}`
+                    : `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                  borderRadius: theme.radius.lg,
+                  cursor: 'pointer',
+                  transition: `all ${theme.animation.fast}`,
+                }}
+              >
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Icon size={24} color={isSelected ? SELECTION_COLOR : theme.colors.text.secondary} />
+                </div>
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  fontFamily: theme.typography.fontFamily.sans,
+                  color: isSelected ? SELECTION_COLOR : theme.colors.text.primary,
+                }}>
+                  {name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </SettingsSection>
     </div>
   );
 };
