@@ -6,7 +6,7 @@ import { Z_INDEX } from '../../constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { AccountTab } from './tabs/AccountTab';
 import { ThemeTab } from './tabs/ThemeTab';
-import { AboutTab } from './tabs/AboutTab';
+import { UsTab } from './tabs/UsTab';
 import { SubscriptionTab } from './tabs/SubscriptionTab';
 import { CloseIcon } from '../icons/icons';
 
@@ -83,7 +83,7 @@ export const Modal = () => {
       case 'subscription':
         return <SubscriptionTab />;
       case 'us':
-        return <AboutTab />;
+        return <UsTab />;
       default:
         return <AccountTab />;
     }

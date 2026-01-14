@@ -151,36 +151,6 @@ export const SubscriptionTab = () => {
 
       <SettingsSeparator />
 
-      {/* Features Section */}
-      <SettingsSection title="Included Features">
-        <ul style={{
-          margin: 0,
-          padding: 0,
-          listStyle: 'none',
-          color: colors.textPrimary,
-          fontSize: theme.typography.fontSize.sm,
-          fontFamily: theme.typography.fontFamily.sans,
-        }}>
-          {[
-            'Lite Model (1 credit/request)',
-            'Pro Model (3 credits/request)',
-            'Unlimited projects',
-          ].map((feature, i) => (
-            <li key={i} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              marginBottom: theme.spacing.sm,
-            }}>
-              <span style={{ color: colors.textSecondary }}>✓</span>
-              {feature}
-            </li>
-          ))}
-        </ul>
-      </SettingsSection>
-
-      <SettingsSeparator />
-
       {/* Coming Soon Section */}
       <SettingsSection title="Subscription Plans">
         <p style={{

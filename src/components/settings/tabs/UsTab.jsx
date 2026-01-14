@@ -66,31 +66,6 @@ export const UsTab = () => {
 
   return (
     <div style={{ padding: `${theme.spacing.md} 0` }}>
-      {/* About Section */}
-      <div style={{ paddingBottom: theme.spacing.lg }}>
-        <SectionTitle>About</SectionTitle>
-        <p style={{
-          margin: 0,
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: colors.textPrimary,
-          fontFamily: theme.typography.fontFamily.sans,
-        }}>
-          Blank Space
-        </p>
-        <p style={{
-          margin: 0,
-          marginTop: theme.spacing.xs,
-          fontSize: theme.typography.fontSize.sm,
-          color: colors.textSecondary,
-          fontFamily: theme.typography.fontFamily.sans,
-        }}>
-          Open source AI app builder
-        </p>
-      </div>
-
-      <Separator />
-
       {/* Social Media Section */}
       <div style={{ paddingBottom: theme.spacing.lg }}>
         <SectionTitle>Social Media</SectionTitle>
