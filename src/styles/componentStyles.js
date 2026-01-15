@@ -217,3 +217,95 @@ export const getResponsiveSpacing = (theme, isMobile, mobileKey, desktopKey) => 
   return isMobile ? theme.spacing[mobileKey] : theme.spacing[desktopKey];
 };
 
+// ============================================
+// MODAL UTILITIES
+// ============================================
+
+/**
+ * Creates standardized modal colors object
+ * @param {Object} theme - Theme object from getTheme()
+ * @param {string} mode - 'dark' or 'light' mode
+ * @returns {Object} Colors object for modal styling
+ *
+ * @example
+ * const colors = createModalColors(theme, mode);
+ * <div style={{ background: colors.bg, color: colors.textPrimary }}>...</div>
+ */
+export const createModalColors = (theme, mode) => ({
+  bg: theme.colors.bg.secondary,
+  cardBg: theme.colors.bg.tertiary,
+  border: theme.colors.border,
+  textPrimary: theme.colors.text.primary,
+  textSecondary: theme.colors.text.secondary,
+  textTertiary: theme.colors.text.tertiary,
+  activeTabBg: mode === 'dark' ? '#1d4a73' : '#e5e5e5',
+  hoverBg: theme.colors.bg.tertiary,
+  error: theme.colors.accent.error,
+  accent: theme.colors.accent.primary,
+  fontFamily: theme.typography.fontFamily.sans,
+});
+
+/**
+ * Creates modal backdrop style with blur effect
+ * @param {number} zIndex - Z-index for the backdrop (default: 999)
+ * @returns {Object} Style object for modal backdrop
+ *
+ * @example
+ * <div style={createModalBackdropStyle(Z_INDEX.MODAL_BACKDROP)} onClick={onClose} />
+ */
+export const createModalBackdropStyle = (zIndex = 999) => ({
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0, 0, 0, 0.5)',
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
+  zIndex,
+  animation: 'fadeIn 0.2s ease-out',
+});
+
+/**
+ * Creates modal panel/container style
+ * @param {Object} theme - Theme object from getTheme()
+ * @param {number} zIndex - Z-index for the modal panel (default: 1000)
+ * @returns {Object} Style object for modal container
+ *
+ * @example
+ * <div style={{ ...createModalPanelStyle(theme, Z_INDEX.MODALS), maxWidth: '480px' }}>...</div>
+ */
+export const createModalPanelStyle = (theme, zIndex = 1000) => ({
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  background: theme.colors.bg.secondary,
+  borderRadius: '24px',
+  boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
+  zIndex,
+  animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+  overflow: 'hidden',
+});
+
+/**
+ * CSS keyframes for modal animations
+ * Include this in a <style> tag within your modal component
+ *
+ * @example
+ * <style>{MODAL_ANIMATIONS}</style>
+ */
+export const MODAL_ANIMATIONS = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+`;
+

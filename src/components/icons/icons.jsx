@@ -12,7 +12,7 @@ export const BrandLogo = ({ size = 22, color = "currentColor" }) => (
   </svg>
 );
 
-// Animated Chat Icon - bouncing dots on hover
+// Animated Chat Icon - bouncing dots on hover (0.5s consistent timing)
 export const AnimatedChatIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -25,7 +25,7 @@ export const AnimatedChatIcon = ({ size = 20, color = "currentColor", isHovered 
   </svg>
 );
 
-// Animated Computer Icon - lines draw on hover
+// Animated Computer Icon - lines draw on hover (0.5s consistent timing)
 export const AnimatedComputerIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -34,10 +34,10 @@ export const AnimatedComputerIcon = ({ size = 20, color = "currentColor", isHove
     {isHovered && (
       <>
         <motion.line x1="6" y1="8" x2="14" y2="8" strokeWidth="1.5"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3 }}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }}
         />
         <motion.line x1="6" y1="11" x2="10" y2="11" strokeWidth="1.5"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.15 }}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: 0.15 }}
         />
       </>
     )}
@@ -831,19 +831,48 @@ export const HistoryIcon = ({ size = 20, color = "currentColor" }) => (
   </svg>
 );
 
-// Animated History Icon - clock hands tick on hover
+// Animated History Icon - clock hands tick on hover (0.7s longer animation)
 export const AnimatedHistoryIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     {isHovered ? (
       <motion.polyline
         points="12 6 12 12 16 14"
-        animate={{ rotate: [0, -30, 0] }}
-        transition={{ duration: 0.4 }}
+        animate={{ rotate: [0, -45, 0, -20, 0] }}
+        transition={{ duration: 0.7, ease: "easeInOut" }}
         style={{ transformOrigin: '12px 12px' }}
       />
     ) : (
       <polyline points="12 6 12 12 16 14" />
+    )}
+  </svg>
+);
+
+// Animated Files Icon - folder opens on hover (0.5s consistent timing)
+export const AnimatedFilesIcon = ({ size = 20, color = "currentColor", isHovered = false }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {/* Folder body */}
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    {/* Animated folder flap that lifts up */}
+    <motion.path
+      d="M2 10h20"
+      style={{ transformOrigin: '12px 10px' }}
+      animate={{
+        y: isHovered ? -3 : 0,
+        scaleY: isHovered ? 0.5 : 1
+      }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    />
+    {/* Document lines that appear inside when open */}
+    {isHovered && (
+      <motion.g
+        initial={{ opacity: 0, y: 2 }}
+        animate={{ opacity: 0.7, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+      >
+        <line x1="7" y1="13" x2="17" y2="13" strokeWidth="1.5" />
+        <line x1="7" y1="16" x2="13" y2="16" strokeWidth="1.5" />
+      </motion.g>
     )}
   </svg>
 );

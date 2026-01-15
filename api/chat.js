@@ -130,6 +130,7 @@ async function handleWebSearchRequest(req, res, apiKey) {
    * Transform Chat Completions content format to Responses API format
    * - 'text' → 'input_text'
    * - 'image_url' → 'input_image' with flattened URL
+   * - 'file' → 'input_file' for PDFs and documents
    */
   function transformContentForResponsesAPI(content) {
     // String content stays as-is
@@ -146,6 +147,14 @@ async function handleWebSearchRequest(req, res, apiKey) {
           return {
             type: 'input_image',
             image_url: item.image_url?.url || item.image_url
+          };
+        }
+        if (item.type === 'file') {
+          // Handle PDFs and documents - use input_file format for Responses API
+          return {
+            type: 'input_file',
+            filename: item.file?.filename || 'document',
+            file_data: item.file?.file_data || item.file
           };
         }
         return item;

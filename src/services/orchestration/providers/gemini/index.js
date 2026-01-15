@@ -140,13 +140,20 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     // Get auth headers once for the loop
     const loopHeaders = await getAuthHeaders();
 
-    // Format images for Gemini API (inlineData format)
-    const imageParts = images ? images.map(img => ({
-      inlineData: {
-        mimeType: img.mimeType,
-        data: img.base64
-      }
-    })) : null;
+    // Format files for Gemini API (inlineData format)
+    // This handles images, PDFs, DOCX, and other binary files sent directly to AI
+    let fileParts = null;
+    if (images && images.length > 0) {
+      fileParts = images.map(file => ({
+        inlineData: {
+          mimeType: file.mimeType,
+          data: file.base64
+        }
+      }));
+      // Log what file types are being sent
+      const fileTypes = [...new Set(images.map(f => f.mimeType))];
+      console.log(`[Gemini Provider] Sending ${images.length} file(s) to AI: ${fileTypes.join(', ')}`);
+    }
 
     // ========================================
     // PHASE 1: Planning (read-only tools)
@@ -171,7 +178,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'chat',
         model,
         message: userMessage,
-        imageParts,
+        imageParts: fileParts,  // Images, PDFs, and other files
         history: [],
         systemInstruction: systemPrompt,
         tools: planningTools,  // Read-only tools for planning

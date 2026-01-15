@@ -9,6 +9,7 @@ import { ArtifactProvider } from './contexts/ArtifactContext.jsx'
 import { SettingsProvider } from './contexts/SettingsContext.jsx'
 import { ConversationProvider } from './contexts/ConversationContext.jsx'
 import { AppStoreProvider } from './contexts/AppStoreContext.jsx'
+import { FileSystemProvider } from './contexts/FileSystemContext.jsx'
 import './styles/index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <ConversationProvider>
                 <AppStoreProvider>
                   <ArtifactProvider>
-                    <App />
+                    <FileSystemProvider>
+                      <App />
+                    </FileSystemProvider>
                   </ArtifactProvider>
                 </AppStoreProvider>
               </ConversationProvider>

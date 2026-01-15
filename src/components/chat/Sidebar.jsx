@@ -16,6 +16,7 @@ import {
   AnimatedChatIcon,
   AnimatedComputerIcon,
   AnimatedHistoryIcon,
+  AnimatedFilesIcon,
   ChevronRightIcon,
   UserIcon,
   SettingsIcon,
@@ -434,6 +435,7 @@ export const Sidebar = ({
   // Check if on specific pages
   const isOnChatPage = location.pathname === '/' || location.pathname.startsWith('/chat');
   const isOnAppsPage = location.pathname === '/apps';
+  const isOnFilesPage = location.pathname === '/files';
 
   // Memoized handlers
   const handleChat = useCallback(() => {
@@ -499,20 +501,15 @@ export const Sidebar = ({
     if (isMobile) onClose?.();
   }, [clearActiveArtifact, createConversation, navigate, isMobile, onClose]);
 
-  // Handle click on empty space to toggle sidebar
-  const handleSidebarClick = (e) => {
-    // Only toggle if clicking directly on the sidebar container or empty divs
-    const tag = e.target.tagName.toLowerCase();
-    const isInteractive = ['button', 'a', 'input', 'svg', 'path', 'span', 'circle', 'rect', 'line'].includes(tag);
-    if (!isInteractive) {
-      onToggle?.();
-    }
-  };
+  // Navigate to files page
+  const handleOpenFiles = useCallback(() => {
+    navigate('/files');
+    if (isMobile) onClose?.();
+  }, [navigate, isMobile, onClose]);
 
   return (
     <div
       data-sidebar
-      onClick={handleSidebarClick}
       style={{
         width: isMobile ? '280px' : sidebarWidth,
         minWidth: isMobile ? '280px' : sidebarWidth,
@@ -523,7 +520,6 @@ export const Sidebar = ({
         gap: '4px',
         background: colors.bg,
         borderRight: `1px solid ${colors.border}`,
-        cursor: 'pointer',
         transition: isMobile
           ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           : 'width 0.2s ease, min-width 0.2s ease',
@@ -573,8 +569,10 @@ export const Sidebar = ({
         <SearchBar expanded={expanded} colors={colors} onClick={handleSearch} disabled={!user} />
       </div>
 
-      {/* Navigation Items */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: expanded ? 'stretch' : 'center' }}>
+      {/* Navigation + History wrapper - ensures consistent 2px gap */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+        {/* Navigation Items */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: expanded ? 'stretch' : 'center' }}>
         <SidebarItem
           icon={AnimatedChatIcon}
           label="Chat"
@@ -591,11 +589,22 @@ export const Sidebar = ({
           expanded={expanded}
           colors={colors}
         />
+        {/* Files Section - show for authenticated users */}
+        {user && (
+          <SidebarItem
+            icon={AnimatedFilesIcon}
+            label="Files"
+            onClick={handleOpenFiles}
+            active={isOnFilesPage}
+            expanded={expanded}
+            colors={colors}
+          />
+        )}
       </div>
 
       {/* History Section - only show for authenticated users */}
       {expanded && user && (
-        <div className="dark-scrollbar" style={{ flex: 1, overflow: 'auto', marginTop: '4px' }}>
+        <div className="dark-scrollbar" style={{ flex: 1, overflow: 'auto' }}>
           {/* History Header - Collapsible */}
           <HistoryHeader
             onClick={() => setIsHistoryExpanded(prev => !prev)}
@@ -723,8 +732,7 @@ export const Sidebar = ({
         </div>
       )}
 
-      {/* Spacer when collapsed or when not logged in */}
-      {(!expanded || !user) && <div style={{ flex: 1 }} />}
+      </div>
 
       {/* User Section */}
       <div style={{ marginTop: 'auto', paddingTop: '8px' }}>

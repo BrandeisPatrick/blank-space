@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useConversation } from '../contexts/ConversationContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useFileSystem } from '../contexts/FileSystemContext';
 import { storage } from '../config/firebase';
 import { processMessage } from '../services/ToolOrchestrator.js';
 import { TIMING, MESSAGES } from '../constants';
@@ -46,6 +47,7 @@ export const useChat = ({
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
   const { user } = useAuth();
+  const { getFilesForAI, syncChangesFromAI } = useFileSystem();
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
@@ -251,14 +253,37 @@ export const useChat = ({
         .filter(msg => !msg.isLoading && (msg.type === 'user' || msg.type === 'assistant'))
         .map(msg => ({ role: msg.type, content: msg.content }));
 
-      const result = await processMessage(message, filesToProcess, onUpdate, {
+      // Get user files from FileSystem and merge with artifact files
+      let allFiles = { ...filesToProcess };
+      let userBinaryFiles = []; // PDFs, images, DOCX - sent directly to AI
+      try {
+        const { textFiles, binaryFiles } = await getFilesForAI();
+        if (Object.keys(textFiles).length > 0) {
+          console.log(`[useChat] Loaded ${Object.keys(textFiles).length} text file(s) for AI`);
+          allFiles = { ...textFiles, ...filesToProcess }; // Artifact files take precedence
+        }
+        if (binaryFiles.length > 0) {
+          console.log(`[useChat] Loaded ${binaryFiles.length} binary file(s) for AI (PDFs, images, etc.)`);
+          userBinaryFiles = binaryFiles;
+        }
+      } catch (err) {
+        console.warn('[useChat] Failed to load user files:', err);
+      }
+
+      // Combine user-uploaded images with user binary files for AI
+      const allFilesForAI = [
+        ...(imageBase64ForLLM || []),
+        ...userBinaryFiles,
+      ];
+
+      const result = await processMessage(message, allFiles, onUpdate, {
         modelTier,
         aiColorPalette,
         aiUIStyle,
         isDarkTheme: mode === 'dark',
         conversationHistory,
         conversationIntent: isDebugMode ? 'debug' : conversationIntent,  // Force debug if @app mentioned
-        images: imageBase64ForLLM,  // Pass base64 images for LLM API (not the stored URLs)
+        images: allFilesForAI.length > 0 ? allFilesForAI : null,  // Pass all files (images + PDFs + docs) to AI
         mentionedAppId,  // Pass mentioned app ID for context
       });
 
@@ -282,29 +307,68 @@ export const useChat = ({
           // Use mentioned app files as base, or current files
           const baseFiles = mentionedAppFiles || files;
           const newFiles = { ...baseFiles };
+
+          // Separate user file operations from artifact file operations
+          const userFilePrefixes = ['docs/', 'photos/'];
+          const artifactFileOps = [];
+          const userFileOps = [];
+
           result.fileOperations.forEach(op => {
-            newFiles[op.filename] = op.content;
+            const isUserFile = userFilePrefixes.some(prefix => op.filename.startsWith(prefix));
+            if (isUserFile) {
+              userFileOps.push(op);
+            } else {
+              artifactFileOps.push(op);
+              newFiles[op.filename] = op.content;
+            }
           });
+
+          // Sync user file changes to remote storage (async, don't block)
+          if (userFileOps.length > 0) {
+            console.log(`[useChat] Syncing ${userFileOps.length} user file change(s)`);
+            syncChangesFromAI(userFileOps).catch(err => {
+              console.error('[useChat] Failed to sync user files:', err);
+            });
+          }
 
           const appName = result.plan?.summary || 'Your app';
           const isDebugging = isDebugMode || mentionedAppId;
 
-          // Success message with thinking data
-          const fileCount = result.fileOperations.length;
+          // Only count artifact files for success message (not user files)
+          const fileCount = artifactFileOps.length;
+          const userFileCount = userFileOps.length;
           const thinkingDuration = thinkingStartTimeRef.current
             ? Date.now() - thinkingStartTimeRef.current
             : null;
+          // Build success message
+          let successContent;
+          if (fileCount === 0 && userFileCount > 0) {
+            // Only user file changes
+            successContent = `Updated ${userFileCount} file${userFileCount > 1 ? 's' : ''} in your storage.`;
+          } else if (isDebugging) {
+            successContent = `Fixed ${fileCount} file${fileCount > 1 ? 's' : ''}. Your app should work now!`;
+            if (userFileCount > 0) {
+              successContent += ` Also updated ${userFileCount} file${userFileCount > 1 ? 's' : ''} in your storage.`;
+            }
+          } else {
+            successContent = `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`;
+            if (userFileCount > 0) {
+              successContent += ` Also saved ${userFileCount} file${userFileCount > 1 ? 's' : ''} to your storage.`;
+            }
+          }
+
           const successMessage = {
             type: 'assistant',
-            content: isDebugging
-              ? `Fixed ${fileCount} file${fileCount > 1 ? 's' : ''}. Your app should work now!`
-              : `${appName} has been created with ${fileCount} file${fileCount > 1 ? 's' : ''}. Click the preview to interact with your app!`,
+            content: successContent,
             thinking: thinkingStepsRef.current.length > 0 ? [...thinkingStepsRef.current] : null,
             thinkingDuration,
             timestamp: Date.now()
           };
 
-          setFiles(newFiles);
+          // Only update artifact state if there are artifact file changes
+          if (fileCount > 0) {
+            setFiles(newFiles);
+          }
           setMessages(prev => {
             const filtered = prev.filter(msg => !msg.isLoading);
             const newMessages = [...filtered, successMessage];
@@ -312,33 +376,35 @@ export const useChat = ({
             return newMessages;
           });
 
-          // Persist to artifact - use mentionedAppId if editing via @mention
-          const targetArtifactId = mentionedAppId || activeArtifactId;
-          if (!targetArtifactId) {
-            const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
-            try {
-              const newArtifactId = await createArtifact(artifactName, newFiles, messagesRef.current);
-              if (newArtifactId) {
-                linkArtifact(newArtifactId);
+          // Persist to artifact - only if there are artifact file changes
+          if (fileCount > 0) {
+            const targetArtifactId = mentionedAppId || activeArtifactId;
+            if (!targetArtifactId) {
+              const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
+              try {
+                const newArtifactId = await createArtifact(artifactName, newFiles, messagesRef.current);
+                if (newArtifactId) {
+                  linkArtifact(newArtifactId);
+                }
+              } catch (error) {
+                console.error('Error creating artifact:', error);
+                setMessages(prev => [...prev, {
+                  type: 'error',
+                  content: 'Failed to save your project to the cloud, but files are available locally.',
+                  timestamp: Date.now()
+                }]);
               }
-            } catch (error) {
-              console.error('Error creating artifact:', error);
-              setMessages(prev => [...prev, {
-                type: 'error',
-                content: 'Failed to save your project to the cloud, but files are available locally.',
-                timestamp: Date.now()
-              }]);
+            } else {
+              updateArtifactFiles(targetArtifactId, newFiles);
+              updateChatHistory(targetArtifactId, messagesRef.current);
             }
-          } else {
-            updateArtifactFiles(targetArtifactId, newFiles);
-            updateChatHistory(targetArtifactId, messagesRef.current);
           }
 
           return {
             success: true,
             intent: result.intent,
             fileOperations: result.fileOperations,
-            firstFile: result.fileOperations[0].filename
+            firstFile: artifactFileOps.length > 0 ? artifactFileOps[0].filename : (userFileOps[0]?.filename || null)
           };
         }
 
@@ -385,7 +451,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI]);
 
   /**
    * Debug handler for errors and user-reported issues
@@ -449,22 +515,58 @@ export const useChat = ({
     };
 
     try {
-      const result = await processMessage(debugMessage, files, onUpdate, {
+      // Get user files and merge with artifact files
+      let allFiles = { ...files };
+      let userBinaryFiles = [];
+      try {
+        const { textFiles, binaryFiles } = await getFilesForAI();
+        if (Object.keys(textFiles).length > 0) {
+          allFiles = { ...textFiles, ...files }; // Artifact files take precedence
+        }
+        if (binaryFiles.length > 0) {
+          userBinaryFiles = binaryFiles;
+        }
+      } catch (err) {
+        console.warn('[useChat] Debug: Failed to load user files:', err);
+      }
+
+      const result = await processMessage(debugMessage, allFiles, onUpdate, {
         modelTier,
         aiColorPalette,
         aiUIStyle,
         isDarkTheme: mode === 'dark',
         isDebugMode: true,
         debugContext: { errors, userDescription },
+        images: userBinaryFiles.length > 0 ? userBinaryFiles : null,
       });
 
       if (result.success && result.fileOperations?.length > 0) {
+        // Separate user file operations from artifact file operations
+        const userFilePrefixes = ['docs/', 'photos/'];
         const fixedFiles = { ...files };
+        const userFileOps = [];
+
         result.fileOperations.forEach(op => {
-          fixedFiles[op.filename] = op.content;
+          const isUserFile = userFilePrefixes.some(prefix => op.filename.startsWith(prefix));
+          if (isUserFile) {
+            userFileOps.push(op);
+          } else {
+            fixedFiles[op.filename] = op.content;
+          }
         });
 
-        setFiles(fixedFiles);
+        // Sync user file changes (async)
+        if (userFileOps.length > 0) {
+          syncChangesFromAI(userFileOps).catch(err => {
+            console.error('[useChat] Debug: Failed to sync user files:', err);
+          });
+        }
+
+        // Only update artifact state if there are artifact file changes
+        const artifactFixCount = result.fileOperations.length - userFileOps.length;
+        if (artifactFixCount > 0) {
+          setFiles(fixedFiles);
+        }
         removeLoadingMessage();
         incrementUsage(modelTier);
 
@@ -479,7 +581,7 @@ export const useChat = ({
           return newMessages;
         });
 
-        if (activeArtifactId) {
+        if (activeArtifactId && artifactFixCount > 0) {
           updateArtifactFiles(activeArtifactId, fixedFiles);
           updateChatHistory(activeArtifactId, messagesRef.current);
         }
@@ -515,7 +617,7 @@ export const useChat = ({
       setIsDebugging(false);
       setIsProcessing(false);
     }
-  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage]);
+  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, getFilesForAI, syncChangesFromAI]);
 
   return {
     // Message handling

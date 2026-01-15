@@ -85,12 +85,27 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
  * Handle chat intent using OpenAI with web search
  * Uses gpt-5-mini with web_search_preview for real-time information
  */
-async function handleChatIntent(userMessage, sendUpdate, options, intent, images = null) {
+async function handleChatIntent(userMessage, sendUpdate, options, intent, files = null) {
   const { conversationHistory = [] } = options;
+
+  // Determine what types of files we have
+  const hasFiles = files && files.length > 0;
+  const fileTypes = hasFiles ? [...new Set(files.map(f => f.mimeType.split('/')[0]))] : [];
+  const hasImages = fileTypes.includes('image');
+  const hasDocs = files?.some(f =>
+    f.mimeType === 'application/pdf' ||
+    f.mimeType.includes('document') ||
+    f.mimeType.includes('text')
+  );
+
+  let actionText = 'Searching and thinking...';
+  if (hasImages && hasDocs) actionText = 'Analyzing files...';
+  else if (hasImages) actionText = 'Analyzing image...';
+  else if (hasDocs) actionText = 'Reading document...';
 
   sendUpdate({
     type: 'tool_action',
-    action: images ? 'Analyzing image...' : 'Searching and thinking...'
+    action: actionText
   });
 
   // Build messages with conversation history
@@ -108,20 +123,36 @@ async function handleChatIntent(userMessage, sendUpdate, options, intent, images
     }
   });
 
-  // Add current user message (with images if provided)
-  if (images && images.length > 0) {
+  // Add current user message (with files if provided)
+  if (hasFiles) {
     // Format as multimodal content for OpenAI
+    // OpenAI supports images via image_url and files via file object
     const content = [
-      { type: 'text', text: userMessage || 'What is in this image?' }
+      { type: 'text', text: userMessage || 'What is in these files?' }
     ];
-    images.forEach(img => {
-      content.push({
-        type: 'image_url',
-        image_url: {
-          url: `data:${img.mimeType};base64,${img.base64}`
-        }
-      });
+
+    files.forEach(file => {
+      if (file.mimeType.startsWith('image/')) {
+        // Images use image_url format
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${file.mimeType};base64,${file.base64}`
+          }
+        });
+      } else {
+        // PDFs and documents use file format (OpenAI's newer format)
+        // For models that support it, send as input_file
+        content.push({
+          type: 'file',
+          file: {
+            filename: file.filename || file.path || 'document',
+            file_data: `data:${file.mimeType};base64,${file.base64}`
+          }
+        });
+      }
     });
+
     messages.push({ role: 'user', content });
   } else {
     messages.push({ role: 'user', content: userMessage });

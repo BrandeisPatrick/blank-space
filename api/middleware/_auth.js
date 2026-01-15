@@ -25,6 +25,7 @@ if (!admin.apps.length) {
         clientEmail,
         privateKey: privateKey.replace(/\\n/g, '\n'), // Handle newlines in private key
       }),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET?.trim() || `${projectId}.appspot.com`,
     });
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);
@@ -105,6 +106,13 @@ export async function verifyAuth(req) {
  */
 export function getFirestore() {
   return admin.firestore();
+}
+
+/**
+ * Get Storage instance (for use in API routes)
+ */
+export function getStorage() {
+  return admin.storage();
 }
 
 export default verifyAuth;

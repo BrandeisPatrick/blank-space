@@ -6,7 +6,7 @@ import { useAuth } from "./contexts/AuthContext";
 import { useArtifacts } from "./contexts/ArtifactContext";
 import { useConversation } from "./contexts/ConversationContext";
 import { getTheme } from "./styles/theme";
-import { ChatPage, ComputerPage } from "./components/pages";
+import { ChatPage, ComputerPage, FilesPage } from "./components/pages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useChat } from "./hooks/useChat";
 import { TIMING } from "./constants";
@@ -247,6 +247,10 @@ function App() {
                 onRename={(artifactId, newName) => renameArtifact(artifactId, newName)}
               />
             }
+          />
+          <Route
+            path="/files"
+            element={<FilesPage />}
           />
         </Routes>
         <Analytics />

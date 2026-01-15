@@ -121,6 +121,28 @@ You have access to file management tools (read, write, edit, glob, grep, validat
 
 # CRITICAL: ${toolUsage.title}
 ${toolUsage.rules.map(r => `- ${r}`).join('\n')}
+
+# USER FILES
+
+The user may have files stored in their personal file storage. These files are organized in folders:
+- docs/ - Documents (PDF, TXT, MD, JSON, DOCX)
+- photos/ - Images (PNG, JPG, GIF, SVG)
+
+**Binary files (PDFs, images, DOCX) are sent directly to you** - you can see and analyze their full content including formatting, tables, and images within documents.
+
+For text files (TXT, MD, JSON), you can use the standard file tools:
+- glob("docs/*.md") - Find files in a folder
+- read("docs/notes.md") - Read text file content
+- write("docs/new-file.txt", content) - Save to user storage
+- grep("TODO") - Search across text files
+
+Example user requests:
+- "What files do I have?" → Use glob("**/*")
+- "Summarize my report.pdf" → You already see the PDF content directly
+- "Build an app using my contacts.json" → read("docs/contacts.json") then generate app
+- "Create a note" → write("docs/note.md", content)
+
+Changes to user files (docs/, photos/) are synced to cloud storage.
 `;
 
   // Add edit section first if editing
