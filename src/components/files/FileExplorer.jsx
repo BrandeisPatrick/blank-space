@@ -397,6 +397,197 @@ const Breadcrumb = ({ path, onNavigate, colors }) => {
   );
 };
 
+// Preview Panel Component
+const PreviewPanel = ({ file, colors }) => {
+  if (!file) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: colors.textSecondary,
+        fontSize: colors.fontSize.sm,
+        fontFamily: colors.fontFamily,
+        padding: '20px',
+      }}>
+        Select a file to preview
+      </div>
+    );
+  }
+
+  const isMarkdown = file.mimeType === 'text/markdown';
+  const isText = ['text/plain', 'text/markdown', 'application/json', 'text/javascript', 'text/css', 'text/html'].includes(file.mimeType);
+  const isImage = file.mimeType?.startsWith('image/');
+
+  // Simple markdown rendering (headers, bold, italic, lists, code)
+  const renderMarkdown = (content) => {
+    if (!content) return null;
+
+    const lines = content.split('\n');
+    const elements = [];
+    let inCodeBlock = false;
+    let codeContent = [];
+
+    lines.forEach((line, i) => {
+      // Code blocks
+      if (line.startsWith('```')) {
+        if (inCodeBlock) {
+          elements.push(
+            <pre key={`code-${i}`} style={{
+              background: colors.hover,
+              padding: '12px',
+              borderRadius: '6px',
+              overflow: 'auto',
+              fontSize: '13px',
+              fontFamily: 'monospace',
+              margin: '8px 0',
+            }}>
+              {codeContent.join('\n')}
+            </pre>
+          );
+          codeContent = [];
+        }
+        inCodeBlock = !inCodeBlock;
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeContent.push(line);
+        return;
+      }
+
+      // Headers
+      if (line.startsWith('# ')) {
+        elements.push(<h1 key={i} style={{ fontSize: '24px', fontWeight: 600, margin: '16px 0 8px' }}>{line.slice(2)}</h1>);
+      } else if (line.startsWith('## ')) {
+        elements.push(<h2 key={i} style={{ fontSize: '20px', fontWeight: 600, margin: '14px 0 6px' }}>{line.slice(3)}</h2>);
+      } else if (line.startsWith('### ')) {
+        elements.push(<h3 key={i} style={{ fontSize: '16px', fontWeight: 600, margin: '12px 0 4px' }}>{line.slice(4)}</h3>);
+      }
+      // Lists
+      else if (line.match(/^[-*]\s/)) {
+        elements.push(<li key={i} style={{ marginLeft: '20px', margin: '4px 0' }}>{line.slice(2)}</li>);
+      } else if (line.match(/^\d+\.\s/)) {
+        elements.push(<li key={i} style={{ marginLeft: '20px', margin: '4px 0', listStyleType: 'decimal' }}>{line.replace(/^\d+\.\s/, '')}</li>);
+      }
+      // Blockquote
+      else if (line.startsWith('> ')) {
+        elements.push(<blockquote key={i} style={{
+          borderLeft: `3px solid ${colors.selected}`,
+          paddingLeft: '12px',
+          margin: '8px 0',
+          color: colors.textSecondary,
+        }}>{line.slice(2)}</blockquote>);
+      }
+      // Empty line
+      else if (line.trim() === '') {
+        elements.push(<br key={i} />);
+      }
+      // Regular paragraph
+      else {
+        // Handle inline formatting (bold, italic, code)
+        let text = line;
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        text = text.replace(/`(.+?)`/g, '<code style="background: rgba(128,128,128,0.2); padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>');
+        elements.push(<p key={i} style={{ margin: '4px 0' }} dangerouslySetInnerHTML={{ __html: text }} />);
+      }
+    });
+
+    return elements;
+  };
+
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      borderLeft: `1px solid ${colors.border}`,
+      background: colors.bg,
+      minWidth: '300px',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '12px 16px',
+        paddingTop: '40px',
+        borderBottom: `1px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <FileIcon mimeType={file.mimeType} size={18} />
+        <span style={{
+          fontSize: colors.fontSize.sm,
+          fontWeight: colors.fontWeight.medium,
+          color: colors.text,
+          fontFamily: colors.fontFamily,
+        }}>
+          {file.filename}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div style={{
+        flex: 1,
+        overflow: 'auto',
+        padding: '16px',
+      }}>
+        {isImage && file.content ? (
+          <img
+            src={`data:${file.mimeType};base64,${file.content}`}
+            alt={file.filename}
+            style={{ maxWidth: '100%', borderRadius: '8px' }}
+          />
+        ) : isMarkdown && file.content ? (
+          <div style={{
+            color: colors.text,
+            fontFamily: colors.fontFamily,
+            fontSize: '14px',
+            lineHeight: '1.6',
+          }}>
+            {renderMarkdown(file.content)}
+          </div>
+        ) : isText && file.content ? (
+          <pre style={{
+            color: colors.text,
+            fontFamily: 'monospace',
+            fontSize: '13px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}>
+            {file.content}
+          </pre>
+        ) : (
+          <div style={{
+            color: colors.textSecondary,
+            fontSize: colors.fontSize.sm,
+            fontFamily: colors.fontFamily,
+            textAlign: 'center',
+            padding: '40px 20px',
+          }}>
+            {file.content ? 'Preview not available for this file type' : 'No content available'}
+          </div>
+        )}
+      </div>
+
+      {/* Footer with file info */}
+      <div style={{
+        padding: '8px 16px',
+        borderTop: `1px solid ${colors.border}`,
+        fontSize: '11px',
+        color: colors.textSecondary,
+        fontFamily: colors.fontFamily,
+        display: 'flex',
+        gap: '16px',
+      }}>
+        <span>{file.mimeType}</span>
+        {file.size && <span>{(file.size / 1024).toFixed(1)} KB</span>}
+      </div>
+    </div>
+  );
+};
+
 // Main FileExplorer Component
 const FileExplorer = ({ expanded = true, onUpload }) => {
   const { user } = useAuth();
@@ -414,6 +605,9 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
 
   // Track column paths for multi-column navigation
   const [columns, setColumns] = useState(['/']);
+
+  // Track selected file for preview
+  const [selectedFile, setSelectedFile] = useState(null);
 
   // Colors and typography - matches sidebar styling
   const colors = {
@@ -458,9 +652,10 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
       // Keep columns up to this one, add new column
       setColumns(prev => [...prev.slice(0, columnIndex + 1), newPath]);
       navigateTo(newPath);
+      setSelectedFile(null); // Clear file selection when navigating folders
     } else {
-      // File selected - could open preview or trigger action
-      console.log('File selected:', item);
+      // File selected - show in preview panel
+      setSelectedFile(item);
     }
   }, [navigateTo]);
 
@@ -538,47 +733,62 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
         colors={colors}
       />
 
-      {/* Column container */}
+      {/* Column container + Preview */}
       <div
         style={{
           flex: 1,
           display: 'flex',
-          overflowX: 'auto',
-          overflowY: 'hidden',
+          overflow: 'hidden',
         }}
       >
-        {loading && !initialized ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              color: colors.textSecondary,
-              fontSize: colors.fontSize.sm,
-              fontFamily: colors.fontFamily,
-            }}
-          >
-            Loading...
-          </div>
-        ) : (
-          columns.map((colPath, index) => {
-            const items = getFolderContents(colPath);
-            const nextColPath = columns[index + 1];
-            return (
-              <Column
-                key={colPath}
-                path={colPath}
-                items={items}
-                selectedPath={nextColPath}
-                onSelect={(item) => handleSelect(item, index)}
-                onCreateFolder={handleCreateFolder}
-                onUpload={handleUpload}
-                onDeleteFolder={handleDeleteFolder}
-                colors={colors}
-              />
-            );
-          })
+        {/* Columns */}
+        <div
+          style={{
+            flex: selectedFile ? '0 0 auto' : 1,
+            display: 'flex',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            minWidth: selectedFile ? '400px' : undefined,
+          }}
+        >
+          {loading && !initialized ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                color: colors.textSecondary,
+                fontSize: colors.fontSize.sm,
+                fontFamily: colors.fontFamily,
+              }}
+            >
+              Loading...
+            </div>
+          ) : (
+            columns.map((colPath, index) => {
+              const items = getFolderContents(colPath);
+              const nextColPath = columns[index + 1];
+              return (
+                <Column
+                  key={colPath}
+                  path={colPath}
+                  items={items}
+                  selectedPath={nextColPath}
+                  onSelect={(item) => handleSelect(item, index)}
+                  onCreateFolder={handleCreateFolder}
+                  onUpload={handleUpload}
+                  onDeleteFolder={handleDeleteFolder}
+                  colors={colors}
+                />
+              );
+            })
+          )}
+        </div>
+
+        {/* Preview Panel */}
+        {selectedFile && (
+          <PreviewPanel file={selectedFile} colors={colors} />
         )}
       </div>
     </div>

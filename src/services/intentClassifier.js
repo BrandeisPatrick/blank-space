@@ -18,25 +18,36 @@ const INTENT_RETRY_CONFIG = {
 // Classification prompt for NEW app (no existing files)
 const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
 - "create": User is REQUESTING you to build/create an app, website, or code for them
-- "chat": User is ASKING a question, seeking information, or having a conversation
+- "assistant": User wants to work with their documents/notes/files in docs/ folder (create, edit, read, list, count, summarize, check)
+- "chat": User is ASKING a general question or having a conversation NOT about their documents
 
 Key distinction:
-- "create a todo app" → create (requesting you to build)
-- "can you make a calculator?" → create (requesting you to build)
-- "does X support Y?" → chat (asking a question)
+- "create a todo app" → create (requesting you to build code)
+- "can you make a calculator?" → create (requesting you to build code)
+- "create a note about..." → assistant (working with documents)
+- "write a document about..." → assistant (working with documents)
+- "summarize my documents" → assistant (working with documents)
+- "edit my notes" → assistant (working with documents)
+- "how many documents do I have" → assistant (checking their documents)
+- "list my files" → assistant (listing their documents)
+- "what's in my docs" → assistant (reading their documents)
+- "check my notes" → assistant (reading their documents)
+- "does X support Y?" → chat (general question)
 - "how do I create X?" → chat (asking for information)
-- "what is React?" → chat (asking a question)
+- "what is React?" → chat (general question)
 
-Respond with ONLY ONE WORD: create or chat`;
+Respond with ONLY ONE WORD: create, assistant, or chat`;
 
 // Classification prompt for EDITING existing app
 const EDITING_APP_PROMPT = `Classify the user's message into ONE intent:
 - "debug": ANY request to change, fix, modify, or improve the existing app (including adding features, fixing bugs, changing design)
-- "chat": asking questions, greetings, conversation, help requests
+- "assistant": User wants to work with their documents/notes/files in docs/ folder (create, edit, read, list, count, summarize, check)
+- "chat": asking general questions, greetings, conversation NOT about their documents
 
 The user is editing an existing app. ANY code change request should be "debug".
+Document/note operations (create note, edit docs, list files, count documents, summarize) should be "assistant".
 
-Respond with ONLY ONE WORD: debug or chat`;
+Respond with ONLY ONE WORD: debug, assistant, or chat`;
 
 /**
  * Classify user message intent using AI (gpt-4o-mini)
@@ -76,7 +87,7 @@ export async function classifyIntent(message, hasExistingFiles = false) {
     const result = data.choices?.[0]?.message?.content?.trim().toLowerCase();
 
     // Validate response based on context
-    const validIntents = hasExistingFiles ? ['debug', 'chat'] : ['create', 'chat'];
+    const validIntents = hasExistingFiles ? ['debug', 'assistant', 'chat'] : ['create', 'assistant', 'chat'];
 
     if (validIntents.includes(result)) {
       console.log(`[Intent Classifier] AI classified: "${message.slice(0, 50)}..." → ${result}`);

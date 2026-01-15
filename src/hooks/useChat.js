@@ -342,7 +342,12 @@ export const useChat = ({
             : null;
           // Build success message
           let successContent;
-          if (fileCount === 0 && userFileCount > 0) {
+          if (result.intent === 'assistant') {
+            // Assistant intent - document operations
+            successContent = userFileCount > 0
+              ? `Document${userFileCount > 1 ? 's' : ''} updated successfully.`
+              : 'Document operation complete.';
+          } else if (fileCount === 0 && userFileCount > 0) {
             // Only user file changes
             successContent = `Updated ${userFileCount} file${userFileCount > 1 ? 's' : ''} in your storage.`;
           } else if (isDebugging) {

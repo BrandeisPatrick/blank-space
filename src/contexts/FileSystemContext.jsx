@@ -2,12 +2,36 @@
  * File System Context
  * Manages user's remote file storage with nested folder support
  * macOS Finder-style column navigation
+ *
+ * In development mode, uses localStorage instead of Firebase Storage
  */
 
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const FileSystemContext = createContext();
+
+// Check if running in development mode (use local storage instead of Firebase)
+const USE_LOCAL_STORAGE = import.meta.env.DEV;
+const LOCAL_STORAGE_KEY = 'blankspace_local_files';
+
+// Local storage helpers for development mode
+const getLocalFiles = () => {
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : { files: [], folders: [] };
+  } catch {
+    return { files: [], folders: [] };
+  }
+};
+
+const saveLocalFiles = (files, folders) => {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ files, folders }));
+  } catch (err) {
+    console.warn('[FileSystem] Failed to save to localStorage:', err);
+  }
+};
 
 // Default folders that always appear
 const DEFAULT_FOLDERS = [
@@ -80,6 +104,17 @@ export const FileSystemProvider = ({ children }) => {
     setError(null);
 
     try {
+      // In development mode, use localStorage
+      if (USE_LOCAL_STORAGE) {
+        const localData = getLocalFiles();
+        setFiles(localData.files || []);
+        setFolders(localData.folders || []);
+        setInitialized(true);
+        console.log('[FileSystem] Loaded from localStorage:', localData.files?.length || 0, 'files');
+        return { success: true, count: localData.files?.length || 0 };
+      }
+
+      // Production: use Firebase
       const data = await makeAuthenticatedRequest('/api/files');
 
       setFiles(data.files || []);
@@ -427,6 +462,21 @@ export const FileSystemProvider = ({ children }) => {
 
     const textMimeTypes = ['text/plain', 'text/markdown', 'application/json', 'text/javascript', 'text/css', 'text/html'];
 
+    // In development mode, read from localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      for (const file of localData.files || []) {
+        if (textMimeTypes.includes(file.mimeType)) {
+          // Local files have content stored directly
+          textFiles[file.path] = file.content || '';
+        }
+        // Note: Binary files in local dev are not fully supported
+      }
+      console.log('[FileSystem] getFilesForAI from localStorage:', Object.keys(textFiles).length, 'text files');
+      return { textFiles, binaryFiles };
+    }
+
+    // Production: fetch from Firebase
     for (const file of files) {
       try {
         const fullFile = await makeAuthenticatedRequest(`/api/files?id=${file.id}`);
@@ -468,12 +518,68 @@ export const FileSystemProvider = ({ children }) => {
     return { textFiles, binaryFiles };
   }, [user, files, makeAuthenticatedRequest]);
 
-  // Sync file changes from AI back to remote storage
+  // Sync file changes from AI back to remote storage (or localStorage in dev)
   const syncChangesFromAI = useCallback(async (fileOps) => {
     if (!user || !fileOps || fileOps.length === 0) return;
 
     console.log(`[FileSystem] Syncing ${fileOps.length} file changes`);
 
+    // In development mode, save to localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      const updatedFiles = [...localData.files];
+      const updatedFolders = [...localData.folders];
+
+      for (const op of fileOps) {
+        const filename = op.filename.split('/').pop();
+        const mimeType = guessMimeType(op.filename);
+
+        if (op.type === 'delete') {
+          const index = updatedFiles.findIndex(f => f.path === op.filename);
+          if (index !== -1) {
+            updatedFiles.splice(index, 1);
+          }
+        } else {
+          // Check if file exists
+          const existingIndex = updatedFiles.findIndex(f => f.path === op.filename);
+          const fileData = {
+            id: existingIndex !== -1 ? updatedFiles[existingIndex].id : `local_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            filename,
+            path: op.filename,
+            mimeType,
+            content: op.content, // Store actual content for local dev
+            size: op.content?.length || 0,
+            createdAt: existingIndex !== -1 ? updatedFiles[existingIndex].createdAt : new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (existingIndex !== -1) {
+            updatedFiles[existingIndex] = fileData;
+          } else {
+            updatedFiles.push(fileData);
+          }
+
+          // Add folder if it doesn't exist
+          const folderPath = op.filename.includes('/') ? op.filename.split('/').slice(0, -1).join('/') : null;
+          if (folderPath && !updatedFolders.some(f => f.path === folderPath)) {
+            updatedFolders.push({
+              id: `folder:${folderPath}`,
+              path: folderPath,
+              name: folderPath.split('/').pop(),
+              isFolder: true,
+            });
+          }
+        }
+      }
+
+      saveLocalFiles(updatedFiles, updatedFolders);
+      setFiles(updatedFiles);
+      setFolders(updatedFolders);
+      console.log('[FileSystem] Saved to localStorage:', updatedFiles.length, 'files');
+      return;
+    }
+
+    // Production: sync to Firebase
     for (const op of fileOps) {
       try {
         if (op.type === 'delete') {

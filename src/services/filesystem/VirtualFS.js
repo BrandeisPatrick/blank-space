@@ -101,8 +101,8 @@ export class VirtualFileSystem {
     // Simple glob implementation
     const regex = this._globToRegex(pattern);
     return Array.from(this.files.keys())
-      .filter(path => regex.test(path))
-      .map(path => path.startsWith('/') ? path.slice(1) : path);
+      .map(path => path.startsWith('/') ? path.slice(1) : path)  // Strip leading / first
+      .filter(path => regex.test(path));  // Then match against pattern
   }
 
   /**

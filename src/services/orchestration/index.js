@@ -6,6 +6,7 @@
  */
 
 import { processWithGemini } from './providers/gemini/index.js';
+import { processWithAssistantAgent } from './providers/assistant/index.js';
 import { classifyIntent } from '../intentClassifier.js';
 import { CHAT_SYSTEM_PROMPT } from '../prompts/index.js';
 import { fetchWithRetry } from '../utils/fetchWithRetry.js';
@@ -58,7 +59,17 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
   }
 
   // Route based on intent and show agent info
-  if (intent === 'chat') {
+  if (intent === 'assistant') {
+    // Assistant intent → OpenAI for document operations
+    const llmModel = 'gpt-5-mini';
+    sendUpdate({
+      type: 'intent',
+      content: ['Agent: Assistant', `LLM: ${llmModel}`]
+    });
+    console.log(`[Orchestration] Routing to Assistant Agent${images ? ' with images' : ''}`);
+    const result = await processWithAssistantAgent(userMessage, currentFiles, onUpdate, { ...options, images });
+    return { ...result, intent };
+  } else if (intent === 'chat') {
     // Chat intent → OpenAI with web search
     const llmModel = 'gpt-5-mini';
     sendUpdate({
