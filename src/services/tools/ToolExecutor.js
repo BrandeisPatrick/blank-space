@@ -42,9 +42,9 @@ export class ToolExecutor {
       const result = await tool.execute(params, context);
       console.log(`✅ Tool result: ${toolName}`, result);
 
+      // Return tool result directly with metadata merged in
       return {
-        success: true,
-        result,
+        ...result,
         tool: toolName
       };
     } catch (error) {

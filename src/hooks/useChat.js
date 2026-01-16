@@ -47,7 +47,16 @@ export const useChat = ({
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
   const { user } = useAuth();
-  const { getFilesForAI, syncChangesFromAI } = useFileSystem();
+  const {
+    getFilesForAI,
+    syncChangesFromAI,
+    // Lazy-loading functions for assistant agent
+    getFileListForAI,
+    fetchFileByPath,
+    writeFileByPath,
+    createFolderByPath,
+    listDirectoryByPath
+  } = useFileSystem();
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
@@ -256,8 +265,9 @@ export const useChat = ({
       // Get user files from FileSystem and merge with artifact files
       let allFiles = { ...filesToProcess };
       let userBinaryFiles = []; // PDFs, images, DOCX - sent directly to AI
+      let userFolders = []; // Folder list for AI context
       try {
-        const { textFiles, binaryFiles } = await getFilesForAI();
+        const { textFiles, binaryFiles, folders } = await getFilesForAI();
         if (Object.keys(textFiles).length > 0) {
           console.log(`[useChat] Loaded ${Object.keys(textFiles).length} text file(s) for AI`);
           allFiles = { ...textFiles, ...filesToProcess }; // Artifact files take precedence
@@ -265,6 +275,10 @@ export const useChat = ({
         if (binaryFiles.length > 0) {
           console.log(`[useChat] Loaded ${binaryFiles.length} binary file(s) for AI (PDFs, images, etc.)`);
           userBinaryFiles = binaryFiles;
+        }
+        if (folders && folders.length > 0) {
+          console.log(`[useChat] Loaded ${folders.length} folder(s) for AI`);
+          userFolders = folders;
         }
       } catch (err) {
         console.warn('[useChat] Failed to load user files:', err);
@@ -276,6 +290,17 @@ export const useChat = ({
         ...userBinaryFiles,
       ];
 
+      // Build file context for assistant agent (lazy-loading)
+      const { files: fileMetadata, folders: folderMetadata } = getFileListForAI();
+      const fileContext = {
+        files: fileMetadata,
+        folders: folderMetadata,
+        fetchFile: fetchFileByPath,
+        writeFile: writeFileByPath,
+        listDirectory: listDirectoryByPath,
+        createDirectory: createFolderByPath
+      };
+
       const result = await processMessage(message, allFiles, onUpdate, {
         modelTier,
         aiColorPalette,
@@ -285,6 +310,8 @@ export const useChat = ({
         conversationIntent: isDebugMode ? 'debug' : conversationIntent,  // Force debug if @app mentioned
         images: allFilesForAI.length > 0 ? allFilesForAI : null,  // Pass all files (images + PDFs + docs) to AI
         mentionedAppId,  // Pass mentioned app ID for context
+        folders: userFolders,  // Pass folder list for AI context
+        fileContext,  // Lazy-loading context for assistant agent
       });
 
       // Store intent from first message for subsequent messages
@@ -456,7 +483,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
 
   /**
    * Debug handler for errors and user-reported issues

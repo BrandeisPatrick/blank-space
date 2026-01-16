@@ -1,7 +1,7 @@
 /**
- * Gemini Provider
- * Handles code generation using Google Gemini models via /api/gemini serverless function
- * API key is kept server-side for security - never exposed to browser
+ * Code Agent
+ * Handles code generation using Google Gemini models
+ * Two-phase execution: Planning (read-only) → Execution (all tools)
  */
 
 import { VirtualFileSystem } from '../../../filesystem/VirtualFS.js';
@@ -17,15 +17,14 @@ import { fetchWithRetry } from '../../../utils/fetchWithRetry.js';
 
 // Retry configuration for Gemini API calls
 const GEMINI_RETRY_CONFIG = {
-  timeout: 60000,    // 60s timeout for code generation
+  timeout: 60000,
   maxRetries: 3,
   baseDelay: 1000,
-  context: 'Gemini Provider'
+  context: 'Code Agent'
 };
 
 /**
  * Get auth headers for API requests
- * Includes Firebase ID token if user is authenticated
  */
 async function getAuthHeaders() {
   const headers = { 'Content-Type': 'application/json' };
@@ -35,7 +34,7 @@ async function getAuthHeaders() {
       headers['Authorization'] = `Bearer ${token}`;
     }
   } catch (error) {
-    console.warn('[Gemini Provider] Failed to get auth token:', error.message);
+    console.warn('[Code Agent] Failed to get auth token:', error.message);
   }
   return headers;
 }
@@ -56,7 +55,7 @@ async function executeFunction(name, args, executor, context) {
 }
 
 /**
- * Process a user message using Gemini models
+ * Process a user message using the Code Agent
  *
  * @param {string} userMessage - User's request for code generation
  * @param {Object} currentFiles - Current file map {filename: content}
@@ -64,7 +63,7 @@ async function executeFunction(name, args, executor, context) {
  * @param {Object} options - Additional options
  * @returns {Promise<Object>} Result with {success, fileOperations, plan}
  */
-export async function processWithGemini(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
+export async function processWithCodeAgent(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const {
     modelTier = 'lite',
     aiColorPalette = 'dark-professional',
@@ -72,27 +71,22 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     isDarkTheme = true,
     isDebugMode = false,
     debugErrors = [],
-    images = null  // Array of {base64, mimeType} for image uploads
+    images = null
   } = options;
 
-  // Get the actual model ID from the tier
   const model = getModelForTier(modelTier);
-  console.log(`[Gemini Provider] Starting with model: ${model} (tier: ${modelTier})`);
+  console.log(`[Code Agent] Starting with model: ${model} (tier: ${modelTier})`);
 
-  // Callback wrapper for updates
   const sendUpdate = (update) => {
     if (onUpdate) {
       onUpdate(update);
     }
   };
 
-  // Track if we should use debug mode for this request
-  // Note: Intent is already classified by orchestration layer - this only handles create/debug
   let useDebugMode = isDebugMode;
   let debugContext = options.debugContext || null;
 
   try {
-    // Code generation (for both create and debug intents)
     const sessionManager = new SessionManager();
     const sessionId = sessionManager.createSession('user-session').id;
 
@@ -112,7 +106,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     const executor = new ToolExecutor(toolRegistry);
     const context = { fs: vfs };
 
-    // Convert tools to Gemini format - create two tool sets for two-phase execution
+    // Convert tools to Gemini format
     const allGeminiTools = convertToolsToGeminiFormat(toolRegistry);
 
     // Phase 1 tools: read-only (glob, read) - for planning
@@ -122,7 +116,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       return readOnlyToolNames.includes(funcName);
     });
 
-    // Build system prompt (use local debug state which may have been set by intent classification)
     const systemPrompt = buildSystemPrompt({
       currentFiles,
       aiColorPalette,
@@ -134,14 +127,12 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
 
     const isEditing = Object.keys(currentFiles).length > 0;
     if (isEditing) {
-      console.log(`[Gemini Provider] Edit mode for ${Object.keys(currentFiles).length} existing file(s)`);
+      console.log(`[Code Agent] Edit mode for ${Object.keys(currentFiles).length} existing file(s)`);
     }
 
-    // Get auth headers once for the loop
     const loopHeaders = await getAuthHeaders();
 
     // Format files for Gemini API (inlineData format)
-    // This handles images, PDFs, DOCX, and other binary files sent directly to AI
     let fileParts = null;
     if (images && images.length > 0) {
       fileParts = images.map(file => ({
@@ -150,15 +141,14 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
           data: file.base64
         }
       }));
-      // Log what file types are being sent
       const fileTypes = [...new Set(images.map(f => f.mimeType))];
-      console.log(`[Gemini Provider] Sending ${images.length} file(s) to AI: ${fileTypes.join(', ')}`);
+      console.log(`[Code Agent] Sending ${images.length} file(s) to AI: ${fileTypes.join(', ')}`);
     }
 
     // ========================================
     // PHASE 1: Planning (read-only tools)
     // ========================================
-    console.log('[Gemini Provider] Phase 1: Planning (read-only tools)');
+    console.log('[Code Agent] Phase 1: Planning (read-only tools)');
     sendUpdate({
       type: 'thinking',
       content: 'Planning...'
@@ -170,7 +160,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     let history = [];
     let planText = '';
 
-    // Send initial message with planning tools only
     let apiResponse = await fetchWithRetry('/api/gemini', {
       method: 'POST',
       headers: loopHeaders,
@@ -178,10 +167,10 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         action: 'chat',
         model,
         message: userMessage,
-        imageParts: fileParts,  // Images, PDFs, and other files
+        imageParts: fileParts,
         history: [],
         systemInstruction: systemPrompt,
-        tools: planningTools,  // Read-only tools for planning
+        tools: planningTools,
         thinkingConfig: { thinkingLevel: 'low' }
       })
     }, GEMINI_RETRY_CONFIG);
@@ -201,14 +190,13 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     let response = await apiResponse.json();
     history = response.history || [];
 
-    // Phase 1 loop: execute read-only tools until we get a plan (text response)
+    // Phase 1 loop: execute read-only tools until we get a plan
     while (loopCount < maxPlanningLoops) {
       loopCount++;
 
-      // Check for text response (the plan)
       if (response.text && response.text.trim()) {
         planText = response.text.trim();
-        console.log(`[Gemini Provider] Plan received after ${loopCount} loop(s)`);
+        console.log(`[Code Agent] Plan received after ${loopCount} loop(s)`);
         sendUpdate({
           type: 'plan',
           content: planText
@@ -216,24 +204,21 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         break;
       }
 
-      // Check for function calls
       const functionCalls = response.functionCalls;
       if (!functionCalls || functionCalls.length === 0) {
-        console.log(`[Gemini Provider] No function calls or plan in loop ${loopCount}`);
+        console.log(`[Code Agent] No function calls or plan in loop ${loopCount}`);
         break;
       }
 
-      console.log(`[Gemini Provider] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
+      console.log(`[Code Agent] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
 
-      // Execute read-only function calls
       const functionResponses = [];
       for (const fc of functionCalls) {
         const toolName = fc.name;
         const params = fc.args || {};
 
-        // Only allow read-only tools in planning phase
         if (!readOnlyToolNames.includes(toolName)) {
-          console.warn(`[Gemini Provider] Blocked non-read tool in planning phase: ${toolName}`);
+          console.warn(`[Code Agent] Blocked non-read tool in planning phase: ${toolName}`);
           functionResponses.push({
             name: toolName,
             response: { success: false, error: 'Tool not available in planning phase. Output your plan first.' },
@@ -255,7 +240,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         });
       }
 
-      // Send function responses back
       const functionResponseParts = functionResponses.map(fr => ({
         functionResponse: {
           name: fr.name,
@@ -272,7 +256,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
           history,
           functionResponses: functionResponseParts,
           systemInstruction: systemPrompt,
-          tools: planningTools,  // Still read-only tools
+          tools: planningTools,
           thinkingConfig: { thinkingLevel: 'low' }
         })
       }, GEMINI_RETRY_CONFIG);
@@ -296,32 +280,25 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     // ========================================
     // PHASE 2: Execution (all tools)
     // ========================================
-    console.log('[Gemini Provider] Phase 2: Execution (all tools)');
+    console.log('[Code Agent] Phase 2: Execution (all tools)');
     sendUpdate({
       type: 'thinking',
       content: 'Implementing...'
     });
 
-    // DON'T send new message - just continue processing pending function calls
-    // The last response from Phase 1 might have function calls waiting to be executed
-    // History is already preserved from Phase 1
-
-    // Phase 2 loop: execute all tools (including write/validate now)
     let executionLoops = 0;
     while (executionLoops < maxExecutionLoops) {
       executionLoops++;
       loopCount++;
 
-      // Check for function calls
       const functionCalls = response.functionCalls;
       if (!functionCalls || functionCalls.length === 0) {
-        console.log(`[Gemini Provider] Completed after ${loopCount} total loop(s)`);
+        console.log(`[Code Agent] Completed after ${loopCount} total loop(s)`);
         break;
       }
 
-      console.log(`[Gemini Provider] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
+      console.log(`[Code Agent] Loop ${loopCount}: ${functionCalls.length} function call(s)`);
 
-      // Execute all function calls
       const functionResponses = [];
       for (const fc of functionCalls) {
         const toolName = fc.name;
@@ -341,7 +318,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
         });
       }
 
-      // Send function responses back
       const functionResponseParts = functionResponses.map(fr => ({
         functionResponse: {
           name: fr.name,
@@ -380,7 +356,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     }
 
     if (loopCount >= maxPlanningLoops + maxExecutionLoops) {
-      console.warn('[Gemini Provider] Max loops reached');
+      console.warn('[Code Agent] Max loops reached');
     }
 
     sendUpdate({
@@ -388,10 +364,8 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       content: 'Collecting generated files...'
     });
 
-    // Get all files from virtual file system
     const generatedFiles = vfs.getAll();
 
-    // Create file operations for the UI
     const fileOperations = Object.entries(generatedFiles).map(([filename, content]) => {
       const existed = filename in currentFiles;
       return {
@@ -406,7 +380,6 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
       content: `Generated ${fileOperations.length} file(s)`
     });
 
-    // Generate app name
     const appName = await generateAppNameGemini(userMessage, model);
 
     return {
@@ -425,7 +398,7 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
     };
 
   } catch (error) {
-    console.error('❌ [Gemini Provider] Code generation failed:', error.message);
+    console.error('❌ [Code Agent] Code generation failed:', error.message);
 
     sendUpdate({
       type: 'thinking',
@@ -440,4 +413,4 @@ export async function processWithGemini(userMessage, currentFiles = {}, onUpdate
   }
 }
 
-export default { processWithGemini };
+export default { processWithCodeAgent };

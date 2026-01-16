@@ -1,23 +1,23 @@
 /**
- * Assistant Provider
- * Handles document operations using OpenAI gpt-5-mini with function calling
- * Single-phase workflow: agent has all tools and decides when to use them
+ * Assistant Agent
+ * Handles file operations using OpenAI gpt-5-mini with function calling
+ * Lazy-loading architecture: tools fetch from Firebase on-demand
  */
 
-import { VirtualFileSystem } from '../../../filesystem/VirtualFS.js';
 import { ToolRegistry } from '../../../tools/ToolRegistry.js';
 import { ToolExecutor } from '../../../tools/ToolExecutor.js';
 import { assistantTools } from '../../../tools/assistant/index.js';
 import { buildAssistantPrompt } from '../../../prompts/assistant/index.js';
 import { auth } from '../../../../config/firebase.js';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry.js';
+import { formatToolAction, formatToolResult } from './formatters.js';
 
 // Retry configuration for OpenAI API calls
 const OPENAI_RETRY_CONFIG = {
-  timeout: 60000,    // 60s timeout
+  timeout: 60000,
   maxRetries: 3,
   baseDelay: 1000,
-  context: 'Assistant Provider'
+  context: 'Assistant Agent'
 };
 
 /**
@@ -31,7 +31,7 @@ async function getAuthHeaders() {
       headers['Authorization'] = `Bearer ${token}`;
     }
   } catch (error) {
-    console.warn('[Assistant Provider] Failed to get auth token:', error.message);
+    console.warn('[Assistant Agent] Failed to get auth token:', error.message);
   }
   return headers;
 }
@@ -59,41 +59,32 @@ async function executeFunction(name, args, executor, context) {
 }
 
 /**
- * Format tool action for display with details
- */
-function formatToolAction(toolName, params) {
-  switch (toolName) {
-    case 'doc_read':
-      return `doc_read("${params.path}")`;
-    case 'doc_write':
-      return `doc_write("${params.path}", ${params.content?.length || 0} chars)`;
-    case 'doc_edit':
-      return `doc_edit("${params.path}")`;
-    case 'doc_list':
-      return params.pattern ? `doc_list("${params.pattern}")` : 'doc_list()';
-    default:
-      return `${toolName}(${JSON.stringify(params)})`;
-  }
-}
-
-/**
  * Process a user message using the Assistant Agent
  *
- * @param {string} userMessage - User's request for document operations
- * @param {Object} currentFiles - Current file map {filename: content}
+ * @param {string} userMessage - User's request for file operations
+ * @param {Object} fileContext - File system context with metadata and operations
  * @param {Function} onUpdate - Callback for streaming updates
  * @param {Object} options - Additional options
- * @returns {Promise<Object>} Result with {success, fileOperations}
+ * @returns {Promise<Object>} Result with {success, response}
  */
-export async function processWithAssistantAgent(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
+export async function processWithAssistantAgent(userMessage, fileContext = {}, onUpdate = null, options = {}) {
   const {
-    images = null  // Array of {base64, mimeType} for file uploads
+    images = null
   } = options;
 
-  console.log('[Assistant Provider] Starting document operation');
-  console.log('[Assistant Provider] Current files:', Object.keys(currentFiles));
+  const {
+    files = [],
+    folders = [],
+    fetchFile,
+    writeFile,
+    listDirectory,
+    createDirectory
+  } = fileContext;
 
-  // Callback wrapper for updates
+  console.log('[Assistant Agent] Starting file operation');
+  console.log('[Assistant Agent] Files available:', files.length);
+  console.log('[Assistant Agent] Folders available:', folders.length);
+
   const sendUpdate = (update) => {
     if (onUpdate) {
       onUpdate(update);
@@ -101,13 +92,7 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
   };
 
   try {
-    // Create virtual file system with current files
-    const vfs = new VirtualFileSystem();
-    Object.entries(currentFiles).forEach(([filename, content]) => {
-      vfs.write(filename, content);
-    });
-
-    // Initialize tool registry with all assistant tools
+    // Initialize tool registry
     const toolRegistry = new ToolRegistry();
     const allTools = await assistantTools();
 
@@ -116,18 +101,21 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
     });
 
     const executor = new ToolExecutor(toolRegistry);
-    const context = { fs: vfs };
 
-    // Convert tools to OpenAI format
+    // Context passed to tools
+    const toolContext = {
+      fetchFile,
+      writeFile,
+      listDirectory,
+      createDirectory,
+      fileList: files,
+      folderList: folders
+    };
+
     const openAITools = convertToolsToOpenAIFormat(allTools);
-
-    // Build system prompt
-    const systemPrompt = buildAssistantPrompt({ currentFiles });
-
-    // Get auth headers
+    const systemPrompt = buildAssistantPrompt({ files, folders });
     const headers = await getAuthHeaders();
 
-    // Build messages
     let messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage }
@@ -161,10 +149,9 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
 
     sendUpdate({
       type: 'thinking',
-      content: 'Processing...'
+      content: `Context: ${files.length} files, ${folders.length} folders`
     });
 
-    // Single-phase loop: agent has all tools, decides what to use
     const maxLoops = 20;
     let loopCount = 0;
 
@@ -192,33 +179,32 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
     while (loopCount < maxLoops) {
       loopCount++;
 
-      // Check for tool calls
       const toolCalls = assistantMessage?.tool_calls;
 
       if (!toolCalls || toolCalls.length === 0) {
-        // No tool calls - agent is done, return the response
-        console.log(`[Assistant Provider] Completed after ${loopCount} loop(s)`);
+        console.log(`[Assistant Agent] Completed after ${loopCount} loop(s)`);
         break;
       }
 
-      // Add assistant message with tool calls to history
       messages.push(assistantMessage);
-
-      console.log(`[Assistant Provider] Loop ${loopCount}: ${toolCalls.length} tool call(s)`);
+      console.log(`[Assistant Agent] Loop ${loopCount}: ${toolCalls.length} tool call(s)`);
 
       // Execute all tool calls
       for (const toolCall of toolCalls) {
         const toolName = toolCall.function.name;
         const params = JSON.parse(toolCall.function.arguments || '{}');
 
+        const toolResult = await executeFunction(toolName, params, executor, toolContext);
+        const resultSummary = formatToolResult(toolName, toolResult);
+
         sendUpdate({
           type: 'tool_action',
-          action: formatToolAction(toolName, params),
+          action: `${formatToolAction(toolName, params)} → ${resultSummary}`,
           tool: toolName,
-          params
+          params,
+          result: toolResult
         });
 
-        const toolResult = await executeFunction(toolName, params, executor, context);
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -248,10 +234,9 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
     }
 
     if (loopCount >= maxLoops) {
-      console.warn('[Assistant Provider] Max loops reached');
+      console.warn('[Assistant Agent] Max loops reached');
     }
 
-    // Get final response text
     const responseText = assistantMessage?.content || '';
 
     if (responseText) {
@@ -261,43 +246,14 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
       });
     }
 
-    // Get all files from virtual file system
-    const allFiles = vfs.getAll();
-
-    // Create file operations only for files that were actually changed
-    const fileOperations = Object.entries(allFiles)
-      .filter(([filename]) => filename.startsWith('docs/'))
-      .filter(([filename, content]) => {
-        // Only include if file is new or content changed
-        const originalContent = currentFiles[filename];
-        return originalContent === undefined || originalContent !== content;
-      })
-      .map(([filename, content]) => {
-        const existed = filename in currentFiles;
-        return {
-          type: existed ? 'modify' : 'create',
-          filename,
-          content
-        };
-      });
-
-    // Only report file changes if there were actual modifications
-    if (fileOperations.length > 0) {
-      sendUpdate({
-        type: 'thinking',
-        content: `Updated ${fileOperations.length} document(s)`
-      });
-    }
-
     return {
       success: true,
       intent: 'assistant',
-      fileOperations,
       response: responseText
     };
 
   } catch (error) {
-    console.error('[Assistant Provider] Document operation failed:', error.message);
+    console.error('[Assistant Agent] File operation failed:', error.message);
 
     sendUpdate({
       type: 'thinking',
@@ -306,8 +262,7 @@ export async function processWithAssistantAgent(userMessage, currentFiles = {}, 
 
     return {
       success: false,
-      error: error.message,
-      fileOperations: []
+      error: error.message
     };
   }
 }

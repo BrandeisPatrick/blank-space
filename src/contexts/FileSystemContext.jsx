@@ -453,12 +453,198 @@ export const FileSystemProvider = ({ children }) => {
     return mimeTypes[ext] || 'application/octet-stream';
   };
 
+  // =============================================
+  // AI Tool Operations (on-demand, lazy-loading)
+  // =============================================
+
+  // Get file/folder metadata only (no content) - fast for AI context
+  const getFileListForAI = useCallback(() => {
+    const allFolders = [...DEFAULT_FOLDERS, ...folders].map(f => f.path || f.name);
+    const uniqueFolders = [...new Set(allFolders)];
+    const filePaths = files.map(f => f.path);
+    return { files: filePaths, folders: uniqueFolders };
+  }, [files, folders]);
+
+  // Fetch single file content by path (on-demand from Firebase/localStorage)
+  const fetchFileByPath = useCallback(async (filePath) => {
+    if (!user) throw new Error('Not authenticated');
+
+    // Development: read from localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      const file = (localData.files || []).find(f => f.path === filePath);
+      if (!file) throw new Error(`File not found: ${filePath}`);
+      return { success: true, content: file.content || '', path: filePath };
+    }
+
+    // Production: find file and fetch from Firebase
+    const file = files.find(f => f.path === filePath);
+    if (!file) throw new Error(`File not found: ${filePath}`);
+
+    try {
+      const fullFile = await makeAuthenticatedRequest(`/api/files?id=${file.id}`);
+      const fileData = fullFile.file;
+
+      if (!fileData?.downloadUrl) throw new Error('No download URL');
+
+      const response = await fetch(fileData.downloadUrl);
+      const content = await response.text();
+      return { success: true, content, path: filePath };
+    } catch (err) {
+      throw new Error(`Failed to fetch ${filePath}: ${err.message}`);
+    }
+  }, [user, files, makeAuthenticatedRequest]);
+
+  // Write file by path (to Firebase/localStorage)
+  const writeFileByPath = useCallback(async (filePath, content) => {
+    if (!user) throw new Error('Not authenticated');
+
+    const filename = filePath.split('/').pop();
+    const mimeType = guessMimeType(filename);
+
+    // Development: write to localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      const updatedFiles = [...localData.files];
+      const existingIndex = updatedFiles.findIndex(f => f.path === filePath);
+
+      const fileData = {
+        id: existingIndex !== -1 ? updatedFiles[existingIndex].id : `local_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        filename,
+        path: filePath,
+        mimeType,
+        content,
+        size: content.length,
+        createdAt: existingIndex !== -1 ? updatedFiles[existingIndex].createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingIndex !== -1) {
+        updatedFiles[existingIndex] = fileData;
+      } else {
+        updatedFiles.push(fileData);
+      }
+
+      // Ensure folder exists
+      const updatedFolders = [...localData.folders];
+      const folderPath = filePath.includes('/') ? filePath.split('/').slice(0, -1).join('/') : null;
+      if (folderPath && !updatedFolders.some(f => f.path === folderPath)) {
+        updatedFolders.push({
+          id: `folder:${folderPath}`,
+          path: folderPath,
+          name: folderPath.split('/').pop(),
+          isFolder: true,
+        });
+      }
+
+      saveLocalFiles(updatedFiles, updatedFolders);
+      setFiles(updatedFiles);
+      setFolders(updatedFolders);
+      return { success: true, path: filePath };
+    }
+
+    // Production: upload to Firebase
+    try {
+      const base64Content = btoa(unescape(encodeURIComponent(content)));
+      await makeAuthenticatedRequest('/api/files', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename,
+          path: filePath,
+          content: base64Content,
+          mimeType,
+        }),
+      });
+      await loadFiles(); // Refresh file list
+      return { success: true, path: filePath };
+    } catch (err) {
+      throw new Error(`Failed to write ${filePath}: ${err.message}`);
+    }
+  }, [user, makeAuthenticatedRequest, loadFiles]);
+
+  // Create folder by path
+  const createFolderByPath = useCallback(async (folderPath) => {
+    if (!user) throw new Error('Not authenticated');
+
+    // Development: create in localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      const updatedFolders = [...localData.folders];
+
+      if (updatedFolders.some(f => f.path === folderPath)) {
+        return { success: true, path: folderPath, message: 'Folder already exists' };
+      }
+
+      updatedFolders.push({
+        id: `folder:${folderPath}`,
+        path: folderPath,
+        name: folderPath.split('/').pop(),
+        isFolder: true,
+      });
+
+      saveLocalFiles(localData.files, updatedFolders);
+      setFolders(updatedFolders);
+      return { success: true, path: folderPath };
+    }
+
+    // Production: create via API
+    return createFolder(folderPath);
+  }, [user, createFolder]);
+
+  // List directory contents by path (from cached state)
+  const listDirectoryByPath = useCallback((dirPath = '') => {
+    const normalizedPath = dirPath.replace(/^\//, '').replace(/\/$/, '');
+
+    // Get folders at this level
+    const allFolders = [...DEFAULT_FOLDERS, ...folders];
+    const subfolders = allFolders
+      .filter(f => {
+        const fPath = f.path || f.name;
+        if (!normalizedPath) {
+          // Root level: folders without / in path
+          return !fPath.includes('/');
+        }
+        // Check if folder is directly under this path
+        const parent = fPath.substring(0, fPath.lastIndexOf('/'));
+        return parent === normalizedPath;
+      })
+      .map(f => ({ name: f.name || f.path, path: f.path, isFolder: true }));
+
+    // Get files at this level
+    const dirFiles = files
+      .filter(f => {
+        const filePath = f.path || '';
+        if (!normalizedPath) {
+          return !filePath.includes('/');
+        }
+        const parent = filePath.substring(0, filePath.lastIndexOf('/'));
+        return parent === normalizedPath;
+      })
+      .map(f => ({ name: f.filename, path: f.path, isFolder: false, size: f.size }));
+
+    return {
+      success: true,
+      path: normalizedPath || '/',
+      folders: subfolders,
+      files: dirFiles,
+      total: subfolders.length + dirFiles.length
+    };
+  }, [files, folders]);
+
+  // =============================================
+  // Legacy AI Integration (for backward compatibility)
+  // =============================================
+
   // Get all loaded files for AI integration
   const getFilesForAI = useCallback(async () => {
-    if (!user) return { textFiles: {}, binaryFiles: [] };
+    if (!user) return { textFiles: {}, binaryFiles: [], folders: [] };
 
     const textFiles = {};
     const binaryFiles = [];
+
+    // Get all folders (default + user-created)
+    const allFolders = [...DEFAULT_FOLDERS, ...folders].map(f => f.path || f.name);
+    const uniqueFolders = [...new Set(allFolders)];
 
     const textMimeTypes = ['text/plain', 'text/markdown', 'application/json', 'text/javascript', 'text/css', 'text/html'];
 
@@ -472,8 +658,11 @@ export const FileSystemProvider = ({ children }) => {
         }
         // Note: Binary files in local dev are not fully supported
       }
-      console.log('[FileSystem] getFilesForAI from localStorage:', Object.keys(textFiles).length, 'text files');
-      return { textFiles, binaryFiles };
+      // Add folders from localStorage
+      const localFolders = (localData.folders || []).map(f => f.path || f.name);
+      const allLocalFolders = [...new Set([...uniqueFolders, ...localFolders])];
+      console.log('[FileSystem] getFilesForAI from localStorage:', Object.keys(textFiles).length, 'text files,', allLocalFolders.length, 'folders');
+      return { textFiles, binaryFiles, folders: allLocalFolders };
     }
 
     // Production: fetch from Firebase
@@ -515,8 +704,8 @@ export const FileSystemProvider = ({ children }) => {
       }
     }
 
-    return { textFiles, binaryFiles };
-  }, [user, files, makeAuthenticatedRequest]);
+    return { textFiles, binaryFiles, folders: uniqueFolders };
+  }, [user, files, folders, makeAuthenticatedRequest]);
 
   // Sync file changes from AI back to remote storage (or localStorage in dev)
   const syncChangesFromAI = useCallback(async (fileOps) => {
@@ -680,9 +869,16 @@ export const FileSystemProvider = ({ children }) => {
     getFolderContents,
     refresh,
 
-    // AI Integration
+    // AI Integration (legacy)
     getFilesForAI,
     syncChangesFromAI,
+
+    // AI Tool Operations (on-demand, lazy-loading)
+    getFileListForAI,
+    fetchFileByPath,
+    writeFileByPath,
+    createFolderByPath,
+    listDirectoryByPath,
 
     // Helpers
     clearError: () => setError(null),
@@ -713,6 +909,11 @@ export const FileSystemProvider = ({ children }) => {
     refresh,
     getFilesForAI,
     syncChangesFromAI,
+    getFileListForAI,
+    fetchFileByPath,
+    writeFileByPath,
+    createFolderByPath,
+    listDirectoryByPath,
   ]);
 
   return (

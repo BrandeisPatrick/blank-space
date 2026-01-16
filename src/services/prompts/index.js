@@ -13,7 +13,7 @@ import { buildGeneratePrompt, isEditingExistingApp } from './generate/index.js';
 import { buildDebugPrompt, isInteractionIssue } from './debug/index.js';
 
 // Assistant intent
-import { buildAssistantPrompt, ASSISTANT_PLANNING_PROMPT, ASSISTANT_EXECUTION_PROMPT } from './assistant/index.js';
+import { buildAssistantPrompt } from './assistant/index.js';
 
 // Utilities
 import { generateAppNameOpenAI, generateAppNameGemini } from './utils/appNameGenerator.js';
@@ -33,8 +33,6 @@ export {
   isInteractionIssue,
   // Assistant
   buildAssistantPrompt,
-  ASSISTANT_PLANNING_PROMPT,
-  ASSISTANT_EXECUTION_PROMPT,
   // Utilities
   generateAppNameOpenAI,
   generateAppNameGemini,
