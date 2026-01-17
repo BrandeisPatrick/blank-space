@@ -10,6 +10,21 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Hook to detect mobile screen
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
+};
+
 // Folder icon (hollow/stroke style to match sidebar)
 const FolderIcon = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -97,6 +112,13 @@ const TrashIcon = ({ size = 14 }) => (
   </svg>
 );
 
+// Back arrow icon for mobile navigation
+const BackIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
 // Column Item Component
 const ColumnItem = ({ item, isSelected, onClick, colors }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -153,7 +175,7 @@ const ColumnItem = ({ item, isSelected, onClick, colors }) => {
 };
 
 // Single Column Component
-const Column = ({ path, items, selectedPath, onSelect, colors, onCreateFolder, onUpload, onDeleteFolder }) => {
+const Column = ({ path, items, selectedPath, onSelect, colors, onCreateFolder, onUpload, onDeleteFolder, isMobile = false }) => {
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const inputRef = useRef(null);
@@ -176,10 +198,11 @@ const Column = ({ path, items, selectedPath, onSelect, colors, onCreateFolder, o
   return (
     <div
       style={{
-        minWidth: '200px',
-        maxWidth: '250px',
+        minWidth: isMobile ? '100%' : '200px',
+        maxWidth: isMobile ? '100%' : '250px',
+        width: isMobile ? '100%' : undefined,
         height: '100%',
-        borderRight: `1px solid ${colors.border}`,
+        borderRight: isMobile ? 'none' : `1px solid ${colors.border}`,
         display: 'flex',
         flexDirection: 'column',
         background: colors.columnBg,
@@ -417,7 +440,14 @@ const PreviewPanel = ({ file, colors }) => {
   }
 
   const isMarkdown = file.mimeType === 'text/markdown';
-  const isText = ['text/plain', 'text/markdown', 'application/json', 'text/javascript', 'text/css', 'text/html'].includes(file.mimeType);
+  const isCode = file.mimeType?.startsWith('text/') ||
+    file.mimeType?.startsWith('application/') && [
+      'application/json',
+      'application/javascript',
+      'application/typescript',
+      'application/xml',
+    ].includes(file.mimeType);
+  const isText = isCode || file.filename?.match(/\.(jsx?|tsx?|json|css|html?|md|txt|py|rb|go|rs|java|c|cpp|h|sh|yaml|yml|toml|xml|svg)$/i);
   const isImage = file.mimeType?.startsWith('image/');
 
   // Simple markdown rendering (headers, bold, italic, lists, code)
@@ -593,6 +623,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   const { user } = useAuth();
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const isMobile = useIsMobile();
   const {
     getFolderContents,
     createFolder,
@@ -697,6 +728,22 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     navigateTo(path);
   }, [navigateTo]);
 
+  // Handle mobile back navigation
+  const handleMobileBack = useCallback(() => {
+    if (columns.length > 1) {
+      const newColumns = columns.slice(0, -1);
+      setColumns(newColumns);
+      const newPath = newColumns[newColumns.length - 1];
+      navigateTo(newPath);
+      setSelectedFile(null);
+    }
+  }, [columns, navigateTo]);
+
+  // Get current folder name for mobile header
+  const currentFolderName = columns.length > 1
+    ? columns[columns.length - 1].split('/').pop() || 'Files'
+    : 'Files';
+
   if (!user) {
     return (
       <div
@@ -717,6 +764,160 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     return null;
   }
 
+  // Mobile: drill-down single column view
+  if (isMobile) {
+    const currentColPath = columns[columns.length - 1];
+    const currentItems = getFolderContents(currentColPath);
+    const canGoBack = columns.length > 1;
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          background: colors.bg,
+        }}
+      >
+        {/* Mobile Header with back button */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '12px 16px',
+            borderBottom: `1px solid ${colors.border}`,
+            gap: '12px',
+          }}
+        >
+          {canGoBack && (
+            <button
+              onClick={handleMobileBack}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: colors.link,
+              }}
+            >
+              <BackIcon size={24} />
+            </button>
+          )}
+          <span
+            style={{
+              flex: 1,
+              fontSize: '16px',
+              fontWeight: 600,
+              fontFamily: colors.fontFamily,
+              color: colors.text,
+            }}
+          >
+            {currentFolderName}
+          </span>
+        </div>
+
+        {/* Single column content */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {loading && !initialized ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: colors.textSecondary,
+                fontSize: colors.fontSize.sm,
+                fontFamily: colors.fontFamily,
+              }}
+            >
+              Loading...
+            </div>
+          ) : (
+            <Column
+              path={currentColPath}
+              items={currentItems}
+              selectedPath={null}
+              onSelect={(item) => handleSelect(item, columns.length - 1)}
+              onCreateFolder={handleCreateFolder}
+              onUpload={handleUpload}
+              onDeleteFolder={handleDeleteFolder}
+              colors={colors}
+              isMobile={true}
+            />
+          )}
+        </div>
+
+        {/* Mobile Preview Panel (full screen overlay) */}
+        {selectedFile && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: colors.bg,
+              zIndex: 100,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 16px',
+                borderBottom: `1px solid ${colors.border}`,
+                gap: '12px',
+              }}
+            >
+              <button
+                onClick={() => setSelectedFile(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: colors.link,
+                }}
+              >
+                <BackIcon size={24} />
+              </button>
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  fontFamily: colors.fontFamily,
+                  color: colors.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {selectedFile.filename}
+              </span>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <PreviewPanel file={selectedFile} colors={colors} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: multi-column Finder-style view
   return (
     <div
       style={{

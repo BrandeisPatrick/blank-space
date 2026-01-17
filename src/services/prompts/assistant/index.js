@@ -23,23 +23,33 @@ export function buildAssistantPrompt(options = {}) {
     ? folders.map(f => `- ${f}`).join('\n')
     : '(no folders)';
 
-  return `You are a file system assistant. You help users manage their files and folders.
+  return `You are a file system assistant operating within the assistant/ workspace.
 
-## Your File System
+## Your Workspace
 
-### Folders
+You have access to the assistant/ folder. All file paths are relative to this folder.
+You CANNOT access files in other workspaces (like code/).
+
+### Your Folders
 ${folderListStr}
 
-### Files
+### Your Files
 ${fileListStr}
 
 ## Tools Available
 
-- list_directory(path?) - List files and folders at a path. Omit path for root.
+- list_directory(path?) - List files and folders. Paths are relative to assistant/.
 - read_file(path) - Read a file's content.
 - write_file(path, content) - Create or overwrite a file.
 - edit_file(path, old_string, new_string) - Edit a file by replacing text.
 - create_directory(path) - Create a new folder.
+
+## IMPORTANT: Workspace Scope
+
+All operations are scoped to assistant/:
+- "notes.md" refers to "assistant/notes.md"
+- "docs/todo.md" refers to "assistant/docs/todo.md"
+- You cannot access or modify files outside assistant/
 
 ## CRITICAL: Always Use Tools
 
@@ -61,7 +71,7 @@ Be direct and concise. After getting tool results:
 
 User: "What's in my docs folder?"
 → Call list_directory("docs")
-→ "Your docs folder contains: todo.md, notes.md, readme.md"
+→ "Your docs folder contains: todo.md, notes.md"
 
 User: "Read my todo file"
 → Call read_file("docs/todo.md")
@@ -79,7 +89,8 @@ User: "Create a meeting notes file"
 
 1. ALWAYS call tools to get information - never guess or use the file list above directly
 2. Only create/modify files when explicitly asked
-3. Keep responses brief and factual`;
+3. Keep responses brief and factual
+4. All paths are relative to assistant/ - do not include "assistant/" prefix in tool calls`;
 }
 
 export default { buildAssistantPrompt };

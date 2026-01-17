@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { slugify } from '../utils/slugify';
 
 const ArtifactContext = createContext();
 
@@ -11,9 +12,10 @@ const generateArtifactId = () => {
 };
 
 // Empty artifact template
-const createEmptyArtifact = () => ({
+const createEmptyArtifact = (name = 'Untitled Project') => ({
   id: generateArtifactId(),
-  name: 'Untitled Project',
+  name,
+  projectSlug: slugify(name), // URL-friendly slug for code workspace
   icon: 'app', // Default icon category
   files: {},
   chatHistory: [], // Each artifact has its own chat history
@@ -165,11 +167,14 @@ export const ArtifactProvider = ({ children }) => {
 
   // Create new artifact
   const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = [], icon = 'app') => {
+    const projectSlug = slugify(name);
+
     // Guest mode: Create artifact in sessionStorage
     if (!user) {
       const newArtifact = {
         id: generateArtifactId(),
         name,
+        projectSlug,
         icon,
         files: files ?? {},
         chatHistory: chatHistory ?? [],
@@ -194,6 +199,7 @@ export const ArtifactProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify({
           name,
+          projectSlug,
           icon,
           files: files ?? {},
           chatHistory: chatHistory ?? [],
@@ -288,9 +294,9 @@ export const ArtifactProvider = ({ children }) => {
     };
   }, []);
 
-  // Rename artifact
+  // Rename artifact (also updates projectSlug for code workspace)
   const renameArtifact = (id, newName) => {
-    updateArtifact(id, { name: newName });
+    updateArtifact(id, { name: newName, projectSlug: slugify(newName) });
   };
 
   // Update artifact icon

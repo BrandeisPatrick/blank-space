@@ -12,6 +12,7 @@
  */
 
 import { verifyAuth, getFirestore, getStorage } from './middleware/_auth.js';
+import { AGENT_SCOPES, getPathScope, checkAccess } from '../src/config/agentScopes.js';
 
 // Max file size: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -62,6 +63,24 @@ function normalizePath(path) {
   // Remove trailing slash
   if (normalized.endsWith('/')) normalized = normalized.slice(0, -1);
   return normalized;
+}
+
+/**
+ * Validate agent scope for the given path and operation
+ * @param {object} req - Request object
+ * @param {string} path - File/folder path being accessed
+ * @param {string} operation - 'read' or 'write'
+ * @returns {{ valid: boolean, error?: string }}
+ */
+function validateAgentScope(req, path, operation) {
+  const agent = req.headers['x-agent'] || 'user';
+  const result = checkAccess(agent, path, operation);
+
+  if (!result.allowed) {
+    return { valid: false, error: result.error };
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -253,6 +272,15 @@ async function handleGetFile(db, storage, userId, fileId, res) {
 
   const data = fileDoc.data();
 
+  // Validate agent scope for reading
+  const scopeResult = validateAgentScope(req, data.path, 'read');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
+    });
+  }
+
   // Generate signed download URL (expires in 1 hour)
   const bucket = storage.bucket();
   const storagePath = `users/${userId}/files/${data.path}`;
@@ -299,6 +327,15 @@ async function handleCreateFolder(db, userId, body, res) {
     return res.status(400).json({
       error: 'Invalid path',
       message: 'Path contains invalid characters or traversal sequences',
+    });
+  }
+
+  // Validate agent scope
+  const scopeResult = validateAgentScope(req, normalizedPath, 'write');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
     });
   }
 
@@ -401,8 +438,17 @@ async function handleUpload(db, storage, userId, body, res) {
     // Legacy style: folder + filename
     fullPath = `${folder}/${sanitizedFilename}`;
   } else {
-    // Default to root
-    fullPath = sanitizedFilename;
+    // Default to assistant folder for user uploads
+    fullPath = `assistant/${sanitizedFilename}`;
+  }
+
+  // Validate agent scope
+  const scopeResult = validateAgentScope(req, fullPath, 'write');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
+    });
   }
 
   // Upload to Firebase Storage
@@ -469,6 +515,15 @@ async function handleMove(db, storage, userId, body, res) {
     });
   }
 
+  // Validate agent scope for new path
+  const scopeResult = validateAgentScope(req, normalizedNewPath, 'write');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
+    });
+  }
+
   // Get current file
   const fileRef = db
     .collection('users')
@@ -486,6 +541,16 @@ async function handleMove(db, storage, userId, body, res) {
   }
 
   const currentData = fileDoc.data();
+
+  // Validate agent scope for source path (need write access to move from)
+  const sourceScopeResult = validateAgentScope(req, currentData.path, 'write');
+  if (!sourceScopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: sourceScopeResult.error,
+    });
+  }
+
   const currentStoragePath = `users/${userId}/files/${currentData.path}`;
   const newStoragePath = `users/${userId}/files/${normalizedNewPath}`;
 
@@ -551,6 +616,15 @@ async function handleDelete(db, storage, userId, fileId, res) {
 
   const data = fileDoc.data();
 
+  // Validate agent scope
+  const scopeResult = validateAgentScope(req, data.path, 'write');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
+    });
+  }
+
   // Delete from Storage
   const bucket = storage.bucket();
   const storagePath = `users/${userId}/files/${data.path}`;
@@ -590,6 +664,15 @@ async function handleDeleteFolder(db, storage, userId, folderPath, res) {
     return res.status(400).json({
       error: 'Invalid path',
       message: 'Path contains invalid characters or traversal sequences',
+    });
+  }
+
+  // Validate agent scope
+  const scopeResult = validateAgentScope(req, normalizedPath, 'write');
+  if (!scopeResult.valid) {
+    return res.status(403).json({
+      error: 'Access denied',
+      message: scopeResult.error,
     });
   }
 

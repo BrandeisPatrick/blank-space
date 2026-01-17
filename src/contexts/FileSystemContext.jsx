@@ -33,11 +33,10 @@ const saveLocalFiles = (files, folders) => {
   }
 };
 
-// Default folders that always appear
+// Default folders that always appear (agent-scoped workspaces)
 const DEFAULT_FOLDERS = [
-  { path: 'Documents', name: 'Documents', isFolder: true },
-  { path: 'Photos', name: 'Photos', isFolder: true },
-  { path: 'Projects', name: 'Projects', isFolder: true },
+  { path: 'assistant', name: 'assistant', isFolder: true },
+  { path: 'code', name: 'code', isFolder: true },
 ];
 
 export const FileSystemProvider = ({ children }) => {
@@ -75,7 +74,8 @@ export const FileSystemProvider = ({ children }) => {
   }, [user]);
 
   // Helper: Make authenticated API request
-  const makeAuthenticatedRequest = useCallback(async (url, options = {}) => {
+  // Make authenticated request with optional agent scope header
+  const makeAuthenticatedRequest = useCallback(async (url, options = {}, agent = 'user') => {
     if (!user) throw new Error('Not authenticated');
 
     const token = await getIdToken();
@@ -85,6 +85,7 @@ export const FileSystemProvider = ({ children }) => {
         ...options.headers,
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'X-Agent': agent, // Agent scope for access control
       },
     });
 
@@ -161,8 +162,8 @@ export const FileSystemProvider = ({ children }) => {
     // Add default folders at root level
     if (!normalizedPath) {
       DEFAULT_FOLDERS.forEach(folder => {
-        if (!seenFolders.has(folder.name)) {
-          seenFolders.add(folder.name);
+        if (!seenFolders.has(folder.path)) {
+          seenFolders.add(folder.path);
           subfolders.push({
             id: `folder:${folder.path}`,
             name: folder.name,
@@ -496,8 +497,10 @@ export const FileSystemProvider = ({ children }) => {
   }, [user, files, makeAuthenticatedRequest]);
 
   // Write file by path (to Firebase/localStorage)
-  const writeFileByPath = useCallback(async (filePath, content) => {
+  // agent: 'user' | 'assistant' | 'code' - for scope enforcement
+  const writeFileByPath = useCallback(async (filePath, content, options = {}) => {
     if (!user) throw new Error('Not authenticated');
+    const { agent = 'user' } = options;
 
     const filename = filePath.split('/').pop();
     const mimeType = guessMimeType(filename);
@@ -543,7 +546,7 @@ export const FileSystemProvider = ({ children }) => {
       return { success: true, path: filePath };
     }
 
-    // Production: upload to Firebase
+    // Production: upload to Firebase with agent scope
     try {
       const base64Content = btoa(unescape(encodeURIComponent(content)));
       await makeAuthenticatedRequest('/api/files', {
@@ -554,7 +557,7 @@ export const FileSystemProvider = ({ children }) => {
           content: base64Content,
           mimeType,
         }),
-      });
+      }, agent);
       await loadFiles(); // Refresh file list
       return { success: true, path: filePath };
     } catch (err) {
@@ -708,10 +711,12 @@ export const FileSystemProvider = ({ children }) => {
   }, [user, files, folders, makeAuthenticatedRequest]);
 
   // Sync file changes from AI back to remote storage (or localStorage in dev)
-  const syncChangesFromAI = useCallback(async (fileOps) => {
+  // agent: 'user' | 'assistant' | 'code' - for scope enforcement
+  const syncChangesFromAI = useCallback(async (fileOps, options = {}) => {
     if (!user || !fileOps || fileOps.length === 0) return;
+    const { agent = 'user' } = options;
 
-    console.log(`[FileSystem] Syncing ${fileOps.length} file changes`);
+    console.log(`[FileSystem] Syncing ${fileOps.length} file changes (agent: ${agent})`);
 
     // In development mode, save to localStorage
     if (USE_LOCAL_STORAGE) {
@@ -791,7 +796,7 @@ export const FileSystemProvider = ({ children }) => {
               mimeType,
               encoding: 'base64',
             }),
-          });
+          }, agent);
         }
       } catch (err) {
         console.error(`Failed to sync ${op.filename}:`, err);
@@ -801,6 +806,39 @@ export const FileSystemProvider = ({ children }) => {
     // Refresh after sync
     await refresh();
   }, [user, files, deleteFile, makeAuthenticatedRequest, refresh]);
+
+  // Track expanded folders in sidebar
+  const [expandedFolders, setExpandedFolders] = useState(['assistant', 'code']);
+
+  // Toggle folder expansion
+  const toggleFolder = useCallback((folder) => {
+    setExpandedFolders(prev =>
+      prev.includes(folder)
+        ? prev.filter(f => f !== folder)
+        : [...prev, folder]
+    );
+  }, []);
+
+  // Check if folder is expanded
+  const isFolderExpanded = useCallback((folder) => {
+    return expandedFolders.includes(folder);
+  }, [expandedFolders]);
+
+  // Group files by top-level folder (assistant/, code/)
+  const filesByFolder = useMemo(() => {
+    const result = { assistant: [], code: [] };
+
+    files.forEach(file => {
+      const path = file.path || '';
+      if (path.startsWith('assistant/')) {
+        result.assistant.push(file);
+      } else if (path.startsWith('code/')) {
+        result.code.push(file);
+      }
+    });
+
+    return result;
+  }, [files]);
 
   // Build folder tree structure
   const folderTree = useMemo(() => {
@@ -844,6 +882,7 @@ export const FileSystemProvider = ({ children }) => {
     files,
     folders,
     folderTree,
+    filesByFolder,
     totalFiles,
     totalFolders,
     loading,
@@ -880,6 +919,10 @@ export const FileSystemProvider = ({ children }) => {
     createFolderByPath,
     listDirectoryByPath,
 
+    // Folder Expansion (for sidebar)
+    isFolderExpanded,
+    toggleFolder,
+
     // Helpers
     clearError: () => setError(null),
     guessMimeType,
@@ -887,6 +930,7 @@ export const FileSystemProvider = ({ children }) => {
     files,
     folders,
     folderTree,
+    filesByFolder,
     totalFiles,
     totalFolders,
     loading,
@@ -914,6 +958,8 @@ export const FileSystemProvider = ({ children }) => {
     writeFileByPath,
     createFolderByPath,
     listDirectoryByPath,
+    isFolderExpanded,
+    toggleFolder,
   ]);
 
   return (

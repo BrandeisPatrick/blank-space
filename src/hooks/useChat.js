@@ -6,9 +6,11 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 import { useConversation } from '../contexts/ConversationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFileSystem } from '../contexts/FileSystemContext';
+import { useArtifacts } from '../contexts/ArtifactContext';
 import { storage } from '../config/firebase';
 import { processMessage } from '../services/ToolOrchestrator.js';
 import { TIMING, MESSAGES } from '../constants';
+import { slugify } from '../utils/slugify';
 
 /**
  * Upload an image to Firebase Storage and return the download URL
@@ -47,6 +49,7 @@ export const useChat = ({
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
   const { user } = useAuth();
+  const { activeArtifact } = useArtifacts();
   const {
     getFilesForAI,
     syncChangesFromAI,
@@ -290,11 +293,14 @@ export const useChat = ({
         ...userBinaryFiles,
       ];
 
-      // Build file context for assistant agent (lazy-loading)
+      // Build file context for assistant agent (lazy-loading, scoped to assistant/)
       const { files: fileMetadata, folders: folderMetadata } = getFileListForAI();
+      // Filter to only show assistant-scoped files to the assistant agent
+      const assistantFiles = fileMetadata.filter(f => f.path?.startsWith('assistant/'));
+      const assistantFolders = folderMetadata.filter(f => f.path?.startsWith('assistant'));
       const fileContext = {
-        files: fileMetadata,
-        folders: folderMetadata,
+        files: assistantFiles,
+        folders: assistantFolders,
         fetchFile: fetchFileByPath,
         writeFile: writeFileByPath,
         listDirectory: listDirectoryByPath,
@@ -335,8 +341,8 @@ export const useChat = ({
           const baseFiles = mentionedAppFiles || files;
           const newFiles = { ...baseFiles };
 
-          // Separate user file operations from artifact file operations
-          const userFilePrefixes = ['docs/', 'photos/'];
+          // Separate user file operations (assistant/) from artifact file operations (code/)
+          const userFilePrefixes = ['assistant/'];
           const artifactFileOps = [];
           const userFileOps = [];
 
@@ -417,6 +423,18 @@ export const useChat = ({
                 const newArtifactId = await createArtifact(artifactName, newFiles, messagesRef.current);
                 if (newArtifactId) {
                   linkArtifact(newArtifactId);
+                  // Sync code files to code/{projectSlug}/ in Firebase
+                  if (artifactFileOps.length > 0) {
+                    const projectSlug = slugify(artifactName);
+                    const codeFileOps = artifactFileOps.map(op => ({
+                      ...op,
+                      filename: `code/${projectSlug}/${op.filename}`
+                    }));
+                    console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
+                    syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
+                      console.error('[useChat] Failed to sync code files:', err);
+                    });
+                  }
                 }
               } catch (error) {
                 console.error('Error creating artifact:', error);
@@ -429,6 +447,18 @@ export const useChat = ({
             } else {
               updateArtifactFiles(targetArtifactId, newFiles);
               updateChatHistory(targetArtifactId, messagesRef.current);
+              // Sync code files to code/{projectSlug}/ in Firebase
+              if (artifactFileOps.length > 0 && activeArtifact) {
+                const projectSlug = activeArtifact.projectSlug || slugify(activeArtifact.name || 'untitled');
+                const codeFileOps = artifactFileOps.map(op => ({
+                  ...op,
+                  filename: `code/${projectSlug}/${op.filename}`
+                }));
+                console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
+                syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
+                  console.error('[useChat] Failed to sync code files:', err);
+                });
+              }
             }
           }
 

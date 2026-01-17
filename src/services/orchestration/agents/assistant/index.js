@@ -102,14 +102,20 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
 
     const executor = new ToolExecutor(toolRegistry);
 
-    // Context passed to tools
+    // Context passed to tools (with assistant scope)
+    // Wrap writeFile to auto-add agent scope
+    const scopedWriteFile = async (path, content) => {
+      return writeFile(path, content, { agent: 'assistant' });
+    };
+
     const toolContext = {
       fetchFile,
-      writeFile,
+      writeFile: scopedWriteFile,
       listDirectory,
       createDirectory,
       fileList: files,
-      folderList: folders
+      folderList: folders,
+      scope: 'assistant'
     };
 
     const openAITools = convertToolsToOpenAIFormat(allTools);

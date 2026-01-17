@@ -1,7 +1,7 @@
 /**
  * File Panel Component
  * Displays user's file storage in a collapsible tree view
- * Used in Sidebar for docs/ and photos/ folders
+ * Shows assistant/ and code/ agent-scoped workspaces
  */
 
 import { useState, useCallback } from 'react';
@@ -322,25 +322,25 @@ export const FilePanel = ({ expanded, colors, onUpload }) => {
         setIsHovered={setIsHeaderHovered}
       />
 
-      {/* Folder Sections */}
+      {/* Folder Sections (agent-scoped workspaces) */}
       {isFilesExpanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
           <FolderSection
-            folder="docs"
-            label="Documents"
-            files={filesByFolder.docs}
-            isExpanded={isFolderExpanded('docs')}
-            onToggle={() => toggleFolder('docs')}
+            folder="assistant"
+            label="Assistant"
+            files={filesByFolder.assistant}
+            isExpanded={isFolderExpanded('assistant')}
+            onToggle={() => toggleFolder('assistant')}
             onUpload={handleUpload}
             colors={colors}
             loading={loading}
           />
           <FolderSection
-            folder="photos"
-            label="Photos"
-            files={filesByFolder.photos}
-            isExpanded={isFolderExpanded('photos')}
-            onToggle={() => toggleFolder('photos')}
+            folder="code"
+            label="Code"
+            files={filesByFolder.code}
+            isExpanded={isFolderExpanded('code')}
+            onToggle={() => toggleFolder('code')}
             onUpload={handleUpload}
             colors={colors}
             loading={loading}
