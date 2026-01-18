@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
@@ -37,6 +37,7 @@ const MenuIcon = ({ size = 24, color = "currentColor" }) => (
 export const ComputerPage = ({
   // Props for browser window functionality
   files = {},
+  filesLoading = false,
   onFileChange,
   onError,
   onDebug,
@@ -48,7 +49,7 @@ export const ComputerPage = ({
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const navigate = useNavigate();
-  const { artifacts, loadArtifact, deleteArtifact, activeArtifact, activeArtifactId, clearActiveArtifact } = useArtifacts();
+  const { projects, loadProject, deleteProject, activeProject, activeProjectSlug, clearActiveProject } = useFileSystem();
   const [isEditMode, setIsEditMode] = useState(false);
   const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
   const isMobile = useIsMobile();
@@ -89,11 +90,11 @@ export const ComputerPage = ({
     setIsEditMode(false);
   };
 
-  // Handle artifact deletion
-  const handleDeleteArtifact = (artifactId, artifactName) => {
-    if (window.confirm(`Delete "${artifactName}"? This cannot be undone.`)) {
-      deleteArtifact(artifactId);
-      if (artifacts.length <= 1) {
+  // Handle project deletion
+  const handleDeleteProject = (projectSlug, projectName) => {
+    if (window.confirm(`Delete "${projectName}"? This cannot be undone.`)) {
+      deleteProject(projectSlug);
+      if (projects.length <= 1) {
         setIsEditMode(false);
       }
     }
@@ -102,16 +103,16 @@ export const ComputerPage = ({
   // Glass effect for header
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
 
-  // Handle artifact selection
-  const handleArtifactSelect = (artifactId) => {
-    loadArtifact(artifactId);
+  // Handle project selection
+  const handleProjectSelect = (projectSlug) => {
+    loadProject(projectSlug);
     setBrowserWindowVisible(true);
   };
 
   // Close browser window
   const handleCloseBrowserWindow = () => {
     setBrowserWindowVisible(false);
-    clearActiveArtifact();
+    clearActiveProject();
   };
 
   return (
@@ -273,15 +274,15 @@ export const ComputerPage = ({
               onEnterEditMode={enterEditMode}
             />
 
-            {/* Artifact Cards */}
-            {artifacts && artifacts.map(artifact => (
+            {/* Project Cards */}
+            {projects && projects.map(project => (
               <ArtifactCard
-                key={artifact.id}
-                artifact={artifact}
-                onSelect={handleArtifactSelect}
+                key={project.slug}
+                artifact={{ id: project.slug, name: project.name, icon: project.icon }}
+                onSelect={() => handleProjectSelect(project.slug)}
                 isEditMode={isEditMode}
                 onEnterEditMode={enterEditMode}
-                onDelete={() => handleDeleteArtifact(artifact.id, artifact.name)}
+                onDelete={() => handleDeleteProject(project.slug, project.name)}
               />
             ))}
           </div>
@@ -291,8 +292,9 @@ export const ComputerPage = ({
       {/* Floating Browser Window */}
       <PreviewWindow
         visible={browserWindowVisible}
-        artifact={activeArtifact}
+        artifact={activeProject ? { id: activeProjectSlug, name: activeProject.name, icon: activeProject.icon } : null}
         files={files}
+        loading={filesLoading}
         onClose={handleCloseBrowserWindow}
         onFileChange={onFileChange}
         onError={onError}
@@ -306,8 +308,8 @@ export const ComputerPage = ({
           }
         }}
         isDebugging={isDebugging}
-        onIconChange={(iconId) => onIconChange?.(activeArtifactId, iconId)}
-        onRename={(newName) => onRename?.(activeArtifactId, newName)}
+        onIconChange={(iconId) => onIconChange?.(activeProjectSlug, iconId)}
+        onRename={(newName) => onRename?.(activeProjectSlug, newName)}
         sidebarWidth={isSidebarExpanded ? 250 : 60}
       />
 

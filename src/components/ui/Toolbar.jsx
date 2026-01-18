@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -10,16 +10,16 @@ import { PANELS, LABELS, SIZES } from '../../constants';
 export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onToggleArtifacts, onNavigateToHome }) => {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const { activeArtifact, renameArtifact } = useArtifacts();
+  const { activeProject, updateProjectMeta } = useFileSystem();
   const [isEditingName, setIsEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState(activeArtifact?.name || '');
+  const [nameValue, setNameValue] = useState(activeProject?.name || '');
   const isMobile = useIsMobile();
 
   // Reset name state when active artifact changes
   useEffect(() => {
-    setNameValue(activeArtifact?.name || '');
+    setNameValue(activeProject?.name || '');
     setIsEditingName(false);
-  }, [activeArtifact?.id]);
+  }, [activeProject?.slug]);
 
   // Base button style for all buttons
   const baseButtonStyle = {
@@ -59,8 +59,8 @@ export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onTogg
   };
 
   const handleNameSave = () => {
-    if (nameValue.trim() && activeArtifact) {
-      renameArtifact(activeArtifact.id, nameValue.trim());
+    if (nameValue.trim() && activeProject) {
+      updateProjectMeta(activeProject.slug, { name: nameValue.trim() });
     }
     setIsEditingName(false);
   };
@@ -220,7 +220,7 @@ export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onTogg
           alignItems: 'center',
           gap: theme.spacing.sm,
         }}>
-          {activeArtifact ? (
+          {activeProject ? (
             isEditingName ? (
               <input
                 type="text"
@@ -230,7 +230,7 @@ export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onTogg
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleNameSave();
                   if (e.key === 'Escape') {
-                    setNameValue(activeArtifact?.name || '');
+                    setNameValue(activeProject?.name || '');
                     setIsEditingName(false);
                   }
                 }}
@@ -251,7 +251,7 @@ export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onTogg
             ) : (
               <div
                 onClick={() => {
-                  setNameValue(activeArtifact?.name || '');
+                  setNameValue(activeProject?.name || '');
                   setIsEditingName(true);
                 }}
                 style={{
@@ -276,7 +276,7 @@ export const Toolbar = ({ showChat, showCode, showPreview, onTogglePanel, onTogg
                 }}
                 title={LABELS.CLICK_TO_RENAME}
               >
-                <span>{activeArtifact.name}</span>
+                <span>{activeProject.name}</span>
               </div>
             )
           ) : (

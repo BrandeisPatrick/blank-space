@@ -19,13 +19,17 @@ if (!admin.apps.length) {
       throw new Error('Firebase Admin credentials not configured');
     }
 
+    console.log('[Firebase] Raw FIREBASE_STORAGE_BUCKET env:', JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET));
+    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET?.trim() || `${projectId}.appspot.com`;
+    console.log('[Firebase] Initializing with storage bucket:', storageBucket);
+
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId,
         clientEmail,
         privateKey: privateKey.replace(/\\n/g, '\n'), // Handle newlines in private key
       }),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET?.trim() || `${projectId}.appspot.com`,
+      storageBucket,
     });
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);

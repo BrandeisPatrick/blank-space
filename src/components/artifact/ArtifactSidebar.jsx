@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTheme } from '../../styles/theme';
-import { EditIcon, CopyIcon, TrashIcon } from '../icons';
+import { EditIcon, TrashIcon } from '../icons';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 export const ArtifactSidebar = ({ isOpen, onClose }) => {
@@ -11,14 +11,12 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
   const theme = getTheme(mode);
   const { user } = useAuth();
   const {
-    artifacts,
-    activeArtifactId,
-    loadArtifact,
-    deleteArtifact,
-    duplicateArtifact,
-    renameArtifact,
-    clearAllArtifacts
-  } = useArtifacts();
+    projects,
+    activeProjectSlug,
+    loadProject,
+    deleteProject,
+    updateProjectMeta,
+  } = useFileSystem();
 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -45,9 +43,9 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
     setRenameValue(currentName);
   };
 
-  const handleRenameSave = (id) => {
+  const handleRenameSave = (slug) => {
     if (renameValue.trim()) {
-      renameArtifact(id, renameValue.trim());
+      updateProjectMeta(slug, { name: renameValue.trim() });
     }
     setRenamingId(null);
   };
@@ -57,7 +55,8 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
   };
 
   const handleConfirmClearAll = () => {
-    clearAllArtifacts();
+    // Clear all projects - delete each one
+    projects.forEach(p => deleteProject(p.slug));
     setShowClearAllDialog(false);
   };
 
@@ -152,7 +151,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {artifacts.length > 0 && (
+          {projects.length > 0 && (
             <button
               onClick={handleClearAll}
               style={{
@@ -191,7 +190,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
           overflowY: 'auto',
           padding: theme.spacing.sm,
         }}>
-          {artifacts.length === 0 ? (
+          {projects.length === 0 ? (
             <div style={{
               padding: theme.spacing.xl,
               textAlign: 'center',
@@ -201,9 +200,9 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
               No artifacts yet
             </div>
           ) : (
-            artifacts.map((artifact) => (
+            projects.map((project) => (
               <div
-                key={artifact.id}
+                key={project.slug}
                 style={{
                   marginBottom: theme.spacing.sm,
                   padding: theme.spacing.md,
@@ -211,32 +210,32 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
                   borderRadius: theme.radius.md,
                   cursor: 'pointer',
                   transition: `opacity ${theme.animation.fast}`,
-                  border: `1px solid ${artifact.id === activeArtifactId
+                  border: `1px solid ${project.slug === activeProjectSlug
                     ? theme.colors.accent.primary
                     : theme.colors.bg.border}`,
                   opacity: 1,
                 }}
-                onClick={() => loadArtifact(artifact.id)}
+                onClick={() => loadProject(project.slug)}
                 onMouseEnter={(e) => {
-                  if (artifact.id !== activeArtifactId) {
+                  if (project.slug !== activeProjectSlug) {
                     e.currentTarget.style.opacity = '0.8';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (artifact.id !== activeArtifactId) {
+                  if (project.slug !== activeProjectSlug) {
                     e.currentTarget.style.opacity = '1';
                   }
                 }}
               >
-                {/* Artifact Name */}
-                {renamingId === artifact.id ? (
+                {/* Project Name */}
+                {renamingId === project.slug ? (
                   <input
                     type="text"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={() => handleRenameSave(artifact.id)}
+                    onBlur={() => handleRenameSave(project.slug)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenameSave(artifact.id);
+                      if (e.key === 'Enter') handleRenameSave(project.slug);
                       if (e.key === 'Escape') setRenamingId(null);
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -269,7 +268,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>
-                      {artifact.name}
+                      {project.name}
                     </div>
 
                     {/* Action buttons */}
@@ -278,7 +277,7 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
-                        onClick={() => handleRename(artifact.id, artifact.name)}
+                        onClick={() => handleRename(project.slug, project.name)}
                         title="Rename"
                         style={{
                           background: 'transparent',
@@ -306,37 +305,9 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
                       </button>
 
                       <button
-                        onClick={() => duplicateArtifact(artifact.id)}
-                        title="Duplicate"
-                        style={{
-                          background: 'transparent',
-                          border: `1px solid ${theme.colors.bg.border}`,
-                          color: theme.colors.text.secondary,
-                          cursor: 'pointer',
-                          padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-                          borderRadius: theme.radius.md,
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          fontFamily: theme.typography.fontFamily.sans,
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: `opacity ${theme.animation.fast}`,
-                          opacity: 1,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.opacity = '0.7';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = '1';
-                        }}
-                      >
-                        <CopyIcon size={16} color={theme.colors.text.secondary} />
-                      </button>
-
-                      <button
                         onClick={() => {
-                          if (confirm(`Delete "${artifact.name}"?`)) {
-                            deleteArtifact(artifact.id);
+                          if (confirm(`Delete "${project.name}"?`)) {
+                            deleteProject(project.slug);
                           }
                         }}
                         title="Delete"
@@ -376,8 +347,8 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
-                  <span>{Object.keys(artifact.files).length} files</span>
-                  <span>{formatDate(artifact.updatedAt)}</span>
+                  <span>{project.slug}</span>
+                  <span>{formatDate(project.createdAt)}</span>
                 </div>
               </div>
             ))
@@ -408,8 +379,8 @@ export const ArtifactSidebar = ({ isOpen, onClose }) => {
         title="Clear All Artifacts"
         message={
           user
-            ? `Permanently delete all ${artifacts.length} artifact${artifacts.length > 1 ? 's' : ''} from the database? This cannot be undone.`
-            : `Clear all ${artifacts.length} artifact${artifacts.length > 1 ? 's' : ''} from this session? This cannot be undone.`
+            ? `Permanently delete all ${projects.length} artifact${projects.length > 1 ? 's' : ''} from the database? This cannot be undone.`
+            : `Clear all ${projects.length} artifact${projects.length > 1 ? 's' : ''} from this session? This cannot be undone.`
         }
         onConfirm={handleConfirmClearAll}
         onCancel={handleCancelClearAll}

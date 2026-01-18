@@ -4,7 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useConversation } from '../../contexts/ConversationContext';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { getTheme } from '../../styles/theme';
 import { Sidebar } from '../chat/Sidebar';
 import { Banner } from '../chat/Banner';
@@ -97,10 +97,10 @@ export const ChatPage = ({
   const { user } = useAuth();
   const { openAuthModal } = useSettings();
   const { switchConversation, activeConversationId } = useConversation();
-  const { artifacts } = useArtifacts();
+  const { projects } = useFileSystem();
 
-  // Get apps from artifacts (real installed apps with proper names)
-  const apps = artifacts.map(a => ({ id: a.id, title: a.name }));
+  // Get apps from projects (real installed apps with proper names)
+  const apps = projects.map(p => ({ id: p.slug, title: p.name }));
   const theme = getTheme(mode);
   const navigate = useNavigate();
   const { conversationId } = useParams();
@@ -185,12 +185,11 @@ export const ChatPage = ({
   const handleSend = (message, images = null, mentionedApp = null) => {
     if (onSendMessage) {
       // If an app was mentioned via @, pass it as options for debug mode
+      // Note: Files are loaded from FileSystem in useChat, we just pass the project slug
       if (mentionedApp) {
-        const app = artifacts.find(a => a.id === mentionedApp.id);
-        const appFiles = app?.files || {};
         onSendMessage(message, images, {
           mentionedAppId: mentionedApp.id,
-          mentionedAppFiles: appFiles,
+          mentionedAppFiles: {}, // Files are loaded from FileSystem in useChat
           isDebugMode: true
         });
       } else {

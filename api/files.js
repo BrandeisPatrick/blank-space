@@ -33,8 +33,23 @@ const ALLOWED_MIME_TYPES = [
   'image/webp',
   // Code
   'text/javascript',
+  'application/javascript',
   'text/css',
   'text/html',
+  'text/jsx',
+  'text/typescript',
+  'text/x-typescript',
+  // Generic (for code files with unknown MIME type)
+  'application/octet-stream',
+];
+
+// Code file extensions (allowed with application/octet-stream in code/ folder)
+const CODE_FILE_EXTENSIONS = [
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+  '.css', '.scss', '.less',
+  '.html', '.htm',
+  '.json', '.md',
+  '.py', '.rb', '.go', '.rs', '.java', '.c', '.cpp', '.h',
 ];
 
 /**
@@ -142,21 +157,21 @@ export default async function handler(req, res) {
     switch (req.method) {
       case 'GET':
         if (req.query.id) {
-          return handleGetFile(db, storage, userId, req.query.id, res);
+          return handleGetFile(req, db, storage, userId, req.query.id, res);
         }
         return handleList(db, userId, req.query.path, res);
       case 'POST':
         if (req.query.action === 'folder') {
-          return handleCreateFolder(db, userId, req.body, res);
+          return handleCreateFolder(req, db, userId, req.body, res);
         }
-        return handleUpload(db, storage, userId, req.body, res);
+        return handleUpload(req, db, storage, userId, req.body, res);
       case 'PUT':
-        return handleMove(db, storage, userId, req.body, res);
+        return handleMove(req, db, storage, userId, req.body, res);
       case 'DELETE':
         if (req.query.action === 'folder') {
-          return handleDeleteFolder(db, storage, userId, req.query.path, res);
+          return handleDeleteFolder(req, db, storage, userId, req.query.path, res);
         }
-        return handleDelete(db, storage, userId, req.query.id, res);
+        return handleDelete(req, db, storage, userId, req.query.id, res);
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -254,7 +269,7 @@ async function handleList(db, userId, filterPath, res) {
 /**
  * Get single file metadata + signed download URL
  */
-async function handleGetFile(db, storage, userId, fileId, res) {
+async function handleGetFile(req, db, storage, userId, fileId, res) {
   const fileRef = db
     .collection('users')
     .doc(userId)
@@ -311,7 +326,7 @@ async function handleGetFile(db, storage, userId, fileId, res) {
 /**
  * Create folder
  */
-async function handleCreateFolder(db, userId, body, res) {
+async function handleCreateFolder(req, db, userId, body, res) {
   const { path } = body;
 
   if (!path) {
@@ -371,7 +386,7 @@ async function handleCreateFolder(db, userId, body, res) {
 /**
  * Upload new file
  */
-async function handleUpload(db, storage, userId, body, res) {
+async function handleUpload(req, db, storage, userId, body, res) {
   let { filename, path: filePath, content, mimeType, encoding = 'base64' } = body;
 
   // Support legacy 'folder' field
@@ -391,6 +406,17 @@ async function handleUpload(db, storage, userId, body, res) {
       error: 'Invalid file type',
       message: `File type ${mimeType} not allowed`,
     });
+  }
+
+  // Extra validation for application/octet-stream - must have valid code extension
+  if (mimeType === 'application/octet-stream') {
+    const ext = filename.toLowerCase().slice(filename.lastIndexOf('.'));
+    if (!CODE_FILE_EXTENSIONS.includes(ext)) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        message: `File extension ${ext} not allowed with application/octet-stream MIME type`,
+      });
+    }
   }
 
   // Decode content
@@ -496,7 +522,7 @@ async function handleUpload(db, storage, userId, body, res) {
 /**
  * Move/rename file
  */
-async function handleMove(db, storage, userId, body, res) {
+async function handleMove(req, db, storage, userId, body, res) {
   const { fileId, newPath } = body;
 
   if (!fileId || !newPath) {
@@ -591,7 +617,7 @@ async function handleMove(db, storage, userId, body, res) {
 /**
  * Delete file
  */
-async function handleDelete(db, storage, userId, fileId, res) {
+async function handleDelete(req, db, storage, userId, fileId, res) {
   if (!fileId) {
     return res.status(400).json({
       error: 'Invalid request',
@@ -650,7 +676,7 @@ async function handleDelete(db, storage, userId, fileId, res) {
 /**
  * Delete folder and all contents
  */
-async function handleDeleteFolder(db, storage, userId, folderPath, res) {
+async function handleDeleteFolder(req, db, storage, userId, folderPath, res) {
   if (!folderPath) {
     return res.status(400).json({
       error: 'Invalid request',
@@ -664,6 +690,14 @@ async function handleDeleteFolder(db, storage, userId, folderPath, res) {
     return res.status(400).json({
       error: 'Invalid path',
       message: 'Path contains invalid characters or traversal sequences',
+    });
+  }
+
+  // Prevent deletion of system folders
+  if (normalizedPath === 'assistant' || normalizedPath === 'code') {
+    return res.status(403).json({
+      error: 'Cannot delete system folder',
+      message: `The '${normalizedPath}' folder is a system folder and cannot be deleted`,
     });
   }
 

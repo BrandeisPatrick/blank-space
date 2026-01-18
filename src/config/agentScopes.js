@@ -21,7 +21,7 @@ export const AGENT_SCOPES = {
     root: null,
     description: 'Direct user uploads and file browsing',
     canRead: ['assistant', 'code'],
-    canWrite: ['assistant']
+    canWrite: ['assistant', 'code']
   }
 };
 

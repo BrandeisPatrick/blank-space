@@ -4,7 +4,7 @@ import { getTheme } from '../../styles/theme'
 import { parse } from '@babel/parser'
 import { GlobeIcon } from '../icons'
 
-export const PreviewPanel = ({ files, onError, onDebug, onDebugNewChat, isDebugging = false, zoom: externalZoom, hideHeader = false, activeArtifact = null }) => {
+export const PreviewPanel = ({ files, onError, onDebug, onDebugNewChat, isDebugging = false, zoom: externalZoom, hideHeader = false, activeArtifact = null, loading = false }) => {
   const iframeRef = useRef(null)
   const { mode } = useTheme()
   const theme = getTheme(mode)
@@ -446,7 +446,7 @@ ${stripped}
   }, [onError])
 
 
-  if (!files || Object.keys(files).length === 0) {
+  if (loading || !files || Object.keys(files).length === 0) {
     return (
       <div style={{
         height: '100%',
@@ -467,16 +467,35 @@ ${stripped}
             display: 'flex',
             justifyContent: 'center',
           }}>
-            <GlobeIcon size={48} color={theme.colors.text.tertiary} />
+            {loading ? (
+              <div style={{
+                width: '48px',
+                height: '48px',
+                border: `3px solid ${theme.colors.bg.border}`,
+                borderTopColor: theme.colors.text.tertiary,
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }} />
+            ) : (
+              <GlobeIcon size={48} color={theme.colors.text.tertiary} />
+            )}
           </div>
           <div style={{
             fontSize: theme.typography.fontSize.lg,
             fontWeight: theme.typography.fontWeight.semibold,
             color: theme.colors.text.primary,
           }}>
-            No preview available
+            {loading ? 'Loading preview...' : 'No preview available'}
           </div>
         </div>
+        {loading && (
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        )}
       </div>
     )
   }

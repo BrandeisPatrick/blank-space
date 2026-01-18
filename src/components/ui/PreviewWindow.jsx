@@ -14,6 +14,7 @@ export const PreviewWindow = ({
   visible = false,
   artifact = null,
   files = {},
+  loading = false,
   onClose,
   onFileChange,
   onError,
@@ -392,7 +393,7 @@ export const PreviewWindow = ({
         background: theme.colors.bg.primary,
       }}>
         {view === 'preview' ? (
-          <PreviewPanel files={files} onError={onError} onDebug={onDebug} onDebugNewChat={onDebugNewChat} isDebugging={isDebugging} zoom={zoom} hideHeader={true} activeArtifact={artifact} />
+          <PreviewPanel files={files} loading={loading} onError={onError} onDebug={onDebug} onDebugNewChat={onDebugNewChat} isDebugging={isDebugging} zoom={zoom} hideHeader={true} activeArtifact={artifact} />
         ) : (
           <EditorPanel
             files={files}

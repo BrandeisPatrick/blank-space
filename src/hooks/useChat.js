@@ -6,7 +6,6 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 import { useConversation } from '../contexts/ConversationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFileSystem } from '../contexts/FileSystemContext';
-import { useArtifacts } from '../contexts/ArtifactContext';
 import { storage } from '../config/firebase';
 import { processMessage } from '../services/ToolOrchestrator.js';
 import { TIMING, MESSAGES } from '../constants';
@@ -39,15 +38,12 @@ export const useChat = ({
   files,
   setFiles,
   modelTier,
-  activeArtifactId,
-  createArtifact,
 }) => {
   const { mode } = useTheme();
   const { aiColorPalette, aiUIStyle } = useSettings();
   const { incrementUsage } = useSubscription();
   const { messages, setMessages, linkArtifact, activeConversationId } = useConversation();
   const { user } = useAuth();
-  const { activeArtifact } = useArtifacts();
   const {
     getFilesForAI,
     syncChangesFromAI,
@@ -56,7 +52,12 @@ export const useChat = ({
     fetchFileByPath,
     writeFileByPath,
     createFolderByPath,
-    listDirectoryByPath
+    listDirectoryByPath,
+    // Project management (replaces artifacts)
+    activeProject,
+    activeProjectSlug,
+    createProject,
+    loadProject,
   } = useFileSystem();
 
   // Processing state
@@ -412,67 +413,47 @@ export const useChat = ({
             return newMessages;
           });
 
-          // Persist to artifact - only if there are artifact file changes
-          if (fileCount > 0) {
-            const targetArtifactId = mentionedAppId || activeArtifactId;
-            if (!targetArtifactId) {
-              const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
+          // Persist code files to project folder
+          if (artifactFileOps.length > 0) {
+            let projectSlug = activeProjectSlug;
+
+            // Create new project if none active
+            if (!projectSlug) {
+              const projectName = result.plan?.summary?.slice(0, 50) || 'New Project';
               try {
-                const newArtifact = await createArtifact(artifactName);
-                if (newArtifact) {
-                  linkArtifact(newArtifact.id);
-                  // Sync code files to code/{projectSlug}/ in Firebase
-                  if (artifactFileOps.length > 0) {
-                    // Use artifact's projectSlug, or generate one as fallback
-                    const projectSlug = newArtifact.projectSlug || slugify(artifactName, true);
-                    console.log(`[useChat] New artifact projectSlug: ${projectSlug}`);
-                    const codeFileOps = artifactFileOps.map(op => {
-                      // Strip any existing code/ prefix to prevent nesting
-                      let cleanPath = op.filename;
-                      if (cleanPath.startsWith('code/')) {
-                        cleanPath = cleanPath.replace(/^code\/[^/]+\//, '');
-                      }
-                      return {
-                        ...op,
-                        filename: `code/${projectSlug}/${cleanPath}`
-                      };
-                    });
-                    console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
-                    syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
-                      console.error('[useChat] Failed to sync code files:', err);
-                    });
-                  }
+                const newProject = await createProject(projectName);
+                if (newProject) {
+                  projectSlug = newProject.slug;
+                  linkArtifact(projectSlug); // Link conversation to project
+                  console.log(`[useChat] Created new project: ${projectName} (${projectSlug})`);
                 }
               } catch (error) {
-                console.error('Error creating artifact:', error);
+                console.error('Error creating project:', error);
                 setMessages(prev => [...prev, {
                   type: 'error',
                   content: 'Failed to save your project to the cloud, but files are available locally.',
                   timestamp: Date.now()
                 }]);
               }
-            } else {
-              // Sync code files to code/{projectSlug}/ in Firebase
-              if (artifactFileOps.length > 0 && activeArtifact) {
-                // Use artifact's projectSlug, or generate one as fallback
-                const projectSlug = activeArtifact.projectSlug || slugify(activeArtifact.name || 'untitled', true);
-                console.log(`[useChat] Existing artifact projectSlug: ${projectSlug} (from artifact: ${activeArtifact.projectSlug})`);
-                const codeFileOps = artifactFileOps.map(op => {
-                  // Strip any existing code/ prefix to prevent nesting
-                  let cleanPath = op.filename;
-                  if (cleanPath.startsWith('code/')) {
-                    cleanPath = cleanPath.replace(/^code\/[^/]+\//, '');
-                  }
-                  return {
-                    ...op,
-                    filename: `code/${projectSlug}/${cleanPath}`
-                  };
-                });
-                console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
-                syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
-                  console.error('[useChat] Failed to sync code files:', err);
-                });
-              }
+            }
+
+            // Sync code files to code/{projectSlug}/
+            if (projectSlug) {
+              console.log(`[useChat] Syncing ${artifactFileOps.length} code file(s) to code/${projectSlug}/`);
+              const codeFileOps = artifactFileOps.map(op => {
+                // Strip any existing code/ prefix to prevent nesting
+                let cleanPath = op.filename;
+                if (cleanPath.startsWith('code/')) {
+                  cleanPath = cleanPath.replace(/^code\/[^/]+\//, '');
+                }
+                return {
+                  ...op,
+                  filename: `code/${projectSlug}/${cleanPath}`
+                };
+              });
+              syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
+                console.error('[useChat] Failed to sync code files:', err);
+              });
             }
           }
 
@@ -527,7 +508,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath, activeArtifact]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeProjectSlug, createProject, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
 
   /**
    * Debug handler for errors and user-reported issues

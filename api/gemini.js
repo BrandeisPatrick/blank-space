@@ -159,6 +159,13 @@ async function handleChatRequest(req, res, ai) {
   if (thinkingConfig) config.thinkingConfig = thinkingConfig;
 
   // Create chat session with history
+  console.log('[Gemini API] Creating chat with history length:', history.length, 'model:', model);
+  console.log('[Gemini API] Tools count:', tools?.length || 0);
+  console.log('[Gemini API] SystemInstruction length:', systemInstruction?.length || 0);
+  console.log('[Gemini API] ThinkingConfig:', JSON.stringify(thinkingConfig));
+  if (functionResponses) {
+    console.log('[Gemini API] Has functionResponses, history last entry:', JSON.stringify(history[history.length - 1], null, 2).slice(0, 500));
+  }
   const chat = ai.chats.create({
     model,
     history,
@@ -169,6 +176,9 @@ async function handleChatRequest(req, res, ai) {
 
   if (functionResponses) {
     // Continue conversation with function call results
+    console.log('[Gemini API] Sending function responses via chat.sendMessage');
+    console.log('[Gemini API] History length:', history.length);
+    console.log('[Gemini API] Function responses:', JSON.stringify(functionResponses, null, 2).slice(0, 1000));
     response = await chat.sendMessage({ message: functionResponses });
   } else if (imageParts && imageParts.length > 0) {
     // Build multimodal message with text and images

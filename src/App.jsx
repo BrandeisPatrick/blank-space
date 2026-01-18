@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { useTheme } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
-import { useArtifacts } from "./contexts/ArtifactContext";
 import { useConversation } from "./contexts/ConversationContext";
 import { getTheme } from "./styles/theme";
 import { ChatPage, ComputerPage, FilesPage } from "./components/pages";
@@ -18,13 +17,14 @@ function App() {
   const theme = getTheme(mode);
   const { loading: authLoading } = useAuth();
   const {
-    artifacts,
-    activeArtifact,
-    createArtifact,
-    activeArtifactId,
-    updateArtifactIcon,
-    renameArtifact
-  } = useArtifacts();
+    projects,
+    activeProject,
+    activeProjectSlug,
+    updateProjectMeta,
+    deleteProject,
+    loadProject,
+    getFilesByProjectSlug
+  } = useFileSystem();
   const { messages } = useConversation();
 
   // Model tier state
@@ -41,13 +41,12 @@ function App() {
   const [files, setFiles] = useState({});
   const [activeFile, setActiveFile] = useState('App.jsx');
   const [filesLoading, setFilesLoading] = useState(false);
-  const { getFilesByProjectSlug } = useFileSystem();
 
   // Error deduplication
   const recentErrors = useRef(new Map());
 
-  // Track artifact switches
-  const previousArtifactIdRef = useRef(null);
+  // Track project switches
+  const previousProjectSlugRef = useRef(null);
 
   // Use AI chat hook for message processing
   const {
@@ -60,21 +59,19 @@ function App() {
     files,
     setFiles,
     modelTier,
-    activeArtifactId,
-    createArtifact,
   });
 
-  // Load files from FileSystem when artifact changes
+  // Load files from FileSystem when project changes
   useEffect(() => {
     const loadFilesFromFileSystem = async () => {
-      if (!activeArtifact?.projectSlug) {
+      if (!activeProjectSlug) {
         setFiles({});
         return;
       }
 
       setFilesLoading(true);
       try {
-        const loadedFiles = await getFilesByProjectSlug(activeArtifact.projectSlug);
+        const loadedFiles = await getFilesByProjectSlug(activeProjectSlug);
         setFiles(loadedFiles);
 
         // Set active file to first available file
@@ -94,16 +91,16 @@ function App() {
       }
     };
 
-    const isSwitchingArtifacts = previousArtifactIdRef.current !== null &&
-                                  previousArtifactIdRef.current !== activeArtifactId;
+    const isSwitchingProjects = previousProjectSlugRef.current !== null &&
+                                  previousProjectSlugRef.current !== activeProjectSlug;
 
-    // Load files when switching artifacts or when artifact is first selected
-    if (isSwitchingArtifacts || (activeArtifact && Object.keys(files).length === 0)) {
+    // Load files when switching projects or when project is first selected
+    if (isSwitchingProjects || (activeProjectSlug && Object.keys(files).length === 0)) {
       loadFilesFromFileSystem();
     }
 
-    previousArtifactIdRef.current = activeArtifactId;
-  }, [activeArtifactId, activeArtifact, getFilesByProjectSlug]);
+    previousProjectSlugRef.current = activeProjectSlug;
+  }, [activeProjectSlug, getFilesByProjectSlug]);
 
   // Handle preview errors with deduplication
   const handlePreviewError = useCallback((error) => {
@@ -250,13 +247,14 @@ function App() {
             element={
               <ComputerPage
                 files={files}
+                filesLoading={filesLoading}
                 onFileChange={handleFileChange}
                 onError={handlePreviewError}
                 onDebug={(errors) => debug({ errors })}
                 onDebugNewChat={handleDebugNewChat}
                 isDebugging={isDebugging}
-                onIconChange={(artifactId, iconId) => updateArtifactIcon(artifactId, iconId)}
-                onRename={(artifactId, newName) => renameArtifact(artifactId, newName)}
+                onIconChange={(projectSlug, iconId) => updateProjectMeta(projectSlug, { icon: iconId })}
+                onRename={(projectSlug, newName) => updateProjectMeta(projectSlug, { name: newName })}
               />
             }
           />

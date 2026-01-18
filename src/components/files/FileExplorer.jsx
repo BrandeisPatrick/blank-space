@@ -275,7 +275,7 @@ const Column = ({ path, items, selectedPath, onSelect, colors, onCreateFolder, o
           >
             <UploadIcon size={20} />
           </button>
-          {selectedPath && (
+          {selectedPath && !['assistant', 'code', '/assistant', '/code'].includes(selectedPath) && (
             <button
               onClick={() => {
                 const folderName = selectedPath.split('/').pop();

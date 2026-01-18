@@ -5,7 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { BackgroundWaves, StarryBackground } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
@@ -25,7 +25,7 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
   const { openAuthModal } = useSettings();
   const { user, signOut } = useAuth();
   const theme = getTheme(mode);
-  const { artifacts, loadArtifact, deleteArtifact } = useArtifacts();
+  const { projects, loadProject, deleteProject } = useFileSystem();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const isMobile = useIsMobile();
@@ -40,12 +40,12 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
     setIsEditMode(false);
   };
 
-  // Handle artifact deletion
-  const handleDeleteArtifact = (artifactId, artifactName) => {
-    if (window.confirm(`Delete "${artifactName}"? This cannot be undone.`)) {
-      deleteArtifact(artifactId);
-      // Exit edit mode if no more artifacts
-      if (artifacts.length <= 1) {
+  // Handle project deletion
+  const handleDeleteProject = (projectSlug, projectName) => {
+    if (window.confirm(`Delete "${projectName}"? This cannot be undone.`)) {
+      deleteProject(projectSlug);
+      // Exit edit mode if no more projects
+      if (projects.length <= 1) {
         setIsEditMode(false);
       }
     }
@@ -54,9 +54,9 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
   // Glass effect for header
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
 
-  // Handle artifact selection
-  const handleArtifactSelect = (artifactId) => {
-    loadArtifact(artifactId);
+  // Handle project selection
+  const handleProjectSelect = (projectSlug) => {
+    loadProject(projectSlug);
     onTryNow(''); // Pass empty string to signal "open browser window only"
   };
 
@@ -262,15 +262,15 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
               onEnterEditMode={enterEditMode}
             />
 
-            {/* Artifact Cards */}
-            {artifacts && artifacts.map(artifact => (
+            {/* Project Cards */}
+            {projects && projects.map(project => (
               <ArtifactCard
-                key={artifact.id}
-                artifact={artifact}
-                onSelect={handleArtifactSelect}
+                key={project.slug}
+                artifact={{ id: project.slug, name: project.name, icon: project.icon }}
+                onSelect={() => handleProjectSelect(project.slug)}
                 isEditMode={isEditMode}
                 onEnterEditMode={enterEditMode}
-                onDelete={() => handleDeleteArtifact(artifact.id, artifact.name)}
+                onDelete={() => handleDeleteProject(project.slug, project.name)}
               />
             ))}
           </div>

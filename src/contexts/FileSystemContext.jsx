@@ -8,11 +8,12 @@
 
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { slugify } from '../utils/slugify';
 
 const FileSystemContext = createContext();
 
-// Check if running in development mode (use local storage instead of Firebase)
-const USE_LOCAL_STORAGE = import.meta.env.DEV;
+// Always use remote storage (Firebase)
+const USE_LOCAL_STORAGE = false;
 const LOCAL_STORAGE_KEY = 'blankspace_local_files';
 
 // Local storage helpers for development mode
@@ -57,6 +58,10 @@ export const FileSystemProvider = ({ children }) => {
   // Track if initial load is done
   const [initialized, setInitialized] = useState(false);
 
+  // Project state (apps in code/ folder)
+  const [projects, setProjects] = useState([]);
+  const [activeProjectSlug, setActiveProjectSlug] = useState(null);
+
   // Sync state tracking
   const lastSyncRef = useRef(new Map());
 
@@ -65,6 +70,8 @@ export const FileSystemProvider = ({ children }) => {
     if (!user) {
       setFiles([]);
       setFolders([]);
+      setProjects([]);
+      setActiveProjectSlug(null);
       setCurrentPath('/');
       setSelectedItem(null);
       setInitialized(false);
@@ -686,6 +693,183 @@ export const FileSystemProvider = ({ children }) => {
   }, [files, makeAuthenticatedRequest]);
 
   // =============================================
+  // Project Management (Apps in code/ folder)
+  // =============================================
+
+  // Manifest file name for project metadata
+  const MANIFEST_FILE = '.blankspace.json';
+
+  // Load all projects from code/*/.blankspace.json manifests
+  const loadProjects = useCallback(async () => {
+    // Find all manifest files in code/*/
+    const manifestFiles = files.filter(f =>
+      f.path && f.path.match(/^code\/[^/]+\/\.blankspace\.json$/)
+    );
+
+    if (manifestFiles.length === 0) {
+      setProjects([]);
+      return [];
+    }
+
+    const loadedProjects = [];
+
+    for (const manifestFile of manifestFiles) {
+      try {
+        const pathParts = manifestFile.path.split('/');
+        const projectSlug = pathParts[1]; // code/{slug}/.blankspace.json
+
+        // Fetch manifest content
+        let content;
+        if (USE_LOCAL_STORAGE) {
+          const localData = getLocalFiles();
+          const localFile = localData.files?.find(f => f.path === manifestFile.path);
+          content = localFile?.content;
+        } else {
+          const fullFile = await makeAuthenticatedRequest(`/api/files?id=${manifestFile.id}`);
+          if (fullFile.file?.downloadUrl) {
+            const response = await fetch(fullFile.file.downloadUrl);
+            content = await response.text();
+          }
+        }
+
+        if (content) {
+          const manifest = JSON.parse(content);
+          loadedProjects.push({
+            slug: projectSlug,
+            name: manifest.name || projectSlug,
+            icon: manifest.icon || 'app',
+            createdAt: manifest.createdAt || null,
+          });
+        }
+      } catch (err) {
+        console.warn(`[FileSystem] Failed to load project manifest:`, manifestFile.path, err);
+      }
+    }
+
+    // Sort by creation date (newest first)
+    loadedProjects.sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    setProjects(loadedProjects);
+    console.log(`[FileSystem] Loaded ${loadedProjects.length} projects`);
+    return loadedProjects;
+  }, [files, makeAuthenticatedRequest]);
+
+  // Load projects when files change
+  useEffect(() => {
+    if (initialized && files.length > 0) {
+      loadProjects();
+    }
+  }, [initialized, files, loadProjects]);
+
+  // Get active project
+  const activeProject = useMemo(() => {
+    return projects.find(p => p.slug === activeProjectSlug) || null;
+  }, [projects, activeProjectSlug]);
+
+  // Create a new project with manifest
+  const createProject = useCallback(async (name, icon = 'app') => {
+    const projectSlug = slugify(name, true); // Add random suffix for uniqueness
+
+    const manifest = {
+      name,
+      icon,
+      createdAt: new Date().toISOString(),
+    };
+
+    const manifestPath = `code/${projectSlug}/${MANIFEST_FILE}`;
+    const manifestContent = JSON.stringify(manifest, null, 2);
+
+    try {
+      await writeFileByPath(manifestPath, manifestContent, { agent: 'code' });
+
+      const newProject = { slug: projectSlug, ...manifest };
+
+      // Update local state
+      setProjects(prev => [newProject, ...prev]);
+      setActiveProjectSlug(projectSlug);
+
+      console.log(`[FileSystem] Created project: ${name} (${projectSlug})`);
+      return newProject;
+    } catch (err) {
+      console.error('[FileSystem] Failed to create project:', err);
+      throw err;
+    }
+  }, [writeFileByPath]);
+
+  // Update project metadata (name, icon)
+  const updateProjectMeta = useCallback(async (projectSlug, updates) => {
+    const manifestPath = `code/${projectSlug}/${MANIFEST_FILE}`;
+
+    try {
+      // Fetch current manifest
+      const currentContent = await fetchFileByPath(manifestPath, { agent: 'code' });
+      const currentManifest = JSON.parse(currentContent);
+
+      // Merge updates
+      const updatedManifest = {
+        ...currentManifest,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Write updated manifest
+      await writeFileByPath(manifestPath, JSON.stringify(updatedManifest, null, 2), { agent: 'code' });
+
+      // Update local state
+      setProjects(prev => prev.map(p =>
+        p.slug === projectSlug ? { ...p, ...updates } : p
+      ));
+
+      console.log(`[FileSystem] Updated project: ${projectSlug}`, updates);
+      return updatedManifest;
+    } catch (err) {
+      console.error('[FileSystem] Failed to update project:', err);
+      throw err;
+    }
+  }, [fetchFileByPath, writeFileByPath]);
+
+  // Delete project and all its files
+  const deleteProject = useCallback(async (projectSlug) => {
+    const projectPath = `code/${projectSlug}`;
+
+    try {
+      // Delete entire project folder (cascade delete)
+      await deleteFolder(projectPath);
+
+      // Update local state
+      setProjects(prev => prev.filter(p => p.slug !== projectSlug));
+
+      // Clear active project if it was the deleted one
+      if (activeProjectSlug === projectSlug) {
+        setActiveProjectSlug(null);
+      }
+
+      console.log(`[FileSystem] Deleted project: ${projectSlug}`);
+    } catch (err) {
+      console.error('[FileSystem] Failed to delete project:', err);
+      throw err;
+    }
+  }, [deleteFolder, activeProjectSlug]);
+
+  // Set active project
+  const loadProject = useCallback((projectSlug) => {
+    const project = projects.find(p => p.slug === projectSlug);
+    if (project) {
+      setActiveProjectSlug(projectSlug);
+      console.log(`[FileSystem] Loaded project: ${projectSlug}`);
+    }
+  }, [projects]);
+
+  // Clear active project
+  const clearActiveProject = useCallback(() => {
+    setActiveProjectSlug(null);
+  }, []);
+
+  // =============================================
   // Legacy AI Integration (for backward compatibility)
   // =============================================
 
@@ -959,6 +1143,16 @@ export const FileSystemProvider = ({ children }) => {
     getFolderContents,
     refresh,
 
+    // Project Management (replaces artifacts)
+    projects,
+    activeProject,
+    activeProjectSlug,
+    createProject,
+    updateProjectMeta,
+    deleteProject,
+    loadProject,
+    clearActiveProject,
+
     // AI Integration (legacy)
     getFilesForAI,
     syncChangesFromAI,
@@ -1005,6 +1199,14 @@ export const FileSystemProvider = ({ children }) => {
     getFileContent,
     getFolderContents,
     refresh,
+    projects,
+    activeProject,
+    activeProjectSlug,
+    createProject,
+    updateProjectMeta,
+    deleteProject,
+    loadProject,
+    clearActiveProject,
     getFilesForAI,
     syncChangesFromAI,
     getFilesByProjectSlug,

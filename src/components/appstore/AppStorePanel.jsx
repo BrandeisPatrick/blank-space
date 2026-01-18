@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAppStore } from '../../contexts/AppStoreContext';
-import { useArtifacts } from '../../contexts/ArtifactContext';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 import { getTheme } from '../../styles/theme';
 import { createGlassEffect } from '../../styles/componentStyles';
 import { ARTIFACT_METADATA, loadArtifactById } from '../../data/artifactMetadata';
@@ -416,7 +416,7 @@ const AppDetailView = ({ app, loadedArtifact, isLoading, onBack, onInstall, them
 export const AppStorePanel = () => {
   const { mode } = useTheme();
   const { isAppStoreOpen, closeAppStore } = useAppStore();
-  const { createArtifact } = useArtifacts();
+  const { createProject, writeFileByPath } = useFileSystem();
   const theme = getTheme(mode);
   const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState('today');
@@ -450,10 +450,17 @@ export const AppStorePanel = () => {
     setIsLoading(true);
     try {
       const fullArtifact = loadedArtifact || await loadArtifactById(appMetadata.id);
-      createArtifact(fullArtifact.name, fullArtifact.files, [], fullArtifact.icon);
+      // Create project with manifest
+      const newProject = await createProject(fullArtifact.name, fullArtifact.icon);
+      // Write all files to the project folder
+      if (fullArtifact.files) {
+        for (const [filename, content] of Object.entries(fullArtifact.files)) {
+          await writeFileByPath(`code/${newProject.slug}/${filename}`, content, { agent: 'code' });
+        }
+      }
       closeAppStore();
     } catch (error) {
-      console.error('Failed to load artifact:', error);
+      console.error('Failed to install app:', error);
     } finally {
       setIsLoading(false);
     }
