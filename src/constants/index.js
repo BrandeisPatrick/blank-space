@@ -14,18 +14,6 @@ export const PANELS = {
 };
 
 /**
- * Route identifiers
- * Used for navigation and route state management
- */
-export const ROUTES = {
-  LANDING: 'landing',
-  SIGNIN: 'signin',
-  SIGNUP: 'signup',
-  STUDIO: 'studio',
-  PRICING: 'pricing'
-};
-
-/**
  * Timing and performance constants
  * Milliseconds and other temporal values
  */
@@ -176,11 +164,3 @@ export const FLOATING_WINDOWS = {
   }
 };
 
-/**
- * Error message templates
- */
-export const ERROR_MESSAGES = {
-  ARTIFACT_SAVE_FAILED: 'Failed to save your project to the cloud, but files are available locally. You can try creating a new artifact to save your work.',
-  CODE_GENERATION_FAILED: 'Failed to generate code. Please try again.',
-  GENERAL_ERROR: 'An error occurred while processing your request. Please try again.'
-};

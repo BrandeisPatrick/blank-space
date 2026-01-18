@@ -152,11 +152,6 @@ function App() {
     });
   }, [sendMessage, files]);
 
-  // Clean up old storage key
-  useEffect(() => {
-    sessionStorage.removeItem('guestBannerDismissed');
-  }, []);
-
   // Auth loading screen
   if (authLoading) {
     return (
