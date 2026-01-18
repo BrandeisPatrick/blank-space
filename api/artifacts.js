@@ -73,7 +73,7 @@ async function handleList(db, userId, res) {
  * Create new artifact
  */
 async function handleCreate(db, userId, body, res) {
-  const { name, files } = body;
+  const { name, files, projectSlug, icon, chatHistory } = body;
 
   if (!name || typeof name !== 'string') {
     return res.status(400).json({
@@ -92,6 +92,9 @@ async function handleCreate(db, userId, body, res) {
   const artifactData = {
     name,
     files,
+    projectSlug: projectSlug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50),
+    icon: icon || 'app',
+    chatHistory: chatHistory || [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

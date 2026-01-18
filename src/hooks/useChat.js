@@ -420,16 +420,25 @@ export const useChat = ({
             if (!targetArtifactId) {
               const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
               try {
-                const newArtifactId = await createArtifact(artifactName, newFiles, messagesRef.current);
-                if (newArtifactId) {
-                  linkArtifact(newArtifactId);
+                const newArtifact = await createArtifact(artifactName, newFiles, messagesRef.current);
+                if (newArtifact) {
+                  linkArtifact(newArtifact.id);
                   // Sync code files to code/{projectSlug}/ in Firebase
                   if (artifactFileOps.length > 0) {
-                    const projectSlug = slugify(artifactName);
-                    const codeFileOps = artifactFileOps.map(op => ({
-                      ...op,
-                      filename: `code/${projectSlug}/${op.filename}`
-                    }));
+                    // Use artifact's projectSlug, or generate one as fallback
+                    const projectSlug = newArtifact.projectSlug || slugify(artifactName, true);
+                    console.log(`[useChat] New artifact projectSlug: ${projectSlug}`);
+                    const codeFileOps = artifactFileOps.map(op => {
+                      // Strip any existing code/ prefix to prevent nesting
+                      let cleanPath = op.filename;
+                      if (cleanPath.startsWith('code/')) {
+                        cleanPath = cleanPath.replace(/^code\/[^/]+\//, '');
+                      }
+                      return {
+                        ...op,
+                        filename: `code/${projectSlug}/${cleanPath}`
+                      };
+                    });
                     console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
                     syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
                       console.error('[useChat] Failed to sync code files:', err);
@@ -449,11 +458,20 @@ export const useChat = ({
               updateChatHistory(targetArtifactId, messagesRef.current);
               // Sync code files to code/{projectSlug}/ in Firebase
               if (artifactFileOps.length > 0 && activeArtifact) {
-                const projectSlug = activeArtifact.projectSlug || slugify(activeArtifact.name || 'untitled');
-                const codeFileOps = artifactFileOps.map(op => ({
-                  ...op,
-                  filename: `code/${projectSlug}/${op.filename}`
-                }));
+                // Use artifact's projectSlug, or generate one as fallback
+                const projectSlug = activeArtifact.projectSlug || slugify(activeArtifact.name || 'untitled', true);
+                console.log(`[useChat] Existing artifact projectSlug: ${projectSlug} (from artifact: ${activeArtifact.projectSlug})`);
+                const codeFileOps = artifactFileOps.map(op => {
+                  // Strip any existing code/ prefix to prevent nesting
+                  let cleanPath = op.filename;
+                  if (cleanPath.startsWith('code/')) {
+                    cleanPath = cleanPath.replace(/^code\/[^/]+\//, '');
+                  }
+                  return {
+                    ...op,
+                    filename: `code/${projectSlug}/${cleanPath}`
+                  };
+                });
                 console.log(`[useChat] Syncing ${codeFileOps.length} code file(s) to code/${projectSlug}/`);
                 syncChangesFromAI(codeFileOps, { agent: 'code' }).catch(err => {
                   console.error('[useChat] Failed to sync code files:', err);

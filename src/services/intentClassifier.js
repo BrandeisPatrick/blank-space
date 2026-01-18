@@ -1,8 +1,12 @@
 /**
  * Intent Classifier
  * Uses OpenAI gpt-4o-mini to classify user messages into:
- * - Without existing files: create or chat
- * - With existing files: debug or chat
+ * - create: User wants to build/create an app, website, or code
+ * - assistant: User wants to work with their files/folders
+ * - chat: General questions or conversation
+ *
+ * NOTE: 'debug' intent is NOT returned by this classifier.
+ * Debug mode is triggered ONLY via explicit @app mentions (handled in useChat.js).
  */
 
 import { fetchWithRetry } from './utils/fetchWithRetry.js';
@@ -15,8 +19,8 @@ const INTENT_RETRY_CONFIG = {
   context: 'Intent Classifier'
 };
 
-// Classification prompt for NEW app (no existing files)
-const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
+// Classification prompt - used for all messages (debug handled separately via @app)
+const CLASSIFICATION_PROMPT = `Classify the user's message into ONE intent:
 - "create": User is REQUESTING you to build/create an app, website, or code for them
 - "assistant": User wants to work with their FILES or FOLDERS (create, edit, read, list, count, summarize, organize)
 - "chat": User is ASKING a general question or having a conversation NOT about their files
@@ -24,6 +28,8 @@ const NEW_APP_PROMPT = `Classify the user's message into ONE intent:
 Key distinction:
 - "create a todo app" → create (requesting you to build code)
 - "can you make a calculator?" → create (requesting you to build code)
+- "add a dark mode" → create (requesting code changes)
+- "fix the button" → create (requesting code changes)
 - "create a note about..." → assistant (working with files)
 - "write a document about..." → assistant (working with files)
 - "what files do I have" → assistant (asking about their files)
@@ -37,24 +43,13 @@ Key distinction:
 
 Respond with ONLY ONE WORD: create, assistant, or chat`;
 
-// Classification prompt for EDITING existing app
-const EDITING_APP_PROMPT = `Classify the user's message into ONE intent:
-- "debug": ANY request to change, fix, modify, or improve the existing app (including adding features, fixing bugs, changing design)
-- "assistant": User wants to work with their FILES or FOLDERS (create, edit, read, list, count, summarize, organize)
-- "chat": asking general questions, greetings, conversation NOT about their files
-
-The user is editing an existing app. ANY code change request should be "debug".
-File/folder operations (what files, list folders, read file, create note) should be "assistant".
-
-Respond with ONLY ONE WORD: debug, assistant, or chat`;
-
 /**
  * Classify user message intent using AI (gpt-4o-mini)
  * @param {string} message - User's message
- * @param {boolean} hasExistingFiles - Whether there are existing files
- * @returns {Promise<{intent: 'create' | 'chat' | 'debug', confidence: number, source: string}>}
+ * @param {boolean} _hasExistingFiles - Deprecated, kept for backwards compatibility
+ * @returns {Promise<{intent: 'create' | 'assistant' | 'chat', confidence: number, source: string}>}
  */
-export async function classifyIntent(message, hasExistingFiles = false) {
+export async function classifyIntent(message, _hasExistingFiles = false) {
   // Quick check for very short greetings (save API call)
   const lowerMessage = message.toLowerCase().trim();
   if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|sure)[\s!.]*$/i.test(lowerMessage)) {
@@ -62,16 +57,13 @@ export async function classifyIntent(message, hasExistingFiles = false) {
   }
 
   try {
-    // Use different prompts based on context
-    const prompt = hasExistingFiles ? EDITING_APP_PROMPT : NEW_APP_PROMPT;
-
     const response = await fetchWithRetry('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'user', content: `${prompt}\n\nUser message: "${message}"` }
+          { role: 'user', content: `${CLASSIFICATION_PROMPT}\n\nUser message: "${message}"` }
         ],
         max_tokens: 10
       })
@@ -85,8 +77,8 @@ export async function classifyIntent(message, hasExistingFiles = false) {
     const data = await response.json();
     const result = data.choices?.[0]?.message?.content?.trim().toLowerCase();
 
-    // Validate response based on context
-    const validIntents = hasExistingFiles ? ['debug', 'assistant', 'chat'] : ['create', 'assistant', 'chat'];
+    // Valid intents (debug is handled separately via @app mentions)
+    const validIntents = ['create', 'assistant', 'chat'];
 
     if (validIntents.includes(result)) {
       console.log(`[Intent Classifier] AI classified: "${message.slice(0, 50)}..." → ${result}`);

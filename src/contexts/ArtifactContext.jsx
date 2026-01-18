@@ -15,7 +15,7 @@ const generateArtifactId = () => {
 const createEmptyArtifact = (name = 'Untitled Project') => ({
   id: generateArtifactId(),
   name,
-  projectSlug: slugify(name), // URL-friendly slug for code workspace
+  projectSlug: slugify(name, true), // URL-friendly slug with random suffix for uniqueness
   icon: 'app', // Default icon category
   files: {},
   chatHistory: [], // Each artifact has its own chat history
@@ -167,7 +167,7 @@ export const ArtifactProvider = ({ children }) => {
 
   // Create new artifact
   const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = [], icon = 'app') => {
-    const projectSlug = slugify(name);
+    const projectSlug = slugify(name, true); // Add random suffix for unique project folders
 
     // Guest mode: Create artifact in sessionStorage
     if (!user) {
@@ -187,7 +187,7 @@ export const ArtifactProvider = ({ children }) => {
       setActiveArtifactId(newArtifact.id);
       saveArtifactsToLocalStorage(updatedArtifacts, newArtifact.id);
 
-      return newArtifact.id;
+      return newArtifact; // Return full artifact for projectSlug access
     }
 
     // Authenticated mode: Create artifact via API
@@ -209,7 +209,7 @@ export const ArtifactProvider = ({ children }) => {
       const newArtifact = data.artifact;
       setArtifacts(prev => [...prev, newArtifact]);
       setActiveArtifactId(newArtifact.id);
-      return newArtifact.id;
+      return newArtifact; // Return full artifact for projectSlug access
     } catch (error) {
       console.error('Error creating artifact:', error);
       setError(error.message);
@@ -294,9 +294,9 @@ export const ArtifactProvider = ({ children }) => {
     };
   }, []);
 
-  // Rename artifact (also updates projectSlug for code workspace)
+  // Rename artifact (keeps existing projectSlug to maintain file system consistency)
   const renameArtifact = (id, newName) => {
-    updateArtifact(id, { name: newName, projectSlug: slugify(newName) });
+    updateArtifact(id, { name: newName });
   };
 
   // Update artifact icon
