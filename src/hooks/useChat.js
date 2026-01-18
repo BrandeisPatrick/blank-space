@@ -41,8 +41,6 @@ export const useChat = ({
   modelTier,
   activeArtifactId,
   createArtifact,
-  updateArtifactFiles,
-  updateChatHistory,
 }) => {
   const { mode } = useTheme();
   const { aiColorPalette, aiUIStyle } = useSettings();
@@ -420,7 +418,7 @@ export const useChat = ({
             if (!targetArtifactId) {
               const artifactName = result.plan?.summary?.slice(0, 50) || 'New Project';
               try {
-                const newArtifact = await createArtifact(artifactName, newFiles, messagesRef.current);
+                const newArtifact = await createArtifact(artifactName);
                 if (newArtifact) {
                   linkArtifact(newArtifact.id);
                   // Sync code files to code/{projectSlug}/ in Firebase
@@ -454,8 +452,6 @@ export const useChat = ({
                 }]);
               }
             } else {
-              updateArtifactFiles(targetArtifactId, newFiles);
-              updateChatHistory(targetArtifactId, messagesRef.current);
               // Sync code files to code/{projectSlug}/ in Firebase
               if (artifactFileOps.length > 0 && activeArtifact) {
                 // Use artifact's projectSlug, or generate one as fallback
@@ -531,7 +527,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, createArtifact, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath, activeArtifact]);
 
   /**
    * Debug handler for errors and user-reported issues
@@ -661,10 +657,7 @@ export const useChat = ({
           return newMessages;
         });
 
-        if (activeArtifactId && artifactFixCount > 0) {
-          updateArtifactFiles(activeArtifactId, fixedFiles);
-          updateChatHistory(activeArtifactId, messagesRef.current);
-        }
+        // Files are synced via FileSystem, no need to update artifact
 
         return { success: true, fixedCount };
       } else {
@@ -697,7 +690,7 @@ export const useChat = ({
       setIsDebugging(false);
       setIsProcessing(false);
     }
-  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, mode, activeArtifactId, updateArtifactFiles, updateChatHistory, setMessages, incrementUsage, getFilesForAI, syncChangesFromAI]);
+  }, [files, setFiles, isDebugging, modelTier, aiColorPalette, aiUIStyle, mode, setMessages, incrementUsage, getFilesForAI, syncChangesFromAI]);
 
   return {
     // Message handling

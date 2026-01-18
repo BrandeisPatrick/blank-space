@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { slugify } from '../utils/slugify';
 
@@ -11,14 +11,13 @@ const generateArtifactId = () => {
   return `artifact_${timestamp}_${random}`;
 };
 
-// Empty artifact template
+// Empty artifact template (lightweight - no files, no chatHistory)
+// Files stored in FileSystem, chat stored in ConversationContext
 const createEmptyArtifact = (name = 'Untitled Project') => ({
   id: generateArtifactId(),
   name,
   projectSlug: slugify(name, true), // URL-friendly slug with random suffix for uniqueness
   icon: 'app', // Default icon category
-  files: {},
-  chatHistory: [], // Each artifact has its own chat history
   createdAt: Date.now(),
   updatedAt: Date.now()
 });
@@ -29,9 +28,6 @@ export const ArtifactProvider = ({ children }) => {
   const [activeArtifactId, setActiveArtifactId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Use ref to persist timeout across renders without causing re-renders
-  const updateFilesTimeoutRef = useRef(null);
 
   // Load artifacts from API (when authenticated) or sessionStorage (when guest)
   useEffect(() => {
@@ -160,13 +156,9 @@ export const ArtifactProvider = ({ children }) => {
   // Get active artifact (can be null if no artifacts)
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || null;
 
-  // Update artifact's chat history
-  const updateChatHistory = (id, chatHistory) => {
-    updateArtifact(id, { chatHistory });
-  };
-
-  // Create new artifact
-  const createArtifact = async (name = 'Untitled Project', files = null, chatHistory = [], icon = 'app') => {
+  // Create new artifact (lightweight - metadata only)
+  // Files are stored in FileSystem, chat in ConversationContext
+  const createArtifact = async (name = 'Untitled Project', icon = 'app') => {
     const projectSlug = slugify(name, true); // Add random suffix for unique project folders
 
     // Guest mode: Create artifact in sessionStorage
@@ -176,8 +168,6 @@ export const ArtifactProvider = ({ children }) => {
         name,
         projectSlug,
         icon,
-        files: files ?? {},
-        chatHistory: chatHistory ?? [],
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
@@ -201,8 +191,6 @@ export const ArtifactProvider = ({ children }) => {
           name,
           projectSlug,
           icon,
-          files: files ?? {},
-          chatHistory: chatHistory ?? [],
         }),
       });
 
@@ -261,38 +249,6 @@ export const ArtifactProvider = ({ children }) => {
       await loadArtifactsFromAPI();
     }
   };
-
-  // Update artifact files (with debouncing to reduce API calls)
-  const updateArtifactFiles = (id, files) => {
-    // Optimistically update UI immediately
-    setArtifacts(prev => {
-      const updated = prev.map(artifact =>
-        artifact.id === id
-          ? { ...artifact, files, updatedAt: new Date().toISOString() }
-          : artifact
-      );
-      return updated;
-    });
-
-    // Debounce API call using ref to persist timeout
-    if (updateFilesTimeoutRef.current) {
-      clearTimeout(updateFilesTimeoutRef.current);
-    }
-
-    updateFilesTimeoutRef.current = setTimeout(() => {
-      updateArtifact(id, { files });
-      updateFilesTimeoutRef.current = null; // Clear ref after execution
-    }, 2000); // Wait 2 seconds before saving
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (updateFilesTimeoutRef.current) {
-        clearTimeout(updateFilesTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Rename artifact (keeps existing projectSlug to maintain file system consistency)
   const renameArtifact = (id, newName) => {
@@ -354,29 +310,13 @@ export const ArtifactProvider = ({ children }) => {
     }
   };
 
-  // Duplicate artifact
-  const duplicateArtifact = (id) => {
+  // Duplicate artifact (creates new metadata, files need to be copied separately)
+  const duplicateArtifact = async (id) => {
     const artifact = artifacts.find(a => a.id === id);
     if (artifact) {
-      const newArtifact = {
-        id: generateArtifactId(),
-        name: `${artifact.name} (Copy)`,
-        icon: artifact.icon || 'app', // Copy icon from original
-        files: { ...artifact.files },
-        chatHistory: [], // Start with empty chat history for duplicates
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      const updatedArtifacts = [...artifacts, newArtifact];
-      setArtifacts(updatedArtifacts);
-      setActiveArtifactId(newArtifact.id);
-
-      // Save to sessionStorage for guests
-      if (!user) {
-        saveArtifactsToLocalStorage(updatedArtifacts, newArtifact.id);
-      }
-
-      return newArtifact.id;
+      const newName = `${artifact.name} (Copy)`;
+      const newArtifact = await createArtifact(newName, artifact.icon || 'app');
+      return newArtifact?.id;
     }
   };
 
@@ -433,8 +373,6 @@ export const ArtifactProvider = ({ children }) => {
       error,
       createArtifact,
       updateArtifact,
-      updateArtifactFiles,
-      updateChatHistory,
       renameArtifact,
       updateArtifactIcon,
       deleteArtifact,
@@ -452,8 +390,6 @@ export const ArtifactProvider = ({ children }) => {
       error,
       createArtifact,
       updateArtifact,
-      updateArtifactFiles,
-      updateChatHistory,
       renameArtifact,
       updateArtifactIcon,
       deleteArtifact,

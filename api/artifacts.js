@@ -70,10 +70,10 @@ async function handleList(db, userId, res) {
 }
 
 /**
- * Create new artifact
+ * Create new artifact (metadata only - files stored separately in FileSystem)
  */
 async function handleCreate(db, userId, body, res) {
-  const { name, files, projectSlug, icon, chatHistory } = body;
+  const { name, projectSlug, icon } = body;
 
   if (!name || typeof name !== 'string') {
     return res.status(400).json({
@@ -82,19 +82,11 @@ async function handleCreate(db, userId, body, res) {
     });
   }
 
-  if (!files || typeof files !== 'object') {
-    return res.status(400).json({
-      error: 'Invalid request',
-      message: 'Files object is required',
-    });
-  }
-
+  // Artifacts are now lightweight metadata - no files or chatHistory
   const artifactData = {
     name,
-    files,
     projectSlug: projectSlug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50),
     icon: icon || 'app',
-    chatHistory: chatHistory || [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -115,7 +107,7 @@ async function handleCreate(db, userId, body, res) {
 }
 
 /**
- * Update existing artifact
+ * Update existing artifact (metadata only)
  */
 async function handleUpdate(db, userId, body, res) {
   const { artifactId, updates } = body;
@@ -149,12 +141,17 @@ async function handleUpdate(db, userId, body, res) {
     });
   }
 
+  // Only allow metadata updates (name, icon) - files/chatHistory no longer stored in artifact
+  const allowedFields = ['name', 'icon'];
   const updateData = {
-    ...updates,
     updatedAt: new Date().toISOString(),
   };
-  delete updateData.id;
-  delete updateData.createdAt;
+
+  for (const field of allowedFields) {
+    if (updates[field] !== undefined) {
+      updateData[field] = updates[field];
+    }
+  }
 
   await artifactRef.update(updateData);
 
@@ -170,7 +167,7 @@ async function handleUpdate(db, userId, body, res) {
 }
 
 /**
- * Delete artifact
+ * Delete artifact with cascade delete of associated code files
  */
 async function handleDelete(db, userId, artifactId, res) {
   if (!artifactId || typeof artifactId !== 'string') {
@@ -195,11 +192,51 @@ async function handleDelete(db, userId, artifactId, res) {
     });
   }
 
+  // Get projectSlug for cascade delete
+  const { projectSlug } = artifactDoc.data();
+
+  // Delete the artifact
   await artifactRef.delete();
+
+  // Cascade delete: Remove all files in code/{projectSlug}/
+  let deletedFilesCount = 0;
+  if (projectSlug) {
+    try {
+      const filesRef = db
+        .collection('users')
+        .doc(userId)
+        .collection('files');
+
+      // Query files that start with code/{projectSlug}/
+      // Note: Firestore doesn't support startsWith directly, so we use range query
+      const prefix = `code/${projectSlug}/`;
+      const endPrefix = `code/${projectSlug}0`; // '0' comes after '/' in ASCII
+
+      const codeFilesSnapshot = await filesRef
+        .where('path', '>=', prefix)
+        .where('path', '<', endPrefix)
+        .get();
+
+      // Delete each file in a batch
+      if (!codeFilesSnapshot.empty) {
+        const batch = db.batch();
+        codeFilesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+          deletedFilesCount++;
+        });
+        await batch.commit();
+        console.log(`[Artifacts] Cascade deleted ${deletedFilesCount} files for project ${projectSlug}`);
+      }
+    } catch (err) {
+      // Log but don't fail - artifact is already deleted
+      console.error(`[Artifacts] Cascade delete failed for project ${projectSlug}:`, err);
+    }
+  }
 
   return res.status(200).json({
     success: true,
     message: 'Artifact deleted successfully',
     artifactId,
+    deletedFilesCount,
   });
 }

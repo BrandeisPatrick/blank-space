@@ -9,6 +9,7 @@ import { getTheme } from "./styles/theme";
 import { ChatPage, ComputerPage, FilesPage } from "./components/pages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useChat } from "./hooks/useChat";
+import { useFileSystem } from "./contexts/FileSystemContext";
 import { TIMING } from "./constants";
 import "./styles/App.css";
 
@@ -19,8 +20,6 @@ function App() {
   const {
     artifacts,
     activeArtifact,
-    updateArtifactFiles,
-    updateChatHistory,
     createArtifact,
     activeArtifactId,
     updateArtifactIcon,
@@ -38,9 +37,11 @@ function App() {
     }
   }, [modelTier, setModelTier]);
 
-  // Files state for code editing
-  const [files, setFiles] = useState(activeArtifact?.files || {});
+  // Files state for code editing (loaded from FileSystem)
+  const [files, setFiles] = useState({});
   const [activeFile, setActiveFile] = useState('App.jsx');
+  const [filesLoading, setFilesLoading] = useState(false);
+  const { getFilesByProjectSlug } = useFileSystem();
 
   // Error deduplication
   const recentErrors = useRef(new Map());
@@ -61,31 +62,48 @@ function App() {
     modelTier,
     activeArtifactId,
     createArtifact,
-    updateArtifactFiles,
-    updateChatHistory,
   });
 
-  // Sync files when switching artifacts
+  // Load files from FileSystem when artifact changes
   useEffect(() => {
-    if (activeArtifact) {
-      const isSwitchingArtifacts = previousArtifactIdRef.current !== null &&
-                                    previousArtifactIdRef.current !== activeArtifactId;
-      const stateIsEmpty = Object.keys(files).length === 0;
-
-      if (isSwitchingArtifacts || stateIsEmpty) {
-        setFiles(activeArtifact.files);
-        setChatMessages(activeArtifact.chatHistory || []);
-
-        const fileNames = Object.keys(activeArtifact.files);
-        if (fileNames.length > 0 && !activeArtifact.files[activeFile]) {
-          setActiveFile(fileNames[0]);
-        }
+    const loadFilesFromFileSystem = async () => {
+      if (!activeArtifact?.projectSlug) {
+        setFiles({});
+        return;
       }
-    } else {
-      setFiles({});
+
+      setFilesLoading(true);
+      try {
+        const loadedFiles = await getFilesByProjectSlug(activeArtifact.projectSlug);
+        setFiles(loadedFiles);
+
+        // Set active file to first available file
+        const fileNames = Object.keys(loadedFiles);
+        if (fileNames.length > 0 && !loadedFiles[activeFile]) {
+          // Prefer App.jsx, then any .jsx file, then first file
+          const preferredFile = fileNames.find(f => f === 'App.jsx')
+            || fileNames.find(f => f.endsWith('.jsx'))
+            || fileNames[0];
+          setActiveFile(preferredFile);
+        }
+      } catch (err) {
+        console.error('[App] Failed to load files from FileSystem:', err);
+        setFiles({});
+      } finally {
+        setFilesLoading(false);
+      }
+    };
+
+    const isSwitchingArtifacts = previousArtifactIdRef.current !== null &&
+                                  previousArtifactIdRef.current !== activeArtifactId;
+
+    // Load files when switching artifacts or when artifact is first selected
+    if (isSwitchingArtifacts || (activeArtifact && Object.keys(files).length === 0)) {
+      loadFilesFromFileSystem();
     }
+
     previousArtifactIdRef.current = activeArtifactId;
-  }, [activeArtifactId]);
+  }, [activeArtifactId, activeArtifact, getFilesByProjectSlug]);
 
   // Handle preview errors with deduplication
   const handlePreviewError = useCallback((error) => {
@@ -109,21 +127,15 @@ function App() {
     }
   }, [setChatMessages]);
 
-  // Handle file changes
+  // Handle file changes - updates local state only, FileSystem sync happens on save
   const handleFileChange = useCallback((filename, newContent) => {
     const updatedFiles = { ...files, [filename]: newContent };
     setFiles(updatedFiles);
-    if (activeArtifactId) {
-      updateArtifactFiles(activeArtifactId, updatedFiles);
-    }
-  }, [files, activeArtifactId, updateArtifactFiles]);
+    // Files are synced to FileSystem via syncChangesFromAI, not stored in artifact
+  }, [files]);
 
   // Handle debug from preview window - starts new chat with auto-send
   const handleDebugNewChat = useCallback(({ appId, appName, errors }) => {
-    // Get the app's files
-    const app = artifacts.find(a => a.id === appId);
-    const appFiles = app?.files || {};
-
     // Build debug message with full error details (including source file and line)
     const errorText = errors.slice(0, 3).map(e => {
       let errorLine = e.message;
@@ -135,13 +147,13 @@ function App() {
     }).join('\n');
     const debugMessage = `@${appName}\n\n${errorText}\n\nFix the bug`;
 
-    // Send with mentionedApp options
+    // Send with mentionedApp options - files are loaded from FileSystem in useChat
     sendMessage(debugMessage, null, {
       mentionedAppId: appId,
-      mentionedAppFiles: appFiles,
+      mentionedAppFiles: files, // Use current files state (from FileSystem)
       isDebugMode: true
     });
-  }, [artifacts, sendMessage]);
+  }, [sendMessage, files]);
 
   // Clean up old storage key
   useEffect(() => {

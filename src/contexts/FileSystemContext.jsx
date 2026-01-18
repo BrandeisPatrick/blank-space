@@ -635,6 +635,57 @@ export const FileSystemProvider = ({ children }) => {
   }, [files, folders]);
 
   // =============================================
+  // Project Files Helper (for PreviewPanel)
+  // =============================================
+
+  // Get all files for a specific project (by projectSlug)
+  // Returns files in { filename: content } format for preview
+  const getFilesByProjectSlug = useCallback(async (projectSlug) => {
+    if (!projectSlug) return {};
+
+    const prefix = `code/${projectSlug}/`;
+    const projectFiles = files.filter(f => (f.path || '').startsWith(prefix));
+
+    if (projectFiles.length === 0) return {};
+
+    const fileMap = {};
+
+    // In development mode, content is stored directly in localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      for (const file of projectFiles) {
+        const localFile = (localData.files || []).find(f => f.path === file.path);
+        if (localFile) {
+          const relativePath = file.path.replace(prefix, '');
+          fileMap[relativePath] = localFile.content || '';
+        }
+      }
+      console.log(`[FileSystem] getFilesByProjectSlug(${projectSlug}):`, Object.keys(fileMap).length, 'files');
+      return fileMap;
+    }
+
+    // Production: fetch content from Firebase
+    for (const file of projectFiles) {
+      try {
+        const fullFile = await makeAuthenticatedRequest(`/api/files?id=${file.id}`);
+        const fileData = fullFile.file;
+
+        if (fileData?.downloadUrl) {
+          const response = await fetch(fileData.downloadUrl);
+          const content = await response.text();
+          const relativePath = file.path.replace(prefix, '');
+          fileMap[relativePath] = content;
+        }
+      } catch (err) {
+        console.warn(`[FileSystem] Failed to fetch ${file.path}:`, err);
+      }
+    }
+
+    console.log(`[FileSystem] getFilesByProjectSlug(${projectSlug}):`, Object.keys(fileMap).length, 'files');
+    return fileMap;
+  }, [files, makeAuthenticatedRequest]);
+
+  // =============================================
   // Legacy AI Integration (for backward compatibility)
   // =============================================
 
@@ -912,6 +963,9 @@ export const FileSystemProvider = ({ children }) => {
     getFilesForAI,
     syncChangesFromAI,
 
+    // Project Files (for PreviewPanel)
+    getFilesByProjectSlug,
+
     // AI Tool Operations (on-demand, lazy-loading)
     getFileListForAI,
     fetchFileByPath,
@@ -953,6 +1007,7 @@ export const FileSystemProvider = ({ children }) => {
     refresh,
     getFilesForAI,
     syncChangesFromAI,
+    getFilesByProjectSlug,
     getFileListForAI,
     fetchFileByPath,
     writeFileByPath,
