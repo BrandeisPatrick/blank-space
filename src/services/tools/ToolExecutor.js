@@ -42,9 +42,10 @@ export class ToolExecutor {
       const result = await tool.execute(params, context);
       console.log(`✅ Tool result: ${toolName}`, result);
 
-      // Return tool result directly with metadata merged in
+      // Return with nested result for Gemini function calling compatibility
       return {
-        ...result,
+        success: true,
+        result,
         tool: toolName
       };
     } catch (error) {
