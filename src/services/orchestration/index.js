@@ -10,6 +10,8 @@ import { processWithCodeAgent } from './agents/code/index.js';
 import { processWithAssistantAgent } from './agents/assistant/index.js';
 import { processWithChatAgent } from './agents/chat/index.js';
 import { classifyIntent } from '../intentClassifier.js';
+import { AGENT_MODELS } from '../config/apiConfig.js';
+import { getModelForTier } from '../config/modelConfig.js';
 
 /**
  * Process a user message through the appropriate agent
@@ -23,11 +25,7 @@ import { classifyIntent } from '../intentClassifier.js';
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
   const { modelTier = 'lite', conversationIntent = null, images = null } = options;
 
-  const sendUpdate = (update) => {
-    if (onUpdate) {
-      onUpdate(update);
-    }
-  };
+  const sendUpdate = (update) => onUpdate?.(update);
 
   let intent;
 
@@ -44,11 +42,9 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
 
   // Route based on intent
   if (intent === 'assistant') {
-    // Assistant Agent → file operations
-    const llmModel = 'gpt-5-mini';
     sendUpdate({
       type: 'intent',
-      content: ['Agent: Assistant', `LLM: ${llmModel}`]
+      content: ['Agent: Assistant', `LLM: ${AGENT_MODELS.assistant}`]
     });
     console.log(`[Orchestration] Routing to Assistant Agent${images ? ' with images' : ''}`);
     const { fileContext = {} } = options;
@@ -56,11 +52,9 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     return { ...result, intent };
 
   } else if (intent === 'chat') {
-    // Chat Agent → conversation with web search
-    const llmModel = 'gpt-5-mini';
     sendUpdate({
       type: 'intent',
-      content: ['Agent: Chat', `LLM: ${llmModel}`]
+      content: ['Agent: Chat', `LLM: ${AGENT_MODELS.chat}`]
     });
     console.log(`[Orchestration] Routing to Chat Agent${images ? ' with images' : ''}`);
     const result = await processWithChatAgent(userMessage, onUpdate, options, images);
@@ -69,7 +63,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
   } else {
     // Code Agent → code generation (create/debug)
     const agentName = intent === 'create' ? 'Code' : 'Debug';
-    const llmModel = modelTier === 'pro' ? 'gemini-3-pro' : 'gemini-3-flash';
+    const llmModel = getModelForTier(modelTier);
     sendUpdate({
       type: 'intent',
       content: [`Agent: ${agentName}`, `LLM: ${llmModel}`]

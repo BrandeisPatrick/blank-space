@@ -5,14 +5,10 @@
 
 import { CHAT_SYSTEM_PROMPT } from '../../../prompts/index.js';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry.js';
+import { RETRY_CONFIGS, API_ENDPOINTS, AGENT_MODELS } from '../../../config/apiConfig.js';
+import { formatFilesForOpenAI, analyzeFileTypes, getFileActionText } from '../../../utils/fileFormatters.js';
 
-// Retry configuration for chat API calls
-const CHAT_RETRY_CONFIG = {
-  timeout: 45000,
-  maxRetries: 3,
-  baseDelay: 1000,
-  context: 'Chat Agent'
-};
+const retryConfig = RETRY_CONFIGS.chat;
 
 /**
  * Process a chat message using OpenAI with web search
@@ -26,88 +22,42 @@ const CHAT_RETRY_CONFIG = {
 export async function processWithChatAgent(userMessage, onUpdate = null, options = {}, files = null) {
   const { conversationHistory = [] } = options;
 
-  const sendUpdate = (update) => {
-    if (onUpdate) {
-      onUpdate(update);
-    }
-  };
+  const sendUpdate = (update) => onUpdate?.(update);
 
-  // Determine what types of files we have
-  const hasFiles = files && files.length > 0;
-  const fileTypes = hasFiles ? [...new Set(files.map(f => f.mimeType.split('/')[0]))] : [];
-  const hasImages = fileTypes.includes('image');
-  const hasDocs = files?.some(f =>
-    f.mimeType === 'application/pdf' ||
-    f.mimeType.includes('document') ||
-    f.mimeType.includes('text')
-  );
-
-  let actionText = 'Searching and thinking...';
-  if (hasImages && hasDocs) actionText = 'Analyzing files...';
-  else if (hasImages) actionText = 'Analyzing image...';
-  else if (hasDocs) actionText = 'Reading document...';
-
+  const fileAnalysis = analyzeFileTypes(files);
   sendUpdate({
     type: 'tool_action',
-    action: actionText
+    action: getFileActionText(fileAnalysis)
   });
 
   // Build messages with conversation history
-  const messages = [
-    { role: 'system', content: CHAT_SYSTEM_PROMPT }
-  ];
+  const messages = [{ role: 'system', content: CHAT_SYSTEM_PROMPT }];
 
-  // Add conversation history
   conversationHistory.forEach(msg => {
     if (msg.role === 'user' || msg.role === 'assistant') {
-      messages.push({
-        role: msg.role,
-        content: msg.content
-      });
+      messages.push({ role: msg.role, content: msg.content });
     }
   });
 
   // Add current user message (with files if provided)
-  if (hasFiles) {
-    const content = [
-      { type: 'text', text: userMessage || 'What is in these files?' }
-    ];
-
-    files.forEach(file => {
-      if (file.mimeType.startsWith('image/')) {
-        content.push({
-          type: 'image_url',
-          image_url: {
-            url: `data:${file.mimeType};base64,${file.base64}`
-          }
-        });
-      } else {
-        content.push({
-          type: 'file',
-          file: {
-            filename: file.filename || file.path || 'document',
-            file_data: `data:${file.mimeType};base64,${file.base64}`
-          }
-        });
-      }
-    });
-
+  if (fileAnalysis.hasFiles) {
+    const content = formatFilesForOpenAI(userMessage || 'What is in these files?', files);
     messages.push({ role: 'user', content });
   } else {
     messages.push({ role: 'user', content: userMessage });
   }
 
   try {
-    const response = await fetchWithRetry('/api/chat', {
+    const response = await fetchWithRetry(API_ENDPOINTS.CHAT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: AGENT_MODELS.chat,
         messages,
         max_tokens: 4096,
         web_search: true
       })
-    }, CHAT_RETRY_CONFIG);
+    }, retryConfig);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -134,10 +84,7 @@ export async function processWithChatAgent(userMessage, onUpdate = null, options
       });
     }
 
-    sendUpdate({
-      type: 'assistant',
-      content: finalContent
-    });
+    sendUpdate({ type: 'assistant', content: finalContent });
 
     return {
       success: true,
@@ -150,10 +97,7 @@ export async function processWithChatAgent(userMessage, onUpdate = null, options
     console.error('[Chat Agent] Error:', error.message);
 
     const fallbackContent = 'Something went wrong. Please try again.';
-    sendUpdate({
-      type: 'assistant',
-      content: fallbackContent
-    });
+    sendUpdate({ type: 'assistant', content: fallbackContent });
 
     return {
       success: false,
