@@ -471,7 +471,7 @@ ${stripped}
               <div style={{
                 width: '48px',
                 height: '48px',
-                border: `3px solid ${theme.colors.bg.border}`,
+                border: `4px solid ${theme.colors.bg.border}`,
                 borderTopColor: theme.colors.text.tertiary,
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
@@ -481,9 +481,10 @@ ${stripped}
             )}
           </div>
           <div style={{
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.semibold,
+            fontSize: theme.typography.fontSize.base,
+            fontWeight: theme.typography.fontWeight.normal,
             color: theme.colors.text.primary,
+            fontFamily: theme.typography.fontFamily.sans,
           }}>
             {loading ? 'Loading preview...' : 'No preview available'}
           </div>
