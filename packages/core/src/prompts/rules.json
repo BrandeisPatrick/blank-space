@@ -1,0 +1,140 @@
+{
+  "browserConstraints": {
+    "title": "BROWSER ENVIRONMENT CONSTRAINTS (CRITICAL)",
+    "forbidden": [
+      "require() statements - causes 'ReferenceError: require is not defined'",
+      "External npm packages (except React/ReactDOM)",
+      "React initialization code (system handles this)",
+      "Class components"
+    ],
+    "required": [
+      "App.jsx MUST exist with: function App() { return (...); }",
+      "All components must be FUNCTIONAL (use hooks)",
+      "ES6 imports ONLY: import X from 'react'",
+      "Use browser APIs: fetch, localStorage, crypto.randomUUID(), Date",
+      "Components in components/ folder (except App.jsx)",
+      "Hooks in hooks/ folder"
+    ],
+    "whiteScreenCauses": [
+      "Missing App.jsx or App component",
+      "Class components",
+      "Circular dependencies"
+    ]
+  },
+
+  "noInitializationCode": {
+    "title": "NO INITIALIZATION CODE",
+    "description": "DO NOT generate React initialization code - the system handles this automatically.",
+    "forbidden": [
+      "ReactDOM.createRoot()",
+      "root.render()",
+      "document.getElementById('root')",
+      "import ReactDOM from 'react-dom/client'"
+    ],
+    "correct": "Just export components: function App() { return <div>...</div>; }"
+  },
+
+  "packageManagement": {
+    "title": "PACKAGE MANAGEMENT",
+    "supported": [
+      "react, react-dom (import normally)",
+      "framer-motion (global - NO import needed)",
+      "Browser APIs: fetch(), localStorage, crypto.randomUUID(), Date"
+    ],
+    "banned": {
+      "axios": "use fetch()",
+      "lodash": "use native JS",
+      "uuid": "use crypto.randomUUID()",
+      "moment": "use native Date",
+      "prop-types": "not needed"
+    }
+  },
+
+  "framerMotion": {
+    "title": "FRAMER MOTION USAGE",
+    "description": "motion and AnimatePresence are ALREADY DECLARED as globals. Use them directly in JSX.",
+    "correct": "<motion.div animate={{opacity:1}} />",
+    "forbidden": [
+      "import { motion } from 'framer-motion'",
+      "const { motion } = window",
+      "const motion = anything"
+    ]
+  },
+
+  "sandboxLimitations": {
+    "title": "SANDBOX ENVIRONMENT LIMITATIONS",
+    "constraints": [
+      {
+        "name": "No External Network Access",
+        "problem": "fetch() to external APIs will fail (CORS blocked)",
+        "solution": "Use mock data, static JSON, or placeholder content"
+      },
+      {
+        "name": "No External Iframes or Embeds",
+        "problem": "<iframe src='https://...'> will cause CORS errors",
+        "solution": "Simulate page content with React components"
+      },
+      {
+        "name": "No Real Navigation",
+        "problem": "window.location changes don't work as expected",
+        "solution": "Use React state for navigation between views"
+      },
+      {
+        "name": "Self-Contained Apps Only",
+        "problem": "Everything must work offline with no external dependencies",
+        "solution": "Generate realistic fake data inline, use localStorage for persistence"
+      }
+    ]
+  },
+
+  "toolUsage": {
+    "title": "TOOL USAGE RULES",
+    "rules": [
+      "ONLY use tools to create and modify code. Do NOT describe code in text.",
+      "When user asks to create code, IMMEDIATELY start calling write() tools.",
+      "Do NOT plan, explain, or describe - just execute the tool calls.",
+      "NEVER output code in markdown code blocks - ALWAYS use the write tool."
+    ]
+  },
+
+  "styling": {
+    "title": "STYLING REQUIREMENTS",
+    "rules": [
+      "Use Tailwind CSS for ALL styling (NO inline styles, NO plain CSS)",
+      "Tailwind CDN is pre-loaded and ready to use"
+    ]
+  },
+
+  "responsiveDesign": {
+    "title": "RESPONSIVE DESIGN (REQUIRED)",
+    "approach": "MOBILE-FIRST: Start with mobile styles, add md:/lg: for larger screens",
+    "patterns": {
+      "layout": "flex flex-col md:flex-row",
+      "grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+      "spacing": "p-4 md:p-6 lg:p-8",
+      "text": "text-base md:text-lg",
+      "hidden": "hidden md:block"
+    },
+    "touchFriendly": [
+      "Buttons: min-height 44px, adequate tap targets",
+      "Links: sufficient spacing between tappable elements",
+      "Forms: large input fields (py-3 px-4), visible labels"
+    ]
+  },
+
+  "validation": {
+    "title": "VALIDATION & ERROR CORRECTION",
+    "workflow": [
+      "When you write code, it will be automatically validated",
+      "If validation fails, you receive an error message",
+      "Fix the issue by rewriting the file with corrected code",
+      "Call write() again with the fixed version"
+    ],
+    "commonErrors": {
+      "require is not defined": "Change require() to import",
+      "Cannot resolve module 'uuid'": "Use crypto.randomUUID() instead",
+      "module.exports not allowed": "Use export default / export const",
+      "class components not allowed": "Rewrite as functional component with hooks"
+    }
+  }
+}
