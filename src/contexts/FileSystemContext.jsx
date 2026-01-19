@@ -873,12 +873,13 @@ export const FileSystemProvider = ({ children }) => {
   // Legacy AI Integration (for backward compatibility)
   // =============================================
 
-  // Get all loaded files for AI integration
+  // Get text files for AI integration (code editing context)
+  // NOTE: Binary files are NOT loaded here. Users must explicitly attach files to messages.
+  // This avoids slow eager loading and API errors from unsupported MIME types.
   const getFilesForAI = useCallback(async () => {
-    if (!user) return { textFiles: {}, binaryFiles: [], folders: [] };
+    if (!user) return { textFiles: {}, folders: [] };
 
     const textFiles = {};
-    const binaryFiles = [];
 
     // Get all folders (default + user-created)
     const allFolders = [...DEFAULT_FOLDERS, ...folders].map(f => f.path || f.name);
@@ -894,55 +895,34 @@ export const FileSystemProvider = ({ children }) => {
           // Local files have content stored directly
           textFiles[file.path] = file.content || '';
         }
-        // Note: Binary files in local dev are not fully supported
       }
       // Add folders from localStorage
       const localFolders = (localData.folders || []).map(f => f.path || f.name);
       const allLocalFolders = [...new Set([...uniqueFolders, ...localFolders])];
       console.log('[FileSystem] getFilesForAI from localStorage:', Object.keys(textFiles).length, 'text files,', allLocalFolders.length, 'folders');
-      return { textFiles, binaryFiles, folders: allLocalFolders };
+      return { textFiles, folders: allLocalFolders };
     }
 
-    // Production: fetch from Firebase
+    // Production: fetch text files only from Firebase
     for (const file of files) {
+      // Skip non-text files entirely (no fetching)
+      if (!textMimeTypes.includes(file.mimeType)) continue;
+
       try {
         const fullFile = await makeAuthenticatedRequest(`/api/files?id=${file.id}`);
         const fileData = fullFile.file;
 
-        if (!fileData) continue;
+        if (!fileData?.downloadUrl) continue;
 
-        if (textMimeTypes.includes(file.mimeType)) {
-          if (fileData.downloadUrl) {
-            const response = await fetch(fileData.downloadUrl);
-            const text = await response.text();
-            textFiles[file.path] = text;
-          }
-        } else if (fileData.downloadUrl) {
-          try {
-            const response = await fetch(fileData.downloadUrl);
-            const blob = await response.blob();
-            const base64Content = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
-
-            binaryFiles.push({
-              path: file.path,
-              base64: base64Content,
-              mimeType: file.mimeType,
-              filename: file.filename,
-            });
-          } catch (err) {
-            console.warn(`Could not fetch binary content for ${file.path}:`, err);
-          }
-        }
+        const response = await fetch(fileData.downloadUrl);
+        const text = await response.text();
+        textFiles[file.path] = text;
       } catch (err) {
         console.warn(`Could not fetch content for ${file.path}:`, err);
       }
     }
 
-    return { textFiles, binaryFiles, folders: uniqueFolders };
+    return { textFiles, folders: uniqueFolders };
   }, [user, files, folders, makeAuthenticatedRequest]);
 
   // Sync file changes from AI back to remote storage (or localStorage in dev)

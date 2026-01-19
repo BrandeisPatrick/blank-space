@@ -265,18 +265,15 @@ export const useChat = ({
         .map(msg => ({ role: msg.type, content: msg.content }));
 
       // Get user files from FileSystem and merge with artifact files
+      // NOTE: We only load text files here. Binary files (PDFs, images) are NOT eagerly loaded.
+      // Users must explicitly attach files to their message for them to be sent to AI.
       let allFiles = { ...filesToProcess };
-      let userBinaryFiles = []; // PDFs, images, DOCX - sent directly to AI
       let userFolders = []; // Folder list for AI context
       try {
-        const { textFiles, binaryFiles, folders } = await getFilesForAI();
+        const { textFiles, folders } = await getFilesForAI();
         if (Object.keys(textFiles).length > 0) {
           console.log(`[useChat] Loaded ${Object.keys(textFiles).length} text file(s) for AI`);
           allFiles = { ...textFiles, ...filesToProcess }; // Artifact files take precedence
-        }
-        if (binaryFiles.length > 0) {
-          console.log(`[useChat] Loaded ${binaryFiles.length} binary file(s) for AI (PDFs, images, etc.)`);
-          userBinaryFiles = binaryFiles;
         }
         if (folders && folders.length > 0) {
           console.log(`[useChat] Loaded ${folders.length} folder(s) for AI`);
@@ -286,11 +283,8 @@ export const useChat = ({
         console.warn('[useChat] Failed to load user files:', err);
       }
 
-      // Combine user-uploaded images with user binary files for AI
-      const allFilesForAI = [
-        ...(imageBase64ForLLM || []),
-        ...userBinaryFiles,
-      ];
+      // Only send explicitly attached files to AI (not all workspace files)
+      const allFilesForAI = imageBase64ForLLM || [];
 
       // Build file context for assistant agent (lazy-loading, scoped to assistant/)
       const { files: fileMetadata, folders: folderMetadata } = getFileListForAI();

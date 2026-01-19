@@ -3,15 +3,38 @@
  * Convert uploaded files to API-specific formats
  */
 
+// MIME types supported by Gemini API for inlineData
+const GEMINI_SUPPORTED_MIME_TYPES = [
+  // Images
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  // Documents
+  'application/pdf',
+];
+
 /**
  * Format files for Gemini API (inlineData format)
+ * Filters out unsupported MIME types (like application/octet-stream)
  * @param {Array} files - Array of {base64, mimeType} objects
- * @returns {Array|null} Formatted file parts or null if no files
+ * @returns {Array|null} Formatted file parts or null if no supported files
  */
 export function formatFilesForGemini(files) {
   if (!files || files.length === 0) return null;
 
-  return files.map(file => ({
+  // Filter to only supported MIME types
+  const supportedFiles = files.filter(file => {
+    const isSupported = GEMINI_SUPPORTED_MIME_TYPES.includes(file.mimeType);
+    if (!isSupported) {
+      console.log(`[formatFilesForGemini] Skipping unsupported MIME type: ${file.mimeType} (${file.path || file.filename || 'unknown'})`);
+    }
+    return isSupported;
+  });
+
+  if (supportedFiles.length === 0) return null;
+
+  return supportedFiles.map(file => ({
     inlineData: {
       mimeType: file.mimeType,
       data: file.base64
