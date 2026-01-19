@@ -96,6 +96,10 @@ Blank Space is designed as a **SaaS-ready monorepo** with clean separation betwe
 │   ├── contexts/                # React contexts (auth, files, etc.)
 │   ├── hooks/                   # React hooks
 │   └── services/                # Business logic, tools, agents
+│       ├── orchestration/       # Multi-agent routing
+│       ├── tools/               # LLM function calling tools
+│       ├── prompts/             # Prompt templates
+│       └── utils/               # Shared utilities
 │
 ├── api/                         # Vercel API routes (serverless functions)
 │   ├── chat.js                  # OpenAI chat endpoint
@@ -104,15 +108,7 @@ Blank Space is designed as a **SaaS-ready monorepo** with clean separation betwe
 │   ├── conversations.js         # Conversation history
 │   └── user/                    # User profile, usage, quotas
 │
-├── packages/
-│   └── core/                    # @blankspace/core - Portable business logic
-│       └── src/
-│           ├── orchestration/   # Multi-agent routing
-│           ├── tools/           # LLM function calling tools
-│           ├── prompts/         # Prompt templates
-│           └── utils/           # Shared utilities
-│
-└── pnpm-workspace.yaml          # Monorepo workspace config
+└── public/                      # Static assets
 ```
 
 ### Agent System
@@ -161,19 +157,6 @@ Intent Classification (GPT-4o-mini)
 ```bash
 npm install
 vercel
-```
-
-### Any Node.js Host
-
-The `@blankspace/core` package is portable JavaScript that runs anywhere:
-
-```javascript
-import { processMessage } from '@blankspace/core';
-
-const result = await processMessage(userMessage, currentFiles, onUpdate, {
-  modelTier: 'lite',
-  conversationIntent: null,
-});
 ```
 
 ---
