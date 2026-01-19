@@ -469,9 +469,9 @@ ${stripped}
           }}>
             {loading ? (
               <div style={{
-                width: '48px',
-                height: '48px',
-                border: `4px solid ${theme.colors.bg.border}`,
+                width: '32px',
+                height: '32px',
+                border: `5px solid ${theme.colors.bg.border}`,
                 borderTopColor: theme.colors.text.tertiary,
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
