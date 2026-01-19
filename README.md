@@ -91,33 +91,27 @@ Blank Space is designed as a **SaaS-ready monorepo** with clean separation betwe
 
 ```
 /
+├── src/                         # React frontend (Vite)
+│   ├── components/              # React UI components
+│   ├── contexts/                # React contexts (auth, files, etc.)
+│   ├── hooks/                   # React hooks
+│   └── services/                # Business logic, tools, agents
+│
+├── api/                         # Vercel API routes (serverless functions)
+│   ├── chat.js                  # OpenAI chat endpoint
+│   ├── gemini.js                # Gemini code generation endpoint
+│   ├── files.js                 # File operations (Firebase Storage)
+│   ├── conversations.js         # Conversation history
+│   └── user/                    # User profile, usage, quotas
+│
 ├── packages/
 │   └── core/                    # @blankspace/core - Portable business logic
 │       └── src/
 │           ├── orchestration/   # Multi-agent routing
-│           │   └── agents/
-│           │       ├── code/    # Gemini-powered code generation
-│           │       ├── chat/    # OpenAI chat with web search
-│           │       └── assistant/  # File operations agent
 │           ├── tools/           # LLM function calling tools
 │           ├── prompts/         # Prompt templates
-│           ├── config/          # API & model configuration
 │           └── utils/           # Shared utilities
 │
-├── apps/
-│   ├── api/                     # @blankspace/api - Backend API
-│   │   └── src/
-│   │       ├── middleware/      # Auth, quota, rate limiting
-│   │       └── *.js             # API route handlers
-│   │
-│   └── web/                     # @blankspace/web - React frontend
-│       └── src/
-│           ├── components/      # React UI components
-│           ├── contexts/        # React contexts (auth, files, etc.)
-│           └── hooks/           # React hooks
-│
-├── api/                         # Legacy Vercel API (for backwards compat)
-├── src/                         # Legacy frontend (migrating to apps/web)
 └── pnpm-workspace.yaml          # Monorepo workspace config
 ```
 
