@@ -152,15 +152,4 @@ export const Z_INDEX = {
   ICON_PICKER: 200
 };
 
-/**
- * Floating window dimensions and positioning
- */
-export const FLOATING_WINDOWS = {
-  AI_RESPONSE: {
-    PANEL_TOP: '100px',
-    PANEL_RIGHT: '20px',
-    PANEL_WIDTH: '520px',
-    PANEL_MAX_HEIGHT: '60vh'
-  }
-};
 
