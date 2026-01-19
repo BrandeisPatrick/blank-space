@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  🎄 <strong>AI coding agent in your browser</strong> 🎄
+  <strong>AI coding agent in your browser</strong>
 </p>
 
 <p align="center">
@@ -24,91 +24,82 @@
 
 ---
 
-## ✨ What is Blank Space?
+## What is Blank Space?
 
 Open-source AI app builder. Fast, simple, self-hostable (optimized for mobile).
 
 ---
 
-## 🏗️ Architecture
-
-Blank Space is designed as a **SaaS-ready monorepo** with clean separation between backend and frontend, enabling deployment on any platform.
-
-### High-Level Design
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           CLIENT APPS                                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                     │
-│  │  Web (React)│  │   Mobile    │  │    CLI      │   Any frontend can  │
-│  │  apps/web   │  │  (future)   │  │  (future)   │   use the same API  │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                     │
-└─────────┼────────────────┼────────────────┼─────────────────────────────┘
-          │                │                │
-          │  HTTP/REST API (with Firebase Auth token)
-          ▼                ▼                ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          BACKEND API                                    │
-│                         apps/api                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Vercel Serverless  /  Express  /  Any Node.js Host             │   │
-│  │                                                                  │   │
-│  │  /api/chat       → OpenAI proxy (GPT-5, web search)             │   │
-│  │  /api/gemini     → Google Gemini proxy (code generation)        │   │
-│  │  /api/files      → File CRUD (Firebase Storage)                 │   │
-│  │  /api/user/*     → User profile, usage, quotas                  │   │
-│  │  /api/conversations → Conversation history                       │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-          │
-          │  Uses
-          ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       CORE BUSINESS LOGIC                               │
-│                       packages/core                                     │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Portable JavaScript - runs on any runtime (Node, Lambda, etc.) │   │
-│  │                                                                  │   │
-│  │  orchestration/    Multi-agent routing (Code, Chat, Assistant)  │   │
-│  │  tools/            File ops, validation, search                 │   │
-│  │  prompts/          LLM prompt templates                         │   │
-│  │  utils/            HTTP clients, retry logic, formatters        │   │
-│  │  config/           API config, model selection                  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-          │
-          │  External Services
-          ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                     │
-│  │   OpenAI    │  │   Google    │  │  Firebase   │                     │
-│  │   GPT-5     │  │   Gemini    │  │ Auth + DB   │                     │
-│  └─────────────┘  └─────────────┘  └─────────────┘                     │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND                                │
+│                         src/                                    │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  React + Vite                                             │ │
+│  │                                                           │ │
+│  │  components/     UI components (editor, preview, chat)    │ │
+│  │  contexts/       React contexts (auth, files, theme)      │ │
+│  │  hooks/          Custom React hooks                       │ │
+│  │  services/       Business logic & AI orchestration        │ │
+│  │    ├── orchestration/   Multi-agent routing               │ │
+│  │    ├── tools/           LLM function calling tools        │ │
+│  │    ├── prompts/         Prompt templates                  │ │
+│  │    └── utils/           Shared utilities                  │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │  HTTP/REST API
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      BACKEND API                                │
+│                      api/                                       │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  Vercel Serverless Functions                              │ │
+│  │                                                           │ │
+│  │  chat.js          OpenAI proxy (GPT-5, web search)        │ │
+│  │  gemini.js        Google Gemini proxy (code generation)   │ │
+│  │  files.js         File CRUD (Firebase Storage)            │ │
+│  │  conversations.js Conversation history                    │ │
+│  │  user/            User profile, usage, quotas             │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │  External Services
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
+│    │   OpenAI    │  │   Google    │  │  Firebase   │           │
+│    │   GPT-5     │  │   Gemini    │  │ Auth + DB   │           │
+│    └─────────────┘  └─────────────┘  └─────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Directory Structure
 
 ```
 /
-├── src/                         # React frontend (Vite)
-│   ├── components/              # React UI components
-│   ├── contexts/                # React contexts (auth, files, etc.)
-│   ├── hooks/                   # React hooks
-│   └── services/                # Business logic, tools, agents
-│       ├── orchestration/       # Multi-agent routing
-│       ├── tools/               # LLM function calling tools
-│       ├── prompts/             # Prompt templates
-│       └── utils/               # Shared utilities
+├── src/                    # React frontend (Vite)
+│   ├── components/         # UI components
+│   ├── contexts/           # React contexts (auth, files, theme)
+│   ├── hooks/              # Custom React hooks
+│   ├── services/           # Business logic & AI orchestration
+│   │   ├── orchestration/  # Multi-agent routing
+│   │   ├── tools/          # LLM function calling tools
+│   │   ├── prompts/        # Prompt templates
+│   │   └── utils/          # Shared utilities
+│   ├── styles/             # Global styles
+│   └── templates/          # Project templates
 │
-├── api/                         # Vercel API routes (serverless functions)
-│   ├── chat.js                  # OpenAI chat endpoint
-│   ├── gemini.js                # Gemini code generation endpoint
-│   ├── files.js                 # File operations (Firebase Storage)
-│   ├── conversations.js         # Conversation history
-│   └── user/                    # User profile, usage, quotas
+├── api/                    # Vercel serverless functions
+│   ├── chat.js             # OpenAI chat endpoint
+│   ├── gemini.js           # Gemini code generation
+│   ├── files.js            # File operations
+│   ├── conversations.js    # Conversation history
+│   └── user/               # User endpoints
 │
-└── public/                      # Static assets
+└── public/                 # Static assets
 ```
 
 ### Agent System
@@ -150,7 +141,7 @@ Intent Classification (GPT-4o-mini)
 
 ---
 
-## 🚀 Deployment Options
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -161,7 +152,7 @@ vercel
 
 ---
 
-## 🔧 Quick Start (Development)
+## Quick Start (Development)
 
 ```bash
 # 1) Clone
@@ -197,15 +188,16 @@ PRODUCTION_MODE=true       # Use premium models everywhere
 
 ---
 
-## 📋 Roadmap
+## Roadmap
 
-- [x] Monorepo architecture for multi-platform deployment
-- [ ] React Native mobile app
+- [x] Web app (current focus)
+- [ ] iOS app
+- [ ] Android app
 - **Your idea here?** — [open an issue](https://github.com/BrandeisPatrick/blank-space/issues)!
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repo
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -215,6 +207,6 @@ PRODUCTION_MODE=true       # Use premium models everywhere
 
 ---
 
-## 📄 License
+## License
 
 Apache 2.0 - see [LICENSE](./LICENSE) for details.
