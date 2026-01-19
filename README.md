@@ -51,7 +51,7 @@ Blank Space is designed as a **SaaS-ready monorepo** with clean separation betwe
 │                          BACKEND API                                    │
 │                         apps/api                                        │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  AWS Lambda + API Gateway  /  Vercel Serverless  /  Express     │   │
+│  │  Vercel Serverless  /  Express  /  Any Node.js Host             │   │
 │  │                                                                  │   │
 │  │  /api/chat       → OpenAI proxy (GPT-5, web search)             │   │
 │  │  /api/gemini     → Google Gemini proxy (code generation)        │   │
@@ -106,11 +106,9 @@ Blank Space is designed as a **SaaS-ready monorepo** with clean separation betwe
 │
 ├── apps/
 │   ├── api/                     # @blankspace/api - Backend API
-│   │   ├── src/
-│   │   │   ├── handlers/        # AWS Lambda handlers
-│   │   │   ├── middleware/      # Auth, quota, rate limiting
-│   │   │   └── *.js             # API route handlers
-│   │   └── serverless.yml       # AWS deployment config
+│   │   └── src/
+│   │       ├── middleware/      # Auth, quota, rate limiting
+│   │       └── *.js             # API route handlers
 │   │
 │   └── web/                     # @blankspace/web - React frontend
 │       └── src/
@@ -164,29 +162,14 @@ Intent Classification (GPT-4o-mini)
 
 ## 🚀 Deployment Options
 
-### Option 1: Vercel (Current)
+### Vercel (Recommended)
 
 ```bash
 npm install
 vercel
 ```
 
-### Option 2: AWS Lambda + API Gateway
-
-```bash
-cd apps/api
-npm install
-npx serverless deploy --stage prod
-```
-
-### Option 3: Docker (Self-hosted)
-
-```bash
-docker build -t blankspace-api ./apps/api
-docker run -p 3001:3001 blankspace-api
-```
-
-### Option 4: Any Node.js Host
+### Any Node.js Host
 
 The `@blankspace/core` package is portable JavaScript that runs anywhere:
 
@@ -240,10 +223,7 @@ PRODUCTION_MODE=true       # Use premium models everywhere
 ## 📋 Roadmap
 
 - [x] Monorepo architecture for multi-platform deployment
-- [x] AWS Lambda support
-- [ ] Docker deployment guide
 - [ ] React Native mobile app
-- [ ] CLI tool
 - **Your idea here?** — [open an issue](https://github.com/BrandeisPatrick/blank-space/issues)!
 
 ---
