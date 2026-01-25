@@ -754,7 +754,7 @@ export const FileSystemProvider = ({ children }) => {
     });
 
     setProjects(loadedProjects);
-    console.log(`[FileSystem] Loaded ${loadedProjects.length} projects`);
+    console.log(`[FileSystem] Found ${loadedProjects.length} existing app(s)`);
     return loadedProjects;
   }, [files, makeAuthenticatedRequest]);
 
