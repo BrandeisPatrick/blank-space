@@ -1,6 +1,6 @@
 /**
  * File Explorer Component
- * macOS Finder-style column view file browser
+ * macOS Finder-style tree view file browser
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -80,9 +80,20 @@ const FileIcon = ({ mimeType, size = 16 }) => {
   );
 };
 
-// Chevron icon
-const ChevronRight = ({ size = 12 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+// Chevron icon for expand/collapse
+const ChevronIcon = ({ expanded, size = 12 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    style={{
+      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      transition: 'transform 0.15s ease',
+    }}
+  >
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
@@ -119,42 +130,79 @@ const BackIcon = ({ size = 20 }) => (
   </svg>
 );
 
-// Column Item Component
-const ColumnItem = ({ item, isSelected, onClick, colors }) => {
+// Tree Item Component - Single row in the tree
+const TreeItem = ({
+  item,
+  depth,
+  isExpanded,
+  isSelected,
+  onToggleExpand,
+  onSelect,
+  colors,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
+  const itemPath = item.isFolder ? `/${item.path}` : item.path;
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => onSelect(item)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        height: '40px',
-        padding: '0 12px',
-        borderRadius: '8px',
+        height: '32px',
+        paddingLeft: `${12 + depth * 16}px`,
+        paddingRight: '12px',
         cursor: 'pointer',
         background: isSelected ? colors.selected : isHovered ? colors.hover : 'transparent',
-        color: isSelected ? '#fff' : colors.text,
-        transition: 'background 0.15s ease',
+        color: colors.text,
+        transition: 'background 0.1s ease',
+        userSelect: 'none',
       }}
     >
-      <span style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 20,
-        height: 20,
-        flexShrink: 0,
-      }}>
+      {/* Chevron for folders */}
+      <span
+        onClick={(e) => {
+          if (item.isFolder) {
+            e.stopPropagation();
+            onToggleExpand(itemPath);
+          }
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '16px',
+          height: '16px',
+          marginRight: '4px',
+          opacity: item.isFolder ? 1 : 0,
+          cursor: item.isFolder ? 'pointer' : 'default',
+        }}
+      >
+        {item.isFolder && <ChevronIcon expanded={isExpanded} size={12} />}
+      </span>
+
+      {/* Icon */}
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '18px',
+          height: '18px',
+          marginRight: '8px',
+          flexShrink: 0,
+        }}
+      >
         {item.isFolder ? (
-          <FolderIcon size={20} />
+          <FolderIcon size={16} />
         ) : (
-          <FileIcon mimeType={item.mimeType} size={20} />
+          <FileIcon mimeType={item.mimeType} size={16} />
         )}
       </span>
+
+      {/* Name */}
       <span
         style={{
           flex: 1,
@@ -167,255 +215,219 @@ const ColumnItem = ({ item, isSelected, onClick, colors }) => {
       >
         {item.name || item.filename}
       </span>
-      {item.isFolder && (
-        <ChevronRight size={12} />
-      )}
     </div>
   );
 };
 
-// Single Column Component
-const Column = ({ path, items, selectedPath, onSelect, colors, onCreateFolder, onUpload, onDeleteFolder, isMobile = false }) => {
-  const [showNewFolder, setShowNewFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (showNewFolder && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showNewFolder]);
-
-  const handleCreateFolder = async () => {
-    if (newFolderName.trim()) {
-      const folderPath = path === '/' ? newFolderName.trim() : `${path.replace(/^\//, '')}/${newFolderName.trim()}`;
-      await onCreateFolder(folderPath);
-      setNewFolderName('');
-      setShowNewFolder(false);
-    }
-  };
+// Tree View Component - Recursive list rendering
+const TreeView = ({
+  path,
+  depth,
+  expandedFolders,
+  selectedPath,
+  onToggleExpand,
+  onSelect,
+  getFolderContents,
+  colors,
+}) => {
+  const items = getFolderContents(path);
 
   return (
-    <div
-      style={{
-        minWidth: isMobile ? '100%' : '200px',
-        maxWidth: isMobile ? '100%' : '250px',
-        width: isMobile ? '100%' : undefined,
-        height: '100%',
-        borderRight: isMobile ? 'none' : `1px solid ${colors.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        background: colors.columnBg,
-      }}
-    >
-      {/* Column header with actions */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 12px',
-          paddingTop: '40px',
-          gap: '4px',
-        }}
-      >
-        <span
-          style={{
-            fontSize: colors.fontSize.sm,
-            fontWeight: colors.fontWeight.medium,
-            color: colors.textSecondary,
-            fontFamily: colors.fontFamily,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {path === '/' ? 'Root' : path.split('/').pop()}
-        </span>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setShowNewFolder(true)}
-            title="New Folder"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '28px',
-              height: '28px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              color: colors.textSecondary,
-              opacity: 0.7,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = colors.hover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.background = 'transparent'; }}
-          >
-            <PlusIcon size={20} />
-          </button>
-          <button
-            onClick={() => onUpload(path)}
-            title="Upload File"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '28px',
-              height: '28px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              color: colors.textSecondary,
-              opacity: 0.7,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = colors.hover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.background = 'transparent'; }}
-          >
-            <UploadIcon size={20} />
-          </button>
-          {selectedPath && !['assistant', 'code', '/assistant', '/code'].includes(selectedPath) && (
-            <button
-              onClick={() => {
-                const folderName = selectedPath.split('/').pop();
-                if (window.confirm(`Delete folder "${folderName}" and all its contents?`)) {
-                  onDeleteFolder(selectedPath);
-                }
-              }}
-              title="Delete Folder"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: colors.textSecondary,
-                opacity: 0.7,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = colors.hover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.background = 'transparent'; }}
-            >
-              <TrashIcon size={20} />
-            </button>
-          )}
-        </div>
-      </div>
+    <>
+      {items.map((item) => {
+        const itemPath = item.isFolder ? `/${item.path}` : item.path;
+        const isExpanded = expandedFolders.has(itemPath);
+        const isSelected = selectedPath === itemPath;
 
-      {/* Items list */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '0 4px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-        }}
-      >
-        {/* New folder input */}
-        {showNewFolder && (
-          <div style={{ padding: '4px 6px', marginBottom: '4px' }}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder();
-                if (e.key === 'Escape') { setShowNewFolder(false); setNewFolderName(''); }
-              }}
-              onBlur={() => { if (!newFolderName.trim()) setShowNewFolder(false); }}
-              placeholder="Folder name..."
-              style={{
-                width: '100%',
-                padding: '4px 8px',
-                fontSize: colors.fontSize.sm,
-                fontFamily: colors.fontFamily,
-                background: colors.inputBg,
-                border: `1px solid ${colors.selected}`,
-                borderRadius: '4px',
-                color: colors.text,
-                outline: 'none',
-              }}
-            />
-          </div>
-        )}
-
-        {items.length === 0 && !showNewFolder ? (
-          <div
-            style={{
-              padding: '20px 10px',
-              textAlign: 'center',
-              color: colors.textSecondary,
-              fontSize: colors.fontSize.sm,
-              fontFamily: colors.fontFamily,
-            }}
-          >
-            Empty folder
-          </div>
-        ) : (
-          items.map((item) => (
-            <ColumnItem
-              key={item.id || item.path}
+        return (
+          <div key={item.id || item.path}>
+            <TreeItem
               item={item}
-              isSelected={selectedPath === (item.isFolder ? `/${item.path}` : item.path)}
-              onClick={() => onSelect(item)}
+              depth={depth}
+              isExpanded={isExpanded}
+              isSelected={isSelected}
+              onToggleExpand={onToggleExpand}
+              onSelect={onSelect}
               colors={colors}
             />
-          ))
-        )}
-      </div>
-    </div>
+            {/* Recursively render children if folder is expanded */}
+            {item.isFolder && isExpanded && (
+              <TreeView
+                path={itemPath}
+                depth={depth + 1}
+                expandedFolders={expandedFolders}
+                selectedPath={selectedPath}
+                onToggleExpand={onToggleExpand}
+                onSelect={onSelect}
+                getFolderContents={getFolderContents}
+                colors={colors}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 };
 
-// Breadcrumb Component
-const Breadcrumb = ({ path, onNavigate, colors }) => {
-  const parts = path === '/' ? [] : path.replace(/^\//, '').split('/');
+// Toolbar Component
+const Toolbar = ({
+  selectedPath,
+  onNewFolder,
+  onUpload,
+  onDelete,
+  colors,
+  showNewFolderInput,
+  newFolderName,
+  setNewFolderName,
+  onCreateFolder,
+  onCancelNewFolder,
+  inputRef,
+}) => {
+  // Determine if delete should be enabled
+  // Can't delete root-level system folders (assistant, code)
+  const canDelete = selectedPath && !['/', '/assistant', '/code'].includes(selectedPath) &&
+    !selectedPath.match(/^\/?(assistant|code)$/);
+
+  // Check if selected item is a folder (for determining where to create new folder)
+  const isFolder = selectedPath?.startsWith('/') || selectedPath === null;
 
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: '8px',
         padding: '12px 16px',
-        background: colors.breadcrumbBg,
-        fontSize: colors.fontSize.sm,
-        fontFamily: colors.fontFamily,
-        overflow: 'hidden',
+        borderBottom: `1px solid ${colors.border}`,
       }}
     >
-      <span
-        onClick={() => onNavigate('/')}
+      {/* New Folder Button */}
+      <button
+        onClick={onNewFolder}
+        title="New Folder"
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          background: 'transparent',
+          border: `1px solid ${colors.border}`,
+          borderRadius: '6px',
           cursor: 'pointer',
-          color: parts.length > 0 ? colors.link : colors.text,
-          fontWeight: parts.length === 0 ? colors.fontWeight.semibold : colors.fontWeight.normal,
+          color: colors.text,
+          fontSize: colors.fontSize.sm,
+          fontFamily: colors.fontFamily,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = colors.hover;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
         }}
       >
-        Files
-      </span>
-      {parts.map((part, i) => (
-        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ color: colors.textSecondary }}>/</span>
-          <span
-            onClick={() => onNavigate('/' + parts.slice(0, i + 1).join('/'))}
+        <PlusIcon size={14} />
+        <span>New Folder</span>
+      </button>
+
+      {/* Upload Button */}
+      <button
+        onClick={onUpload}
+        title="Upload File"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          background: 'transparent',
+          border: `1px solid ${colors.border}`,
+          borderRadius: '6px',
+          cursor: 'pointer',
+          color: colors.text,
+          fontSize: colors.fontSize.sm,
+          fontFamily: colors.fontFamily,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = colors.hover;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <UploadIcon size={14} />
+        <span>Upload</span>
+      </button>
+
+      {/* Delete Button (only shown when deletable item selected) */}
+      {canDelete && (
+        <button
+          onClick={onDelete}
+          title="Delete"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            background: 'transparent',
+            border: `1px solid ${colors.border}`,
+            borderRadius: '6px',
+            cursor: 'pointer',
+            color: colors.text,
+            fontSize: colors.fontSize.sm,
+            fontFamily: colors.fontFamily,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = colors.hover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <TrashIcon size={14} />
+          <span>Delete</span>
+        </button>
+      )}
+
+      {/* New folder input (inline) */}
+      {showNewFolderInput && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onCreateFolder();
+              if (e.key === 'Escape') onCancelNewFolder();
+            }}
+            placeholder="Folder name..."
             style={{
+              padding: '6px 10px',
+              fontSize: colors.fontSize.sm,
+              fontFamily: colors.fontFamily,
+              background: colors.inputBg,
+              border: `1px solid ${colors.link}`,
+              borderRadius: '6px',
+              color: colors.text,
+              outline: 'none',
+              width: '160px',
+            }}
+          />
+          <button
+            onClick={onCancelNewFolder}
+            style={{
+              padding: '4px 8px',
+              background: 'transparent',
+              border: 'none',
               cursor: 'pointer',
-              color: i === parts.length - 1 ? colors.text : colors.link,
-              fontWeight: i === parts.length - 1 ? colors.fontWeight.semibold : colors.fontWeight.normal,
+              color: colors.textSecondary,
+              fontSize: colors.fontSize.sm,
             }}
           >
-            {part}
-          </span>
-        </span>
-      ))}
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -630,15 +642,17 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     deleteFolder,
     loading,
     initialized,
-    currentPath,
-    navigateTo,
   } = useFileSystem();
 
-  // Track column paths for multi-column navigation
-  const [columns, setColumns] = useState(['/']);
-
-  // Track selected file for preview
+  // Tree view state
+  const [expandedFolders, setExpandedFolders] = useState(new Set(['/']));
+  const [selectedPath, setSelectedPath] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  // New folder input state
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const inputRef = useRef(null);
 
   // Colors and typography - matches sidebar styling
   const colors = {
@@ -660,89 +674,175 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     fontWeight: theme.typography.fontWeight,
   };
 
-  // Update columns when currentPath changes
+  // Focus input when showing new folder input
   useEffect(() => {
-    if (currentPath === '/') {
-      setColumns(['/']);
-    } else {
-      const parts = currentPath.replace(/^\//, '').split('/');
-      const newColumns = ['/'];
-      let path = '';
-      parts.forEach(part => {
-        path += (path ? '/' : '') + part;
-        newColumns.push('/' + path);
-      });
-      setColumns(newColumns);
+    if (showNewFolderInput && inputRef.current) {
+      inputRef.current.focus();
     }
-  }, [currentPath]);
+  }, [showNewFolderInput]);
+
+  // Toggle folder expansion
+  const handleToggleExpand = useCallback((path) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
 
   // Handle item selection
-  const handleSelect = useCallback((item, columnIndex) => {
+  const handleSelect = useCallback((item) => {
+    const itemPath = item.isFolder ? `/${item.path}` : item.path;
+    setSelectedPath(itemPath);
+
     if (item.isFolder) {
-      const newPath = '/' + item.path;
-      // Keep columns up to this one, add new column
-      setColumns(prev => [...prev.slice(0, columnIndex + 1), newPath]);
-      navigateTo(newPath);
-      setSelectedFile(null); // Clear file selection when navigating folders
+      // Auto-expand folder when selected
+      setExpandedFolders((prev) => {
+        const next = new Set(prev);
+        next.add(itemPath);
+        return next;
+      });
+      setSelectedFile(null);
     } else {
       // File selected - show in preview panel
       setSelectedFile(item);
     }
-  }, [navigateTo]);
+  }, []);
 
-  // Handle folder creation
-  const handleCreateFolder = useCallback(async (folderPath) => {
+  // Handle new folder button click
+  const handleNewFolderClick = useCallback(() => {
+    setShowNewFolderInput(true);
+    setNewFolderName('');
+  }, []);
+
+  // Create the new folder
+  const handleCreateFolder = useCallback(async () => {
+    if (!newFolderName.trim()) return;
+
     try {
+      // Determine parent path
+      let parentPath = '/';
+      if (selectedPath) {
+        // If a folder is selected, create inside it
+        if (selectedPath.startsWith('/')) {
+          parentPath = selectedPath;
+        } else {
+          // If a file is selected, create in its parent folder
+          const parts = selectedPath.split('/');
+          parts.pop(); // Remove filename
+          parentPath = '/' + parts.join('/');
+        }
+      }
+
+      const folderPath = parentPath === '/'
+        ? newFolderName.trim()
+        : `${parentPath.replace(/^\//, '')}/${newFolderName.trim()}`;
+
       await createFolder(folderPath);
+
+      // Expand parent to show new folder
+      setExpandedFolders((prev) => {
+        const next = new Set(prev);
+        next.add(parentPath);
+        return next;
+      });
+
+      setShowNewFolderInput(false);
+      setNewFolderName('');
     } catch (err) {
       console.error('Failed to create folder:', err);
     }
-  }, [createFolder]);
+  }, [newFolderName, selectedPath, createFolder]);
+
+  // Cancel new folder creation
+  const handleCancelNewFolder = useCallback(() => {
+    setShowNewFolderInput(false);
+    setNewFolderName('');
+  }, []);
 
   // Handle upload trigger
-  const handleUpload = useCallback((targetPath) => {
+  const handleUpload = useCallback(() => {
     if (onUpload) {
+      // Determine target path for upload
+      let targetPath = '/';
+      if (selectedPath) {
+        if (selectedPath.startsWith('/')) {
+          targetPath = selectedPath;
+        } else {
+          // If a file is selected, upload to its parent folder
+          const parts = selectedPath.split('/');
+          parts.pop();
+          targetPath = '/' + parts.join('/');
+        }
+      }
       onUpload(targetPath);
     }
-  }, [onUpload]);
+  }, [onUpload, selectedPath]);
 
   // Handle folder deletion
-  const handleDeleteFolder = useCallback(async (folderPath) => {
-    try {
-      await deleteFolder(folderPath);
-      // Update columns to remove deleted folder and any columns after it
-      setColumns(prev => {
-        const folderIndex = prev.indexOf('/' + folderPath.replace(/^\//, ''));
-        if (folderIndex > 0) {
-          return prev.slice(0, folderIndex);
-        }
-        return prev;
-      });
-    } catch (err) {
-      console.error('Failed to delete folder:', err);
-    }
-  }, [deleteFolder]);
+  const handleDelete = useCallback(async () => {
+    if (!selectedPath) return;
 
-  // Handle breadcrumb navigation
-  const handleBreadcrumbNavigate = useCallback((path) => {
-    navigateTo(path);
-  }, [navigateTo]);
+    // Don't allow deleting system folders
+    if (['/', '/assistant', '/code'].includes(selectedPath) ||
+        selectedPath.match(/^\/?(assistant|code)$/)) {
+      return;
+    }
+
+    const itemName = selectedPath.split('/').pop();
+    if (window.confirm(`Delete "${itemName}" and all its contents?`)) {
+      try {
+        await deleteFolder(selectedPath);
+        // Remove deleted folder and all its children from expandedFolders
+        setExpandedFolders((prev) => {
+          const next = new Set(prev);
+          for (const path of prev) {
+            if (path === selectedPath || path.startsWith(selectedPath + '/')) {
+              next.delete(path);
+            }
+          }
+          return next;
+        });
+        setSelectedPath(null);
+        setSelectedFile(null);
+      } catch (err) {
+        console.error('Failed to delete:', err);
+      }
+    }
+  }, [selectedPath, deleteFolder]);
+
+  // Mobile navigation state
+  const [mobilePath, setMobilePath] = useState('/');
 
   // Handle mobile back navigation
   const handleMobileBack = useCallback(() => {
-    if (columns.length > 1) {
-      const newColumns = columns.slice(0, -1);
-      setColumns(newColumns);
-      const newPath = newColumns[newColumns.length - 1];
-      navigateTo(newPath);
+    const parts = mobilePath.replace(/^\//, '').split('/').filter(Boolean);
+    if (parts.length > 0) {
+      parts.pop();
+      const newPath = parts.length === 0 ? '/' : '/' + parts.join('/');
+      setMobilePath(newPath);
       setSelectedFile(null);
     }
-  }, [columns, navigateTo]);
+  }, [mobilePath]);
+
+  // Handle mobile item selection
+  const handleMobileSelect = useCallback((item) => {
+    if (item.isFolder) {
+      setMobilePath(`/${item.path}`);
+      setSelectedFile(null);
+    } else {
+      setSelectedFile(item);
+    }
+  }, []);
 
   // Get current folder name for mobile header
-  const currentFolderName = columns.length > 1
-    ? columns[columns.length - 1].split('/').pop() || 'Files'
-    : 'Files';
+  const currentFolderName = mobilePath === '/'
+    ? 'Files'
+    : mobilePath.split('/').pop() || 'Files';
 
   if (!user) {
     return (
@@ -764,11 +864,10 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     return null;
   }
 
-  // Mobile: drill-down single column view
+  // Mobile: drill-down view (kept for mobile UX)
   if (isMobile) {
-    const currentColPath = columns[columns.length - 1];
-    const currentItems = getFolderContents(currentColPath);
-    const canGoBack = columns.length > 1;
+    const currentItems = getFolderContents(mobilePath);
+    const canGoBack = mobilePath !== '/';
 
     return (
       <div
@@ -821,8 +920,55 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
           </span>
         </div>
 
-        {/* Single column content */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        {/* Mobile action buttons */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            padding: '8px 16px',
+            borderBottom: `1px solid ${colors.border}`,
+          }}
+        >
+          <button
+            onClick={handleNewFolderClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              background: 'transparent',
+              border: `1px solid ${colors.border}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              color: colors.text,
+              fontSize: colors.fontSize.sm,
+            }}
+          >
+            <PlusIcon size={12} />
+            <span>New</span>
+          </button>
+          <button
+            onClick={() => onUpload && onUpload(mobilePath)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              background: 'transparent',
+              border: `1px solid ${colors.border}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              color: colors.text,
+              fontSize: colors.fontSize.sm,
+            }}
+          >
+            <UploadIcon size={12} />
+            <span>Upload</span>
+          </button>
+        </div>
+
+        {/* Items list */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
           {loading && !initialized ? (
             <div
               style={{
@@ -837,18 +983,30 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
             >
               Loading...
             </div>
+          ) : currentItems.length === 0 ? (
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+                color: colors.textSecondary,
+                fontSize: colors.fontSize.sm,
+              }}
+            >
+              Empty folder
+            </div>
           ) : (
-            <Column
-              path={currentColPath}
-              items={currentItems}
-              selectedPath={null}
-              onSelect={(item) => handleSelect(item, columns.length - 1)}
-              onCreateFolder={handleCreateFolder}
-              onUpload={handleUpload}
-              onDeleteFolder={handleDeleteFolder}
-              colors={colors}
-              isMobile={true}
-            />
+            currentItems.map((item) => (
+              <TreeItem
+                key={item.id || item.path}
+                item={item}
+                depth={0}
+                isExpanded={false}
+                isSelected={false}
+                onToggleExpand={() => {}}
+                onSelect={() => handleMobileSelect(item)}
+                colors={colors}
+              />
+            ))
           )}
         </div>
 
@@ -917,7 +1075,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     );
   }
 
-  // Desktop: multi-column Finder-style view
+  // Desktop: Tree view with preview panel
   return (
     <div
       style={{
@@ -927,14 +1085,22 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
         background: colors.bg,
       }}
     >
-      {/* Breadcrumb */}
-      <Breadcrumb
-        path={currentPath}
-        onNavigate={handleBreadcrumbNavigate}
+      {/* Toolbar */}
+      <Toolbar
+        selectedPath={selectedPath}
+        onNewFolder={handleNewFolderClick}
+        onUpload={handleUpload}
+        onDelete={handleDelete}
         colors={colors}
+        showNewFolderInput={showNewFolderInput}
+        newFolderName={newFolderName}
+        setNewFolderName={setNewFolderName}
+        onCreateFolder={handleCreateFolder}
+        onCancelNewFolder={handleCancelNewFolder}
+        inputRef={inputRef}
       />
 
-      {/* Column container + Preview */}
+      {/* Tree + Preview container */}
       <div
         style={{
           flex: 1,
@@ -942,14 +1108,18 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
           overflow: 'hidden',
         }}
       >
-        {/* Columns */}
+        {/* Tree view panel */}
         <div
           style={{
-            flex: selectedFile ? '0 0 auto' : 1,
-            display: 'flex',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            minWidth: selectedFile ? '400px' : undefined,
+            width: selectedFile ? '280px' : '100%',
+            minWidth: '200px',
+            maxWidth: selectedFile ? '400px' : undefined,
+            height: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            borderRight: selectedFile ? `1px solid ${colors.border}` : 'none',
+            paddingTop: '8px',
+            paddingBottom: '8px',
           }}
         >
           {loading && !initialized ? (
@@ -958,7 +1128,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '100%',
+                height: '100%',
                 color: colors.textSecondary,
                 fontSize: colors.fontSize.sm,
                 fontFamily: colors.fontFamily,
@@ -967,23 +1137,16 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
               Loading...
             </div>
           ) : (
-            columns.map((colPath, index) => {
-              const items = getFolderContents(colPath);
-              const nextColPath = columns[index + 1];
-              return (
-                <Column
-                  key={colPath}
-                  path={colPath}
-                  items={items}
-                  selectedPath={nextColPath}
-                  onSelect={(item) => handleSelect(item, index)}
-                  onCreateFolder={handleCreateFolder}
-                  onUpload={handleUpload}
-                  onDeleteFolder={handleDeleteFolder}
-                  colors={colors}
-                />
-              );
-            })
+            <TreeView
+              path="/"
+              depth={0}
+              expandedFolders={expandedFolders}
+              selectedPath={selectedPath}
+              onToggleExpand={handleToggleExpand}
+              onSelect={handleSelect}
+              getFolderContents={getFolderContents}
+              colors={colors}
+            />
           )}
         </div>
 
