@@ -151,13 +151,14 @@ const TreeItem = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        height: '32px',
+        height: '36px',
         paddingLeft: `${12 + depth * 16}px`,
         paddingRight: '12px',
+        borderRadius: '8px',
         cursor: 'pointer',
         background: isSelected ? colors.selected : isHovered ? colors.hover : 'transparent',
         color: colors.text,
-        transition: 'background 0.1s ease',
+        transition: 'background 0.15s ease',
         userSelect: 'none',
       }}
     >
@@ -175,7 +176,7 @@ const TreeItem = ({
           justifyContent: 'center',
           width: '16px',
           height: '16px',
-          marginRight: '4px',
+          marginRight: '8px',
           opacity: item.isFolder ? 1 : 0,
           cursor: item.isFolder ? 'pointer' : 'default',
         }}
@@ -189,16 +190,16 @@ const TreeItem = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '18px',
-          height: '18px',
+          width: '20px',
+          height: '20px',
           marginRight: '8px',
           flexShrink: 0,
         }}
       >
         {item.isFolder ? (
-          <FolderIcon size={16} />
+          <FolderIcon size={18} />
         ) : (
-          <FileIcon mimeType={item.mimeType} size={16} />
+          <FileIcon mimeType={item.mimeType} size={18} />
         )}
       </span>
 
@@ -207,6 +208,7 @@ const TreeItem = ({
         style={{
           flex: 1,
           fontSize: colors.fontSize.sm,
+          fontWeight: 400,
           fontFamily: colors.fontFamily,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -298,7 +300,7 @@ const Toolbar = ({
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '12px 16px',
+        padding: '12px 12px',
         borderBottom: `1px solid ${colors.border}`,
       }}
     >
@@ -309,15 +311,17 @@ const Toolbar = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '8px',
           padding: '6px 12px',
           background: 'transparent',
           border: `1px solid ${colors.border}`,
-          borderRadius: '6px',
+          borderRadius: '8px',
           cursor: 'pointer',
           color: colors.text,
           fontSize: colors.fontSize.sm,
+          fontWeight: 400,
           fontFamily: colors.fontFamily,
+          transition: 'background 0.15s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = colors.hover;
@@ -337,15 +341,17 @@ const Toolbar = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '8px',
           padding: '6px 12px',
           background: 'transparent',
           border: `1px solid ${colors.border}`,
-          borderRadius: '6px',
+          borderRadius: '8px',
           cursor: 'pointer',
           color: colors.text,
           fontSize: colors.fontSize.sm,
+          fontWeight: 400,
           fontFamily: colors.fontFamily,
+          transition: 'background 0.15s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = colors.hover;
@@ -366,15 +372,17 @@ const Toolbar = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '8px',
             padding: '6px 12px',
             background: 'transparent',
             border: `1px solid ${colors.border}`,
-            borderRadius: '6px',
+            borderRadius: '8px',
             cursor: 'pointer',
             color: colors.text,
             fontSize: colors.fontSize.sm,
+            fontWeight: 400,
             fontFamily: colors.fontFamily,
+            transition: 'background 0.15s ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = colors.hover;
@@ -585,7 +593,7 @@ const PreviewPanel = ({ file, colors }) => {
           <div style={{
             color: colors.text,
             fontFamily: colors.fontFamily,
-            fontSize: '14px',
+            fontSize: colors.fontSize.sm,
             lineHeight: '1.6',
           }}>
             {renderMarkdown(file.content)}
