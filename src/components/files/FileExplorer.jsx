@@ -143,7 +143,7 @@ const TreeItem = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        height: '36px',
+        height: '40px',
         paddingLeft: `${12 + depth * 16}px`,
         paddingRight: '12px',
         borderRadius: '8px',
@@ -173,7 +173,7 @@ const TreeItem = ({
           cursor: item.isFolder ? 'pointer' : 'default',
         }}
       >
-        {item.isFolder && <ChevronIcon expanded={isExpanded} size={12} />}
+        {item.isFolder && <ChevronIcon expanded={isExpanded} size={14} />}
       </span>
 
       {/* Icon */}
@@ -184,14 +184,14 @@ const TreeItem = ({
           justifyContent: 'center',
           width: '20px',
           height: '20px',
-          marginRight: '8px',
+          marginRight: '12px',
           flexShrink: 0,
         }}
       >
         {item.isFolder ? (
-          <FolderIcon size={18} />
+          <FolderIcon size={20} />
         ) : (
-          <FileIcon mimeType={item.mimeType} size={18} />
+          <FileIcon mimeType={item.mimeType} size={20} />
         )}
       </span>
 
