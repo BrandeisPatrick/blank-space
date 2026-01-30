@@ -3,7 +3,7 @@
  * macOS Finder-style tree view file browser
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -95,14 +95,6 @@ const ChevronIcon = ({ expanded, size = 12 }) => (
     }}
   >
     <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-
-// Plus icon for new folder
-const PlusIcon = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
 
@@ -275,24 +267,14 @@ const TreeView = ({
 // Toolbar Component
 const Toolbar = ({
   selectedPath,
-  onNewFolder,
   onUpload,
   onDelete,
   colors,
-  showNewFolderInput,
-  newFolderName,
-  setNewFolderName,
-  onCreateFolder,
-  onCancelNewFolder,
-  inputRef,
 }) => {
   // Determine if delete should be enabled
   // Can't delete root-level system folders (assistant, code)
   const canDelete = selectedPath && !['/', '/assistant', '/code'].includes(selectedPath) &&
     !selectedPath.match(/^\/?(assistant|code)$/);
-
-  // Check if selected item is a folder (for determining where to create new folder)
-  const isFolder = selectedPath?.startsWith('/') || selectedPath === null;
 
   return (
     <div
@@ -304,36 +286,6 @@ const Toolbar = ({
         borderBottom: `1px solid ${colors.border}`,
       }}
     >
-      {/* New Folder Button */}
-      <button
-        onClick={onNewFolder}
-        title="New Folder"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
-          background: 'transparent',
-          border: `1px solid ${colors.border}`,
-          borderRadius: '8px',
-          cursor: 'pointer',
-          color: colors.text,
-          fontSize: colors.fontSize.sm,
-          fontWeight: 400,
-          fontFamily: colors.fontFamily,
-          transition: 'background 0.15s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = colors.hover;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
-      >
-        <PlusIcon size={14} />
-        <span>New Folder</span>
-      </button>
-
       {/* Upload Button */}
       <button
         onClick={onUpload}
@@ -394,47 +346,6 @@ const Toolbar = ({
           <TrashIcon size={14} />
           <span>Delete</span>
         </button>
-      )}
-
-      {/* New folder input (inline) */}
-      {showNewFolderInput && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onCreateFolder();
-              if (e.key === 'Escape') onCancelNewFolder();
-            }}
-            placeholder="Folder name..."
-            style={{
-              padding: '6px 10px',
-              fontSize: colors.fontSize.sm,
-              fontFamily: colors.fontFamily,
-              background: colors.inputBg,
-              border: `1px solid ${colors.link}`,
-              borderRadius: '6px',
-              color: colors.text,
-              outline: 'none',
-              width: '160px',
-            }}
-          />
-          <button
-            onClick={onCancelNewFolder}
-            style={{
-              padding: '4px 8px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: colors.textSecondary,
-              fontSize: colors.fontSize.sm,
-            }}
-          >
-            Cancel
-          </button>
-        </div>
       )}
     </div>
   );
@@ -646,7 +557,6 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   const isMobile = useIsMobile();
   const {
     getFolderContents,
-    createFolder,
     deleteFolder,
     loading,
     initialized,
@@ -656,11 +566,6 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   const [expandedFolders, setExpandedFolders] = useState(new Set(['/']));
   const [selectedPath, setSelectedPath] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-
-  // New folder input state
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const inputRef = useRef(null);
 
   // Colors and typography - matches sidebar styling
   const colors = {
@@ -681,13 +586,6 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     },
     fontWeight: theme.typography.fontWeight,
   };
-
-  // Focus input when showing new folder input
-  useEffect(() => {
-    if (showNewFolderInput && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showNewFolderInput]);
 
   // Toggle folder expansion
   const handleToggleExpand = useCallback((path) => {
@@ -719,57 +617,6 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
       // File selected - show in preview panel
       setSelectedFile(item);
     }
-  }, []);
-
-  // Handle new folder button click
-  const handleNewFolderClick = useCallback(() => {
-    setShowNewFolderInput(true);
-    setNewFolderName('');
-  }, []);
-
-  // Create the new folder
-  const handleCreateFolder = useCallback(async () => {
-    if (!newFolderName.trim()) return;
-
-    try {
-      // Determine parent path
-      let parentPath = '/';
-      if (selectedPath) {
-        // If a folder is selected, create inside it
-        if (selectedPath.startsWith('/')) {
-          parentPath = selectedPath;
-        } else {
-          // If a file is selected, create in its parent folder
-          const parts = selectedPath.split('/');
-          parts.pop(); // Remove filename
-          parentPath = '/' + parts.join('/');
-        }
-      }
-
-      const folderPath = parentPath === '/'
-        ? newFolderName.trim()
-        : `${parentPath.replace(/^\//, '')}/${newFolderName.trim()}`;
-
-      await createFolder(folderPath);
-
-      // Expand parent to show new folder
-      setExpandedFolders((prev) => {
-        const next = new Set(prev);
-        next.add(parentPath);
-        return next;
-      });
-
-      setShowNewFolderInput(false);
-      setNewFolderName('');
-    } catch (err) {
-      console.error('Failed to create folder:', err);
-    }
-  }, [newFolderName, selectedPath, createFolder]);
-
-  // Cancel new folder creation
-  const handleCancelNewFolder = useCallback(() => {
-    setShowNewFolderInput(false);
-    setNewFolderName('');
   }, []);
 
   // Handle upload trigger
@@ -938,24 +785,6 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
           }}
         >
           <button
-            onClick={handleNewFolderClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 10px',
-              background: 'transparent',
-              border: `1px solid ${colors.border}`,
-              borderRadius: '6px',
-              cursor: 'pointer',
-              color: colors.text,
-              fontSize: colors.fontSize.sm,
-            }}
-          >
-            <PlusIcon size={12} />
-            <span>New</span>
-          </button>
-          <button
             onClick={() => onUpload && onUpload(mobilePath)}
             style={{
               display: 'flex',
@@ -1096,16 +925,9 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
       {/* Toolbar */}
       <Toolbar
         selectedPath={selectedPath}
-        onNewFolder={handleNewFolderClick}
         onUpload={handleUpload}
         onDelete={handleDelete}
         colors={colors}
-        showNewFolderInput={showNewFolderInput}
-        newFolderName={newFolderName}
-        setNewFolderName={setNewFolderName}
-        onCreateFolder={handleCreateFolder}
-        onCancelNewFolder={handleCancelNewFolder}
-        inputRef={inputRef}
       />
 
       {/* Tree + Preview container */}

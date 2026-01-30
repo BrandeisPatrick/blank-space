@@ -284,14 +284,17 @@ export const FileSystemProvider = ({ children }) => {
   const deleteFolder = useCallback(async (path) => {
     if (!user) throw new Error('Not authenticated');
 
+    // Normalize path: strip leading slash to match stored paths
+    const normalizedPath = path.replace(/^\//, '');
+
     try {
-      await makeAuthenticatedRequest(`/api/files?action=folder&path=${encodeURIComponent(path)}`, {
+      await makeAuthenticatedRequest(`/api/files?action=folder&path=${encodeURIComponent(normalizedPath)}`, {
         method: 'DELETE',
       });
 
       // Remove folder and all nested items from local state
-      setFolders(prev => prev.filter(f => f.path !== path && !f.path.startsWith(path + '/')));
-      setFiles(prev => prev.filter(f => !f.path.startsWith(path + '/')));
+      setFolders(prev => prev.filter(f => f.path !== normalizedPath && !f.path.startsWith(normalizedPath + '/')));
+      setFiles(prev => prev.filter(f => !f.path.startsWith(normalizedPath + '/')));
 
       return { success: true };
     } catch (err) {
