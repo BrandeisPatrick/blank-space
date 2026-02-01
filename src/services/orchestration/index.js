@@ -19,25 +19,24 @@ import { getModelForTier } from '../config/modelConfig.js';
  * @param {string} userMessage - User's request
  * @param {Object} currentFiles - Current file map {filename: content}
  * @param {Function} onUpdate - Callback for streaming updates
- * @param {Object} options - Additional options (modelTier, conversationIntent, etc.)
+ * @param {Object} options - Additional options (modelTier, conversationHistory, etc.)
  * @returns {Promise<Object>} Result with {success, fileOperations, intent}
  */
 export async function processMessage(userMessage, currentFiles = {}, onUpdate = null, options = {}) {
-  const { modelTier = 'lite', conversationIntent = null, images = null } = options;
+  const { modelTier = 'lite', isDebugMode = false, images = null, conversationHistory = [] } = options;
 
   const sendUpdate = (update) => onUpdate?.(update);
 
   let intent;
 
-  // Use stored intent if conversation already has one, otherwise classify
-  if (conversationIntent) {
-    intent = conversationIntent;
-    console.log(`[Orchestration] Using stored intent: ${intent}`);
+  if (isDebugMode) {
+    intent = 'debug';
+    console.log(`[Orchestration] Using debug mode intent`);
   } else {
     const hasExistingFiles = Object.keys(currentFiles).length > 0;
-    const intentResult = await classifyIntent(userMessage, hasExistingFiles);
+    const intentResult = await classifyIntent(userMessage, hasExistingFiles, conversationHistory);
     intent = intentResult.intent;
-    console.log(`[Orchestration] New conversation intent: "${userMessage.slice(0, 50)}..." → ${intent} (${intentResult.source})`);
+    console.log(`[Orchestration] Classified intent: "${userMessage.slice(0, 50)}..." → ${intent} (${intentResult.source})`);
   }
 
   // Route based on intent
@@ -48,7 +47,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     });
     console.log(`[Orchestration] Routing to Assistant Agent${images ? ' with images' : ''}`);
     const { fileContext = {} } = options;
-    const result = await processWithAssistantAgent(userMessage, fileContext, onUpdate, { images });
+    const result = await processWithAssistantAgent(userMessage, fileContext, onUpdate, { images, conversationHistory });
     return { ...result, intent };
 
   } else if (intent === 'chat') {

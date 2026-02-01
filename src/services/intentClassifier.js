@@ -46,10 +46,11 @@ Respond with ONLY ONE WORD: create, assistant, or chat`;
 /**
  * Classify user message intent using AI (gpt-4o-mini)
  * @param {string} message - User's message
- * @param {boolean} _hasExistingFiles - Deprecated, kept for backwards compatibility
+ * @param {boolean} hasExistingFiles - Whether the user has existing files
+ * @param {Array} conversationHistory - Recent conversation messages [{role, content}]
  * @returns {Promise<{intent: 'create' | 'assistant' | 'chat', confidence: number, source: string}>}
  */
-export async function classifyIntent(message, _hasExistingFiles = false) {
+export async function classifyIntent(message, hasExistingFiles = false, conversationHistory = []) {
   // Quick check for very short greetings (save API call)
   const lowerMessage = message.toLowerCase().trim();
   if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|sure)[\s!.]*$/i.test(lowerMessage)) {
@@ -57,13 +58,21 @@ export async function classifyIntent(message, _hasExistingFiles = false) {
   }
 
   try {
+    // Build history context from last 6 messages for better classification
+    let historyContext = '';
+    if (conversationHistory.length > 0) {
+      const recentMessages = conversationHistory.slice(-6);
+      historyContext = '\n\nConversation history (for context):\n' +
+        recentMessages.map(msg => `${msg.role}: ${msg.content?.slice(0, 200) || ''}`).join('\n');
+    }
+
     const response = await fetchWithRetry('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'user', content: `${CLASSIFICATION_PROMPT}\n\nUser message: "${message}"` }
+          { role: 'user', content: `${CLASSIFICATION_PROMPT}${historyContext}\n\nUser message: "${message}"` }
         ],
         max_tokens: 10
       })

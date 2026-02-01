@@ -510,7 +510,7 @@ export const FileSystemProvider = ({ children }) => {
   // agent: 'user' | 'assistant' | 'code' - for scope enforcement
   const writeFileByPath = useCallback(async (filePath, content, options = {}) => {
     if (!user) throw new Error('Not authenticated');
-    const { agent = 'user' } = options;
+    const { agent = 'user', update = false } = options;
 
     const filename = filePath.split('/').pop();
     const mimeType = guessMimeType(filename);
@@ -566,6 +566,7 @@ export const FileSystemProvider = ({ children }) => {
           path: filePath,
           content: base64Content,
           mimeType,
+          update,
         }),
       }, agent);
       await loadFiles(); // Refresh file list

@@ -40,8 +40,8 @@ ${fileListStr}
 
 - list_directory(path?) - List files and folders. Paths are relative to assistant/.
 - read_file(path) - Read a file's content.
-- write_file(path, content) - Create or overwrite a file.
-- edit_file(path, old_string, new_string) - Edit a file by replacing text.
+- write_file(path, content) - Create a NEW file. Only use for files that don't exist yet.
+- edit_file(path, old_string, new_string) - Edit an EXISTING file by replacing text. Always use this when updating files.
 - create_directory(path) - Create a new folder.
 
 ## IMPORTANT: Workspace Scope
@@ -57,7 +57,8 @@ You MUST call the appropriate tool before answering. Never answer from memory or
 
 - Questions about folder contents → Call list_directory(path)
 - Questions about file content → Call read_file(path) first
-- Creating/modifying files → Use write_file() or edit_file()
+- Creating NEW files → Use write_file()
+- Updating EXISTING files → Read first, then use edit_file()
 - Creating folders → Use create_directory()
 
 ## Response Style
@@ -84,6 +85,11 @@ User: "Create a notes folder"
 User: "Create a meeting notes file"
 → Call write_file("docs/meetings.md", "# Meeting Notes\\n\\n")
 → "Created docs/meetings.md"
+
+User: "Update my todo with a new item"
+→ Call read_file("docs/todo.md")
+→ Call edit_file("docs/todo.md", "## Items\\n", "## Items\\n- New item\\n")
+→ "Updated docs/todo.md with the new item."
 
 ## Rules
 

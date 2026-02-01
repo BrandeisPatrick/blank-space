@@ -34,7 +34,7 @@ function convertToolsToOpenAIFormat(tools) {
  * @returns {Promise<Object>} Result with {success, response}
  */
 export async function processWithAssistantAgent(userMessage, fileContext = {}, onUpdate = null, options = {}) {
-  const { images = null } = options;
+  const { images = null, conversationHistory = [] } = options;
   const {
     files = [],
     folders = [],
@@ -58,16 +58,35 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
 
     const executor = new ToolExecutor(toolRegistry);
 
-    // Wrap writeFile to auto-add agent scope
-    const scopedWriteFile = async (path, content) => {
-      return writeFile(path, content, { agent: 'assistant' });
+    // Auto-prefix paths with assistant/ scope so AI uses relative paths
+    const scopePath = (path) => {
+      if (!path) return 'assistant';
+      const normalized = path.replace(/^\//, '');
+      if (normalized.startsWith('assistant/') || normalized === 'assistant') return normalized;
+      return `assistant/${normalized}`;
+    };
+
+    const scopedWriteFile = async (path, content, options = {}) => {
+      return writeFile(scopePath(path), content, { agent: 'assistant', ...options });
+    };
+
+    const scopedCreateDirectory = async (path) => {
+      return createDirectory(scopePath(path));
+    };
+
+    const scopedListDirectory = (path) => {
+      return listDirectory(scopePath(path));
+    };
+
+    const scopedFetchFile = async (path) => {
+      return fetchFile(scopePath(path));
     };
 
     const toolContext = {
-      fetchFile,
+      fetchFile: scopedFetchFile,
       writeFile: scopedWriteFile,
-      listDirectory,
-      createDirectory,
+      listDirectory: scopedListDirectory,
+      createDirectory: scopedCreateDirectory,
       fileList: files,
       folderList: folders,
       scope: 'assistant'
@@ -79,15 +98,23 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
 
     let messages = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage }
     ];
 
-    // Add files if provided (images, PDFs, etc.)
+    // Add conversation history for multi-turn context
+    conversationHistory.forEach(msg => {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    });
+
+    // Add current user message
     if (images?.length > 0) {
-      messages[1] = {
+      messages.push({
         role: 'user',
         content: formatFilesForOpenAI(userMessage, images)
-      };
+      });
+    } else {
+      messages.push({ role: 'user', content: userMessage });
     }
 
     sendUpdate({

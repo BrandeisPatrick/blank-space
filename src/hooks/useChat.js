@@ -64,14 +64,6 @@ export const useChat = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDebugging, setIsDebugging] = useState(false);
 
-  // Track conversation intent - only classified once at conversation start
-  const [conversationIntent, setConversationIntent] = useState(null);
-
-  // Reset intent when conversation changes
-  useEffect(() => {
-    setConversationIntent(null);
-  }, [activeConversationId]);
-
   // Track messages in ref to avoid stale closures
   const messagesRef = useRef(messages);
 
@@ -275,8 +267,8 @@ export const useChat = ({
       // Build file context for assistant agent (lazy-loading, scoped to assistant/)
       const { files: fileMetadata, folders: folderMetadata } = getFileListForAI();
       // Filter to only show assistant-scoped files to the assistant agent
-      const assistantFiles = fileMetadata.filter(f => f.path?.startsWith('assistant/'));
-      const assistantFolders = folderMetadata.filter(f => f.path?.startsWith('assistant'));
+      const assistantFiles = fileMetadata.filter(f => f.startsWith('assistant/'));
+      const assistantFolders = folderMetadata.filter(f => f.startsWith('assistant'));
       const fileContext = {
         files: assistantFiles,
         folders: assistantFolders,
@@ -292,17 +284,12 @@ export const useChat = ({
         aiUIStyle,
         isDarkTheme: mode === 'dark',
         conversationHistory,
-        conversationIntent: isDebugMode ? 'debug' : conversationIntent,  // Force debug if @app mentioned
+        isDebugMode,
         images: allFilesForAI.length > 0 ? allFilesForAI : null,  // Pass all files (images + PDFs + docs) to AI
         mentionedAppId,  // Pass mentioned app ID for context
         folders: userFolders,  // Pass folder list for AI context
         fileContext,  // Lazy-loading context for assistant agent
       });
-
-      // Store intent from first message for subsequent messages
-      if (result.intent && !conversationIntent) {
-        setConversationIntent(result.intent);
-      }
 
       if (result.success) {
         removeLoadingMessage();
@@ -488,7 +475,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeProjectSlug, createProject, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, conversationIntent, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeProjectSlug, createProject, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
 
   /**
    * Debug handler for errors and user-reported issues

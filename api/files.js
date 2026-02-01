@@ -493,7 +493,39 @@ async function handleUpload(req, db, storage, userId, body, res) {
     ? fullPath.split('/')[0]
     : null;
 
-  // Store metadata in Firestore
+  // If update flag is set, find and update existing document
+  if (body.update) {
+    const existingQuery = await db
+      .collection('users')
+      .doc(userId)
+      .collection('files')
+      .where('path', '==', fullPath)
+      .limit(1)
+      .get();
+
+    if (!existingQuery.empty) {
+      const existingDoc = existingQuery.docs[0];
+      const updateData = {
+        filename: sanitizedFilename,
+        mimeType,
+        size: fileBuffer.length,
+        updatedAt: new Date().toISOString(),
+      };
+      await existingDoc.ref.update(updateData);
+
+      return res.status(200).json({
+        success: true,
+        file: {
+          id: existingDoc.id,
+          ...existingDoc.data(),
+          ...updateData,
+        },
+      });
+    }
+    // File not found at path — fall through to create new
+  }
+
+  // Store metadata in Firestore (new file)
   const fileData = {
     filename: sanitizedFilename,
     path: fullPath,

@@ -558,6 +558,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   const {
     getFolderContents,
     deleteFolder,
+    fetchFileByPath,
     loading,
     initialized,
   } = useFileSystem();
@@ -614,10 +615,19 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
       });
       setSelectedFile(null);
     } else {
-      // File selected - show in preview panel
+      // File selected - show in preview panel with content
       setSelectedFile(item);
+      if (item.path && fetchFileByPath) {
+        fetchFileByPath(item.path).then(result => {
+          if (result?.content) {
+            setSelectedFile(prev => prev?.path === item.path ? { ...prev, content: result.content } : prev);
+          }
+        }).catch(err => {
+          console.error('Failed to fetch file content:', err);
+        });
+      }
     }
-  }, []);
+  }, [fetchFileByPath]);
 
   // Handle upload trigger
   const handleUpload = useCallback(() => {

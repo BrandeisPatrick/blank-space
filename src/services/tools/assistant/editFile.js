@@ -57,8 +57,8 @@ export const editFileTool = new Tool({
       // Replace text
       const newContent = currentContent.replace(old_string, new_string);
 
-      // Write back
-      const writeResult = await writeFile(path, newContent);
+      // Write back (update existing document, not create new)
+      const writeResult = await writeFile(path, newContent, { update: true });
       return {
         ...writeResult,
         message: `Replaced text in ${path}`
