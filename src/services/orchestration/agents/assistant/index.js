@@ -154,6 +154,14 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
         break;
       }
 
+      // Surface agent's plan/thinking text before executing tool calls
+      if (assistantMessage?.content) {
+        sendUpdate({
+          type: 'thinking',
+          content: assistantMessage.content
+        });
+      }
+
       messages.push(assistantMessage);
       console.log(`[Assistant Agent] Loop ${loopCount}: ${toolCalls.length} tool call(s)`);
 
