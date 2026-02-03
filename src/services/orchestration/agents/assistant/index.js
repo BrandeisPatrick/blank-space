@@ -117,11 +117,6 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
       messages.push({ role: 'user', content: userMessage });
     }
 
-    sendUpdate({
-      type: 'thinking',
-      content: `Context: ${files.length} files, ${folders.length} folders`
-    });
-
     let loopCount = 0;
 
     // Initial API call
@@ -156,9 +151,14 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
 
       // Surface agent's plan/thinking text before executing tool calls
       if (assistantMessage?.content) {
+        // Split numbered plan items (e.g. "1. Do X 2. Do Y") onto separate lines
+        const planSteps = assistantMessage.content
+          .split(/(?=\d+\.\s)/)
+          .map(s => s.trim())
+          .filter(Boolean);
         sendUpdate({
           type: 'thinking',
-          content: assistantMessage.content
+          content: planSteps.length > 1 ? planSteps : assistantMessage.content
         });
       }
 
