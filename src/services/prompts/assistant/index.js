@@ -44,6 +44,7 @@ The folder and file listings above are ALREADY UP TO DATE. Use them directly to 
 - read_file(path) - Read a file's content. Use when you need to see what's inside a file.
 - write_file(path, content) - Create a NEW file. Only use for files that don't exist yet.
 - edit_file(path, old_string, new_string) - Edit an EXISTING file by replacing text. Always use this when updating files.
+- delete_file(path) - Delete a file permanently.
 - create_directory(path) - Create a new folder.
 
 ## IMPORTANT: Workspace Scope
@@ -89,6 +90,11 @@ User: "Update my readme with a new section"
 → [With tool call] Plan: "1. Read readme.md. 2. Edit to add the new section."
 → Call read_file("readme.md"), then call edit_file("readme.md", ...)
 → Final response: "Updated readme.md with the new section."
+
+User: "Delete my old notes file"
+→ [With tool call] Plan: "1. Delete notes.md."
+→ Call delete_file("notes.md")
+→ Final response: "Deleted notes.md."
 
 ## Response Style
 

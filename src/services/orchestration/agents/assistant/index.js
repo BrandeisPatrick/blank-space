@@ -40,6 +40,7 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
     folders = [],
     fetchFile,
     writeFile,
+    deleteFile,
     listDirectory,
     createDirectory
   } = fileContext;
@@ -82,9 +83,14 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
       return fetchFile(scopePath(path));
     };
 
+    const scopedDeleteFile = async (path) => {
+      return deleteFile(scopePath(path));
+    };
+
     const toolContext = {
       fetchFile: scopedFetchFile,
       writeFile: scopedWriteFile,
+      deleteFile: scopedDeleteFile,
       listDirectory: scopedListDirectory,
       createDirectory: scopedCreateDirectory,
       fileList: files,
@@ -139,6 +145,18 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
     let result = await response.json();
     let assistantMessage = result.choices?.[0]?.message;
 
+    // Emit plan from initial response, before the tool execution loop
+    if (assistantMessage?.content) {
+      const planSteps = assistantMessage.content
+        .split(/(?=\d+\.\s)/)
+        .map(s => s.trim())
+        .filter(Boolean);
+      sendUpdate({
+        type: 'thinking',
+        content: planSteps.length > 1 ? planSteps : assistantMessage.content
+      });
+    }
+
     // Loop until agent responds with text (no tool calls)
     while (loopCount < maxLoops) {
       loopCount++;
@@ -147,19 +165,6 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
       if (!toolCalls?.length) {
         console.log(`[Assistant Agent] Completed after ${loopCount} loop(s)`);
         break;
-      }
-
-      // Surface agent's plan/thinking text before executing tool calls
-      if (assistantMessage?.content) {
-        // Split numbered plan items (e.g. "1. Do X 2. Do Y") onto separate lines
-        const planSteps = assistantMessage.content
-          .split(/(?=\d+\.\s)/)
-          .map(s => s.trim())
-          .filter(Boolean);
-        sendUpdate({
-          type: 'thinking',
-          content: planSteps.length > 1 ? planSteps : assistantMessage.content
-        });
       }
 
       messages.push(assistantMessage);

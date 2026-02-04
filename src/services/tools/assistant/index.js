@@ -8,6 +8,7 @@ export { readFileTool } from './readFile.js';
 export { writeFileTool } from './writeFile.js';
 export { editFileTool } from './editFile.js';
 export { createDirectoryTool } from './createDirectory.js';
+export { deleteFileTool } from './deleteFile.js';
 
 // Export as array for easy registration
 export const assistantTools = async () => {
@@ -16,8 +17,9 @@ export const assistantTools = async () => {
   const { writeFileTool } = await import('./writeFile.js');
   const { editFileTool } = await import('./editFile.js');
   const { createDirectoryTool } = await import('./createDirectory.js');
+  const { deleteFileTool } = await import('./deleteFile.js');
 
-  return [listDirectoryTool, readFileTool, writeFileTool, editFileTool, createDirectoryTool];
+  return [listDirectoryTool, readFileTool, writeFileTool, editFileTool, createDirectoryTool, deleteFileTool];
 };
 
 export default assistantTools;

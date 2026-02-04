@@ -17,6 +17,8 @@ export function formatToolAction(toolName, params) {
       return `write_file("${params.path}", ${params.content?.length || 0} chars)`;
     case 'edit_file':
       return `edit_file("${params.path}")`;
+    case 'delete_file':
+      return `delete_file("${params.path}")`;
     case 'create_directory':
       return `create_directory("${params.path}")`;
     default:
@@ -59,6 +61,8 @@ export function formatToolResult(toolName, result) {
       return `saved to ${result.path}`;
     case 'edit_file':
       return `updated ${result.path}`;
+    case 'delete_file':
+      return `deleted ${result.path}`;
     case 'create_directory':
       return `created ${result.path}`;
     default:

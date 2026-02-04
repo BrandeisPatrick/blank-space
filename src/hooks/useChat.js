@@ -51,6 +51,7 @@ export const useChat = ({
     getFileListForAI,
     fetchFileByPath,
     writeFileByPath,
+    deleteFileByPath,
     createFolderByPath,
     listDirectoryByPath,
     // Project management (replaces artifacts)
@@ -274,6 +275,7 @@ export const useChat = ({
         folders: assistantFolders,
         fetchFile: fetchFileByPath,
         writeFile: writeFileByPath,
+        deleteFile: deleteFileByPath,
         listDirectory: listDirectoryByPath,
         createDirectory: createFolderByPath
       };
@@ -475,7 +477,7 @@ export const useChat = ({
       }
       return { success: false, error };
     }
-  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeProjectSlug, createProject, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, createFolderByPath, listDirectoryByPath]);
+  }, [files, setFiles, modelTier, aiColorPalette, aiUIStyle, mode, activeProjectSlug, createProject, setMessages, incrementUsage, addRateLimitWarning, linkArtifact, user, getFilesForAI, syncChangesFromAI, getFileListForAI, fetchFileByPath, writeFileByPath, deleteFileByPath, createFolderByPath, listDirectoryByPath]);
 
   /**
    * Debug handler for errors and user-reported issues

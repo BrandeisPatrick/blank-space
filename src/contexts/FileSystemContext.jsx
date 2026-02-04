@@ -605,6 +605,30 @@ export const FileSystemProvider = ({ children }) => {
     return createFolder(folderPath);
   }, [user, createFolder]);
 
+  // Delete file by path (looks up file by path and calls deleteFile by id)
+  const deleteFileByPath = useCallback(async (filePath) => {
+    if (!user) throw new Error('Not authenticated');
+
+    // Development: delete from localStorage
+    if (USE_LOCAL_STORAGE) {
+      const localData = getLocalFiles();
+      const updatedFiles = localData.files.filter(f => f.path !== filePath);
+      if (updatedFiles.length === localData.files.length) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      saveLocalFiles(updatedFiles, localData.folders);
+      setFiles(updatedFiles);
+      return { success: true, path: filePath };
+    }
+
+    // Production: find file by path and delete by id
+    const file = files.find(f => f.path === filePath);
+    if (!file) throw new Error(`File not found: ${filePath}`);
+
+    await deleteFile(file.id);
+    return { success: true, path: filePath };
+  }, [user, files, deleteFile]);
+
   // List directory contents by path (from cached state)
   const listDirectoryByPath = useCallback((dirPath = '') => {
     const normalizedPath = dirPath.replace(/^\//, '').replace(/\/$/, '');
@@ -1148,6 +1172,7 @@ export const FileSystemProvider = ({ children }) => {
     getFileListForAI,
     fetchFileByPath,
     writeFileByPath,
+    deleteFileByPath,
     createFolderByPath,
     listDirectoryByPath,
 
@@ -1197,6 +1222,7 @@ export const FileSystemProvider = ({ children }) => {
     getFileListForAI,
     fetchFileByPath,
     writeFileByPath,
+    deleteFileByPath,
     createFolderByPath,
     listDirectoryByPath,
     isFolderExpanded,

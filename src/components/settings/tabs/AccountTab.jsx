@@ -3,6 +3,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useUserProfile } from '../../../contexts/UserProfileContext';
 import { useConversation } from '../../../contexts/ConversationContext';
+import { useFileSystem } from '../../../contexts/FileSystemContext';
 import { getTheme } from '../../../styles/theme';
 import { SettingsRow, SettingsSeparator, SettingsButton } from '../shared';
 
@@ -11,11 +12,20 @@ export const AccountTab = () => {
   const { user, signOut } = useAuth();
   const { deleteConversationData } = useUserProfile();
   const { clearAllConversations } = useConversation();
+  const { deleteFolder, filesByFolder } = useFileSystem();
   const theme = getTheme(mode);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleteResult, setDeleteResult] = useState(null);
+
+  const [isDeletingAssistant, setIsDeletingAssistant] = useState(false);
+  const [showConfirmAssistant, setShowConfirmAssistant] = useState(false);
+  const [deleteAssistantResult, setDeleteAssistantResult] = useState(null);
+
+  const [isDeletingCode, setIsDeletingCode] = useState(false);
+  const [showConfirmCode, setShowConfirmCode] = useState(false);
+  const [deleteCodeResult, setDeleteCodeResult] = useState(null);
 
   const colors = {
     textPrimary: theme.colors.text.primary,
@@ -64,6 +74,58 @@ export const AccountTab = () => {
   const handleCancelDelete = () => {
     setShowConfirm(false);
     setDeleteResult(null);
+  };
+
+  const handleDeleteAssistantFiles = async () => {
+    if (!showConfirmAssistant) {
+      setShowConfirmAssistant(true);
+      return;
+    }
+
+    setIsDeletingAssistant(true);
+    setDeleteAssistantResult(null);
+
+    try {
+      await deleteFolder('assistant');
+      const count = filesByFolder.assistant?.length || 0;
+      setDeleteAssistantResult({ success: true, count });
+    } catch (error) {
+      setDeleteAssistantResult({ success: false, error: error.message });
+    } finally {
+      setIsDeletingAssistant(false);
+      setShowConfirmAssistant(false);
+    }
+  };
+
+  const handleCancelDeleteAssistant = () => {
+    setShowConfirmAssistant(false);
+    setDeleteAssistantResult(null);
+  };
+
+  const handleDeleteCodeFiles = async () => {
+    if (!showConfirmCode) {
+      setShowConfirmCode(true);
+      return;
+    }
+
+    setIsDeletingCode(true);
+    setDeleteCodeResult(null);
+
+    try {
+      await deleteFolder('code');
+      const count = filesByFolder.code?.length || 0;
+      setDeleteCodeResult({ success: true, count });
+    } catch (error) {
+      setDeleteCodeResult({ success: false, error: error.message });
+    } finally {
+      setIsDeletingCode(false);
+      setShowConfirmCode(false);
+    }
+  };
+
+  const handleCancelDeleteCode = () => {
+    setShowConfirmCode(false);
+    setDeleteCodeResult(null);
   };
 
   return (
@@ -146,6 +208,94 @@ export const AccountTab = () => {
               {deleteResult.success
                 ? `Successfully deleted ${deleteResult.count} conversation${deleteResult.count !== 1 ? 's' : ''}`
                 : `Error: ${deleteResult.error}`
+              }
+            </div>
+          )}
+
+          <SettingsSeparator />
+
+          {/* Delete All Assistant Files */}
+          <SettingsRow
+            title="Delete All Assistant Files"
+            description={
+              showConfirmAssistant
+                ? "Are you sure? This action cannot be undone."
+                : `Delete all files in the assistant folder (${filesByFolder.assistant?.length || 0} files)`
+            }
+            action={
+              <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+                {showConfirmAssistant && (
+                  <SettingsButton onClick={handleCancelDeleteAssistant} disabled={isDeletingAssistant}>
+                    Cancel
+                  </SettingsButton>
+                )}
+                <SettingsButton
+                  onClick={handleDeleteAssistantFiles}
+                  disabled={isDeletingAssistant}
+                >
+                  {isDeletingAssistant ? 'Deleting...' : showConfirmAssistant ? 'Confirm' : 'Delete'}
+                </SettingsButton>
+              </div>
+            }
+          />
+
+          {deleteAssistantResult && (
+            <div style={{
+              padding: theme.spacing.sm,
+              marginTop: theme.spacing.sm,
+              fontSize: theme.typography.fontSize.sm,
+              fontFamily: theme.typography.fontFamily.sans,
+              color: deleteAssistantResult.success ? '#22c55e' : colors.danger,
+              backgroundColor: deleteAssistantResult.success ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+              borderRadius: theme.radius.md,
+            }}>
+              {deleteAssistantResult.success
+                ? `Successfully deleted ${deleteAssistantResult.count} assistant file${deleteAssistantResult.count !== 1 ? 's' : ''}`
+                : `Error: ${deleteAssistantResult.error}`
+              }
+            </div>
+          )}
+
+          <SettingsSeparator />
+
+          {/* Delete All Code Files */}
+          <SettingsRow
+            title="Delete All Code Files"
+            description={
+              showConfirmCode
+                ? "Are you sure? This action cannot be undone."
+                : `Delete all files in the code folder (${filesByFolder.code?.length || 0} files)`
+            }
+            action={
+              <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+                {showConfirmCode && (
+                  <SettingsButton onClick={handleCancelDeleteCode} disabled={isDeletingCode}>
+                    Cancel
+                  </SettingsButton>
+                )}
+                <SettingsButton
+                  onClick={handleDeleteCodeFiles}
+                  disabled={isDeletingCode}
+                >
+                  {isDeletingCode ? 'Deleting...' : showConfirmCode ? 'Confirm' : 'Delete'}
+                </SettingsButton>
+              </div>
+            }
+          />
+
+          {deleteCodeResult && (
+            <div style={{
+              padding: theme.spacing.sm,
+              marginTop: theme.spacing.sm,
+              fontSize: theme.typography.fontSize.sm,
+              fontFamily: theme.typography.fontFamily.sans,
+              color: deleteCodeResult.success ? '#22c55e' : colors.danger,
+              backgroundColor: deleteCodeResult.success ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+              borderRadius: theme.radius.md,
+            }}>
+              {deleteCodeResult.success
+                ? `Successfully deleted ${deleteCodeResult.count} code file${deleteCodeResult.count !== 1 ? 's' : ''}`
+                : `Error: ${deleteCodeResult.error}`
               }
             </div>
           )}
