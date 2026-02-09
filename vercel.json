@@ -7,6 +7,10 @@
     {
       "source": "/__/auth/:path*",
       "destination": "https://blank-space-29ea4.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
