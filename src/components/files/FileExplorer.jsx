@@ -389,10 +389,28 @@ const PreviewPanel = ({ file, colors }) => {
     const elements = [];
     let inCodeBlock = false;
     let codeContent = [];
+    let listItems = [];
+    let listType = null; // 'ul' or 'ol'
+
+    const flushList = () => {
+      if (listItems.length === 0) return;
+      const ListTag = listType === 'ol' ? 'ol' : 'ul';
+      elements.push(
+        <ListTag key={`list-${elements.length}`} style={{
+          margin: '8px 0',
+          paddingLeft: '24px',
+        }}>
+          {listItems}
+        </ListTag>
+      );
+      listItems = [];
+      listType = null;
+    };
 
     lines.forEach((line, i) => {
       // Code blocks
       if (line.startsWith('```')) {
+        flushList();
         if (inCodeBlock) {
           elements.push(
             <pre key={`code-${i}`} style={{
@@ -420,20 +438,30 @@ const PreviewPanel = ({ file, colors }) => {
 
       // Headers
       if (line.startsWith('# ')) {
+        flushList();
         elements.push(<h1 key={i} style={{ fontSize: '24px', fontWeight: 600, margin: '16px 0 8px' }}>{line.slice(2)}</h1>);
       } else if (line.startsWith('## ')) {
+        flushList();
         elements.push(<h2 key={i} style={{ fontSize: '20px', fontWeight: 600, margin: '14px 0 6px' }}>{line.slice(3)}</h2>);
       } else if (line.startsWith('### ')) {
+        flushList();
         elements.push(<h3 key={i} style={{ fontSize: '16px', fontWeight: 600, margin: '12px 0 4px' }}>{line.slice(4)}</h3>);
       }
-      // Lists
+      // Unordered lists
       else if (line.match(/^[-*]\s/)) {
-        elements.push(<li key={i} style={{ marginLeft: '20px', margin: '4px 0' }}>{line.slice(2)}</li>);
-      } else if (line.match(/^\d+\.\s/)) {
-        elements.push(<li key={i} style={{ marginLeft: '20px', margin: '4px 0', listStyleType: 'decimal' }}>{line.replace(/^\d+\.\s/, '')}</li>);
+        if (listType !== 'ul') flushList();
+        listType = 'ul';
+        listItems.push(<li key={i} style={{ margin: '4px 0' }}>{line.slice(2)}</li>);
+      }
+      // Ordered lists
+      else if (line.match(/^\d+\.\s/)) {
+        if (listType !== 'ol') flushList();
+        listType = 'ol';
+        listItems.push(<li key={i} style={{ margin: '4px 0' }}>{line.replace(/^\d+\.\s/, '')}</li>);
       }
       // Blockquote
       else if (line.startsWith('> ')) {
+        flushList();
         elements.push(<blockquote key={i} style={{
           borderLeft: `3px solid ${colors.selected}`,
           paddingLeft: '12px',
@@ -443,10 +471,12 @@ const PreviewPanel = ({ file, colors }) => {
       }
       // Empty line
       else if (line.trim() === '') {
+        flushList();
         elements.push(<br key={i} />);
       }
       // Regular paragraph
       else {
+        flushList();
         // Handle inline formatting (bold, italic, code)
         let text = line;
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -456,6 +486,7 @@ const PreviewPanel = ({ file, colors }) => {
       }
     });
 
+    flushList();
     return elements;
   };
 
@@ -484,7 +515,7 @@ const PreviewPanel = ({ file, colors }) => {
           color: colors.text,
           fontFamily: colors.fontFamily,
         }}>
-          {file.filename}
+          {file.path ? file.path.replace(/^assistant\//, '') : file.filename}
         </span>
       </div>
 
