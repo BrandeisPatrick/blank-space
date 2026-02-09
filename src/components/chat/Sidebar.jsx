@@ -507,10 +507,17 @@ export const Sidebar = ({
     if (isMobile) onClose?.();
   }, [navigate, isMobile, onClose]);
 
+  const handleSidebarClick = useCallback((e) => {
+    if (e.target.closest('button, input, a')) return;
+    onToggle?.();
+  }, [onToggle]);
+
   return (
     <div
       data-sidebar
+      onClick={handleSidebarClick}
       style={{
+        cursor: 'pointer',
         width: isMobile ? '280px' : sidebarWidth,
         minWidth: isMobile ? '280px' : sidebarWidth,
         height: '100%',
