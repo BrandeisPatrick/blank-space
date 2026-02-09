@@ -725,13 +725,7 @@ async function handleDeleteFolder(req, db, storage, userId, folderPath, res) {
     });
   }
 
-  // Prevent deletion of system folders
-  if (normalizedPath === 'assistant' || normalizedPath === 'code') {
-    return res.status(403).json({
-      error: 'Cannot delete system folder',
-      message: `The '${normalizedPath}' folder is a system folder and cannot be deleted`,
-    });
-  }
+  const isSystemFolder = normalizedPath === 'assistant' || normalizedPath === 'code';
 
   // Validate agent scope
   const scopeResult = validateAgentScope(req, normalizedPath, 'write');
@@ -757,8 +751,8 @@ async function handleDeleteFolder(req, db, storage, userId, folderPath, res) {
     const data = doc.data();
     const filePath = data.path || '';
 
-    // Check if file is under the folder being deleted
-    if (filePath.startsWith(normalizedPath + '/') || filePath === normalizedPath) {
+    // Check if file is under the folder being deleted (contents only, not the folder path itself for system folders)
+    if (filePath.startsWith(normalizedPath + '/')) {
       // Delete from storage
       const storagePath = `users/${userId}/files/${filePath}`;
       deletePromises.push(
@@ -772,19 +766,21 @@ async function handleDeleteFolder(req, db, storage, userId, folderPath, res) {
     }
   });
 
-  // Delete the folder document
-  const folderId = normalizedPath.replace(/\//g, '_');
-  deletePromises.push(
-    db
-      .collection('users')
-      .doc(userId)
-      .collection('folders')
-      .doc(folderId)
-      .delete()
-      .catch(() => {
-        // Folder doc might not exist
-      })
-  );
+  // Don't delete the folder document for system folders (assistant, code)
+  if (!isSystemFolder) {
+    const folderId = normalizedPath.replace(/\//g, '_');
+    deletePromises.push(
+      db
+        .collection('users')
+        .doc(userId)
+        .collection('folders')
+        .doc(folderId)
+        .delete()
+        .catch(() => {
+          // Folder doc might not exist
+        })
+    );
+  }
 
   // Delete any nested folder documents
   const foldersSnapshot = await db

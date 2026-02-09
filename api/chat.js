@@ -6,6 +6,10 @@
 
 import { checkRateLimit } from './utils/_rateLimit.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {

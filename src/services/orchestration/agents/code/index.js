@@ -278,12 +278,18 @@ export async function processWithCodeAgent(userMessage, currentFiles = {}, onUpd
     };
 
   } catch (error) {
-    console.error('❌ [Code Agent] Code generation failed:', error.message);
-    sendUpdate({ type: 'thinking', content: `Error: ${error.message}` });
+    console.error('[Code Agent] Code generation failed:', error.message);
+
+    const isTimeout = error.isTimeout || error.name === 'TimeoutError' || error.message?.includes('timeout');
+    const userMessage = isTimeout
+      ? 'The request timed out. Your prompt may be too complex — try breaking it into smaller steps.'
+      : `Error: ${error.message}`;
+
+    sendUpdate({ type: 'thinking', content: userMessage });
 
     return {
       success: false,
-      error: error.message,
+      error: userMessage,
       fileOperations: []
     };
   }
