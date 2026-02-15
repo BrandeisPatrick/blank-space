@@ -37,13 +37,3 @@ function randomSuffix() {
   return Math.random().toString(36).substring(2, 7);
 }
 
-/**
- * Generate a unique slug with timestamp
- * @param {string} text - Text to slugify
- * @returns {string} Unique slugified text
- */
-export function uniqueSlug(text) {
-  const base = slugify(text);
-  const timestamp = Date.now().toString(36);
-  return `${base}-${timestamp}`;
-}

@@ -653,7 +653,7 @@ export const AppStoreIcon = ({ size = 24, color = "currentColor" }) => (
 // UI ICONS (Centralized - previously duplicated)
 // ============================================
 
-export const CloseIcon = ({ size = 24, color = "#6B7280" }) => (
+export const CloseIcon = ({ size = 24, color = "currentColor" }) => (
   <svg
     width={size}
     height={size}
@@ -669,7 +669,7 @@ export const CloseIcon = ({ size = 24, color = "#6B7280" }) => (
   </svg>
 );
 
-export const MenuIcon = ({ size = 24, color = "#6B7280" }) => (
+export const MenuIcon = ({ size = 24, color = "currentColor" }) => (
   <svg
     width={size}
     height={size}
@@ -686,7 +686,7 @@ export const MenuIcon = ({ size = 24, color = "#6B7280" }) => (
   </svg>
 );
 
-export const PlusIcon = ({ size = 20, color = "#6B7280" }) => (
+export const PlusIcon = ({ size = 20, color = "currentColor" }) => (
   <svg
     width={size}
     height={size}

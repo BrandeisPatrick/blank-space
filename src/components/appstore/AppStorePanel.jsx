@@ -9,6 +9,7 @@ import { getIconById, getIconColorById } from '../artifact/IconPicker';
 import { PreviewPanel } from '../preview/PreviewPanel';
 import { Z_INDEX } from '../../constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { CloseIcon, AppsIcon } from '../icons/icons';
 
 // Category icons
 const TodayIcon = ({ size = 20, color = 'currentColor' }) => (
@@ -23,15 +24,6 @@ const TodayIcon = ({ size = 20, color = 'currentColor' }) => (
 const GamesIcon = ({ size = 20, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 3L20 12L6 21V3Z" fill={color} stroke="none" />
-  </svg>
-);
-
-const AppsIcon = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
   </svg>
 );
 
@@ -80,23 +72,6 @@ const CATEGORIES = [
   { id: 'templates', label: 'Templates', icon: TemplatesIcon },
   { id: 'prototype', label: 'Prototype', icon: PrototypeIcon },
 ];
-
-// Close icon component
-const CloseIcon = ({ size = 24, color = '#6B7280' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
 
 // Get category label for display
 const getCategoryLabel = (category) => {

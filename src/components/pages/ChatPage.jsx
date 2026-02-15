@@ -13,26 +13,8 @@ import { Messages } from '../chat/Messages';
 import { AuthModal } from '../auth/AuthModal';
 import { Modal as SettingsModal } from '../settings/Modal';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { AppsIcon, MenuIcon } from '../icons/icons';
 import { MODEL_TIERS } from '../../services/config/modelConfig';
-
-// Apps icon for top-right navigation
-const AppsIcon = ({ size = 24, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
 
 // Chevron down icon for model dropdown
 const ChevronDownIcon = ({ size = 16, color = "currentColor" }) => (
@@ -64,24 +46,6 @@ const LockIcon = ({ size = 14, color = "currentColor" }) => (
   >
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
-
-// Hamburger menu icon for mobile
-const MenuIcon = ({ size = 24, color = "currentColor" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
   </svg>
 );
 
