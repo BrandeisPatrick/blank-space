@@ -14,8 +14,17 @@ import { slugify } from '../utils/slugify';
 /**
  * Upload an image to Firebase Storage and return the download URL
  */
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
 async function uploadChatImage(userId, image) {
   const { base64, mimeType, filename } = image;
+
+  // Estimate decoded size from base64 length (~3/4 of base64 string)
+  const estimatedBytes = Math.ceil((base64.length * 3) / 4);
+  if (estimatedBytes > MAX_IMAGE_SIZE_BYTES) {
+    throw new Error('Image exceeds 5 MB limit. Please use a smaller image.');
+  }
+
   const ext = mimeType.split('/')[1] || 'png';
   const storagePath = `users/${userId}/chat-images/${Date.now()}-${filename || 'image'}.${ext}`;
   const storageRef = ref(storage, storagePath);
@@ -300,6 +309,20 @@ export const useChat = ({
 
         // Chat intent - no file operations
         if (result.intent === 'chat') {
+          // Attach suggestions to last assistant message
+          if (result.suggestions?.length > 0) {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              for (let i = newMessages.length - 1; i >= 0; i--) {
+                if (newMessages[i].type === 'assistant' && !newMessages[i].isLoading) {
+                  newMessages[i] = { ...newMessages[i], suggestions: result.suggestions };
+                  break;
+                }
+              }
+              messagesRef.current = newMessages;
+              return newMessages;
+            });
+          }
           return { success: true, intent: 'chat' };
         }
 
@@ -368,6 +391,7 @@ export const useChat = ({
             content: successContent,
             thinking: thinkingStepsRef.current.length > 0 ? [...thinkingStepsRef.current] : null,
             thinkingDuration,
+            suggestions: result.suggestions?.length > 0 ? result.suggestions : undefined,
             timestamp: Date.now()
           };
 
@@ -436,6 +460,21 @@ export const useChat = ({
 
         if (result.rateLimit) {
           addRateLimitWarning(result.rateLimit);
+        }
+
+        // Attach suggestions to last assistant message (assistant intent with text-only response)
+        if (result.suggestions?.length > 0) {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            for (let i = newMessages.length - 1; i >= 0; i--) {
+              if (newMessages[i].type === 'assistant' && !newMessages[i].isLoading) {
+                newMessages[i] = { ...newMessages[i], suggestions: result.suggestions };
+                break;
+              }
+            }
+            messagesRef.current = newMessages;
+            return newMessages;
+          });
         }
 
         return { success: true };

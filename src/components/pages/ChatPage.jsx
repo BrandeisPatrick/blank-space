@@ -431,6 +431,8 @@ export const ChatPage = ({
                 <Messages
                   messages={chatMessages}
                   onDebug={handleSend}
+                  onSendSuggestion={(suggestion) => handleSend(suggestion)}
+                  isProcessing={isAIProcessing}
                   isMobile={isMobile}
                 />
               </div>

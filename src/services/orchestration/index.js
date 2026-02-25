@@ -12,6 +12,7 @@ import { processWithChatAgent } from './agents/chat/index.js';
 import { classifyIntent } from '../intentClassifier.js';
 import { AGENT_MODELS } from '../config/apiConfig.js';
 import { getModelForTier } from '../config/modelConfig.js';
+import { generateSuggestions } from './suggestions.js';
 
 /**
  * Process a user message through the appropriate agent
@@ -40,6 +41,8 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
   }
 
   // Route based on intent
+  let result;
+
   if (intent === 'assistant') {
     sendUpdate({
       type: 'intent',
@@ -47,8 +50,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
     });
     console.log(`[Orchestration] Routing to Assistant Agent${images ? ' with images' : ''}`);
     const { fileContext = {} } = options;
-    const result = await processWithAssistantAgent(userMessage, fileContext, onUpdate, { images, conversationHistory });
-    return { ...result, intent };
+    result = await processWithAssistantAgent(userMessage, fileContext, onUpdate, { images, conversationHistory });
 
   } else if (intent === 'chat') {
     sendUpdate({
@@ -56,8 +58,7 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       content: ['Agent: Chat', `LLM: ${AGENT_MODELS.chat}`]
     });
     console.log(`[Orchestration] Routing to Chat Agent${images ? ' with images' : ''}`);
-    const result = await processWithChatAgent(userMessage, onUpdate, options, images);
-    return { ...result, intent };
+    result = await processWithChatAgent(userMessage, onUpdate, options, images);
 
   } else {
     // Code Agent → code generation (create/debug)
@@ -68,9 +69,18 @@ export async function processMessage(userMessage, currentFiles = {}, onUpdate = 
       content: [`Agent: ${agentName}`, `LLM: ${llmModel}`]
     });
     console.log(`[Orchestration] Routing to Code Agent (${intent}, tier: ${modelTier})${images ? ' with images' : ''}`);
-    const result = await processWithCodeAgent(userMessage, currentFiles, onUpdate, { ...options, images });
-    return { ...result, intent };
+    result = await processWithCodeAgent(userMessage, currentFiles, onUpdate, { ...options, images });
   }
+
+  // Generate follow-up suggestions (non-blocking on failure)
+  // Code agent has no .response field — fall back to plan summary or file list
+  const responseContent = result.response
+    || (result.plan?.summary ? `Built: ${result.plan.summary}` : '')
+    || result.fileOperations?.map(f => f.filename).join(', ')
+    || '';
+  const suggestions = await generateSuggestions(userMessage, responseContent, intent);
+
+  return { ...result, intent, suggestions };
 }
 
 export default { processMessage };
