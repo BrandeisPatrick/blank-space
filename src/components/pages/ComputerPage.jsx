@@ -15,6 +15,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { PreviewWindow } from '../ui/PreviewWindow';
 import { Sidebar } from '../chat/Sidebar';
 import { MenuIcon } from '../icons/icons';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { LAYOUT, SIZES } from '../../constants';
 
 export const ComputerPage = ({
@@ -35,6 +36,7 @@ export const ComputerPage = ({
   const { projects, loadProject, deleteProject, activeProject, activeProjectSlug, clearActiveProject } = useFileSystem();
   const [isEditMode, setIsEditMode] = useState(false);
   const [browserWindowVisible, setBrowserWindowVisible] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { slug, name }
   const isMobile = useIsMobile();
 
   // Sidebar state (same pattern as ChatPage)
@@ -75,11 +77,16 @@ export const ComputerPage = ({
 
   // Handle project deletion
   const handleDeleteProject = (projectSlug, projectName) => {
-    if (window.confirm(`Delete "${projectName}"? This cannot be undone.`)) {
-      deleteProject(projectSlug);
+    setDeleteConfirm({ slug: projectSlug, name: projectName });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteProject(deleteConfirm.slug);
       if (projects.length <= 1) {
         setIsEditMode(false);
       }
+      setDeleteConfirm(null);
     }
   };
 
@@ -304,6 +311,17 @@ export const ComputerPage = ({
 
       {/* Auth Modal */}
       <AuthModal />
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Delete App"
+        message={deleteConfirm ? `Delete "${deleteConfirm.name}"? This cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 };

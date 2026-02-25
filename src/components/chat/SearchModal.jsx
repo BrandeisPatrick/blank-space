@@ -6,6 +6,7 @@ import { useConversation } from '../../contexts/ConversationContext';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { getTheme } from '../../styles/theme';
 import { SearchIcon, ChatIcon, CloseIcon, AIIcon, TrashIcon } from '../icons/icons';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 // Constants
 const MS_PER_DAY = 86400000;
@@ -169,6 +170,7 @@ export const SearchModal = ({ isOpen, onClose, onSelectConversation, onCreateNew
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConvId, setSelectedConvId] = useState(null);
   const [isActionsExpanded, setIsActionsExpanded] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Use escape key hook
   useEscapeKey(onClose, isOpen);
@@ -184,14 +186,18 @@ export const SearchModal = ({ isOpen, onClose, onSelectConversation, onCreateNew
   }), [theme]);
 
   // Memoized handlers
-  const handleDeleteConversation = useCallback(async (convId) => {
-    if (window.confirm('Delete this conversation?')) {
-      await deleteConversation(convId);
-      if (selectedConvId === convId) {
-        setSelectedConvId(null);
-      }
+  const handleDeleteConversation = useCallback((convId) => {
+    setDeleteConfirm(convId);
+  }, []);
+
+  const confirmDeleteConversation = useCallback(async () => {
+    if (!deleteConfirm) return;
+    await deleteConversation(deleteConfirm);
+    if (selectedConvId === deleteConfirm) {
+      setSelectedConvId(null);
     }
-  }, [deleteConversation, selectedConvId]);
+    setDeleteConfirm(null);
+  }, [deleteConversation, selectedConvId, deleteConfirm]);
 
   const handleConversationClick = useCallback((conv) => {
     setSelectedConvId(conv.id);
@@ -228,6 +234,7 @@ export const SearchModal = ({ isOpen, onClose, onSelectConversation, onCreateNew
       setSearchQuery('');
       setSelectedConvId(null);
       setIsActionsExpanded(false);
+      setDeleteConfirm(null);
     }
   }, [isOpen]);
 
@@ -494,6 +501,17 @@ export const SearchModal = ({ isOpen, onClose, onSelectConversation, onCreateNew
           </div>
         </div>
       </div>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Delete Conversation"
+        message="Delete this conversation? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteConversation}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>,
     document.body
   );
