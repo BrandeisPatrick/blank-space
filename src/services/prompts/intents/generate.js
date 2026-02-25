@@ -156,9 +156,8 @@ ${errors}
 export function buildGeneratePrompt(options = {}) {
   const {
     currentFiles = {},
-    aiColorPalette = 'matchWallpaper',
+    aiColorPalette = 'dark-professional',
     aiUIStyle = 'glassmorphism',
-    wallpaperTheme = 'starry',
     isDarkTheme = true
   } = options;
 
@@ -206,7 +205,6 @@ Before calling write(), verify:
   const stylePrompt = buildStylePrompt({
     colorPaletteId: aiColorPalette,
     uiStyleId: aiUIStyle,
-    wallpaperTheme,
     isDarkTheme
   });
 

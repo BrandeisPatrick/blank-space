@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -7,7 +7,6 @@ import { getTheme } from '../../styles/theme';
 import { createGlassEffect, getResponsiveSpacing } from '../../styles/componentStyles';
 import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { BackgroundWaves, StarryBackground } from '../wallpaper';
 import { SuggestionPill } from '../ui/SuggestionPill';
 import { ArtifactCard } from '../artifact/ArtifactCard';
 import { SettingsAppCard } from '../settings/SettingsAppCard';
@@ -17,17 +16,19 @@ import { ChatAppPanel } from '../chatapp/ChatAppPanel';
 import { AppStoreAppCard } from '../appstore/AppStoreAppCard';
 import { AppStorePanel } from '../appstore/AppStorePanel';
 import { AuthModal } from './AuthModal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { EnhancedChatInput } from '../chat/EnhancedChatInput';
 import { LAYOUT, LABELS, COLORS, SIZES } from '../../constants';
 
 export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, activeArtifact, isEditingArtifact, onShowLockScreen }) => {
-  const { mode, theme: selectedTheme, currentTheme } = useTheme();
+  const { mode } = useTheme();
   const { openAuthModal } = useSettings();
   const { user, signOut } = useAuth();
   const theme = getTheme(mode);
   const { projects, loadProject, deleteProject } = useFileSystem();
   const [selectedSuggestionPillText, setSelectedSuggestionPillText] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const isMobile = useIsMobile();
 
   // Enter edit mode (iOS-style jiggle mode for deletion)
@@ -41,15 +42,18 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
   };
 
   // Handle project deletion
-  const handleDeleteProject = (projectSlug, projectName) => {
-    if (window.confirm(`Delete "${projectName}"? This cannot be undone.`)) {
-      deleteProject(projectSlug);
-      // Exit edit mode if no more projects
-      if (projects.length <= 1) {
-        setIsEditMode(false);
-      }
+  const handleDeleteProject = useCallback((projectSlug, projectName) => {
+    setDeleteConfirm({ slug: projectSlug, name: projectName });
+  }, []);
+
+  const confirmDeleteProject = useCallback(() => {
+    if (!deleteConfirm) return;
+    deleteProject(deleteConfirm.slug);
+    if (projects.length <= 1) {
+      setIsEditMode(false);
     }
-  };
+    setDeleteConfirm(null);
+  }, [deleteConfirm, deleteProject, projects.length]);
 
   // Glass effect for header
   const glassEffectStyle = createGlassEffect(theme, { state: 'default' });
@@ -78,8 +82,7 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
       width: '100vw',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: currentTheme.backgroundColor,
-      backgroundImage: currentTheme.gradient,
+      backgroundColor: theme.colors.bg.primary,
       color: theme.colors.text.primary,
       fontFamily: theme.typography.fontFamily.sans,
     }}>
@@ -175,13 +178,6 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
         paddingBottom: LAYOUT.LANDING_MAIN_PADDING_BOTTOM,
         position: 'relative',
       }}>
-        {/* Background Decorations */}
-        {currentTheme.variant === 'stars' ? (
-          <StarryBackground starColors={currentTheme.starColors} />
-        ) : (
-          <BackgroundWaves variant="diagonal" preset={selectedTheme} />
-        )}
-
         {/* Content Container */}
         <div style={{
           width: '100%',
@@ -323,6 +319,17 @@ export const LandingPage = ({ onTryNow, onSignIn, modelTier, onChangeModelTier, 
 
       {/* Auth Modal */}
       <AuthModal onAuthSuccess={onSignIn} />
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Delete Project"
+        message={deleteConfirm ? `Delete "${deleteConfirm.name}"? This cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 };

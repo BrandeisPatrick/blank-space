@@ -9,7 +9,7 @@
       "destination": "https://blank-space-29ea4.firebaseapp.com/__/auth/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|@|src/|node_modules/|images/|icons/|docs/).*)",
       "destination": "/index.html"
     }
   ]
