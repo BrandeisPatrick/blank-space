@@ -234,6 +234,6 @@ function handleError(res, error) {
 
   return res.status(500).json({
     error: 'Internal server error',
-    message: error.message
+    message: 'An unexpected error occurred. Please try again.'
   });
 }

@@ -11,6 +11,7 @@ import { getTheme } from '../../styles/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { FolderIcon, FileIcon, ChevronIcon, UploadIcon, BackIcon, TrashIcon } from './fileIcons';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 // Tree Item Component - Single row in the tree
 const TreeItem = ({
@@ -367,8 +368,13 @@ const PreviewPanel = ({ file, colors }) => {
       // Regular paragraph
       else {
         flushList();
-        // Handle inline formatting (bold, italic, code)
-        let text = line;
+        // Escape HTML entities first to prevent XSS, then apply inline formatting
+        let text = line
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
         text = text.replace(/`(.+?)`/g, '<code style="background: rgba(128,128,128,0.2); padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>');
@@ -488,6 +494,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   const [expandedFolders, setExpandedFolders] = useState(new Set(['/']));
   const [selectedPath, setSelectedPath] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Colors and typography - matches sidebar styling
   const colors = {
@@ -570,7 +577,7 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
   }, [onUpload, selectedPath]);
 
   // Handle folder deletion
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     if (!selectedPath) return;
 
     // Don't allow deleting system folders
@@ -580,26 +587,29 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
     }
 
     const itemName = selectedPath.split('/').pop();
-    if (window.confirm(`Delete "${itemName}" and all its contents?`)) {
-      try {
-        await deleteFolder(selectedPath);
-        // Remove deleted folder and all its children from expandedFolders
-        setExpandedFolders((prev) => {
-          const next = new Set(prev);
-          for (const path of prev) {
-            if (path === selectedPath || path.startsWith(selectedPath + '/')) {
-              next.delete(path);
-            }
+    setDeleteConfirm({ path: selectedPath, name: itemName });
+  }, [selectedPath]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteConfirm) return;
+    try {
+      await deleteFolder(deleteConfirm.path);
+      setExpandedFolders((prev) => {
+        const next = new Set(prev);
+        for (const path of prev) {
+          if (path === deleteConfirm.path || path.startsWith(deleteConfirm.path + '/')) {
+            next.delete(path);
           }
-          return next;
-        });
-        setSelectedPath(null);
-        setSelectedFile(null);
-      } catch (err) {
-        console.error('Failed to delete:', err);
-      }
+        }
+        return next;
+      });
+      setSelectedPath(null);
+      setSelectedFile(null);
+    } catch (err) {
+      console.error('Failed to delete:', err);
     }
-  }, [selectedPath, deleteFolder]);
+    setDeleteConfirm(null);
+  }, [deleteConfirm, deleteFolder]);
 
   // Mobile navigation state
   const [mobilePath, setMobilePath] = useState('/');
@@ -916,6 +926,17 @@ const FileExplorer = ({ expanded = true, onUpload }) => {
           <PreviewPanel file={selectedFile} colors={colors} />
         )}
       </div>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Delete Item"
+        message={deleteConfirm ? `Delete "${deleteConfirm.name}" and all its contents?` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 };

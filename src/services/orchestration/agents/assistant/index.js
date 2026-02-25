@@ -173,7 +173,19 @@ export async function processWithAssistantAgent(userMessage, fileContext = {}, o
       // Execute all tool calls
       for (const toolCall of toolCalls) {
         const toolName = toolCall.function.name;
-        const params = JSON.parse(toolCall.function.arguments || '{}');
+
+        let params;
+        try {
+          params = JSON.parse(toolCall.function.arguments || '{}');
+        } catch (parseError) {
+          console.warn(`[Assistant Agent] Failed to parse arguments for ${toolName}:`, parseError.message);
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: JSON.stringify({ error: `Invalid JSON in tool arguments: ${parseError.message}. Please retry with valid JSON.` })
+          });
+          continue;
+        }
 
         const toolResult = await executeFunction(toolName, params, executor, toolContext);
         const resultSummary = formatToolResult(toolName, toolResult);

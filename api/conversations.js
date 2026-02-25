@@ -17,14 +17,23 @@ import { verifyAuth, getFirestore } from './middleware/_auth.js';
 function validateMessage(msg) {
   if (!msg || typeof msg !== 'object') return null;
 
-  // Ensure required fields with safe defaults
-  return {
+  // Explicit allowlist of known message fields
+  const validated = {
     id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     type: msg.type || msg.role || 'user',
     content: typeof msg.content === 'string' ? msg.content : '',
     timestamp: msg.timestamp || Date.now(),
-    ...msg, // Preserve additional fields
   };
+
+  // Optional fields — only copy if present
+  if (msg.role) validated.role = msg.role;
+  if (msg.images) validated.images = msg.images;
+  if (msg.thinking) validated.thinking = msg.thinking;
+  if (msg.thinkingDuration != null) validated.thinkingDuration = msg.thinkingDuration;
+  if (msg.isLoading != null) validated.isLoading = msg.isLoading;
+  if (msg.error) validated.error = msg.error;
+
+  return validated;
 }
 
 /**
