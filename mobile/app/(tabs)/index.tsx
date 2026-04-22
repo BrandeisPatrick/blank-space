@@ -5,15 +5,19 @@ import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 
 import { Composer } from '@/components/chat/Composer';
 import { MessageList, type Message } from '@/components/chat/MessageList';
+import { ModelTierPill } from '@/components/chat/ModelTierPill';
 import { ThemedView } from '@/components/themed-view';
 import { useConversation } from '../../../src/contexts/ConversationContext';
+import { useLocalStorage } from '../../../src/hooks/useLocalStorage';
+import { MODEL_TIERS, getModelForTier } from '../../../src/services/config/modelConfig';
 
 const API_URL = 'https://www.blankspace.build/api/chat';
-const MODEL = 'gpt-5-mini';
+type TierKey = keyof typeof MODEL_TIERS;
 
 export default function ChatScreen() {
   const { messages, addMessage, setMessages } = useConversation();
   const [sending, setSending] = useState(false);
+  const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
   const tabBarHeight = useBottomTabBarHeight();
 
   const handleSend = async (text: string) => {
@@ -41,7 +45,7 @@ export default function ChatScreen() {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL, messages: history }),
+        body: JSON.stringify({ model: getModelForTier(modelTier), messages: history }),
       });
 
       if (!res.ok) {
@@ -77,6 +81,7 @@ export default function ChatScreen() {
         >
           <MessageList messages={messages as Message[]} />
           <View style={{ paddingBottom: tabBarHeight }}>
+            <ModelTierPill value={modelTier} onChange={setModelTier} />
             <Composer onSend={handleSend} disabled={sending} />
           </View>
         </KeyboardAvoidingView>
