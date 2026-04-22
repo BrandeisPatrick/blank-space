@@ -1,8 +1,8 @@
-import { Editor } from '@monaco-editor/react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getTheme } from '../../styles/theme'
 import { useState, useEffect } from 'react'
 import { DocumentIcon } from '../icons'
+import MonacoEditor from '../dom/MonacoEditor'
 
 export const EditorPanel = ({ files, activeFile: initialActiveFile, onFileChange }) => {
   const { mode } = useTheme()
@@ -106,36 +106,12 @@ export const EditorPanel = ({ files, activeFile: initialActiveFile, onFileChange
 
       {/* Editor */}
       <div style={{ flex: 1, position: 'relative' }}>
-        <Editor
-          key={selectedFile}
-          height="100%"
-          defaultLanguage={getLanguage(selectedFile)}
+        <MonacoEditor
+          instanceKey={selectedFile}
           language={getLanguage(selectedFile)}
           value={files[selectedFile] || ''}
           onChange={(value) => onFileChange(selectedFile, value)}
-          theme={mode === 'dark' ? 'vs-dark' : 'vs-light'}
-          options={{
-            fontSize: 14,
-            fontFamily: 'Monaco, Menlo, "Ubuntu Mono", "Consolas", monospace',
-            lineNumbers: 'on',
-            roundedSelection: false,
-            scrollBeyondLastLine: false,
-            readOnly: false,
-            automaticLayout: true,
-            minimap: { enabled: false },
-            scrollbar: {
-              vertical: 'visible',
-              horizontal: 'visible',
-              useShadows: false,
-              verticalHasArrows: false,
-              horizontalHasArrows: false,
-            },
-            padding: { top: 16, bottom: 16 },
-            bracketPairColorization: { enabled: true },
-            folding: true,
-            lineDecorationsWidth: 10,
-            lineNumbersMinChars: 3,
-          }}
+          mode={mode}
         />
       </div>
     </div>

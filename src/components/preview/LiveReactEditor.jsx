@@ -1,17 +1,9 @@
-import {
-  Sandpack,
-  SandpackProvider,
-  SandpackLayout,
-  SandpackCodeEditor,
-  SandpackPreview,
-  SandpackConsole,
-  useSandpack,
-  useSandpackConsole
-} from "@codesandbox/sandpack-react";
+import { Sandpack } from "@codesandbox/sandpack-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getTheme } from "../../styles/theme";
 import SandpackErrorBoundary from "./SandpackErrorBoundary";
+import SandpackPreview from "../dom/SandpackPreview";
 import "../../styles/LiveReactEditor.css";
 
 // Loading wrapper component
@@ -98,40 +90,6 @@ const SandpackLoadingWrapper = ({ children }) => {
       `}</style>
     </>
   );
-};
-
-// Error listener component that must be inside SandpackProvider
-const ErrorListener = ({ onError }) => {
-  const { logs } = useSandpackConsole({ resetOnPreviewRestart: true });
-
-  useEffect(() => {
-    const errors = logs.filter(log => log.level === 'error');
-    if (errors.length > 0) {
-      const latestError = errors[errors.length - 1];
-
-      // Parse error message to extract file and line info
-      const errorData = {
-        message: latestError.data?.[0] || 'Unknown error',
-        file: null,
-        line: null,
-        column: null
-      };
-
-      // Try to extract file/line info from error message
-      const fileMatch = latestError.data?.[0]?.match(/([^/]+\.(jsx?|tsx?)):(\d+):(\d+)/);
-      if (fileMatch) {
-        errorData.file = fileMatch[1];
-        errorData.line = parseInt(fileMatch[3]);
-        errorData.column = parseInt(fileMatch[4]);
-      }
-
-      if (onError) {
-        onError(errorData);
-      }
-    }
-  }, [logs, onError]);
-
-  return null;
 };
 
 export const LiveReactEditor = ({
@@ -309,47 +267,13 @@ button:hover {
 
         <div className={`editor-wrapper layout-${selectedLayout}`} style={{ position: 'relative' }}>
           <SandpackLoadingWrapper>
-            <SandpackProvider
-              template="react"
-              theme={selectedTheme}
+            <SandpackPreview
               files={files}
-              options={{
-                showNavigator: false,
-                showTabs: true,
-                showLineNumbers: true,
-                showInlineErrors: true,
-                wrapContent: true,
-                editorHeight: selectedLayout === "vertical" ? 400 : 800,
-                bundlerURL: "https://sandpack-bundler.codesandbox.io",
-                skipEval: false,
-                recompileMode: "delayed",
-                recompileDelay: 500,
-              }}
-            >
-              <SandpackLayout className={selectedLayout === "vertical" ? "vertical-layout" : ""}>
-                <SandpackCodeEditor
-                  showTabs
-                  showLineNumbers
-                  showInlineErrors
-                  wrapContent
-                  style={{ height: selectedLayout === "vertical" ? 400 : 800, flex: 1 }}
-                />
-                <SandpackPreview
-                  showOpenInCodeSandbox={true}
-                  showRefreshButton={true}
-                  showRestartButton={true}
-                  style={{ height: selectedLayout === "vertical" ? 400 : 800, flex: 1 }}
-                />
-              </SandpackLayout>
-              {showConsolePanel && (
-                <SandpackConsole
-                  showHeader
-                  resetOnPreviewRestart
-                  style={{ height: 200 }}
-                />
-              )}
-              <ErrorListener onError={onError} />
-            </SandpackProvider>
+              theme={selectedTheme}
+              layout={selectedLayout}
+              showConsole={showConsolePanel}
+              onError={onError}
+            />
           </SandpackLoadingWrapper>
         </div>
       </div>
