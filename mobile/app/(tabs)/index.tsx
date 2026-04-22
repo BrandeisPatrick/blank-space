@@ -1,40 +1,86 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
+import { Composer } from '@/components/chat/Composer';
+import { MessageList, type Message } from '@/components/chat/MessageList';
 import { ThemedView } from '@/components/themed-view';
 
-export default function HomeScreen() {
+const API_URL = 'https://www.blankspace.build/api/chat';
+const MODEL = 'gpt-5-mini';
+
+export default function ChatScreen() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async (text: string) => {
+    const userMsg: Message = {
+      id: `${Date.now()}-u`,
+      role: 'user',
+      content: text,
+    };
+    const placeholderId = `${Date.now()}-a`;
+    const placeholder: Message = {
+      id: placeholderId,
+      role: 'assistant',
+      content: 'Thinking…',
+    };
+
+    setMessages((prev) => [...prev, userMsg, placeholder]);
+    setSending(true);
+
+    try {
+      const history = [...messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: MODEL, messages: history }),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+        throw new Error(errBody.message || `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      const reply = data?.choices?.[0]?.message?.content ?? '(empty response)';
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === placeholderId ? { ...m, content: reply } : m)),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === placeholderId ? { ...m, content: `⚠️ ${msg}` } : m,
+        ),
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.content}>
-        <ThemedText type="title" style={styles.brand}>
-          blank space
-        </ThemedText>
-        <ThemedText style={styles.subtitle}>
-          iOS · Phase 1 scaffold
-        </ThemedText>
-      </View>
+    <ThemedView style={styles.root}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <KeyboardAvoidingView
+          style={styles.kav}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <MessageList messages={messages} />
+          <Composer onSend={handleSend} disabled={sending} />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  content: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  brand: {
-    fontSize: 40,
-    lineHeight: 48,
-    fontWeight: '600',
-  },
-  subtitle: {
-    opacity: 0.6,
-  },
+  root: { flex: 1 },
+  safe: { flex: 1 },
+  kav: { flex: 1 },
 });
