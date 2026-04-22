@@ -7,7 +7,7 @@ import type { DOMProps } from 'expo/dom';
 import type { FC } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import SandpackPreviewRaw from '../../../src/components/dom/SandpackPreview';
+import SandpackPreviewRaw from './SandpackPreviewNative';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import MonacoEditorRaw from '../../../src/components/dom/MonacoEditor';
 
@@ -23,9 +23,7 @@ export type SandpackPreviewError = {
 export type SandpackPreviewProps = {
   files: SandpackFiles;
   theme?: 'light' | 'dark' | string;
-  layout?: 'horizontal' | 'vertical';
-  showConsole?: boolean;
-  editorHeight?: number;
+  height?: number;
   onError?: (err: SandpackPreviewError) => void;
   dom?: DOMProps;
 };

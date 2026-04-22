@@ -14,8 +14,10 @@ import { useFileSystem } from '../../../src/contexts/FileSystemContext';
 import { getTheme } from '../../../src/styles/theme';
 
 const SANDPACK_DEMO_FILES = {
-  '/App.js': `export default function App() {
-  const [count, setCount] = React.useState(0);
+  '/App.js': `import { useState } from 'react';
+
+export default function App() {
+  const [count, setCount] = useState(0);
   return (
     <div style={{ fontFamily: 'system-ui', padding: 24, textAlign: 'center' }}>
       <h1>Hello from Sandpack</h1>

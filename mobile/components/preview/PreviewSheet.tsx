@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SandpackPreview, type SandpackFiles, type SandpackPreviewError } from '@/components/dom';
@@ -27,6 +27,8 @@ export function PreviewSheet({
 }) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const { height: windowH } = useWindowDimensions();
+  const previewHeight = Math.max(400, windowH - 140);
 
   return (
     <Modal
@@ -56,12 +58,14 @@ export function PreviewSheet({
           <SandpackPreview
             files={files}
             theme={mode}
-            layout="vertical"
-            showConsole={false}
+            height={previewHeight}
             onError={(err: PreviewError) => {
               onError?.(err);
             }}
-            dom={{ style: styles.dom, matchContents: false }}
+            dom={{
+              style: { flex: 1, alignSelf: 'stretch', height: previewHeight },
+              matchContents: false,
+            }}
           />
         </View>
 
