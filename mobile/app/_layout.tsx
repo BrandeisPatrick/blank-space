@@ -3,6 +3,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { AuthProvider } from '../../src/contexts/AuthContext';
+import { ConversationProvider } from '../../src/contexts/ConversationContext';
 import { ThemeProvider as AppThemeProvider, useTheme } from '../../src/contexts/ThemeContext';
 
 export const unstable_settings = {
@@ -25,7 +27,11 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootStack />
+      <AuthProvider>
+        <ConversationProvider>
+          <RootStack />
+        </ConversationProvider>
+      </AuthProvider>
     </AppThemeProvider>
   );
 }

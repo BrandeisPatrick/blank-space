@@ -1,36 +1,40 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 
 import { Composer } from '@/components/chat/Composer';
 import { MessageList, type Message } from '@/components/chat/MessageList';
 import { ThemedView } from '@/components/themed-view';
+import { useConversation } from '../../../src/contexts/ConversationContext';
 
 const API_URL = 'https://www.blankspace.build/api/chat';
 const MODEL = 'gpt-5-mini';
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, addMessage, setMessages } = useConversation();
   const [sending, setSending] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
 
   const handleSend = async (text: string) => {
-    const userMsg: Message = {
+    const userMsg = {
       id: `${Date.now()}-u`,
-      role: 'user',
+      role: 'user' as const,
       content: text,
     };
     const placeholderId = `${Date.now()}-a`;
-    const placeholder: Message = {
+    const placeholder = {
       id: placeholderId,
-      role: 'assistant',
+      role: 'assistant' as const,
       content: 'Thinking…',
     };
 
-    setMessages((prev) => [...prev, userMsg, placeholder]);
+    await addMessage(userMsg);
+    await addMessage(placeholder);
     setSending(true);
 
     try {
-      const history = [...messages, userMsg].map((m) => ({
+      const history = [...(messages as Message[]), userMsg].map((m) => ({
         role: m.role,
         content: m.content,
       }));
@@ -48,12 +52,12 @@ export default function ChatScreen() {
       const data = await res.json();
       const reply = data?.choices?.[0]?.message?.content ?? '(empty response)';
 
-      setMessages((prev) =>
+      await setMessages((prev: Message[]) =>
         prev.map((m) => (m.id === placeholderId ? { ...m, content: reply } : m)),
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Network error';
-      setMessages((prev) =>
+      await setMessages((prev: Message[]) =>
         prev.map((m) =>
           m.id === placeholderId ? { ...m, content: `⚠️ ${msg}` } : m,
         ),
@@ -71,8 +75,10 @@ export default function ChatScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
-          <MessageList messages={messages} />
-          <Composer onSend={handleSend} disabled={sending} />
+          <MessageList messages={messages as Message[]} />
+          <View style={{ paddingBottom: tabBarHeight }}>
+            <Composer onSend={handleSend} disabled={sending} />
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>

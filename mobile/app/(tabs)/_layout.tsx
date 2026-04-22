@@ -1,48 +1,41 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
+import { withLayoutContext } from 'expo-router';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const { Navigator } = createNativeBottomTabNavigator();
+const NativeTabs = withLayoutContext(Navigator);
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <Tabs
+    <NativeTabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
       }}>
-      <Tabs.Screen
+      <NativeTabs.Screen
         name="index"
         options={{
           title: 'Chat',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />
-          ),
+          tabBarIcon: () => ({ sfSymbol: 'bubble.left.and.bubble.right.fill' }),
         }}
       />
-      <Tabs.Screen
+      <NativeTabs.Screen
         name="apps"
         options={{
           title: 'Apps',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="square.grid.2x2.fill" color={color} />
-          ),
+          tabBarIcon: () => ({ sfSymbol: 'square.grid.2x2.fill' }),
         }}
       />
-      <Tabs.Screen
+      <NativeTabs.Screen
         name="files"
         options={{
           title: 'Files',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="folder.fill" color={color} />
-          ),
+          tabBarIcon: () => ({ sfSymbol: 'folder.fill' }),
         }}
       />
-    </Tabs>
+    </NativeTabs>
   );
 }
