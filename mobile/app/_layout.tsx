@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '../../src/contexts/AuthContext';
 import { ConversationProvider } from '../../src/contexts/ConversationContext';
+import { FileSystemProvider } from '../../src/contexts/FileSystemContext';
 import { ThemeProvider as AppThemeProvider, useTheme } from '../../src/contexts/ThemeContext';
 
 export const unstable_settings = {
@@ -29,7 +30,9 @@ export default function RootLayout() {
     <AppThemeProvider>
       <AuthProvider>
         <ConversationProvider>
-          <RootStack />
+          <FileSystemProvider>
+            <RootStack />
+          </FileSystemProvider>
         </ConversationProvider>
       </AuthProvider>
     </AppThemeProvider>
