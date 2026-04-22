@@ -3,7 +3,9 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 
+import { ChatHeader } from '@/components/chat/ChatHeader';
 import { Composer } from '@/components/chat/Composer';
+import { ConversationListSheet } from '@/components/chat/ConversationListSheet';
 import { MessageList, type Message } from '@/components/chat/MessageList';
 import { ModelTierPill } from '@/components/chat/ModelTierPill';
 import { ThemedView } from '@/components/themed-view';
@@ -15,9 +17,19 @@ const API_URL = 'https://www.blankspace.build/api/chat';
 type TierKey = keyof typeof MODEL_TIERS;
 
 export default function ChatScreen() {
-  const { messages, addMessage, setMessages } = useConversation();
+  const {
+    messages,
+    addMessage,
+    setMessages,
+    conversations,
+    activeConversationId,
+    createConversation,
+    switchConversation,
+    deleteConversation,
+  } = useConversation();
   const [sending, setSending] = useState(false);
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
+  const [listOpen, setListOpen] = useState(false);
   const tabBarHeight = useBottomTabBarHeight();
 
   const handleSend = async (text: string) => {
@@ -74,6 +86,10 @@ export default function ChatScreen() {
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <ChatHeader
+          onOpenList={() => setListOpen(true)}
+          onNewChat={() => createConversation()}
+        />
         <KeyboardAvoidingView
           style={styles.kav}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -86,6 +102,15 @@ export default function ChatScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      <ConversationListSheet
+        visible={listOpen}
+        conversations={conversations}
+        activeId={activeConversationId}
+        onClose={() => setListOpen(false)}
+        onSelect={switchConversation}
+        onDelete={deleteConversation}
+        onNew={createConversation}
+      />
     </ThemedView>
   );
 }
