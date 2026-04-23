@@ -1,5 +1,6 @@
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -32,6 +33,26 @@ export function ConversationListSheet({
 }) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+
+  const confirmDelete = (item: ConversationRow) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: item.title || 'Conversation',
+        message: 'Delete this conversation? This cannot be undone.',
+        options: ['Delete', 'Cancel'],
+        destructiveButtonIndex: 0,
+        cancelButtonIndex: 1,
+        userInterfaceStyle: mode,
+      },
+      (idx) => {
+        if (idx === 0) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          onDelete(item.id);
+        }
+      },
+    );
+  };
 
   return (
     <Modal
@@ -100,7 +121,7 @@ export function ConversationListSheet({
                     {item.messageCount} {item.messageCount === 1 ? 'message' : 'messages'}
                   </ThemedText>
                 </View>
-                <Pressable onPress={() => onDelete(item.id)} hitSlop={10} style={styles.deleteBtn}>
+                <Pressable onPress={() => confirmDelete(item)} hitSlop={10} style={styles.deleteBtn}>
                   <IconSymbol size={18} name="trash" color={theme.colors.text.tertiary} />
                 </Pressable>
               </Pressable>
