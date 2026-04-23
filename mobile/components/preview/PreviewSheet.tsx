@@ -1,5 +1,6 @@
 import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { SandpackPreview, type SandpackFiles, type SandpackPreviewError } from '@/components/dom';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -71,7 +72,10 @@ export function PreviewSheet({
 
         {onFixBug && (
           <Pressable
-            onPress={() => onFixBug({ message: 'User requested fix' })}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onFixBug({ message: 'User requested fix' });
+            }}
             style={({ pressed }) => [
               styles.fixBtn,
               {

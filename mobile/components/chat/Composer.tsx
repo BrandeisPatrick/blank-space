@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '../../../src/contexts/ThemeContext';
@@ -29,6 +30,7 @@ export function Composer({
 
   const handleSend = () => {
     if (!canSend) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSend(trimmed);
     setValue('');
   };

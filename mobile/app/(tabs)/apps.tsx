@@ -3,6 +3,7 @@ import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View, useWindowDimensi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MonacoEditorSheet } from '@/components/editor/MonacoEditorSheet';
@@ -90,6 +91,7 @@ export default function AppsScreen() {
 
   const openProjectPreview = async (item: ProjectCard) => {
     if (!item.slug) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await loadProject(item.slug);
     const fileMap = await getFilesByProjectSlug(item.slug);
     const hasFiles = fileMap && Object.keys(fileMap).length > 0;
@@ -145,6 +147,7 @@ export default function AppsScreen() {
   const cellSize = Math.floor((width - H_PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
 
   const confirmDelete = (item: ProjectCard) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title: item.name || 'Project',
@@ -155,7 +158,10 @@ export default function AppsScreen() {
         userInterfaceStyle: mode,
       },
       (idx) => {
-        if (idx === 0) deleteProject(item.id);
+        if (idx === 0) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          deleteProject(item.id);
+        }
       },
     );
   };
