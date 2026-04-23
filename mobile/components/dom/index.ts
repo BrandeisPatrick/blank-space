@@ -9,7 +9,7 @@ import type { FC } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import SandpackPreviewRaw from './SandpackPreviewNative';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import MonacoEditorRaw from '../../../src/components/dom/MonacoEditor';
+import MonacoEditorRaw from './MonacoEditorNative';
 
 export type SandpackFiles = Record<string, string | { code: string }>;
 
