@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
+import { useLocalSearchParams } from 'expo-router';
 
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { Composer } from '@/components/chat/Composer';
@@ -30,7 +31,17 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
   const [listOpen, setListOpen] = useState(false);
+  const [composerPrefill, setComposerPrefill] = useState('');
   const tabBarHeight = useBottomTabBarHeight();
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const consumedPrefillRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof prefill === 'string' && prefill.length > 0 && prefill !== consumedPrefillRef.current) {
+      consumedPrefillRef.current = prefill;
+      setComposerPrefill(prefill);
+    }
+  }, [prefill]);
 
   const handleSend = async (text: string) => {
     const userMsg = {
@@ -98,7 +109,7 @@ export default function ChatScreen() {
           <MessageList messages={messages as Message[]} />
           <View style={{ paddingBottom: tabBarHeight }}>
             <ModelTierPill value={modelTier} onChange={setModelTier} />
-            <Composer onSend={handleSend} disabled={sending} />
+            <Composer onSend={handleSend} disabled={sending} initialValue={composerPrefill} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>

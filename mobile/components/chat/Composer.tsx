@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,13 +8,21 @@ import { getTheme } from '../../../src/styles/theme';
 export function Composer({
   onSend,
   disabled,
+  initialValue,
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
+  initialValue?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue ?? '');
   const { mode } = useTheme();
   const theme = getTheme(mode);
+
+  useEffect(() => {
+    if (initialValue !== undefined && initialValue !== '') {
+      setValue(initialValue);
+    }
+  }, [initialValue]);
 
   const trimmed = value.trim();
   const canSend = trimmed.length > 0 && !disabled;

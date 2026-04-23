@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MonacoEditorSheet } from '@/components/editor/MonacoEditorSheet';
-import { PreviewSheet } from '@/components/preview/PreviewSheet';
+import { PreviewSheet, type PreviewError } from '@/components/preview/PreviewSheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '../../../src/contexts/ThemeContext';
@@ -76,8 +76,15 @@ export default function AppsScreen() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [previewState, setPreviewState] = useState<
     | { open: false }
-    | { open: true; title: string; files: Record<string, string | { code: string }> }
+    | {
+        open: true;
+        title: string;
+        appId: string | null;
+        appName: string;
+        files: Record<string, string | { code: string }>;
+      }
   >({ open: false });
+  const [previewError, setPreviewError] = useState<PreviewError | null>(null);
   const router = useRouter();
   const { open } = useLocalSearchParams<{ open?: string }>();
 
@@ -86,16 +93,47 @@ export default function AppsScreen() {
     await loadProject(item.slug);
     const fileMap = await getFilesByProjectSlug(item.slug);
     const hasFiles = fileMap && Object.keys(fileMap).length > 0;
+    const title = item.name || item.slug;
+    setPreviewError(null);
     setPreviewState({
       open: true,
-      title: item.name || item.slug,
+      title,
+      appId: item.id,
+      appName: title,
       files: hasFiles ? fileMap : SANDPACK_DEMO_FILES,
     });
   };
 
+  const openDemoPreview = () => {
+    setPreviewError(null);
+    setPreviewState({
+      open: true,
+      title: 'Sandpack demo',
+      appId: null,
+      appName: 'Sandpack demo',
+      files: SANDPACK_DEMO_FILES,
+    });
+  };
+
+  const closePreview = () => {
+    setPreviewState({ open: false });
+    setPreviewError(null);
+  };
+
+  const handleFixBug = () => {
+    if (!previewState.open || !previewError) return;
+    const location = [previewError.file, previewError.line].filter(Boolean).join(':');
+    const errorLine = location
+      ? `${previewError.message} (${location})`
+      : previewError.message;
+    const debugMessage = `@${previewState.appName}\n\n${errorLine}\n\nFix the bug`;
+    closePreview();
+    router.push({ pathname: '/', params: { prefill: debugMessage } });
+  };
+
   useEffect(() => {
     if (open === 'preview') {
-      setPreviewState({ open: true, title: 'Sandpack demo', files: SANDPACK_DEMO_FILES });
+      openDemoPreview();
       router.setParams({ open: undefined });
     } else if (open === 'editor') {
       setEditorOpen(true);
@@ -141,13 +179,7 @@ export default function AppsScreen() {
               <IconSymbol size={22} name="curlybraces" color={theme.colors.text.primary} />
             </Pressable>
             <Pressable
-              onPress={() =>
-                setPreviewState({
-                  open: true,
-                  title: 'Sandpack demo',
-                  files: SANDPACK_DEMO_FILES,
-                })
-              }
+              onPress={openDemoPreview}
               hitSlop={10}
               style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.55 : 1 }]}
             >
@@ -218,7 +250,9 @@ export default function AppsScreen() {
         visible={previewState.open}
         title={previewState.open ? previewState.title : undefined}
         files={previewState.open ? previewState.files : SANDPACK_DEMO_FILES}
-        onClose={() => setPreviewState({ open: false })}
+        onClose={closePreview}
+        onError={setPreviewError}
+        onFixBug={previewError ? handleFixBug : undefined}
       />
       <MonacoEditorSheet
         visible={editorOpen}
