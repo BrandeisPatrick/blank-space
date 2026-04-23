@@ -65,16 +65,37 @@ export default function AppsScreen() {
   const theme = getTheme(mode);
   const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions();
-  const { projects, activeProjectSlug, loadProject, deleteProject } = useFileSystem();
+  const {
+    projects,
+    activeProjectSlug,
+    loadProject,
+    deleteProject,
+    getFilesByProjectSlug,
+  } = useFileSystem();
 
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [previewState, setPreviewState] = useState<
+    | { open: false }
+    | { open: true; title: string; files: Record<string, string | { code: string }> }
+  >({ open: false });
   const router = useRouter();
   const { open } = useLocalSearchParams<{ open?: string }>();
 
+  const openProjectPreview = async (item: ProjectCard) => {
+    if (!item.slug) return;
+    await loadProject(item.slug);
+    const fileMap = await getFilesByProjectSlug(item.slug);
+    const hasFiles = fileMap && Object.keys(fileMap).length > 0;
+    setPreviewState({
+      open: true,
+      title: item.name || item.slug,
+      files: hasFiles ? fileMap : SANDPACK_DEMO_FILES,
+    });
+  };
+
   useEffect(() => {
     if (open === 'preview') {
-      setPreviewOpen(true);
+      setPreviewState({ open: true, title: 'Sandpack demo', files: SANDPACK_DEMO_FILES });
       router.setParams({ open: undefined });
     } else if (open === 'editor') {
       setEditorOpen(true);
@@ -120,7 +141,13 @@ export default function AppsScreen() {
               <IconSymbol size={22} name="curlybraces" color={theme.colors.text.primary} />
             </Pressable>
             <Pressable
-              onPress={() => setPreviewOpen(true)}
+              onPress={() =>
+                setPreviewState({
+                  open: true,
+                  title: 'Sandpack demo',
+                  files: SANDPACK_DEMO_FILES,
+                })
+              }
               hitSlop={10}
               style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.55 : 1 }]}
             >
@@ -153,7 +180,7 @@ export default function AppsScreen() {
             const isActive = item.slug === activeProjectSlug;
             return (
               <Pressable
-                onPress={() => item.slug && loadProject(item.slug)}
+                onPress={() => openProjectPreview(item)}
                 onLongPress={() => confirmDelete(item)}
                 delayLongPress={400}
                 style={({ pressed }) => [
@@ -188,10 +215,10 @@ export default function AppsScreen() {
         />
       </SafeAreaView>
       <PreviewSheet
-        visible={previewOpen}
-        title="Sandpack demo"
-        files={SANDPACK_DEMO_FILES}
-        onClose={() => setPreviewOpen(false)}
+        visible={previewState.open}
+        title={previewState.open ? previewState.title : undefined}
+        files={previewState.open ? previewState.files : SANDPACK_DEMO_FILES}
+        onClose={() => setPreviewState({ open: false })}
       />
       <MonacoEditorSheet
         visible={editorOpen}
