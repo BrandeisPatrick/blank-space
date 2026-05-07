@@ -10,7 +10,11 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -41,15 +45,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'files', pathname: '/files', label: 'Files', icon: 'folder.fill' },
 ];
 
-export function SideDrawer({
-  visible,
-  conversations,
-  activeId,
-  onClose,
-  onSelectConversation,
-  onDeleteConversation,
-  onNewChat,
-}: {
+type SideDrawerProps = {
   visible: boolean;
   conversations: ConversationRow[];
   activeId: string | null;
@@ -57,7 +53,27 @@ export function SideDrawer({
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
   onNewChat: () => void;
-}) {
+};
+
+export function SideDrawer(props: SideDrawerProps) {
+  return (
+    <Modal visible={props.visible} transparent animationType="none" onRequestClose={props.onClose}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <DrawerBody {...props} />
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function DrawerBody({
+  visible,
+  conversations,
+  activeId,
+  onClose,
+  onSelectConversation,
+  onDeleteConversation,
+  onNewChat,
+}: SideDrawerProps) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
   const router = useRouter();
@@ -127,158 +143,158 @@ export function SideDrawer({
   };
 
   const isChat = pathname === '/' || pathname === '/index';
+  const topPad = Math.max(insets.top, 50);
+  const bottomPad = Math.max(insets.bottom, 12);
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { opacity: fade }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </Animated.View>
+    <View style={styles.root}>
+      <Animated.View style={[styles.backdrop, { opacity: fade }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.drawer,
-            {
-              width: DRAWER_WIDTH,
-              backgroundColor: theme.colors.bg.primary,
-              borderRightColor: theme.colors.bg.border,
-              transform: [{ translateX: slideX }],
-            },
-          ]}
-        >
-          <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-            <View style={styles.brandRow}>
-              <View
-                style={[
-                  styles.brandMark,
-                  {
-                    backgroundColor: theme.colors.bg.secondary,
-                    borderColor: theme.colors.bg.border,
-                  },
-                ]}
-              >
-                <IconSymbol size={18} name="sparkles" color={theme.colors.text.primary} />
-              </View>
-              <ThemedText style={[styles.brandText, { color: theme.colors.text.primary }]}>
-                blank space
-              </ThemedText>
+      <Animated.View
+        style={[
+          styles.drawer,
+          {
+            width: DRAWER_WIDTH,
+            backgroundColor: theme.colors.bg.primary,
+            borderRightColor: theme.colors.bg.border,
+            transform: [{ translateX: slideX }],
+          },
+        ]}
+      >
+        <View style={[styles.safe, { paddingTop: topPad, paddingBottom: bottomPad }]}>
+          <View style={styles.brandRow}>
+            <View
+              style={[
+                styles.brandMark,
+                {
+                  backgroundColor: theme.colors.bg.secondary,
+                  borderColor: theme.colors.bg.border,
+                },
+              ]}
+            >
+              <IconSymbol size={18} name="sparkles" color={theme.colors.text.primary} />
             </View>
-
-            <View style={styles.section}>
-              {NAV_ITEMS.map((item) => {
-                const active =
-                  (item.pathname === '/' && isChat) ||
-                  (item.pathname !== '/' && pathname.startsWith(item.pathname));
-                return (
-                  <Pressable
-                    key={item.key}
-                    onPress={() => navigate(item)}
-                    style={({ pressed }) => [
-                      styles.navRow,
-                      {
-                        backgroundColor: active
-                          ? theme.colors.bg.secondary
-                          : pressed
-                            ? theme.colors.bg.tertiary
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <IconSymbol
-                      size={20}
-                      name={item.icon as never}
-                      color={active ? theme.colors.text.primary : theme.colors.text.secondary}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.navLabel,
-                        {
-                          color: active ? theme.colors.text.primary : theme.colors.text.secondary,
-                          fontWeight: active ? '600' : '500',
-                        },
-                      ]}
-                    >
-                      {item.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={[styles.divider, { backgroundColor: theme.colors.bg.border }]} />
-
-            <View style={styles.sectionHeaderRow}>
-              <ThemedText style={[styles.sectionHeader, { color: theme.colors.text.tertiary }]}>
-                CONVERSATIONS
-              </ThemedText>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onNewChat();
-                  onClose();
-                  if (!isChat) router.push('/');
-                }}
-                hitSlop={8}
-                style={({ pressed }) => [styles.newBtn, { opacity: pressed ? 0.5 : 1 }]}
-              >
-                <IconSymbol size={18} name="square.and.pencil" color={theme.colors.text.primary} />
-              </Pressable>
-            </View>
-
-            <FlatList
-              data={conversations}
-              keyExtractor={(c) => c.id}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <View style={styles.empty}>
-                  <ThemedText style={{ color: theme.colors.text.tertiary, fontSize: 13 }}>
-                    No conversations yet.
-                  </ThemedText>
-                </View>
-              }
-              renderItem={({ item }) => {
-                const isActive = item.id === activeId;
-                return (
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      onSelectConversation(item.id);
-                      onClose();
-                      if (!isChat) router.push('/');
-                    }}
-                    onLongPress={() => confirmDeleteConversation(item)}
-                    delayLongPress={400}
-                    style={({ pressed }) => [
-                      styles.convRow,
-                      {
-                        backgroundColor: isActive
-                          ? theme.colors.bg.secondary
-                          : pressed
-                            ? theme.colors.bg.tertiary
-                            : 'transparent',
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      numberOfLines={1}
-                      style={[
-                        styles.convTitle,
-                        {
-                          color: theme.colors.text.primary,
-                          fontWeight: isActive ? '600' : '400',
-                        },
-                      ]}
-                    >
-                      {item.title || 'New conversation'}
-                    </ThemedText>
-                  </Pressable>
-                );
-              }}
-            />
+            <ThemedText style={[styles.brandText, { color: theme.colors.text.primary }]}>
+              blank space
+            </ThemedText>
           </View>
-        </Animated.View>
-      </View>
-    </Modal>
+
+          <View style={styles.section}>
+            {NAV_ITEMS.map((item) => {
+              const active =
+                (item.pathname === '/' && isChat) ||
+                (item.pathname !== '/' && pathname.startsWith(item.pathname));
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => navigate(item)}
+                  style={({ pressed }) => [
+                    styles.navRow,
+                    {
+                      backgroundColor: active
+                        ? theme.colors.bg.secondary
+                        : pressed
+                          ? theme.colors.bg.tertiary
+                          : 'transparent',
+                    },
+                  ]}
+                >
+                  <IconSymbol
+                    size={20}
+                    name={item.icon as never}
+                    color={active ? theme.colors.text.primary : theme.colors.text.secondary}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.navLabel,
+                      {
+                        color: active ? theme.colors.text.primary : theme.colors.text.secondary,
+                        fontWeight: active ? '600' : '500',
+                      },
+                    ]}
+                  >
+                    {item.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: theme.colors.bg.border }]} />
+
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText style={[styles.sectionHeader, { color: theme.colors.text.tertiary }]}>
+              CONVERSATIONS
+            </ThemedText>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onNewChat();
+                onClose();
+                if (!isChat) router.push('/');
+              }}
+              hitSlop={8}
+              style={({ pressed }) => [styles.newBtn, { opacity: pressed ? 0.5 : 1 }]}
+            >
+              <IconSymbol size={18} name="square.and.pencil" color={theme.colors.text.primary} />
+            </Pressable>
+          </View>
+
+          <FlatList
+            data={conversations}
+            keyExtractor={(c) => c.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <ThemedText style={{ color: theme.colors.text.tertiary, fontSize: 13 }}>
+                  No conversations yet.
+                </ThemedText>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isActive = item.id === activeId;
+              return (
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onSelectConversation(item.id);
+                    onClose();
+                    if (!isChat) router.push('/');
+                  }}
+                  onLongPress={() => confirmDeleteConversation(item)}
+                  delayLongPress={400}
+                  style={({ pressed }) => [
+                    styles.convRow,
+                    {
+                      backgroundColor: isActive
+                        ? theme.colors.bg.secondary
+                        : pressed
+                          ? theme.colors.bg.tertiary
+                          : 'transparent',
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    numberOfLines={1}
+                    style={[
+                      styles.convTitle,
+                      {
+                        color: theme.colors.text.primary,
+                        fontWeight: isActive ? '600' : '400',
+                      },
+                    ]}
+                  >
+                    {item.title || 'New conversation'}
+                  </ThemedText>
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 

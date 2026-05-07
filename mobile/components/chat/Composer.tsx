@@ -46,9 +46,6 @@ export function Composer({
           },
         ]}
       >
-        <View style={[styles.iconBtn, { opacity: 0.4 }]}>
-          <IconSymbol size={20} name="plus" color={theme.colors.text.secondary} />
-        </View>
         <TextInput
           value={value}
           onChangeText={setValue}
@@ -91,18 +88,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 6,
-    paddingHorizontal: 8,
+    paddingLeft: 16,
+    paddingRight: 6,
     paddingVertical: 6,
     borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     minHeight: 44,
-  },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   input: {
     flex: 1,
@@ -110,7 +101,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxHeight: 140,
     paddingVertical: 6,
-    paddingHorizontal: 4,
   },
   sendButton: {
     width: 32,

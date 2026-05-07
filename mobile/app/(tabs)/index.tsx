@@ -45,6 +45,18 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (qa === 'drawer') setDrawerOpen(true);
+    if (qa === 'first-conv' && conversations.length > 0) {
+      switchConversation(conversations[0].id);
+    }
+  }, [qa, conversations, switchConversation]);
+
+  const autosent = useRef(false);
+  useEffect(() => {
+    if (qa === 'autosend' && !autosent.current) {
+      autosent.current = true;
+      handleSend('Say hi in three words');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qa]);
 
   const handleSend = async (text: string) => {
