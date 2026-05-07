@@ -79,7 +79,7 @@ export default function FilesScreen() {
         <FlatList
           data={rows}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingBottom: 16, paddingTop: 4 }}
+          contentContainerStyle={{ paddingBottom: 32, paddingTop: 4 }}
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
@@ -159,8 +159,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
   menuBtn: { padding: 6 },
   headerMain: { flex: 1, paddingLeft: 4 },

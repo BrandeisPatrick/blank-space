@@ -84,8 +84,8 @@ export function Composer({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   inputRow: {
     flexDirection: 'row',

@@ -231,7 +231,7 @@ export default function AppsScreen() {
           contentContainerStyle={{
             paddingHorizontal: H_PADDING,
             paddingTop: 16,
-            paddingBottom: 16,
+            paddingBottom: 32,
           }}
           columnWrapperStyle={{ gap: GAP, marginBottom: GAP }}
           ListEmptyComponent={
@@ -321,8 +321,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
   menuBtn: { padding: 6 },
   headerMain: { flex: 1, paddingLeft: 4 },
