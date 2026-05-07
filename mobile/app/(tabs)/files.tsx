@@ -157,13 +157,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
+    gap: 12,
+    paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 16,
   },
   menuBtn: { padding: 6 },
-  headerMain: { flex: 1, paddingLeft: 4 },
+  headerMain: { flex: 1, paddingLeft: 2 },
   title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, marginTop: 2 },
   row: {

@@ -33,7 +33,7 @@ export default function ChatScreen() {
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerPrefill, setComposerPrefill] = useState('');
-  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const { prefill, qa } = useLocalSearchParams<{ prefill?: string; qa?: string }>();
   const consumedPrefillRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +42,10 @@ export default function ChatScreen() {
       setComposerPrefill(prefill);
     }
   }, [prefill]);
+
+  useEffect(() => {
+    if (qa === 'drawer') setDrawerOpen(true);
+  }, [qa]);
 
   const handleSend = async (text: string) => {
     const userMsg = {

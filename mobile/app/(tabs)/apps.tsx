@@ -319,13 +319,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
+    gap: 12,
+    paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 16,
   },
   menuBtn: { padding: 6 },
-  headerMain: { flex: 1, paddingLeft: 4 },
+  headerMain: { flex: 1, paddingLeft: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerBtn: {
     width: 36,

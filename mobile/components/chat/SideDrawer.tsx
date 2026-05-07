@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -62,6 +62,7 @@ export function SideDrawer({
   const theme = getTheme(mode);
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const slideX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -145,7 +146,7 @@ export function SideDrawer({
             },
           ]}
         >
-          <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <View style={styles.brandRow}>
               <View
                 style={[
@@ -274,7 +275,7 @@ export function SideDrawer({
                 );
               }}
             />
-          </SafeAreaView>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -297,8 +298,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 18,
   },
   brandMark: {
     width: 32,
