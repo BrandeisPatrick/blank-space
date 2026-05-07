@@ -8,7 +8,6 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { Composer } from '@/components/chat/Composer';
 import { ConversationListSheet } from '@/components/chat/ConversationListSheet';
 import { MessageList, type Message } from '@/components/chat/MessageList';
-import { ModelTierPill } from '@/components/chat/ModelTierPill';
 import { ThemedView } from '@/components/themed-view';
 import { useConversation } from '../../../src/contexts/ConversationContext';
 import { useLocalStorage } from '../../../src/hooks/useLocalStorage';
@@ -27,6 +26,10 @@ export default function ChatScreen() {
     switchConversation,
     deleteConversation,
   } = useConversation();
+  type ConvRow = { id: string; title: string; messageCount: number };
+  const activeConversation = (conversations as ConvRow[]).find((c) => c.id === activeConversationId);
+  const headerTitle =
+    activeConversation && activeConversation.messageCount > 0 ? activeConversation.title : null;
   const [sending, setSending] = useState(false);
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
   const [listOpen, setListOpen] = useState(false);
@@ -91,6 +94,9 @@ export default function ChatScreen() {
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ChatHeader
+          title={headerTitle}
+          modelTier={modelTier}
+          onChangeTier={setModelTier}
           onOpenList={() => setListOpen(true)}
           onNewChat={() => createConversation()}
         />
@@ -105,7 +111,6 @@ export default function ChatScreen() {
             onSuggestedPrompt={handleSend}
           />
           <View style={{ paddingBottom: tabBarHeight }}>
-            <ModelTierPill value={modelTier} onChange={setModelTier} />
             <Composer onSend={handleSend} disabled={sending} initialValue={composerPrefill} />
           </View>
         </KeyboardAvoidingView>

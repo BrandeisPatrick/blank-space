@@ -1,6 +1,7 @@
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
+import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -25,26 +26,48 @@ export default function FilesScreen() {
 
   const rows: ProjectRow[] = Array.isArray(projects) ? projects : [];
 
+  const confirmDelete = (item: ProjectRow) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: item.name || 'Project',
+        message: 'Delete this project? This cannot be undone.',
+        options: ['Delete', 'Cancel'],
+        destructiveButtonIndex: 0,
+        cancelButtonIndex: 1,
+        userInterfaceStyle: mode,
+      },
+      (idx) => {
+        if (idx === 0) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          deleteProject(item.id);
+        }
+      },
+    );
+  };
+
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.bg.border }]}>
+        <View style={styles.header}>
           <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
-            {rows.length} {rows.length === 1 ? 'project' : 'projects'}
-          </ThemedText>
+          {rows.length > 0 && (
+            <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
+              {rows.length} {rows.length === 1 ? 'project' : 'projects'}
+            </ThemedText>
+          )}
         </View>
+
         <FlatList
           data={rows}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingBottom: tabBarHeight + 16 }}
-          ItemSeparatorComponent={() => (
-            <View style={[styles.separator, { backgroundColor: theme.colors.bg.border }]} />
-          )}
+          contentContainerStyle={{ paddingBottom: tabBarHeight + 16, paddingTop: 4 }}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <IconSymbol size={36} name="folder" color={theme.colors.text.tertiary} />
-              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.secondary }]}>
+              <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
+                <IconSymbol size={28} name="folder" color={theme.colors.text.primary} />
+              </View>
+              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
                 No projects yet
               </ThemedText>
               <ThemedText style={[styles.emptyBody, { color: theme.colors.text.tertiary }]}>
@@ -57,18 +80,27 @@ export default function FilesScreen() {
             return (
               <Pressable
                 onPress={() => item.slug && loadProject(item.slug)}
+                onLongPress={() => confirmDelete(item)}
+                delayLongPress={400}
                 style={({ pressed }) => [
                   styles.row,
                   {
-                    backgroundColor: isActive
-                      ? theme.colors.bg.secondary
-                      : pressed
-                        ? theme.colors.bg.tertiary
+                    backgroundColor: pressed
+                      ? theme.colors.bg.tertiary
+                      : isActive
+                        ? theme.colors.bg.secondary
                         : 'transparent',
                   },
                 ]}
               >
-                <IconSymbol size={22} name="folder.fill" color={theme.colors.accent.ios} />
+                <View
+                  style={[
+                    styles.iconWrap,
+                    { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border },
+                  ]}
+                >
+                  <IconSymbol size={18} name="folder.fill" color={theme.colors.accent.ios} />
+                </View>
                 <View style={styles.rowMain}>
                   <ThemedText
                     numberOfLines={1}
@@ -76,15 +108,13 @@ export default function FilesScreen() {
                   >
                     {item.name || item.slug || 'Untitled'}
                   </ThemedText>
-                  {typeof item.fileCount === 'number' && (
-                    <ThemedText style={[styles.rowMeta, { color: theme.colors.text.tertiary }]}>
-                      {item.fileCount} {item.fileCount === 1 ? 'file' : 'files'}
-                    </ThemedText>
-                  )}
+                  <ThemedText style={[styles.rowMeta, { color: theme.colors.text.tertiary }]}>
+                    {typeof item.fileCount === 'number'
+                      ? `${item.fileCount} ${item.fileCount === 1 ? 'file' : 'files'}`
+                      : 'Project'}
+                  </ThemedText>
                 </View>
-                <Pressable onPress={() => deleteProject(item.id)} hitSlop={10} style={styles.deleteBtn}>
-                  <IconSymbol size={18} name="trash" color={theme.colors.text.tertiary} />
-                </Pressable>
+                <IconSymbol size={14} name="chevron.right" color={theme.colors.text.tertiary} />
               </Pressable>
             );
           }}
@@ -98,25 +128,43 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
-  title: { fontSize: 28, fontWeight: '700' },
+  title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, marginTop: 2 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    marginHorizontal: 12,
+    marginVertical: 2,
+    borderRadius: 14,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
   },
   rowMain: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 16 },
+  rowTitle: { fontSize: 16, fontWeight: '500' },
   rowMeta: { fontSize: 12 },
-  deleteBtn: { padding: 6 },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 50 },
-  empty: { alignItems: 'center', paddingVertical: 64, gap: 8 },
-  emptyTitle: { fontSize: 17, fontWeight: '600' },
-  emptyBody: { fontSize: 13, textAlign: 'center', paddingHorizontal: 48 },
+  empty: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 32, gap: 10 },
+  emptyMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 6,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '600' },
+  emptyBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });

@@ -169,27 +169,43 @@ export default function AppsScreen() {
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.bg.border }]}>
+        <View style={styles.header}>
           <View style={styles.headerMain}>
             <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Apps</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
-              {rows.length} {rows.length === 1 ? 'project' : 'projects'}
-            </ThemedText>
+            {rows.length > 0 && (
+              <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
+                {rows.length} {rows.length === 1 ? 'project' : 'projects'}
+              </ThemedText>
+            )}
           </View>
           <View style={styles.headerActions}>
             <Pressable
               onPress={() => setEditorOpen(true)}
               hitSlop={10}
-              style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.55 : 1 }]}
+              style={({ pressed }) => [
+                styles.headerBtn,
+                {
+                  backgroundColor: theme.colors.bg.secondary,
+                  borderColor: theme.colors.bg.border,
+                  opacity: pressed ? 0.55 : 1,
+                },
+              ]}
             >
-              <IconSymbol size={22} name="curlybraces" color={theme.colors.text.primary} />
+              <IconSymbol size={18} name="curlybraces" color={theme.colors.text.primary} />
             </Pressable>
             <Pressable
               onPress={openDemoPreview}
               hitSlop={10}
-              style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.55 : 1 }]}
+              style={({ pressed }) => [
+                styles.headerBtn,
+                {
+                  backgroundColor: theme.colors.bg.secondary,
+                  borderColor: theme.colors.bg.border,
+                  opacity: pressed ? 0.55 : 1,
+                },
+              ]}
             >
-              <IconSymbol size={22} name="play.circle" color={theme.colors.text.primary} />
+              <IconSymbol size={18} name="play.fill" color={theme.colors.text.primary} />
             </Pressable>
           </View>
         </View>
@@ -205,8 +221,10 @@ export default function AppsScreen() {
           columnWrapperStyle={{ gap: GAP, marginBottom: GAP }}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <IconSymbol size={36} name="square.grid.2x2" color={theme.colors.text.tertiary} />
-              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.secondary }]}>
+              <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
+                <IconSymbol size={28} name="square.grid.2x2" color={theme.colors.text.primary} />
+              </View>
+              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
                 No apps yet
               </ThemedText>
               <ThemedText style={[styles.emptyBody, { color: theme.colors.text.tertiary }]}>
@@ -276,26 +294,46 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   headerMain: { flex: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerBtn: { padding: 6 },
-  title: { fontSize: 28, fontWeight: '700' },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, marginTop: 2 },
-  cell: { alignItems: 'center', gap: 6 },
+  cell: { alignItems: 'center', gap: 8 },
   tile: {
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
-  icon: { fontSize: 34 },
-  label: { fontSize: 12, maxWidth: '100%', textAlign: 'center' },
-  empty: { alignItems: 'center', paddingVertical: 64, gap: 8 },
-  emptyTitle: { fontSize: 17, fontWeight: '600' },
-  emptyBody: { fontSize: 13, textAlign: 'center', paddingHorizontal: 48 },
+  icon: { fontSize: 38 },
+  label: { fontSize: 13, fontWeight: '500', maxWidth: '100%', textAlign: 'center' },
+  empty: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 32, gap: 10 },
+  emptyMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 6,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '600' },
+  emptyBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });
