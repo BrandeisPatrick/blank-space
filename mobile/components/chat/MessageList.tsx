@@ -43,14 +43,8 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <View style={styles.empty}>
-        <View style={[styles.brandMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
-          <IconSymbol size={28} name="sparkles" color={theme.colors.text.primary} />
-        </View>
         <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
-          What should we build?
-        </ThemedText>
-        <ThemedText style={[styles.emptySubtitle, { color: theme.colors.text.tertiary }]}>
-          Describe an app and blank space will create it for you.
+          What can I build for you?
         </ThemedText>
         <View style={styles.suggestions}>
           {SUGGESTIONS.map((s) => (
@@ -66,7 +60,7 @@ export function MessageList({
                 },
               ]}
             >
-              <IconSymbol size={16} name={s.icon as never} color={theme.colors.text.secondary} />
+              <IconSymbol size={15} name={s.icon as never} color={theme.colors.text.secondary} />
               <ThemedText style={[styles.suggestionText, { color: theme.colors.text.primary }]}>
                 {s.label}
               </ThemedText>
@@ -102,11 +96,12 @@ function MessageBlock({ message }: { message: Message }) {
           style={[
             styles.userBubble,
             {
-              backgroundColor: theme.colors.accent.ios,
+              backgroundColor: theme.colors.bg.secondary,
+              borderColor: theme.colors.bg.border,
             },
           ]}
         >
-          <ThemedText style={[styles.text, { color: '#ffffff' }]}>
+          <ThemedText style={[styles.text, { color: theme.colors.text.primary }]}>
             {message.content}
           </ThemedText>
         </View>
@@ -116,15 +111,7 @@ function MessageBlock({ message }: { message: Message }) {
 
   return (
     <View style={styles.assistantBlock}>
-      <View style={styles.assistantHeader}>
-        <View style={[styles.avatar, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
-          <IconSymbol size={12} name="sparkles" color={theme.colors.text.primary} />
-        </View>
-        <ThemedText style={[styles.assistantLabel, { color: theme.colors.text.tertiary }]}>
-          blank space
-        </ThemedText>
-      </View>
-      <ThemedText style={[styles.text, { color: theme.colors.text.primary, marginLeft: 32 }]}>
+      <ThemedText style={[styles.text, { color: theme.colors.text.primary }]}>
         {message.content}
       </ThemedText>
     </View>
@@ -137,18 +124,10 @@ function TypingBubble() {
 
   return (
     <View style={styles.assistantBlock}>
-      <View style={styles.assistantHeader}>
-        <View style={[styles.avatar, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
-          <IconSymbol size={12} name="sparkles" color={theme.colors.text.primary} />
-        </View>
-        <ThemedText style={[styles.assistantLabel, { color: theme.colors.text.tertiary }]}>
-          blank space
-        </ThemedText>
-      </View>
-      <View style={[styles.typingRow, { marginLeft: 32 }]}>
-        <TypingDot delay={0} color={theme.colors.text.tertiary} />
-        <TypingDot delay={160} color={theme.colors.text.tertiary} />
-        <TypingDot delay={320} color={theme.colors.text.tertiary} />
+      <View style={styles.typingRow}>
+        <TypingDot delay={0} color={theme.colors.text.secondary} />
+        <TypingDot delay={160} color={theme.colors.text.secondary} />
+        <TypingDot delay={320} color={theme.colors.text.secondary} />
       </View>
     </View>
   );
@@ -194,27 +173,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    gap: 12,
-  },
-  brandMark: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 4,
+    gap: 28,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '700',
     textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 24,
+    letterSpacing: -0.6,
   },
   suggestions: {
     flexDirection: 'row',
@@ -240,10 +206,10 @@ const styles = StyleSheet.create({
   rowRight: { justifyContent: 'flex-end' },
   userBubble: {
     maxWidth: '82%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderBottomRightRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   assistantBlock: {
     gap: 6,

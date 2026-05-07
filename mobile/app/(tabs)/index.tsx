@@ -124,7 +124,13 @@ export default function ChatScreen() {
             sending={sending}
             onSuggestedPrompt={handleSend}
           />
-          <Composer onSend={handleSend} disabled={sending} initialValue={composerPrefill} />
+          <Composer
+            onSend={handleSend}
+            disabled={sending}
+            initialValue={composerPrefill}
+            modelTier={modelTier}
+            onChangeTier={setModelTier}
+          />
         </KeyboardAvoidingView>
       </SafeAreaView>
       <SideDrawer

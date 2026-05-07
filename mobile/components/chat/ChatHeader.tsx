@@ -1,4 +1,4 @@
-import { ActionSheetIOS, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -8,12 +8,8 @@ import { getTheme } from '../../../src/styles/theme';
 import { MODEL_TIERS } from '../../../src/services/config/modelConfig';
 
 type TierKey = keyof typeof MODEL_TIERS;
-const TIER_KEYS = Object.keys(MODEL_TIERS) as TierKey[];
 
 export function ChatHeader({
-  title,
-  modelTier,
-  onChangeTier,
   onOpenList,
   onNewChat,
 }: {
@@ -25,78 +21,80 @@ export function ChatHeader({
 }) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const activeTier = MODEL_TIERS[modelTier] ?? MODEL_TIERS.lite;
-
-  const openTierPicker = () => {
-    Haptics.selectionAsync();
-    if (Platform.OS !== 'ios') {
-      const next = TIER_KEYS[(TIER_KEYS.indexOf(modelTier) + 1) % TIER_KEYS.length];
-      onChangeTier(next);
-      return;
-    }
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: 'Model',
-        options: [...TIER_KEYS.map((k) => MODEL_TIERS[k].name), 'Cancel'],
-        cancelButtonIndex: TIER_KEYS.length,
-        userInterfaceStyle: mode,
-      },
-      (index) => {
-        if (index < 0 || index >= TIER_KEYS.length) return;
-        onChangeTier(TIER_KEYS[index]);
-      },
-    );
-  };
 
   return (
-    <View
-      style={[
-        styles.row,
-        { borderBottomColor: theme.colors.bg.border },
-      ]}
-    >
-      <HeaderButton onPress={onOpenList} iconName="line.3.horizontal" tint={theme.colors.text.primary} />
+    <View style={styles.row}>
+      <CircleButton
+        onPress={() => {
+          Haptics.selectionAsync();
+          onOpenList();
+        }}
+        iconName="line.3.horizontal"
+        tint={theme.colors.text.primary}
+        bg={theme.colors.bg.secondary}
+        border={theme.colors.bg.border}
+      />
 
-      <Pressable
-        onPress={openTierPicker}
-        hitSlop={6}
-        style={({ pressed }) => [styles.titleBlock, { opacity: pressed ? 0.6 : 1 }]}
-      >
-        <ThemedText
-          numberOfLines={1}
-          style={[styles.title, { color: theme.colors.text.primary }]}
+      <View style={styles.tabsBlock}>
+        <View
+          style={[
+            styles.activeTab,
+            {
+              backgroundColor: theme.colors.bg.secondary,
+              borderColor: theme.colors.bg.border,
+            },
+          ]}
         >
-          {title || 'blank space'}
-        </ThemedText>
-        <View style={styles.subRow}>
-          <ThemedText style={[styles.subText, { color: theme.colors.text.tertiary }]}>
-            {activeTier.name}
+          <ThemedText style={[styles.tabActiveText, { color: theme.colors.text.primary }]}>
+            Ask
           </ThemedText>
-          <IconSymbol size={10} name="chevron.down" color={theme.colors.text.tertiary} />
         </View>
-      </Pressable>
+        <ThemedText style={[styles.tabInactiveText, { color: theme.colors.text.tertiary }]}>
+          Build
+        </ThemedText>
+      </View>
 
-      <HeaderButton onPress={onNewChat} iconName="square.and.pencil" tint={theme.colors.text.primary} />
+      <CircleButton
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onNewChat();
+        }}
+        iconName="square.and.pencil"
+        tint={theme.colors.text.primary}
+        bg={theme.colors.bg.secondary}
+        border={theme.colors.bg.border}
+      />
     </View>
   );
 }
 
-function HeaderButton({
+function CircleButton({
   onPress,
   iconName,
   tint,
+  bg,
+  border,
 }: {
   onPress: () => void;
   iconName: string;
   tint: string;
+  bg: string;
+  border: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       hitSlop={10}
-      style={({ pressed }) => [styles.button, { opacity: pressed ? 0.55 : 1 }]}
+      style={({ pressed }) => [
+        styles.circleBtn,
+        {
+          backgroundColor: bg,
+          borderColor: border,
+          opacity: pressed ? 0.55 : 1,
+        },
+      ]}
     >
-      <IconSymbol size={22} name={iconName as never} color={tint} />
+      <IconSymbol size={18} name={iconName as never} color={tint} />
     </Pressable>
   );
 }
@@ -105,14 +103,30 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-  button: { padding: 6, width: 38, alignItems: 'center' },
-  titleBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
-  title: { fontSize: 17, fontWeight: '600', maxWidth: '80%', textAlign: 'center' },
-  subRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  subText: { fontSize: 12, fontWeight: '500' },
+  circleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  tabsBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  activeTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  tabActiveText: { fontSize: 14, fontWeight: '600' },
+  tabInactiveText: { fontSize: 14, fontWeight: '500' },
 });
