@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MonacoEditorSheet } from '@/components/editor/MonacoEditorSheet';
 import { PreviewSheet, type PreviewError } from '@/components/preview/PreviewSheet';
+import { SideDrawer } from '@/components/chat/SideDrawer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { useFileSystem } from '../../../src/contexts/FileSystemContext';
+import { useConversation } from '../../../src/contexts/ConversationContext';
 import { getTheme } from '../../../src/styles/theme';
 
 const SANDPACK_DEMO_FILES = {
@@ -64,7 +65,6 @@ const GAP = 16;
 export default function AppsScreen() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions();
   const {
     projects,
@@ -73,7 +73,15 @@ export default function AppsScreen() {
     deleteProject,
     getFilesByProjectSlug,
   } = useFileSystem();
+  const {
+    conversations,
+    activeConversationId,
+    createConversation,
+    switchConversation,
+    deleteConversation,
+  } = useConversation();
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [previewState, setPreviewState] = useState<
     | { open: false }
@@ -168,8 +176,15 @@ export default function AppsScreen() {
 
   return (
     <ThemedView style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
+          <Pressable
+            onPress={() => setDrawerOpen(true)}
+            hitSlop={10}
+            style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.55 : 1 }]}
+          >
+            <IconSymbol size={22} name="line.3.horizontal" color={theme.colors.text.primary} />
+          </Pressable>
           <View style={styles.headerMain}>
             <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Apps</ThemedText>
             {rows.length > 0 && (
@@ -216,7 +231,7 @@ export default function AppsScreen() {
           contentContainerStyle={{
             paddingHorizontal: H_PADDING,
             paddingTop: 16,
-            paddingBottom: tabBarHeight + 16,
+            paddingBottom: 16,
           }}
           columnWrapperStyle={{ gap: GAP, marginBottom: GAP }}
           ListEmptyComponent={
@@ -285,6 +300,15 @@ export default function AppsScreen() {
         language="typescript"
         onClose={() => setEditorOpen(false)}
       />
+      <SideDrawer
+        visible={drawerOpen}
+        conversations={conversations}
+        activeId={activeConversationId}
+        onClose={() => setDrawerOpen(false)}
+        onSelectConversation={switchConversation}
+        onDeleteConversation={deleteConversation}
+        onNewChat={createConversation}
+      />
     </ThemedView>
   );
 }
@@ -295,11 +319,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    gap: 8,
+    paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
   },
-  headerMain: { flex: 1 },
+  menuBtn: { padding: 6 },
+  headerMain: { flex: 1, paddingLeft: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerBtn: {
     width: 36,

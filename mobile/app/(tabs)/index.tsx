@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { Composer } from '@/components/chat/Composer';
-import { ConversationListSheet } from '@/components/chat/ConversationListSheet';
+import { SideDrawer } from '@/components/chat/SideDrawer';
 import { MessageList, type Message } from '@/components/chat/MessageList';
 import { ThemedView } from '@/components/themed-view';
 import { useConversation } from '../../../src/contexts/ConversationContext';
@@ -32,9 +31,8 @@ export default function ChatScreen() {
     activeConversation && activeConversation.messageCount > 0 ? activeConversation.title : null;
   const [sending, setSending] = useState(false);
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
-  const [listOpen, setListOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerPrefill, setComposerPrefill] = useState('');
-  const tabBarHeight = useBottomTabBarHeight();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const consumedPrefillRef = useRef<string | null>(null);
 
@@ -92,12 +90,12 @@ export default function ChatScreen() {
 
   return (
     <ThemedView style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ChatHeader
           title={headerTitle}
           modelTier={modelTier}
           onChangeTier={setModelTier}
-          onOpenList={() => setListOpen(true)}
+          onOpenList={() => setDrawerOpen(true)}
           onNewChat={() => createConversation()}
         />
         <KeyboardAvoidingView
@@ -110,19 +108,17 @@ export default function ChatScreen() {
             sending={sending}
             onSuggestedPrompt={handleSend}
           />
-          <View style={{ paddingBottom: tabBarHeight }}>
-            <Composer onSend={handleSend} disabled={sending} initialValue={composerPrefill} />
-          </View>
+          <Composer onSend={handleSend} disabled={sending} initialValue={composerPrefill} />
         </KeyboardAvoidingView>
       </SafeAreaView>
-      <ConversationListSheet
-        visible={listOpen}
+      <SideDrawer
+        visible={drawerOpen}
         conversations={conversations}
         activeId={activeConversationId}
-        onClose={() => setListOpen(false)}
-        onSelect={switchConversation}
-        onDelete={deleteConversation}
-        onNew={createConversation}
+        onClose={() => setDrawerOpen(false)}
+        onSelectConversation={switchConversation}
+        onDeleteConversation={deleteConversation}
+        onNewChat={createConversation}
       />
     </ThemedView>
   );

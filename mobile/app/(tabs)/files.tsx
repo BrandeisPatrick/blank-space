@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SideDrawer } from '@/components/chat/SideDrawer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { useFileSystem } from '../../../src/contexts/FileSystemContext';
+import { useConversation } from '../../../src/contexts/ConversationContext';
 import { getTheme } from '../../../src/styles/theme';
 
 type ProjectRow = {
@@ -21,8 +23,15 @@ type ProjectRow = {
 export default function FilesScreen() {
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const tabBarHeight = useBottomTabBarHeight();
   const { projects, activeProjectSlug, loadProject, deleteProject } = useFileSystem();
+  const {
+    conversations,
+    activeConversationId,
+    createConversation,
+    switchConversation,
+    deleteConversation,
+  } = useConversation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const rows: ProjectRow[] = Array.isArray(projects) ? projects : [];
 
@@ -48,20 +57,29 @@ export default function FilesScreen() {
 
   return (
     <ThemedView style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
-          {rows.length > 0 && (
-            <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
-              {rows.length} {rows.length === 1 ? 'project' : 'projects'}
-            </ThemedText>
-          )}
+          <Pressable
+            onPress={() => setDrawerOpen(true)}
+            hitSlop={10}
+            style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.55 : 1 }]}
+          >
+            <IconSymbol size={22} name="line.3.horizontal" color={theme.colors.text.primary} />
+          </Pressable>
+          <View style={styles.headerMain}>
+            <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
+            {rows.length > 0 && (
+              <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
+                {rows.length} {rows.length === 1 ? 'project' : 'projects'}
+              </ThemedText>
+            )}
+          </View>
         </View>
 
         <FlatList
           data={rows}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ paddingBottom: tabBarHeight + 16, paddingTop: 4 }}
+          contentContainerStyle={{ paddingBottom: 16, paddingTop: 4 }}
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
@@ -120,6 +138,15 @@ export default function FilesScreen() {
           }}
         />
       </SafeAreaView>
+      <SideDrawer
+        visible={drawerOpen}
+        conversations={conversations}
+        activeId={activeConversationId}
+        onClose={() => setDrawerOpen(false)}
+        onSelectConversation={switchConversation}
+        onDeleteConversation={deleteConversation}
+        onNewChat={createConversation}
+      />
     </ThemedView>
   );
 }
@@ -128,10 +155,15 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   header: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
   },
+  menuBtn: { padding: 6 },
+  headerMain: { flex: 1, paddingLeft: 4 },
   title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, marginTop: 2 },
   row: {
