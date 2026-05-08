@@ -181,9 +181,14 @@ function DrawerBody({
       >
         <View style={[styles.safe, { paddingTop: topPad, paddingBottom: bottomPad }]}>
           <View style={styles.brandRow}>
-            <ThemedText style={[styles.brandLetter, { color: theme.colors.text.primary }]}>
-              B
-            </ThemedText>
+            <View style={styles.brandLetterBox}>
+              <ThemedText
+                style={[styles.brandLetter, { color: theme.colors.text.primary }]}
+                allowFontScaling={false}
+              >
+                B
+              </ThemedText>
+            </View>
           </View>
 
           <View style={styles.searchWrap}>
@@ -439,14 +444,20 @@ const styles = StyleSheet.create({
   },
   safe: { flex: 1 },
   brandRow: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 14,
   },
+  brandLetterBox: {
+    width: 36,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   brandLetter: {
     fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: -1,
+    lineHeight: 36,
+    fontWeight: '800',
   },
   searchWrap: { paddingHorizontal: 12, paddingBottom: 10 },
   searchBar: {
