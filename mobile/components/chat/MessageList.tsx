@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { SUGGESTIONS } from '@/constants/suggestions';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
 
@@ -15,13 +16,6 @@ export type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
-
-const SUGGESTIONS: { icon: string; label: string; prompt: string }[] = [
-  { icon: 'timer', label: 'Pomodoro timer', prompt: 'Build me a pomodoro timer with start, pause, and reset.' },
-  { icon: 'checklist', label: 'Todo list', prompt: 'Make a to-do list app with categories and a search bar.' },
-  { icon: 'dollarsign.circle', label: 'Tip calculator', prompt: 'Create a tip calculator with split-by-people support.' },
-  { icon: 'paintpalette', label: 'Color picker', prompt: 'Code a color palette picker that copies hex codes on tap.' },
-];
 
 export function MessageList({
   messages,
