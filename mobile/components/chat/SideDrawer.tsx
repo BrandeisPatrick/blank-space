@@ -18,6 +18,7 @@ import {
 } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import type { SymbolViewProps } from 'expo-symbols';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -33,7 +34,7 @@ type NavItem = {
   key: string;
   pathname: '/' | '/apps' | '/files';
   label: string;
-  icon: string;
+  icon: SymbolViewProps['name'];
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -199,7 +200,7 @@ function DrawerBody({
                   >
                     <IconSymbol
                       size={18}
-                      name={item.icon as never}
+                      name={item.icon}
                       color={active ? theme.colors.text.primary : theme.colors.text.secondary}
                     />
                     <ThemedText

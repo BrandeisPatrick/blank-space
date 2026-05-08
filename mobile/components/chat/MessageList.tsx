@@ -60,7 +60,7 @@ export function MessageList({
                 },
               ]}
             >
-              <IconSymbol size={15} name={s.icon as never} color={theme.colors.text.secondary} />
+              <IconSymbol size={15} name={s.icon} color={theme.colors.text.secondary} />
               <ThemedText style={[styles.suggestionText, { color: theme.colors.text.primary }]}>
                 {s.label}
               </ThemedText>

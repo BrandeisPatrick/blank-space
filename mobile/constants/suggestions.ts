@@ -1,5 +1,7 @@
+import type { SymbolViewProps } from 'expo-symbols';
+
 export type Suggestion = {
-  icon: string;
+  icon: SymbolViewProps['name'];
   label: string;
   prompt: string;
 };
