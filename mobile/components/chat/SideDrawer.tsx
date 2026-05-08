@@ -21,20 +21,13 @@ import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { DateGroup } from '@/components/chat/DateGroup';
 import { confirmDestructive } from '@/lib/action-sheets';
+import { groupConversations, type ConversationRow } from '@/lib/conversations';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
 
 const DRAWER_WIDTH = Math.min(320, Dimensions.get('window').width * 0.84);
-const MS_PER_DAY = 86_400_000;
-
-type ConversationRow = {
-  id: string;
-  title: string;
-  messageCount: number;
-  createdAt?: number | string | null;
-  updatedAt?: number | string | null;
-};
 
 type NavItem = {
   key: string;
@@ -67,29 +60,6 @@ export function SideDrawer(props: SideDrawerProps) {
       </SafeAreaProvider>
     </Modal>
   );
-}
-
-function groupConversations(rows: ConversationRow[]) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getTime() - MS_PER_DAY);
-  const groups: { today: ConversationRow[]; yesterday: ConversationRow[]; byYear: Record<string, ConversationRow[]> } = {
-    today: [],
-    yesterday: [],
-    byYear: {},
-  };
-  rows.forEach((c) => {
-    const ts = typeof c.createdAt === 'number' ? c.createdAt : Number(c.createdAt) || Date.now();
-    const d = new Date(ts);
-    if (d >= today) groups.today.push(c);
-    else if (d >= yesterday) groups.yesterday.push(c);
-    else {
-      const y = d.getFullYear().toString();
-      if (!groups.byYear[y]) groups.byYear[y] = [];
-      groups.byYear[y].push(c);
-    }
-  });
-  return groups;
 }
 
 function DrawerBody({
@@ -365,62 +335,6 @@ function DrawerBody({
   );
 }
 
-function DateGroup({
-  title,
-  rows,
-  activeId,
-  onSelect,
-  onDelete,
-  theme,
-}: {
-  title: string;
-  rows: ConversationRow[];
-  activeId: string | null;
-  onSelect: (id: string) => void;
-  onDelete: (item: ConversationRow) => void;
-  theme: ReturnType<typeof getTheme>;
-}) {
-  return (
-    <View style={styles.dateGroup}>
-      <ThemedText style={[styles.dateGroupTitle, { color: theme.colors.text.tertiary }]}>{title}</ThemedText>
-      {rows.map((item) => {
-        const isActive = item.id === activeId;
-        return (
-          <Pressable
-            key={item.id}
-            onPress={() => onSelect(item.id)}
-            onLongPress={() => onDelete(item)}
-            delayLongPress={400}
-            style={({ pressed }) => [
-              styles.convRow,
-              {
-                backgroundColor: isActive
-                  ? theme.colors.bg.secondary
-                  : pressed
-                    ? theme.colors.bg.tertiary
-                    : 'transparent',
-              },
-            ]}
-          >
-            <ThemedText
-              numberOfLines={1}
-              style={[
-                styles.convTitle,
-                {
-                  color: theme.colors.text.primary,
-                  fontWeight: isActive ? '600' : '400',
-                },
-              ]}
-            >
-              {item.title || 'New conversation'}
-            </ThemedText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row' },
   backdrop: {
@@ -471,20 +385,6 @@ const styles = StyleSheet.create({
   },
   navLabel: { fontSize: 15 },
   historyBody: { paddingHorizontal: 8, paddingTop: 6 },
-  dateGroup: { marginTop: 8, gap: 1 },
-  dateGroupTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    letterSpacing: 0.2,
-  },
-  convRow: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  convTitle: { fontSize: 14 },
   emptyText: { fontSize: 13, paddingHorizontal: 12, paddingVertical: 8 },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
