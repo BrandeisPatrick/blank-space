@@ -104,7 +104,7 @@ export function Composer({
         <TextInput
           value={value}
           onChangeText={setValue}
-          placeholder="Ask anything…"
+          placeholder="Message…"
           placeholderTextColor={theme.colors.text.tertiary}
           multiline
           style={[styles.input, { color: theme.colors.text.primary }]}

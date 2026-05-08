@@ -1,10 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
+
+const BANNER_DARK = require('../../assets/images/banner-dark.png');
+const BANNER_LIGHT = require('../../assets/images/banner-light.png');
 
 export type Message = {
   id: string;
@@ -43,9 +47,11 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <View style={styles.empty}>
-        <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
-          What can I build for you?
-        </ThemedText>
+        <Image
+          source={mode === 'light' ? BANNER_LIGHT : BANNER_DARK}
+          style={styles.banner}
+          contentFit="contain"
+        />
         <View style={styles.suggestions}>
           {SUGGESTIONS.map((s) => (
             <Pressable
@@ -175,12 +181,9 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 28,
   },
-  emptyTitle: {
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: -0.6,
+  banner: {
+    width: 240,
+    height: 56,
   },
   suggestions: {
     flexDirection: 'row',
