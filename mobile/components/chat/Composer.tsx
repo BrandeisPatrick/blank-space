@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActionSheetIOS, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -43,6 +43,29 @@ export function Composer({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSend(trimmed);
     setValue('');
+  };
+
+  const handleAttach = () => {
+    Haptics.selectionAsync();
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Attachments', 'File and image attachments are coming soon.');
+      return;
+    }
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: 'Attach',
+        message: 'File and image attachments are coming soon.',
+        options: ['Cancel'],
+        cancelButtonIndex: 0,
+        userInterfaceStyle: mode,
+      },
+      () => {},
+    );
+  };
+
+  const handleSpeak = () => {
+    Haptics.selectionAsync();
+    Alert.alert('Voice input', 'Voice input is coming soon.');
   };
 
   const openTierPicker = () => {
@@ -90,6 +113,7 @@ export function Composer({
 
         <View style={styles.actionRow}>
           <Pressable
+            onPress={handleAttach}
             hitSlop={6}
             style={({ pressed }) => [
               styles.iconBtn,
@@ -126,40 +150,43 @@ export function Composer({
 
           <View style={{ flex: 1 }} />
 
-          <Pressable
-            onPress={handleSend}
-            disabled={!canSend}
-            hitSlop={6}
-            style={({ pressed }) => [
-              canSend ? styles.sendButton : styles.speakChip,
-              {
-                backgroundColor: canSend
-                  ? theme.colors.text.primary
-                  : theme.colors.bg.tertiary,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            {canSend ? (
+          {canSend ? (
+            <Pressable
+              onPress={handleSend}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.sendButton,
+                {
+                  backgroundColor: theme.colors.text.primary,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
               <IconSymbol
                 size={16}
                 name="arrow.up"
                 color={theme.colors.bg.primary}
                 weight="bold"
               />
-            ) : (
-              <>
-                <IconSymbol
-                  size={14}
-                  name="waveform"
-                  color={theme.colors.text.primary}
-                />
-                <ThemedText style={[styles.speakLabel, { color: theme.colors.text.primary }]}>
-                  Speak
-                </ThemedText>
-              </>
-            )}
-          </Pressable>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleSpeak}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.speakChip,
+                {
+                  backgroundColor: theme.colors.bg.tertiary,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <IconSymbol size={14} name="waveform" color={theme.colors.text.primary} />
+              <ThemedText style={[styles.speakLabel, { color: theme.colors.text.primary }]}>
+                Speak
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
       </View>
     </View>

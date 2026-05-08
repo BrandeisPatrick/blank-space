@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -21,6 +22,7 @@ export function ChatHeader({
 }) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
+  const router = useRouter();
 
   return (
     <View style={styles.row}>
@@ -49,9 +51,18 @@ export function ChatHeader({
             Ask
           </ThemedText>
         </View>
-        <ThemedText style={[styles.tabInactiveText, { color: theme.colors.text.tertiary }]}>
-          Build
-        </ThemedText>
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push('/apps');
+          }}
+          hitSlop={8}
+          style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
+        >
+          <ThemedText style={[styles.tabInactiveText, { color: theme.colors.text.tertiary }]}>
+            Build
+          </ThemedText>
+        </Pressable>
       </View>
 
       <CircleButton
