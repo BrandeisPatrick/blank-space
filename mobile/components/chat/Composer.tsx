@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -57,17 +58,18 @@ export function Composer({
   };
 
   const isDark = mode === 'dark';
-  const glassBg = isDark ? 'rgba(36,36,38,0.72)' : 'rgba(245,245,247,0.78)';
+  const tint = isDark ? 'systemUltraThinMaterialDark' : 'systemUltraThinMaterialLight';
+  const fallbackBg = isDark ? 'rgba(36,36,38,0.72)' : 'rgba(245,245,247,0.78)';
   const glassBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.pill,
-          { backgroundColor: glassBg, borderColor: glassBorder },
-        ]}
-      >
+      <View style={[styles.pill, { borderColor: glassBorder }]}>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={50} tint={tint} style={[StyleSheet.absoluteFill, styles.pillFill]} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.pillFill, { backgroundColor: fallbackBg }]} />
+        )}
         <TextInput
           value={value}
           onChangeText={setValue}
@@ -173,11 +175,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     gap: 8,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 4 },
   },
+  pillFill: { borderRadius: 26 },
   input: {
     fontSize: 16,
     lineHeight: 22,

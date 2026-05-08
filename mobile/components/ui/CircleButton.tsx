@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -29,9 +30,9 @@ export function CircleButton({
     onPress();
   };
 
-  // Faux liquid-glass: translucent fill + soft inner highlight border
-  const glassBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const glassBorder = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)';
+  const tint = isDark ? 'systemUltraThinMaterialDark' : 'systemUltraThinMaterialLight';
+  const fallbackBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)';
   const iconColor = isDark ? '#ffffff' : '#000000';
 
   return (
@@ -40,15 +41,14 @@ export function CircleButton({
       hitSlop={10}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => [
-        styles.btn,
-        {
-          backgroundColor: glassBg,
-          borderColor: glassBorder,
-          opacity: pressed ? 0.55 : 1,
-        },
-      ]}
+      style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.55 : 1 }]}
     >
+      {Platform.OS === 'ios' ? (
+        <BlurView intensity={50} tint={tint} style={[StyleSheet.absoluteFill, styles.fill]} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.fill, { backgroundColor: fallbackBg }]} />
+      )}
+      <View style={[styles.borderOverlay, { borderColor }]} />
       <IconSymbol size={iconSize} name={iconName} color={iconColor} />
     </Pressable>
   );
@@ -65,6 +65,12 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fill: { borderRadius: 19 },
+  borderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 19,
     borderWidth: StyleSheet.hairlineWidth,
   },
   spacer: { width: 38, height: 38 },

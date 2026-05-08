@@ -21,10 +21,12 @@ export function MessageList({
   messages,
   sending,
   onSuggestedPrompt,
+  bottomInset = 12,
 }: {
   messages: Message[];
   sending?: boolean;
   onSuggestedPrompt?: (text: string) => void;
+  bottomInset?: number;
 }) {
   const { mode } = useTheme();
   const theme = getTheme(mode);
@@ -76,7 +78,7 @@ export function MessageList({
       ref={listRef}
       data={messages}
       keyExtractor={(m) => m.id}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingBottom: bottomInset }]}
       renderItem={({ item }) => <MessageBlock message={item} />}
       ListFooterComponent={sending ? <TypingBubble /> : null}
       onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}

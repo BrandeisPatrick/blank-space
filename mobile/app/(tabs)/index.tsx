@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -107,14 +107,17 @@ export default function ChatScreen() {
             messages={messages as Message[]}
             sending={sending}
             onSuggestedPrompt={handleSend}
+            bottomInset={120}
           />
-          <Composer
-            onSend={handleSend}
-            disabled={sending}
-            initialValue={composerPrefill}
-            modelTier={modelTier}
-            onChangeTier={setModelTier}
-          />
+          <View style={styles.composerOverlay} pointerEvents="box-none">
+            <Composer
+              onSend={handleSend}
+              disabled={sending}
+              initialValue={composerPrefill}
+              modelTier={modelTier}
+              onChangeTier={setModelTier}
+            />
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
       <SideDrawer
@@ -134,4 +137,10 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   kav: { flex: 1 },
+  composerOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
 });
