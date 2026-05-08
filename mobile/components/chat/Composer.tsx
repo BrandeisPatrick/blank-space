@@ -56,15 +56,16 @@ export function Composer({
     openTierPickerSheet({ current: modelTier ?? 'lite', mode, onChange: onChangeTier });
   };
 
+  const isDark = mode === 'dark';
+  const glassBg = isDark ? 'rgba(36,36,38,0.72)' : 'rgba(245,245,247,0.78)';
+  const glassBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg.primary }]}>
+    <View style={styles.container}>
       <View
         style={[
           styles.pill,
-          {
-            backgroundColor: theme.colors.bg.secondary,
-            borderColor: theme.colors.bg.border,
-          },
+          { backgroundColor: glassBg, borderColor: glassBorder },
         ]}
       >
         <TextInput
@@ -172,6 +173,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 4 },
   },
   input: {
     fontSize: 16,

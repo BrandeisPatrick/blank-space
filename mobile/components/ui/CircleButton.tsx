@@ -3,7 +3,6 @@ import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getTheme } from '../../../src/styles/theme';
 import type { SymbolViewProps } from 'expo-symbols';
 
 type IconName = SymbolViewProps['name'];
@@ -22,13 +21,18 @@ export function CircleButton({
   accessibilityLabel?: string;
 }) {
   const { mode } = useTheme();
-  const theme = getTheme(mode);
+  const isDark = mode === 'dark';
 
   const handlePress = () => {
     if (haptic === 'selection') Haptics.selectionAsync();
     else if (haptic === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
+
+  // Faux liquid-glass: translucent fill + soft inner highlight border
+  const glassBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const glassBorder = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)';
+  const iconColor = isDark ? '#ffffff' : '#000000';
 
   return (
     <Pressable
@@ -39,13 +43,13 @@ export function CircleButton({
       style={({ pressed }) => [
         styles.btn,
         {
-          backgroundColor: theme.colors.bg.secondary,
-          borderColor: theme.colors.bg.border,
+          backgroundColor: glassBg,
+          borderColor: glassBorder,
           opacity: pressed ? 0.55 : 1,
         },
       ]}
     >
-      <IconSymbol size={iconSize} name={iconName} color={theme.colors.text.primary} />
+      <IconSymbol size={iconSize} name={iconName} color={iconColor} />
     </Pressable>
   );
 }
