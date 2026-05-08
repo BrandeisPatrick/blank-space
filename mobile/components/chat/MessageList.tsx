@@ -211,24 +211,6 @@ const styles = StyleSheet.create({
   assistantBlock: {
     gap: 6,
   },
-  assistantHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  assistantLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
   typingRow: {
     flexDirection: 'row',
     alignItems: 'center',
