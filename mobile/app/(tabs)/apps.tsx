@@ -8,6 +8,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MonacoEditorSheet } from '@/components/editor/MonacoEditorSheet';
 import { PreviewSheet, type PreviewError } from '@/components/preview/PreviewSheet';
 import { SideDrawer } from '@/components/chat/SideDrawer';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { CircleButton } from '@/components/ui/CircleButton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { confirmDestructive } from '@/lib/action-sheets';
@@ -167,37 +169,11 @@ export default function AppsScreen() {
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => setDrawerOpen(true)}
-            hitSlop={10}
-            style={({ pressed }) => [
-              styles.circleBtn,
-              {
-                backgroundColor: theme.colors.bg.secondary,
-                borderColor: theme.colors.bg.border,
-                opacity: pressed ? 0.55 : 1,
-              },
-            ]}
-          >
-            <IconSymbol size={18} name="line.3.horizontal" color={theme.colors.text.primary} />
-          </Pressable>
-          <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Apps</ThemedText>
-          <Pressable
-            onPress={openDemoPreview}
-            hitSlop={10}
-            style={({ pressed }) => [
-              styles.circleBtn,
-              {
-                backgroundColor: theme.colors.bg.secondary,
-                borderColor: theme.colors.bg.border,
-                opacity: pressed ? 0.55 : 1,
-              },
-            ]}
-          >
-            <IconSymbol size={16} name="play.fill" color={theme.colors.text.primary} />
-          </Pressable>
-        </View>
+        <ScreenHeader
+          title="Apps"
+          left={<CircleButton iconName="line.3.horizontal" onPress={() => setDrawerOpen(true)} accessibilityLabel="Open menu" />}
+          right={<CircleButton iconName="play.fill" iconSize={16} onPress={openDemoPreview} haptic="light" accessibilityLabel="Run demo preview" />}
+        />
         <FlatList
           data={rows}
           keyExtractor={(p) => p.id}
@@ -290,23 +266,6 @@ export default function AppsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  circleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  title: { fontSize: 16, fontWeight: '600' },
   cell: { alignItems: 'center', gap: 8 },
   tile: {
     borderRadius: 22,

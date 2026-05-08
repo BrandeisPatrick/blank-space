@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SideDrawer } from '@/components/chat/SideDrawer';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { CircleButton, CircleButtonSpacer } from '@/components/ui/CircleButton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { confirmDestructive } from '@/lib/action-sheets';
@@ -47,24 +49,11 @@ export default function FilesScreen() {
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => setDrawerOpen(true)}
-            hitSlop={10}
-            style={({ pressed }) => [
-              styles.circleBtn,
-              {
-                backgroundColor: theme.colors.bg.secondary,
-                borderColor: theme.colors.bg.border,
-                opacity: pressed ? 0.55 : 1,
-              },
-            ]}
-          >
-            <IconSymbol size={18} name="line.3.horizontal" color={theme.colors.text.primary} />
-          </Pressable>
-          <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
-          <View style={styles.spacer} />
-        </View>
+        <ScreenHeader
+          title="Files"
+          left={<CircleButton iconName="line.3.horizontal" onPress={() => setDrawerOpen(true)} accessibilityLabel="Open menu" />}
+          right={<CircleButtonSpacer />}
+        />
 
         <FlatList
           data={rows}
@@ -144,24 +133,6 @@ export default function FilesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  circleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  title: { fontSize: 16, fontWeight: '600' },
-  spacer: { width: 38, height: 38 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
