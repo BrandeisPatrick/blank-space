@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActionSheetIOS,
   Animated,
   Dimensions,
   Easing,
@@ -22,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { confirmDestructive } from '@/lib/action-sheets';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
 
@@ -132,23 +132,12 @@ function DrawerBody({
   };
 
   const confirmDeleteConversation = (item: ConversationRow) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: item.title || 'Conversation',
-        message: 'Delete this conversation? This cannot be undone.',
-        options: ['Delete', 'Cancel'],
-        destructiveButtonIndex: 0,
-        cancelButtonIndex: 1,
-        userInterfaceStyle: mode,
-      },
-      (idx) => {
-        if (idx === 0) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          onDeleteConversation(item.id);
-        }
-      },
-    );
+    confirmDestructive({
+      title: item.title || 'Conversation',
+      message: 'Delete this conversation? This cannot be undone.',
+      mode,
+      onConfirm: () => onDeleteConversation(item.id),
+    });
   };
 
   const isChat = pathname === '/' || pathname === '/index';

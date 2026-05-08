@@ -1,14 +1,14 @@
-import { ActionSheetIOS, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { openTierPickerSheet } from '@/lib/action-sheets';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
 import { MODEL_TIERS } from '../../../src/services/config/modelConfig';
 
 type TierKey = keyof typeof MODEL_TIERS;
-const TIER_KEYS = Object.keys(MODEL_TIERS) as TierKey[];
 
 export function ChatHeader({
   modelTier,
@@ -25,26 +25,8 @@ export function ChatHeader({
   const theme = getTheme(mode);
   const activeTier = MODEL_TIERS[modelTier] ?? MODEL_TIERS.lite;
 
-  const openTierPicker = () => {
-    Haptics.selectionAsync();
-    if (Platform.OS !== 'ios') {
-      const next = TIER_KEYS[(TIER_KEYS.indexOf(modelTier) + 1) % TIER_KEYS.length];
-      onChangeTier(next);
-      return;
-    }
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: 'Model',
-        options: [...TIER_KEYS.map((k) => MODEL_TIERS[k].name), 'Cancel'],
-        cancelButtonIndex: TIER_KEYS.length,
-        userInterfaceStyle: mode,
-      },
-      (index) => {
-        if (index < 0 || index >= TIER_KEYS.length) return;
-        onChangeTier(TIER_KEYS[index]);
-      },
-    );
-  };
+  const openTierPicker = () =>
+    openTierPickerSheet({ current: modelTier, mode, onChange: onChangeTier });
 
   return (
     <View style={styles.row}>

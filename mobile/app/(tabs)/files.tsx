@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SideDrawer } from '@/components/chat/SideDrawer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { confirmDestructive } from '@/lib/action-sheets';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { useFileSystem } from '../../../src/contexts/FileSystemContext';
 import { useConversation } from '../../../src/contexts/ConversationContext';
@@ -36,23 +36,12 @@ export default function FilesScreen() {
   const rows: ProjectRow[] = Array.isArray(projects) ? projects : [];
 
   const confirmDelete = (item: ProjectRow) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: item.name || 'Project',
-        message: 'Delete this project? This cannot be undone.',
-        options: ['Delete', 'Cancel'],
-        destructiveButtonIndex: 0,
-        cancelButtonIndex: 1,
-        userInterfaceStyle: mode,
-      },
-      (idx) => {
-        if (idx === 0) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          deleteProject(item.id);
-        }
-      },
-    );
+    confirmDestructive({
+      title: item.name || 'Project',
+      message: 'Delete this project? This cannot be undone.',
+      mode,
+      onConfirm: () => deleteProject(item.id),
+    });
   };
 
   return (

@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import {
+  openAttachmentSheet,
+  openTierPickerSheet,
+  openVoiceComingSoon,
+} from '@/lib/action-sheets';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { getTheme } from '../../../src/styles/theme';
 import { MODEL_TIERS } from '../../../src/services/config/modelConfig';
 
 type TierKey = keyof typeof MODEL_TIERS;
-const TIER_KEYS = Object.keys(MODEL_TIERS) as TierKey[];
 
 export function Composer({
   onSend,
@@ -45,49 +49,11 @@ export function Composer({
     setValue('');
   };
 
-  const handleAttach = () => {
-    Haptics.selectionAsync();
-    if (Platform.OS !== 'ios') {
-      Alert.alert('Attachments', 'File and image attachments are coming soon.');
-      return;
-    }
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: 'Attach',
-        message: 'File and image attachments are coming soon.',
-        options: ['Cancel'],
-        cancelButtonIndex: 0,
-        userInterfaceStyle: mode,
-      },
-      () => {},
-    );
-  };
-
-  const handleSpeak = () => {
-    Haptics.selectionAsync();
-    Alert.alert('Voice input', 'Voice input is coming soon.');
-  };
-
+  const handleAttach = () => openAttachmentSheet(mode);
+  const handleSpeak = () => openVoiceComingSoon();
   const openTierPicker = () => {
     if (!onChangeTier) return;
-    Haptics.selectionAsync();
-    if (Platform.OS !== 'ios') {
-      const next = TIER_KEYS[(TIER_KEYS.indexOf(modelTier ?? 'lite') + 1) % TIER_KEYS.length];
-      onChangeTier(next);
-      return;
-    }
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: 'Model',
-        options: [...TIER_KEYS.map((k) => MODEL_TIERS[k].name), 'Cancel'],
-        cancelButtonIndex: TIER_KEYS.length,
-        userInterfaceStyle: mode,
-      },
-      (index) => {
-        if (index < 0 || index >= TIER_KEYS.length) return;
-        onChangeTier(TIER_KEYS[index]);
-      },
-    );
+    openTierPickerSheet({ current: modelTier ?? 'lite', mode, onChange: onChangeTier });
   };
 
   return (

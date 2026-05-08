@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActionSheetIOS, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,7 @@ import { PreviewSheet, type PreviewError } from '@/components/preview/PreviewShe
 import { SideDrawer } from '@/components/chat/SideDrawer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { confirmDestructive } from '@/lib/action-sheets';
 import { useTheme } from '../../../src/contexts/ThemeContext';
 import { useFileSystem } from '../../../src/contexts/FileSystemContext';
 import { useConversation } from '../../../src/contexts/ConversationContext';
@@ -155,23 +156,12 @@ export default function AppsScreen() {
   const cellSize = Math.floor((width - H_PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
 
   const confirmDelete = (item: ProjectCard) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: item.name || 'Project',
-        message: 'Delete this project? This cannot be undone.',
-        options: ['Delete', 'Cancel'],
-        destructiveButtonIndex: 0,
-        cancelButtonIndex: 1,
-        userInterfaceStyle: mode,
-      },
-      (idx) => {
-        if (idx === 0) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          deleteProject(item.id);
-        }
-      },
-    );
+    confirmDestructive({
+      title: item.name || 'Project',
+      message: 'Delete this project? This cannot be undone.',
+      mode,
+      onConfirm: () => deleteProject(item.id),
+    });
   };
 
   return (
