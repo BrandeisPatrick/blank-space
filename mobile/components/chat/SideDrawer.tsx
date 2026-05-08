@@ -23,6 +23,12 @@ import type { SymbolViewProps } from 'expo-symbols';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { DateGroup } from '@/components/chat/DateGroup';
+import {
+  AnimatedChatIcon,
+  AnimatedComputerIcon,
+  AnimatedFilesIcon,
+  AnimatedHistoryIcon,
+} from '@/components/icons/AnimatedNavIcons';
 import { confirmDestructive } from '@/lib/action-sheets';
 import { groupConversations, type ConversationRow } from '@/lib/conversations';
 import { useTheme } from '../../../src/contexts/ThemeContext';
@@ -30,17 +36,19 @@ import { getTheme } from '../../../src/styles/theme';
 
 const DRAWER_WIDTH = Math.min(320, Dimensions.get('window').width * 0.84);
 
+type AnimatedIcon = (props: { size?: number; color?: string; active?: boolean }) => React.ReactElement;
+
 type NavItem = {
   key: string;
   pathname: '/' | '/apps' | '/files';
   label: string;
-  icon: SymbolViewProps['name'];
+  Icon: AnimatedIcon;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { key: 'chat', pathname: '/', label: 'Chat', icon: 'message' },
-  { key: 'computer', pathname: '/apps', label: 'Computer', icon: 'desktopcomputer' },
-  { key: 'files', pathname: '/files', label: 'Files', icon: 'folder' },
+  { key: 'chat', pathname: '/', label: 'Chat', Icon: AnimatedChatIcon },
+  { key: 'computer', pathname: '/apps', label: 'Computer', Icon: AnimatedComputerIcon },
+  { key: 'files', pathname: '/files', label: 'Files', Icon: AnimatedFilesIcon },
 ];
 
 type SideDrawerProps = {
@@ -81,6 +89,7 @@ function DrawerBody({
   const fade = useRef(new Animated.Value(0)).current;
   const [historyOpen, setHistoryOpen] = useState(true);
   const [search, setSearch] = useState('');
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -183,10 +192,14 @@ function DrawerBody({
                 const active =
                   (item.pathname === '/' && isChat) ||
                   (item.pathname !== '/' && pathname.startsWith(item.pathname));
+                const isPressed = pressedKey === item.key;
+                const Icon = item.Icon;
                 return (
                   <Pressable
                     key={item.key}
                     onPress={() => navigate(item)}
+                    onPressIn={() => setPressedKey(item.key)}
+                    onPressOut={() => setPressedKey(null)}
                     style={({ pressed }) => [
                       styles.navRow,
                       {
@@ -198,10 +211,10 @@ function DrawerBody({
                       },
                     ]}
                   >
-                    <IconSymbol
-                      size={18}
-                      name={item.icon}
+                    <Icon
+                      size={20}
                       color={active ? theme.colors.text.primary : theme.colors.text.secondary}
+                      active={isPressed || active}
                     />
                     <ThemedText
                       style={[
@@ -223,6 +236,8 @@ function DrawerBody({
                   Haptics.selectionAsync();
                   setHistoryOpen((v) => !v);
                 }}
+                onPressIn={() => setPressedKey('history')}
+                onPressOut={() => setPressedKey(null)}
                 style={({ pressed }) => [
                   styles.navRow,
                   {
@@ -230,7 +245,11 @@ function DrawerBody({
                   },
                 ]}
               >
-                <IconSymbol size={18} name="clock" color={theme.colors.text.secondary} />
+                <AnimatedHistoryIcon
+                  size={20}
+                  color={theme.colors.text.secondary}
+                  active={pressedKey === 'history'}
+                />
                 <ThemedText style={[styles.navLabel, { color: theme.colors.text.secondary, flex: 1 }]}>
                   History
                 </ThemedText>
