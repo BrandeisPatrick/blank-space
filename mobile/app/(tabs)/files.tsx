@@ -62,18 +62,19 @@ export default function FilesScreen() {
           <Pressable
             onPress={() => setDrawerOpen(true)}
             hitSlop={10}
-            style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.55 : 1 }]}
+            style={({ pressed }) => [
+              styles.circleBtn,
+              {
+                backgroundColor: theme.colors.bg.secondary,
+                borderColor: theme.colors.bg.border,
+                opacity: pressed ? 0.55 : 1,
+              },
+            ]}
           >
-            <IconSymbol size={22} name="line.3.horizontal" color={theme.colors.text.primary} />
+            <IconSymbol size={18} name="line.3.horizontal" color={theme.colors.text.primary} />
           </Pressable>
-          <View style={styles.headerMain}>
-            <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
-            {rows.length > 0 && (
-              <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
-                {rows.length} {rows.length === 1 ? 'project' : 'projects'}
-              </ThemedText>
-            )}
-          </View>
+          <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Files</ThemedText>
+          <View style={styles.spacer} />
         </View>
 
         <FlatList
@@ -157,15 +158,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-  menuBtn: { padding: 6 },
-  headerMain: { flex: 1, paddingLeft: 2 },
-  title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, marginTop: 2 },
+  circleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  title: { fontSize: 16, fontWeight: '600' },
+  spacer: { width: 38, height: 38 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

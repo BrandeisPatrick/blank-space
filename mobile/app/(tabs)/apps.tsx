@@ -181,48 +181,32 @@ export default function AppsScreen() {
           <Pressable
             onPress={() => setDrawerOpen(true)}
             hitSlop={10}
-            style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.55 : 1 }]}
+            style={({ pressed }) => [
+              styles.circleBtn,
+              {
+                backgroundColor: theme.colors.bg.secondary,
+                borderColor: theme.colors.bg.border,
+                opacity: pressed ? 0.55 : 1,
+              },
+            ]}
           >
-            <IconSymbol size={22} name="line.3.horizontal" color={theme.colors.text.primary} />
+            <IconSymbol size={18} name="line.3.horizontal" color={theme.colors.text.primary} />
           </Pressable>
-          <View style={styles.headerMain}>
-            <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Apps</ThemedText>
-            {rows.length > 0 && (
-              <ThemedText style={[styles.subtitle, { color: theme.colors.text.tertiary }]}>
-                {rows.length} {rows.length === 1 ? 'project' : 'projects'}
-              </ThemedText>
-            )}
-          </View>
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => setEditorOpen(true)}
-              hitSlop={10}
-              style={({ pressed }) => [
-                styles.headerBtn,
-                {
-                  backgroundColor: theme.colors.bg.secondary,
-                  borderColor: theme.colors.bg.border,
-                  opacity: pressed ? 0.55 : 1,
-                },
-              ]}
-            >
-              <IconSymbol size={18} name="curlybraces" color={theme.colors.text.primary} />
-            </Pressable>
-            <Pressable
-              onPress={openDemoPreview}
-              hitSlop={10}
-              style={({ pressed }) => [
-                styles.headerBtn,
-                {
-                  backgroundColor: theme.colors.bg.secondary,
-                  borderColor: theme.colors.bg.border,
-                  opacity: pressed ? 0.55 : 1,
-                },
-              ]}
-            >
-              <IconSymbol size={18} name="play.fill" color={theme.colors.text.primary} />
-            </Pressable>
-          </View>
+          <ThemedText style={[styles.title, { color: theme.colors.text.primary }]}>Apps</ThemedText>
+          <Pressable
+            onPress={openDemoPreview}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.circleBtn,
+              {
+                backgroundColor: theme.colors.bg.secondary,
+                borderColor: theme.colors.bg.border,
+                opacity: pressed ? 0.55 : 1,
+              },
+            ]}
+          >
+            <IconSymbol size={16} name="play.fill" color={theme.colors.text.primary} />
+          </Pressable>
         </View>
         <FlatList
           data={rows}
@@ -319,24 +303,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-  menuBtn: { padding: 6 },
-  headerMain: { flex: 1, paddingLeft: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  circleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
-  title: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, marginTop: 2 },
+  title: { fontSize: 16, fontWeight: '600' },
   cell: { alignItems: 'center', gap: 8 },
   tile: {
     borderRadius: 22,
