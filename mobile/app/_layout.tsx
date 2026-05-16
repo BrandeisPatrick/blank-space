@@ -1,19 +1,32 @@
+import { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { AuthProvider } from '../../src/contexts/AuthContext';
-import { ConversationProvider } from '../../src/contexts/ConversationContext';
-import { FileSystemProvider } from '../../src/contexts/FileSystemContext';
-import { ThemeProvider as AppThemeProvider, useTheme } from '../../src/contexts/ThemeContext';
+import { AuthProvider } from '@shared/contexts/AuthContext';
+import { ConversationProvider } from '@shared/contexts/ConversationContext';
+import { FileSystemProvider } from '@shared/contexts/FileSystemContext';
+import { ThemeProvider as AppThemeProvider, useTheme } from '@shared/contexts/ThemeContext';
+import { useAppSettings } from '@/lib/settings';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
 function RootStack() {
-  const { mode } = useTheme();
+  const { mode, setMode } = useTheme();
+  const { appearance, ready } = useAppSettings();
+  const osScheme = useColorScheme();
+
+  useEffect(() => {
+    if (!ready) return;
+    const resolved =
+      appearance === 'system' ? (osScheme === 'dark' ? 'dark' : 'light') : appearance;
+    setMode(resolved);
+  }, [ready, appearance, osScheme, setMode]);
+
   return (
     <NavThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
