@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/ThemedText';
 import type { ConversationRow } from '@/lib/conversations';
-import { getTheme } from '../../../src/styles/theme';
+import { getTheme } from '@shared/styles/theme';
 
 export type DateGroupTheme = ReturnType<typeof getTheme>;
 
@@ -23,7 +23,11 @@ export function DateGroup({
 }) {
   return (
     <View style={styles.dateGroup}>
-      <ThemedText style={[styles.dateGroupTitle, { color: theme.colors.text.tertiary }]}>
+      <ThemedText
+        variant="caption"
+        tone="tertiary"
+        style={styles.dateGroupTitle}
+      >
         {title}
       </ThemedText>
       {rows.map((item) => {
@@ -34,6 +38,10 @@ export function DateGroup({
             onPress={() => onSelect(item.id)}
             onLongPress={() => onDelete(item)}
             delayLongPress={400}
+            accessibilityRole="button"
+            accessibilityLabel={item.title || 'New conversation'}
+            accessibilityHint="Long-press to delete"
+            accessibilityState={{ selected: isActive }}
             style={({ pressed }) => [
               styles.convRow,
               {
@@ -46,14 +54,12 @@ export function DateGroup({
             ]}
           >
             <ThemedText
+              variant="subhead"
               numberOfLines={1}
-              style={[
-                styles.convTitle,
-                {
-                  color: theme.colors.text.primary,
-                  fontWeight: isActive ? '600' : '400',
-                },
-              ]}
+              style={{
+                color: theme.colors.text.primary,
+                fontWeight: isActive ? '600' : '400',
+              }}
             >
               {item.title || 'New conversation'}
             </ThemedText>
@@ -67,16 +73,12 @@ export function DateGroup({
 const styles = StyleSheet.create({
   dateGroup: { marginTop: 8, gap: 1 },
   dateGroupTitle: {
-    fontSize: 12,
-    fontWeight: '500',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    letterSpacing: 0.2,
   },
   convRow: {
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  convTitle: { fontSize: 14 },
 });

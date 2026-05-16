@@ -1,15 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
+import { Animated, Easing, FlatList, StyleSheet, View } from 'react-native';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ThemedText } from '@/components/themed-text';
-import { SUGGESTIONS } from '@/constants/suggestions';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getTheme } from '../../../src/styles/theme';
-
-const BANNER_DARK = require('../../assets/images/banner-dark.png');
-const BANNER_LIGHT = require('../../assets/images/banner-light.png');
+import { ThemedText } from '@/components/ui/ThemedText';
+import { Starburst } from '@/components/icons/Starburst';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { getTheme } from '@shared/styles/theme';
 
 export type Message = {
   id: string;
@@ -20,12 +15,10 @@ export type Message = {
 export function MessageList({
   messages,
   sending,
-  onSuggestedPrompt,
   bottomInset = 12,
 }: {
   messages: Message[];
   sending?: boolean;
-  onSuggestedPrompt?: (text: string) => void;
   bottomInset?: number;
 }) {
   const { mode } = useTheme();
@@ -43,32 +36,14 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <View style={styles.empty}>
-        <Image
-          source={mode === 'light' ? BANNER_LIGHT : BANNER_DARK}
-          style={styles.banner}
-          contentFit="contain"
-        />
-        <View style={styles.suggestions}>
-          {SUGGESTIONS.map((s) => (
-            <Pressable
-              key={s.label}
-              onPress={() => onSuggestedPrompt?.(s.prompt)}
-              style={({ pressed }) => [
-                styles.suggestionPill,
-                {
-                  backgroundColor: theme.colors.bg.secondary,
-                  borderColor: theme.colors.bg.border,
-                  opacity: pressed ? 0.55 : 1,
-                },
-              ]}
-            >
-              <IconSymbol size={15} name={s.icon} color={theme.colors.text.secondary} />
-              <ThemedText style={[styles.suggestionText, { color: theme.colors.text.primary }]}>
-                {s.label}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
+        <Starburst size={56} color={theme.colors.accent.primary} />
+        <ThemedText
+          variant="title2"
+          tone="secondary"
+          style={styles.emptyHeadline}
+        >
+          How can I help you this evening?
+        </ThemedText>
       </View>
     );
   }
@@ -103,7 +78,7 @@ function MessageBlock({ message }: { message: Message }) {
             },
           ]}
         >
-          <ThemedText style={[styles.text, { color: theme.colors.text.primary }]}>
+          <ThemedText variant="body" tone="primary">
             {message.content}
           </ThemedText>
         </View>
@@ -113,7 +88,7 @@ function MessageBlock({ message }: { message: Message }) {
 
   return (
     <View style={styles.assistantBlock}>
-      <ThemedText style={[styles.text, { color: theme.colors.text.primary }]}>
+      <ThemedText variant="body" tone="primary">
         {message.content}
       </ThemedText>
     </View>
@@ -175,31 +150,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    gap: 28,
+    gap: 18,
   },
-  banner: {
-    width: 240,
-    height: 56,
-  },
-  suggestions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-  },
-  suggestionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  suggestionText: {
-    fontSize: 14,
+  emptyHeadline: {
     fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
   row: { flexDirection: 'row' },
   rowRight: { justifyContent: 'flex-end' },
@@ -223,9 +179,5 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-  },
-  text: {
-    fontSize: 16,
-    lineHeight: 24,
   },
 });

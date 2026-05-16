@@ -1,9 +1,10 @@
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { BlurView, type BlurTint } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useTheme } from '../../../src/contexts/ThemeContext';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { getTheme } from '@shared/styles/theme';
 import type { SymbolViewProps } from 'expo-symbols';
 
 type IconName = SymbolViewProps['name'];
@@ -22,7 +23,7 @@ export function CircleButton({
   accessibilityLabel?: string;
 }) {
   const { mode } = useTheme();
-  const isDark = mode === 'dark';
+  const theme = getTheme(mode);
 
   const handlePress = () => {
     if (haptic === 'selection') Haptics.selectionAsync();
@@ -30,10 +31,10 @@ export function CircleButton({
     onPress();
   };
 
-  const tint = isDark ? 'systemUltraThinMaterialDark' : 'systemUltraThinMaterialLight';
-  const fallbackBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const borderColor = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)';
-  const iconColor = isDark ? '#ffffff' : '#000000';
+  const tint = theme.surfaces.glass.blurTint as BlurTint;
+  const fallbackBg = theme.surfaces.glass.fillStrong;
+  const borderColor = theme.surfaces.glass.borderStrong;
+  const iconColor = theme.colors.text.primary;
 
   return (
     <Pressable
@@ -41,7 +42,7 @@ export function CircleButton({
       hitSlop={10}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.55 : 1 }]}
+      style={({ pressed }) => [styles.btn, { opacity: pressed ? theme.opacity.pressed : 1 }]}
     >
       {Platform.OS === 'ios' ? (
         <BlurView intensity={50} tint={tint} style={[StyleSheet.absoluteFill, styles.fill]} />

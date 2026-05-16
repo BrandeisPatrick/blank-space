@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { SideDrawer } from '@/components/chat/SideDrawer';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { CircleButton, CircleButtonSpacer } from '@/components/ui/CircleButton';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { SideDrawer } from '@/components/chat';
+import {
+  CircleButton,
+  CircleButtonSpacer,
+  IconSymbol,
+  ScreenHeader,
+  ThemedText,
+  ThemedView,
+} from '@/components/ui';
 import { confirmDestructive } from '@/lib/action-sheets';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { useFileSystem } from '../../../src/contexts/FileSystemContext';
-import { useConversation } from '../../../src/contexts/ConversationContext';
-import { getTheme } from '../../../src/styles/theme';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { useFileSystem } from '@shared/contexts/FileSystemContext';
+import { useConversation } from '@shared/contexts/ConversationContext';
+import { getTheme } from '@shared/styles/theme';
 
 type ProjectRow = {
   id: string;
@@ -64,10 +68,10 @@ export default function FilesScreen() {
               <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
                 <IconSymbol size={28} name="folder" color={theme.colors.text.primary} />
               </View>
-              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
+              <ThemedText variant="title2" tone="primary">
                 No projects yet
               </ThemedText>
-              <ThemedText style={[styles.emptyBody, { color: theme.colors.text.tertiary }]}>
+              <ThemedText variant="subhead" tone="tertiary" style={styles.emptyBody}>
                 Projects you generate from chat will appear here.
               </ThemedText>
             </View>
@@ -76,9 +80,15 @@ export default function FilesScreen() {
             const isActive = item.slug === activeProjectSlug;
             return (
               <Pressable
-                onPress={() => item.slug && loadProject(item.slug)}
+                onPress={() => {
+                  if (!item.slug) return;
+                  Haptics.selectionAsync();
+                  loadProject(item.slug);
+                }}
                 onLongPress={() => confirmDelete(item)}
                 delayLongPress={400}
+                accessibilityRole="button"
+                accessibilityLabel={item.name || item.slug || 'Untitled project'}
                 style={({ pressed }) => [
                   styles.row,
                   {
@@ -100,12 +110,14 @@ export default function FilesScreen() {
                 </View>
                 <View style={styles.rowMain}>
                   <ThemedText
+                    variant="headline"
+                    tone="primary"
                     numberOfLines={1}
-                    style={[styles.rowTitle, { color: theme.colors.text.primary }]}
+                    style={styles.rowTitleWeight}
                   >
                     {item.name || item.slug || 'Untitled'}
                   </ThemedText>
-                  <ThemedText style={[styles.rowMeta, { color: theme.colors.text.tertiary }]}>
+                  <ThemedText variant="caption" tone="tertiary">
                     {typeof item.fileCount === 'number'
                       ? `${item.fileCount} ${item.fileCount === 1 ? 'file' : 'files'}`
                       : 'Project'}
@@ -152,8 +164,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   rowMain: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 16, fontWeight: '500' },
-  rowMeta: { fontSize: 12 },
   empty: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 32, gap: 10 },
   emptyMark: {
     width: 56,
@@ -164,6 +174,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 6,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '600' },
-  emptyBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  emptyBody: { textAlign: 'center' },
+  rowTitleWeight: { fontWeight: '500' },
 });

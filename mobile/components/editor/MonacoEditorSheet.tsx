@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MonacoEditor } from '@/components/dom';
-import { ThemedText } from '@/components/themed-text';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getTheme } from '../../../src/styles/theme';
+import { SheetHeader } from '@/components/ui/SheetHeader';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { getTheme } from '@shared/styles/theme';
 
 export function MonacoEditorSheet({
   visible,
@@ -39,28 +39,19 @@ export function MonacoEditorSheet({
         style={[styles.safe, { backgroundColor: theme.colors.bg.primary }]}
         edges={['top', 'bottom']}
       >
-        <View style={[styles.header, { borderBottomColor: theme.colors.bg.border }]}>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <ThemedText style={[styles.action, { color: theme.colors.accent.ios }]}>Cancel</ThemedText>
-          </Pressable>
-          <ThemedText
-            numberOfLines={1}
-            style={[styles.title, { color: theme.colors.text.primary }]}
-          >
-            {title || 'Editor'}
-          </ThemedText>
-          <Pressable
-            onPress={() => {
+        <SheetHeader
+          title={title || 'Editor'}
+          left={{ kind: 'text', label: 'Cancel', onPress: onClose }}
+          right={{
+            kind: 'text',
+            label: 'Save',
+            emphasized: true,
+            onPress: () => {
               onSave?.(value);
               onClose();
-            }}
-            hitSlop={10}
-          >
-            <ThemedText style={[styles.action, { color: theme.colors.accent.ios, fontWeight: '600' }]}>
-              Save
-            </ThemedText>
-          </Pressable>
-        </View>
+            },
+          }}
+        />
 
         <View style={styles.body}>
           <MonacoEditor
@@ -79,16 +70,6 @@ export function MonacoEditorSheet({
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  action: { fontSize: 16, fontWeight: '500' },
-  title: { fontSize: 17, fontWeight: '600', flex: 1, textAlign: 'center' },
   body: { flex: 1 },
   dom: { flex: 1, width: '100%', height: '100%' },
 });
