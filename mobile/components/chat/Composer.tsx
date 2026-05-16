@@ -1,38 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { BlurView, type BlurTint } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ThemedText } from '@/components/themed-text';
-import {
-  openAttachmentSheet,
-  openTierPickerSheet,
-  openVoiceComingSoon,
-} from '@/lib/action-sheets';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getTheme } from '../../../src/styles/theme';
-import { MODEL_TIERS } from '../../../src/services/config/modelConfig';
-
-type TierKey = keyof typeof MODEL_TIERS;
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { openAttachmentSheet, openVoiceComingSoon } from '@/lib/action-sheets';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { getTheme } from '@shared/styles/theme';
 
 export function Composer({
   onSend,
   disabled,
   initialValue,
-  modelTier,
-  onChangeTier,
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
   initialValue?: string;
-  modelTier?: TierKey;
-  onChangeTier?: (next: TierKey) => void;
 }) {
   const [value, setValue] = useState(initialValue ?? '');
   const { mode } = useTheme();
   const theme = getTheme(mode);
-  const activeTier = (modelTier && MODEL_TIERS[modelTier]) || MODEL_TIERS.lite;
 
   useEffect(() => {
     if (initialValue !== undefined && initialValue !== '') {
@@ -52,19 +39,16 @@ export function Composer({
 
   const handleAttach = () => openAttachmentSheet(mode);
   const handleSpeak = () => openVoiceComingSoon();
-  const openTierPicker = () => {
-    if (!onChangeTier) return;
-    openTierPickerSheet({ current: modelTier ?? 'lite', mode, onChange: onChangeTier });
-  };
 
-  const isDark = mode === 'dark';
-  const tint = isDark ? 'systemUltraThinMaterialDark' : 'systemUltraThinMaterialLight';
-  const fallbackBg = isDark ? 'rgba(36,36,38,0.72)' : 'rgba(245,245,247,0.78)';
-  const glassBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+  const tint = theme.surfaces.glass.blurTint as BlurTint;
+  const fallbackBg = theme.surfaces.glass.fallback;
+  const glassBorder = theme.surfaces.glass.border;
+  const sendBg = theme.surfaces.button.primary.bg;
+  const sendIconColor = theme.surfaces.button.primary.fg;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.pill, { borderColor: glassBorder }]}>
+      <View style={[styles.pill, theme.nativeShadow.md, { borderColor: glassBorder }]}>
         {Platform.OS === 'ios' ? (
           <BlurView intensity={50} tint={tint} style={[StyleSheet.absoluteFill, styles.pillFill]} />
         ) : (
@@ -73,7 +57,7 @@ export function Composer({
         <TextInput
           value={value}
           onChangeText={setValue}
-          placeholder="Message…"
+          placeholder="Chat with Claude"
           placeholderTextColor={theme.colors.text.tertiary}
           multiline
           style={[styles.input, { color: theme.colors.text.primary }]}
@@ -83,79 +67,43 @@ export function Composer({
         <View style={styles.actionRow}>
           <Pressable
             onPress={handleAttach}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.iconBtn,
-              {
-                backgroundColor: theme.colors.bg.tertiary,
-                opacity: pressed ? 0.6 : 1,
-              },
-            ]}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Add attachment"
+            style={({ pressed }) => [styles.plusBtn, { opacity: pressed ? theme.opacity.pressed : 1 }]}
           >
-            <IconSymbol size={16} name="paperclip" color={theme.colors.text.secondary} />
-          </Pressable>
-
-          <Pressable
-            onPress={openTierPicker}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.tierChip,
-              {
-                backgroundColor: theme.colors.bg.tertiary,
-                opacity: pressed ? 0.6 : 1,
-              },
-            ]}
-          >
-            <IconSymbol
-              size={13}
-              name={modelTier === 'pro' ? 'sparkles' : 'bolt.fill'}
-              color={theme.colors.text.primary}
-            />
-            <ThemedText style={[styles.tierLabel, { color: theme.colors.text.primary }]}>
-              {activeTier.name}
-            </ThemedText>
-            <IconSymbol size={10} name="chevron.down" color={theme.colors.text.tertiary} />
+            <IconSymbol size={22} name="plus" color={theme.colors.text.secondary} weight="medium" />
           </Pressable>
 
           <View style={{ flex: 1 }} />
 
-          {canSend ? (
-            <Pressable
-              onPress={handleSend}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.sendButton,
-                {
-                  backgroundColor: theme.colors.text.primary,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <IconSymbol
-                size={16}
-                name="arrow.up"
-                color={theme.colors.bg.primary}
-                weight="bold"
-              />
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={handleSpeak}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.speakChip,
-                {
-                  backgroundColor: theme.colors.bg.tertiary,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <IconSymbol size={14} name="waveform" color={theme.colors.text.primary} />
-              <ThemedText style={[styles.speakLabel, { color: theme.colors.text.primary }]}>
-                Speak
-              </ThemedText>
-            </Pressable>
-          )}
+          <Pressable
+            onPress={handleSpeak}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Voice input"
+            style={({ pressed }) => [styles.micBtn, { opacity: pressed ? theme.opacity.pressed : 1 }]}
+          >
+            <IconSymbol size={18} name="mic" color={theme.colors.text.secondary} weight="medium" />
+          </Pressable>
+
+          <Pressable
+            onPress={canSend ? handleSend : handleSpeak}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={canSend ? 'Send message' : 'Voice input'}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              { backgroundColor: sendBg, opacity: pressed ? theme.opacity.pressedStrong : 1 },
+            ]}
+          >
+            <IconSymbol
+              size={18}
+              name={canSend ? 'arrow.up' : 'waveform'}
+              color={sendIconColor}
+              weight="bold"
+            />
+          </Pressable>
         </View>
       </View>
     </View>
@@ -164,66 +112,49 @@ export function Composer({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
   },
   pill: {
-    borderRadius: 26,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 8,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 10,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 4 },
   },
-  pillFill: { borderRadius: 26 },
+  pillFill: { borderRadius: 22 },
   input: {
     fontSize: 16,
-    lineHeight: 22,
-    minHeight: 24,
+    lineHeight: 24,
+    minHeight: 26,
     maxHeight: 140,
     padding: 0,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  iconBtn: {
+  plusBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tierChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 16,
-  },
-  tierLabel: { fontSize: 13, fontWeight: '600' },
-  sendButton: {
+  micBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  speakChip: {
-    flexDirection: 'row',
+  primaryBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
+    justifyContent: 'center',
   },
-  speakLabel: { fontSize: 13, fontWeight: '600' },
 });

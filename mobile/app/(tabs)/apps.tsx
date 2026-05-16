@@ -4,20 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MonacoEditorSheet } from '@/components/editor/MonacoEditorSheet';
 import { PreviewSheet, type PreviewError } from '@/components/preview/PreviewSheet';
-import { SideDrawer } from '@/components/chat/SideDrawer';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { CircleButton } from '@/components/ui/CircleButton';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { SideDrawer } from '@/components/chat';
+import { CircleButton, IconSymbol, ScreenHeader, ThemedText, ThemedView } from '@/components/ui';
 import { confirmDestructive } from '@/lib/action-sheets';
 import { SANDPACK_DEMO_FILES, MONACO_DEMO_VALUE } from '@/constants/demoFixtures';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { useFileSystem } from '../../../src/contexts/FileSystemContext';
-import { useConversation } from '../../../src/contexts/ConversationContext';
-import { getTheme } from '../../../src/styles/theme';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { useFileSystem } from '@shared/contexts/FileSystemContext';
+import { useConversation } from '@shared/contexts/ConversationContext';
+import { getTheme } from '@shared/styles/theme';
 
 type ProjectCard = {
   id: string;
@@ -155,10 +151,10 @@ export default function AppsScreen() {
               <View style={[styles.emptyMark, { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border }]}>
                 <IconSymbol size={28} name="square.grid.2x2" color={theme.colors.text.primary} />
               </View>
-              <ThemedText style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
+              <ThemedText variant="title2" tone="primary">
                 No apps yet
               </ThemedText>
-              <ThemedText style={[styles.emptyBody, { color: theme.colors.text.tertiary }]}>
+              <ThemedText variant="subhead" tone="tertiary" style={styles.emptyBody}>
                 Ask chat to build something and it will appear on your home screen.
               </ThemedText>
             </View>
@@ -170,14 +166,18 @@ export default function AppsScreen() {
                 onPress={() => openProjectPreview(item)}
                 onLongPress={() => confirmDelete(item)}
                 delayLongPress={400}
+                accessibilityRole="button"
+                accessibilityLabel={item.name || item.slug || 'Untitled app'}
+                accessibilityHint="Long-press to delete"
                 style={({ pressed }) => [
                   styles.cell,
-                  { width: cellSize, opacity: pressed ? 0.7 : 1 },
+                  { width: cellSize, opacity: pressed ? theme.opacity.pressedStrong : 1 },
                 ]}
               >
                 <View
                   style={[
                     styles.tile,
+                    theme.nativeShadow.sm,
                     {
                       width: cellSize,
                       height: cellSize,
@@ -191,8 +191,10 @@ export default function AppsScreen() {
                   <ThemedText style={styles.icon}>{item.icon || '📦'}</ThemedText>
                 </View>
                 <ThemedText
+                  variant="footnote"
+                  tone="primary"
                   numberOfLines={1}
-                  style={[styles.label, { color: theme.colors.text.primary }]}
+                  style={styles.label}
                 >
                   {item.name || item.slug || 'Untitled'}
                 </ThemedText>
@@ -238,13 +240,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
   },
   icon: { fontSize: 38 },
-  label: { fontSize: 13, fontWeight: '500', maxWidth: '100%', textAlign: 'center' },
+  label: { fontWeight: '500', maxWidth: '100%', textAlign: 'center' },
   empty: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 32, gap: 10 },
   emptyMark: {
     width: 56,
@@ -255,6 +253,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 6,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '600' },
-  emptyBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  emptyBody: { textAlign: 'center' },
 });

@@ -3,7 +3,6 @@ import {
   Animated,
   Dimensions,
   Easing,
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -18,10 +17,9 @@ import {
 } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import type { SymbolViewProps } from 'expo-symbols';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/ui/ThemedText';
 import { DateGroup } from '@/components/chat/DateGroup';
 import {
   AnimatedChatIcon,
@@ -31,12 +29,14 @@ import {
 } from '@/components/icons/AnimatedNavIcons';
 import { confirmDestructive } from '@/lib/action-sheets';
 import { groupConversations, type ConversationRow } from '@/lib/conversations';
-import { useTheme } from '../../../src/contexts/ThemeContext';
-import { getTheme } from '../../../src/styles/theme';
+import { PLACEHOLDER_USER } from '@/constants/user';
+import { SettingsSheet } from '@/components/settings/SettingsSheet';
+import { useTheme } from '@shared/contexts/ThemeContext';
+import { getTheme } from '@shared/styles/theme';
 
 const DRAWER_WIDTH = Math.min(320, Dimensions.get('window').width * 0.84);
 
-type AnimatedIcon = (props: { size?: number; color?: string; active?: boolean }) => React.ReactElement;
+type AnimatedIcon = (props: { size?: number; color: string; active?: boolean }) => React.ReactElement;
 
 type NavItem = {
   key: string;
@@ -90,6 +90,7 @@ function DrawerBody({
   const [historyOpen, setHistoryOpen] = useState(true);
   const [search, setSearch] = useState('');
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -133,7 +134,7 @@ function DrawerBody({
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.backdrop, { opacity: fade }]}>
+      <Animated.View style={[styles.backdrop, { backgroundColor: theme.effects.overlay.dark, opacity: fade }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
 
@@ -152,10 +153,11 @@ function DrawerBody({
           <View style={styles.brandRow}>
             <View style={styles.brandLetterBox}>
               <ThemedText
-                style={[styles.brandLetter, { color: theme.colors.text.primary }]}
+                variant="display"
+                tone="primary"
                 allowFontScaling={false}
               >
-                B
+                O
               </ThemedText>
             </View>
           </View>
@@ -200,6 +202,9 @@ function DrawerBody({
                     onPress={() => navigate(item)}
                     onPressIn={() => setPressedKey(item.key)}
                     onPressOut={() => setPressedKey(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.label}
+                    accessibilityState={{ selected: active }}
                     style={({ pressed }) => [
                       styles.navRow,
                       {
@@ -217,13 +222,11 @@ function DrawerBody({
                       active={isPressed || active}
                     />
                     <ThemedText
-                      style={[
-                        styles.navLabel,
-                        {
-                          color: active ? theme.colors.text.primary : theme.colors.text.secondary,
-                          fontWeight: active ? '600' : '500',
-                        },
-                      ]}
+                      variant="callout"
+                      style={{
+                        color: active ? theme.colors.text.primary : theme.colors.text.secondary,
+                        fontWeight: active ? '600' : '500',
+                      }}
                     >
                       {item.label}
                     </ThemedText>
@@ -238,6 +241,9 @@ function DrawerBody({
                 }}
                 onPressIn={() => setPressedKey('history')}
                 onPressOut={() => setPressedKey(null)}
+                accessibilityRole="button"
+                accessibilityLabel="History"
+                accessibilityState={{ expanded: historyOpen }}
                 style={({ pressed }) => [
                   styles.navRow,
                   {
@@ -250,7 +256,7 @@ function DrawerBody({
                   color={theme.colors.text.secondary}
                   active={pressedKey === 'history'}
                 />
-                <ThemedText style={[styles.navLabel, { color: theme.colors.text.secondary, flex: 1 }]}>
+                <ThemedText variant="callout" tone="secondary" style={styles.flex1}>
                   History
                 </ThemedText>
                 <IconSymbol
@@ -264,7 +270,7 @@ function DrawerBody({
             {historyOpen && (
               <View style={styles.historyBody}>
                 {conversations.length === 0 ? (
-                  <ThemedText style={[styles.emptyText, { color: theme.colors.text.tertiary }]}>
+                  <ThemedText variant="footnote" tone="tertiary" style={styles.emptyText}>
                     No recent conversations
                   </ThemedText>
                 ) : (
@@ -324,33 +330,73 @@ function DrawerBody({
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: theme.colors.bg.border }]}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onNewChat();
-                onClose();
-                if (!isChat) router.push('/');
-              }}
-              style={({ pressed }) => [
-                styles.footerRow,
-                { backgroundColor: pressed ? theme.colors.bg.tertiary : 'transparent' },
-              ]}
-            >
-              <View
-                style={[
-                  styles.footerAvatar,
-                  { backgroundColor: theme.colors.bg.secondary, borderColor: theme.colors.bg.border },
+            <View style={styles.footerRow}>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSettingsOpen(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Account"
+                style={({ pressed }) => [
+                  styles.accountPill,
+                  {
+                    backgroundColor: theme.surfaces.glass.fill,
+                    borderColor: theme.surfaces.glass.border,
+                    opacity: pressed ? theme.opacity.pressed : 1,
+                  },
                 ]}
               >
-                <IconSymbol size={14} name="square.and.pencil" color={theme.colors.text.primary} />
-              </View>
-              <ThemedText style={[styles.footerLabel, { color: theme.colors.text.primary }]}>
-                New conversation
-              </ThemedText>
-            </Pressable>
+                <View
+                  style={[
+                    styles.accountAvatar,
+                    { backgroundColor: theme.colors.bg.tertiary },
+                  ]}
+                >
+                  <ThemedText
+                    variant="caption"
+                    tone="primary"
+                    allowFontScaling={false}
+                    style={styles.avatarLetter}
+                  >
+                    {PLACEHOLDER_USER.avatarLetter}
+                  </ThemedText>
+                </View>
+                <ThemedText
+                  variant="subhead"
+                  tone="primary"
+                  numberOfLines={1}
+                >
+                  {PLACEHOLDER_USER.displayName}
+                </ThemedText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onNewChat();
+                  onClose();
+                  if (!isChat) router.push('/');
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="New conversation"
+                style={({ pressed }) => [
+                  styles.newChatFab,
+                  theme.nativeShadow.sm,
+                  {
+                    backgroundColor: theme.colors.accent.primary,
+                    opacity: pressed ? theme.opacity.pressedStrong : 1,
+                  },
+                ]}
+              >
+                <IconSymbol size={20} name="plus.bubble.fill" color={theme.colorVariants.white} />
+              </Pressable>
+            </View>
           </View>
         </View>
       </Animated.View>
+
+      <SettingsSheet visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </View>
   );
 }
@@ -359,7 +405,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row' },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   drawer: {
     height: '100%',
@@ -377,11 +422,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandLetter: {
-    fontSize: 32,
-    lineHeight: 36,
-    fontWeight: '800',
-  },
   searchWrap: { paddingHorizontal: 12, paddingBottom: 10 },
   searchBar: {
     flexDirection: 'row',
@@ -392,7 +432,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  searchInput: { flex: 1, fontSize: 14, padding: 0 },
+  searchInput: { flex: 1, fontSize: 14, lineHeight: 20, padding: 0 },
   scrollBody: { paddingBottom: 12 },
   section: { paddingHorizontal: 8, gap: 2 },
   navRow: {
@@ -403,9 +443,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
-  navLabel: { fontSize: 15 },
   historyBody: { paddingHorizontal: 8, paddingTop: 6 },
-  emptyText: { fontSize: 13, paddingHorizontal: 12, paddingVertical: 8 },
+  emptyText: { paddingHorizontal: 12, paddingVertical: 8 },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 8,
@@ -414,18 +453,36 @@ const styles = StyleSheet.create({
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    borderRadius: 10,
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
-  footerAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  accountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingLeft: 4,
+    paddingRight: 14,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 1,
+  },
+  accountAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
   },
-  footerLabel: { fontSize: 14, fontWeight: '500' },
+  avatarLetter: { fontWeight: '700', letterSpacing: 0 },
+  flex1: { flex: 1 },
+  newChatFab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

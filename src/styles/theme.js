@@ -1,30 +1,30 @@
 const lightTheme = {
   colors: {
-    // Cool greyish white UI palette
+    // Softer warm cream + warm dark text — Claude.ai-style professional warmth
     bg: {
-      primary: '#F5F5F7',      // Greyish white background
-      secondary: '#EFEFEF',    // Light grey for cards/panels
-      tertiary: '#E8E8EA',     // Cool grey for suggestion cards/chips
-      hover: '#EAEAEC',        // Grey hover state
-      border: '#DCDCDE',       // Cool grey border
+      primary: '#F4F1EA',      // Deeper warm cream — clearly off-white, soft
+      secondary: '#ECE7DC',    // Elevated surface
+      tertiary: '#E0DAC9',     // Pressed/active
+      hover: '#E7E2D3',
+      border: '#D6CFBC',
     },
-    border: '#DCDCDE',         // Borders
+    border: '#D6CFBC',
     text: {
-      primary: '#403530',      // Dark gray/brown
-      secondary: '#5a534e',    // Medium gray/brown
-      tertiary: '#86868b',     // Light gray
-      disabled: '#b0b0b0',     // Very light gray
+      primary: '#2E2A24',      // Warm dark grey (softer than sharp near-black)
+      secondary: '#5C5853',    // Warm medium grey
+      tertiary: '#8E8A82',
+      disabled: '#B5B1A8',
     },
     accent: {
-      primary: '#C97D63',      // Terracotta/orange for buttons
-      secondary: '#D1D2DE',    // Light lavender
-      success: '#34c759',      // Bright green
-      warning: '#ff9500',      // Orange
-      error: '#ff3b30',        // Bright red
-      info: '#C97D63',         // Terracotta for info
-      ios: '#007AFF',          // iOS system blue
-      iosHover: '#0066DD',     // iOS blue hover state
-      iosLight: 'rgba(0, 122, 255, 0.12)',  // iOS blue background (light)
+      primary: '#7C5BD9',      // Vivid violet (Tailwind violet-600)
+      secondary: '#C4B5FD',    // Lighter violet (Tailwind violet-300)
+      success: '#34c759',
+      warning: '#ff9500',
+      error: '#ff3b30',
+      info: '#7C5BD9',
+      ios: '#7C5BD9',
+      iosHover: '#6B4FBF',
+      iosLight: 'rgba(124, 91, 217, 0.10)',
     },
     status: {
       success: '#34c759',      // Bright green
@@ -52,31 +52,31 @@ const lightTheme = {
 
 const darkTheme = {
   colors: {
-    // Grok-style dark palette (from dark.design/website/grok)
+    // Softer mid-dark grey-purple — less aggressive than near-black
     bg: {
-      primary: '#000000',      // Pure black base
-      secondary: '#1a1a1a',    // Dark grey
-      tertiary: '#2a2a2a',     // Medium grey for active states
-      hover: '#333333',        // Lighter grey for hover
-      border: '#1f1f1f',       // Border color in bg context
+      primary: '#2D2A35',      // Medium dark with purple undertone
+      secondary: '#383448',    // Elevated surface
+      tertiary: '#423E55',     // Pressed/active
+      hover: '#4A4660',
+      border: '#3A3648',
     },
-    border: '#1f1f1f',         // Subtle dark border
+    border: '#3A3648',
     text: {
-      primary: '#f9f9f9',      // Off-white (Grok style)
-      secondary: '#7e7e7e',    // Medium grey (Grok style)
-      tertiary: '#666666',     // Darker grey
-      disabled: '#505050',     // Dark grey
+      primary: '#ECEAF2',      // Soft cool white
+      secondary: '#A3A0B5',    // Cool grey
+      tertiary: '#7E7B92',
+      disabled: '#5F5C70',
     },
     accent: {
-      primary: '#ffffff',      // White for buttons in dark mode
-      secondary: '#f0f0f0',    // Off-white
-      success: '#4ade80',      // Bright green
-      warning: '#fbbf24',      // Bright yellow
-      error: '#f87171',        // Bright red
-      info: '#60a5fa',         // Bright blue for info
-      ios: '#0A84FF',          // iOS system blue (dark mode variant)
-      iosHover: '#409CFF',     // iOS blue hover state (dark mode)
-      iosLight: 'rgba(10, 132, 255, 0.25)',  // iOS blue background (dark)
+      primary: '#A78BFA',      // Bright lavender (Tailwind violet-400)
+      secondary: '#C4B5FD',
+      success: '#4ade80',
+      warning: '#fbbf24',
+      error: '#f87171',
+      info: '#A78BFA',
+      ios: '#A78BFA',
+      iosHover: '#B79DFC',
+      iosLight: 'rgba(167, 139, 250, 0.20)',
     },
     status: {
       success: '#4ade80',      // Bright green
@@ -217,7 +217,22 @@ export const getTheme = (mode) => {
         tight: '1.25',
         normal: '1.5',
         relaxed: '1.75',
-      }
+      },
+      // React Native text variants. Numbers, not CSS strings — consumed by
+      // the mobile <ThemedText variant="..."> prop. Web should keep using
+      // the CSS-string fontSize/fontWeight/lineHeight blocks above.
+      text: {
+        display:  { fontSize: 32, fontWeight: '700', lineHeight: 38, letterSpacing: -0.4 },
+        title1:   { fontSize: 24, fontWeight: '600', lineHeight: 30, letterSpacing: -0.3 },
+        title2:   { fontSize: 20, fontWeight: '600', lineHeight: 26, letterSpacing: -0.2 },
+        title3:   { fontSize: 17, fontWeight: '600', lineHeight: 22, letterSpacing: -0.2 },
+        headline: { fontSize: 16, fontWeight: '600', lineHeight: 22, letterSpacing: 0 },
+        body:     { fontSize: 16, fontWeight: '400', lineHeight: 24, letterSpacing: 0 },
+        callout:  { fontSize: 15, fontWeight: '500', lineHeight: 22, letterSpacing: 0 },
+        subhead:  { fontSize: 14, fontWeight: '500', lineHeight: 20, letterSpacing: 0 },
+        footnote: { fontSize: 13, fontWeight: '400', lineHeight: 18, letterSpacing: 0 },
+        caption:  { fontSize: 12, fontWeight: '500', lineHeight: 16, letterSpacing: 0.2 },
+      },
     },
     animation: {
       fast: '100ms ease',
@@ -254,6 +269,24 @@ export const getTheme = (mode) => {
         light: 'rgba(0, 0, 0, 0.2)',
       }
     },
+    // Native (React Native) surface tokens — translucent fills/borders for
+    // glass affordances over a BlurView, plus high-contrast button colors.
+    surfaces: {
+      glass: {
+        fill:         mode === 'light' ? 'rgba(0,0,0,0.04)'      : 'rgba(255,255,255,0.06)',
+        fillStrong:   mode === 'light' ? 'rgba(0,0,0,0.05)'      : 'rgba(255,255,255,0.08)',
+        border:       mode === 'light' ? 'rgba(0,0,0,0.08)'      : 'rgba(255,255,255,0.10)',
+        borderStrong: mode === 'light' ? 'rgba(0,0,0,0.10)'      : 'rgba(255,255,255,0.16)',
+        fallback:     mode === 'light' ? 'rgba(244,241,234,0.78)': 'rgba(56,52,72,0.78)',
+        blurTint:     mode === 'light' ? 'systemUltraThinMaterialLight' : 'systemUltraThinMaterialDark',
+      },
+      button: {
+        primary: {
+          bg: mode === 'light' ? '#000000' : '#FFFFFF',
+          fg: mode === 'light' ? '#FFFFFF' : '#000000',
+        },
+      },
+    },
     // Hover state opacity levels
     opacity: {
       hover: {
@@ -263,6 +296,45 @@ export const getTheme = (mode) => {
       },
       disabled: 0.5,
       faded: 0.3,
+      pressed: 0.6,        // Mobile: glass buttons + secondary affordances
+      pressedStrong: 0.75, // Mobile: primary CTAs (send, FAB, "Fix with AI")
+    },
+    // Native (RN) shadow tokens — spread into a style array via
+    // `style={[styles.X, theme.nativeShadow.Y]}`. StyleSheet.create can't
+    // reference these (they're computed per-mode), so we apply them inline.
+    nativeShadow: {
+      sm: {
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+      },
+      md: {
+        shadowColor: '#000',
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 3,
+      },
+      lg: {
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
+      },
+    },
+    // Semantic text tones — consumed by <ThemedText tone="...">.
+    tone: {
+      primary:   baseTheme.colors.text.primary,
+      secondary: baseTheme.colors.text.secondary,
+      tertiary:  baseTheme.colors.text.tertiary,
+      disabled:  baseTheme.colors.text.disabled,
+      accent:    baseTheme.colors.accent.primary,
+      link:      baseTheme.colors.accent.ios,
+      inverse:   mode === 'dark' ? '#000000' : '#FFFFFF',
+      error:     baseTheme.colors.status.error,
     },
     // Color hover variants
     colorVariants: {

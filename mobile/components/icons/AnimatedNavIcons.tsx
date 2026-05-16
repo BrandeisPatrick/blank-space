@@ -8,11 +8,11 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 type IconProps = {
   size?: number;
-  color?: string;
+  color: string;
   active?: boolean;
 };
 
-export function AnimatedChatIcon({ size = 20, color = '#fff', active = false }: IconProps) {
+export function AnimatedChatIcon({ size = 20, color, active = false }: IconProps) {
   const dot1 = useRef(new Animated.Value(10)).current;
   const dot2 = useRef(new Animated.Value(10)).current;
   const dot3 = useRef(new Animated.Value(10)).current;
@@ -75,7 +75,7 @@ export function AnimatedChatIcon({ size = 20, color = '#fff', active = false }: 
   );
 }
 
-export function AnimatedComputerIcon({ size = 20, color = '#fff', active = false }: IconProps) {
+export function AnimatedComputerIcon({ size = 20, color, active = false }: IconProps) {
   const draw1 = useRef(new Animated.Value(0)).current;
   const draw2 = useRef(new Animated.Value(0)).current;
 
@@ -120,7 +120,7 @@ export function AnimatedComputerIcon({ size = 20, color = '#fff', active = false
   );
 }
 
-export function AnimatedFilesIcon({ size = 20, color = '#fff', active = false }: IconProps) {
+export function AnimatedFilesIcon({ size = 20, color, active = false }: IconProps) {
   const flapY = useRef(new Animated.Value(0)).current;
   const linesOpacity = useRef(new Animated.Value(0)).current;
 
@@ -174,7 +174,7 @@ export function AnimatedFilesIcon({ size = 20, color = '#fff', active = false }:
   );
 }
 
-export function AnimatedHistoryIcon({ size = 20, color = '#fff', active = false }: IconProps) {
+export function AnimatedHistoryIcon({ size = 20, color, active = false }: IconProps) {
   const rotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {

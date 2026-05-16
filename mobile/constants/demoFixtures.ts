@@ -30,5 +30,5 @@ function greet(name: string): string {
   return \`Hello, \${name}\`;
 }
 
-console.log(greet('blank space'));
+console.log(greet('open agent'));
 `;

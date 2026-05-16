@@ -3,14 +3,11 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 
-import { ChatHeader } from '@/components/chat/ChatHeader';
-import { Composer } from '@/components/chat/Composer';
-import { SideDrawer } from '@/components/chat/SideDrawer';
-import { MessageList, type Message } from '@/components/chat/MessageList';
-import { ThemedView } from '@/components/themed-view';
-import { useConversation } from '../../../src/contexts/ConversationContext';
-import { useLocalStorage } from '../../../src/hooks/useLocalStorage';
-import { MODEL_TIERS, getModelForTier } from '../../../src/services/config/modelConfig';
+import { ChatHeader, Composer, MessageList, SideDrawer, type Message } from '@/components/chat';
+import { ThemedView } from '@/components/ui';
+import { useConversation } from '@shared/contexts/ConversationContext';
+import { useLocalStorage } from '@shared/hooks/useLocalStorage';
+import { MODEL_TIERS, getModelForTier } from '@shared/services/config/modelConfig';
 
 const API_URL = 'https://www.blankspace.build/api/chat';
 type TierKey = keyof typeof MODEL_TIERS;
@@ -33,8 +30,17 @@ export default function ChatScreen() {
   const [modelTier, setModelTier] = useLocalStorage('modelTier', 'lite') as [TierKey, (v: TierKey) => void];
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerPrefill, setComposerPrefill] = useState('');
+  const [incognito, setIncognito] = useState(false);
+  const [incognitoMessages, setIncognitoMessages] = useState<Message[]>([]);
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const consumedPrefillRef = useRef<string | null>(null);
+
+  const displayMessages = incognito ? incognitoMessages : (messages as Message[]);
+
+  const toggleIncognito = () => {
+    setIncognitoMessages([]);
+    setIncognito((v) => !v);
+  };
 
   useEffect(() => {
     if (typeof prefill === 'string' && prefill.length > 0 && prefill !== consumedPrefillRef.current) {
@@ -44,16 +50,22 @@ export default function ChatScreen() {
   }, [prefill]);
 
   const handleSend = async (text: string) => {
-    const userMsg = {
+    const userMsg: Message = {
       id: `${Date.now()}-u`,
-      role: 'user' as const,
+      role: 'user',
       content: text,
     };
-    await addMessage(userMsg);
+
+    const baseHistory = incognito ? incognitoMessages : (messages as Message[]);
+    if (incognito) {
+      setIncognitoMessages((prev) => [...prev, userMsg]);
+    } else {
+      await addMessage(userMsg);
+    }
     setSending(true);
 
     try {
-      const history = [...(messages as Message[]), userMsg].map((m) => ({
+      const history = [...baseHistory, userMsg].map((m) => ({
         role: m.role,
         content: m.content,
       }));
@@ -71,18 +83,28 @@ export default function ChatScreen() {
       const data = await res.json();
       const reply = data?.choices?.[0]?.message?.content ?? '(empty response)';
 
-      await addMessage({
+      const assistantMsg: Message = {
         id: `${Date.now()}-a`,
         role: 'assistant',
         content: reply,
-      });
+      };
+      if (incognito) {
+        setIncognitoMessages((prev) => [...prev, assistantMsg]);
+      } else {
+        await addMessage(assistantMsg);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Network error';
-      await addMessage({
+      const errorMsg: Message = {
         id: `${Date.now()}-a`,
         role: 'assistant',
         content: `⚠️ ${msg}`,
-      });
+      };
+      if (incognito) {
+        setIncognitoMessages((prev) => [...prev, errorMsg]);
+      } else {
+        await addMessage(errorMsg);
+      }
     } finally {
       setSending(false);
     }
@@ -96,7 +118,8 @@ export default function ChatScreen() {
           modelTier={modelTier}
           onChangeTier={setModelTier}
           onOpenList={() => setDrawerOpen(true)}
-          onNewChat={() => createConversation()}
+          incognito={incognito}
+          onToggleIncognito={toggleIncognito}
         />
         <KeyboardAvoidingView
           style={styles.kav}
@@ -104,9 +127,8 @@ export default function ChatScreen() {
           keyboardVerticalOffset={0}
         >
           <MessageList
-            messages={messages as Message[]}
+            messages={displayMessages}
             sending={sending}
-            onSuggestedPrompt={handleSend}
             bottomInset={120}
           />
           <View style={styles.composerOverlay} pointerEvents="box-none">
@@ -114,8 +136,6 @@ export default function ChatScreen() {
               onSend={handleSend}
               disabled={sending}
               initialValue={composerPrefill}
-              modelTier={modelTier}
-              onChangeTier={setModelTier}
             />
           </View>
         </KeyboardAvoidingView>
@@ -125,9 +145,21 @@ export default function ChatScreen() {
         conversations={conversations}
         activeId={activeConversationId}
         onClose={() => setDrawerOpen(false)}
-        onSelectConversation={switchConversation}
+        onSelectConversation={(id) => {
+          if (incognito) {
+            setIncognito(false);
+            setIncognitoMessages([]);
+          }
+          switchConversation(id);
+        }}
         onDeleteConversation={deleteConversation}
-        onNewChat={createConversation}
+        onNewChat={() => {
+          if (incognito) {
+            setIncognito(false);
+            setIncognitoMessages([]);
+          }
+          createConversation();
+        }}
       />
     </ThemedView>
   );

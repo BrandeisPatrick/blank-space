@@ -1,11 +1,7 @@
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { MODEL_TIERS } from '../../src/services/config/modelConfig';
-
 type ColorMode = 'light' | 'dark';
-type TierKey = keyof typeof MODEL_TIERS;
-const TIER_KEYS = Object.keys(MODEL_TIERS) as TierKey[];
 
 export function confirmDestructive({
   title,
@@ -49,35 +45,6 @@ export function confirmDestructive({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         onConfirm();
       }
-    },
-  );
-}
-
-export function openTierPickerSheet({
-  current,
-  mode,
-  onChange,
-}: {
-  current: TierKey;
-  mode: ColorMode;
-  onChange: (next: TierKey) => void;
-}) {
-  Haptics.selectionAsync();
-  if (Platform.OS !== 'ios') {
-    const next = TIER_KEYS[(TIER_KEYS.indexOf(current) + 1) % TIER_KEYS.length];
-    onChange(next);
-    return;
-  }
-  ActionSheetIOS.showActionSheetWithOptions(
-    {
-      title: 'Model',
-      options: [...TIER_KEYS.map((k) => MODEL_TIERS[k].name), 'Cancel'],
-      cancelButtonIndex: TIER_KEYS.length,
-      userInterfaceStyle: mode,
-    },
-    (index) => {
-      if (index < 0 || index >= TIER_KEYS.length) return;
-      onChange(TIER_KEYS[index]);
     },
   );
 }

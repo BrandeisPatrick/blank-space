@@ -16,6 +16,15 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Path alias: '@shared/...' → '<repo root>/src/...'. Mirrors the tsconfig
+// "paths" entry so Metro resolves at runtime what TS resolves at compile time.
+// Required because Metro doesn't auto-follow tsconfig paths that escape the
+// project root.
+config.resolver.extraNodeModules = {
+  ...(config.resolver.extraNodeModules || {}),
+  '@shared': path.resolve(workspaceRoot, 'src'),
+};
+
 // Surgical dedup for React and the RN runtime: when ANY file (including
 // shared code under ../src/) imports 'react' / 'react-dom' / 'react-native',
 // force it to resolve to mobile/node_modules. Without this, shared code
